@@ -285,8 +285,8 @@ namespace Selen.Sites {
                 var inactivePages = int.Parse(el[0]) / 10;
                 var activePages = int.Parse(el[1]) / 10;
                 var oldPages = int.Parse(el[2]) / 10;
+                ParsePage("/active", activePages);
                 do {
-                    ParsePage("/active", activePages);
                     ParsePage("/old", oldPages);
                     ParsePage("/inactive", inactivePages);
                 } while (CountToUp > 0);
@@ -295,7 +295,7 @@ namespace Selen.Sites {
 
         private void ParsePage(string location, int pageCount) {
             //выбираю случайную страницу
-            int numPage = 1 + rnd.Next(1, pageCount) / rnd.Next(1, pageCount / 5);
+            int numPage = 1 + rnd.Next(1, pageCount) / rnd.Next(1, pageCount / 3);
             //перехожу в раздел
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
             _dr.Navigate(url);
@@ -332,7 +332,7 @@ namespace Selen.Sites {
                     }
                 }
             }
-            Thread.Sleep(10000);
+            Thread.Sleep(20000);
         }
 
         private void UpOffer(int b) {
@@ -349,7 +349,7 @@ namespace Selen.Sites {
             if (butOpub.Count > 0) {
                 butOpub.First().Click();
                 CountToUp--;
-                Thread.Sleep(10000);
+                Thread.Sleep(15000);
             }
         }
 

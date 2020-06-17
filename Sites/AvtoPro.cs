@@ -282,104 +282,104 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='Price']", b.price.ToString());
         }
 
-        public async Task UpAsync() {
-            try {
-                await Task.Factory.StartNew(() => {
-                    var pages = GetPagesCount("non_active");
-                    for (int i = pages; i > 0; i--) {
-                        _dr.Navigate("https://baza.drom.ru/personal/non_active/bulletins?page=" + i);
-                        _dr.ButtonClick("//input[@id='selectAll']");
-                        Thread.Sleep(2000);
-                        if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
-                            _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
-                            Thread.Sleep(2000);
-                            PressSubmitButton();
-                            Thread.Sleep(10000);
-                            _dr.Refresh();
-                        } else
-                            break;
-                    }
-                });
-            } catch (Exception x) {
-                Debug.WriteLine("DROM.RU: ОШИБКА МАССОВОГО ПОДЪЕМА\n" + x.Message + "\n" + x.InnerException.Message);
-            }
-        }
+        //public async Task UpAsync() {//TODO автопро убрать лишний метод
+        //    try {
+        //        await Task.Factory.StartNew(() => {
+        //            var pages = GetPagesCount("non_active");
+        //            for (int i = pages; i > 0; i--) {
+        //                _dr.Navigate("https://baza.drom.ru/personal/non_active/bulletins?page=" + i);
+        //                _dr.ButtonClick("//input[@id='selectAll']");
+        //                Thread.Sleep(2000);
+        //                if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
+        //                    _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
+        //                    Thread.Sleep(2000);
+        //                    PressSubmitButton();
+        //                    Thread.Sleep(10000);
+        //                    _dr.Refresh();
+        //                } else
+        //                    break;
+        //            }
+        //        });
+        //    } catch (Exception x) {
+        //        Debug.WriteLine("AVTO.PRO: ОШИБКА МАССОВОГО ПОДЪЕМА\n" + x.Message + "\n" + x.InnerException.Message);
+        //    }
+        //}
 
-        private int GetPagesCount(string type) {
-            try {
-                //_dr.Navigate("https://baza.drom.ru/personal/all/bulletins");
-                var count = _dr.GetElementsCount("//div/a[contains(@href,'" + type + "/bulletins')]");
-                if (count > 0) {
-                    var str = _dr.GetElementText("//div/a[contains(@href,'" + type + "/bulletins')]/../small");
-                    var num = HttpUtility.HtmlDecode(str);
-                    var i = int.Parse(num);
-                    return (i / 50) + 1;
-                }
-            } catch { }
-            return 1;
-        }
+        //private int GetPagesCount(string type) { //TODO автопро убрать лишний метод
+        //    try {
+        //        //_dr.Navigate("https://baza.drom.ru/personal/all/bulletins");
+        //        var count = _dr.GetElementsCount("//div/a[contains(@href,'" + type + "/bulletins')]");
+        //        if (count > 0) {
+        //            var str = _dr.GetElementText("//div/a[contains(@href,'" + type + "/bulletins')]/../small");
+        //            var num = HttpUtility.HtmlDecode(str);
+        //            var i = int.Parse(num);
+        //            return (i / 50) + 1;
+        //        }
+        //    } catch { }
+        //    return 1;
+        //}
 
-        public async Task CheckAsync(int count = 10) {
-            try {
-                await Task.Factory.StartNew(() => {
-                    //var pages = GetPagesCount("all");
-                    for (int i = 0; i < count; i++) {
-                        try {
-                            //var drom = ParsePage(rnd.Next(1, pages));
-                            //await CheckPageAsync(drom);
-                        } catch {
-                            i--;
-                            _dr.Refresh();
-                            Thread.Sleep(10000);
-                        }
-                    }
-                });
-            } catch (Exception x) {
-                Debug.WriteLine("DROM.RU: ОШИБКА ПАРСИНГА\n" + x.Message + "\n" + x.InnerException.Message);
-            }
-        }
+        //public async Task CheckAsync(int count = 10) { //TODO автопро убрать лишний метод
+        //    try {
+        //        await Task.Factory.StartNew(() => {
+        //            //var pages = GetPagesCount("all");
+        //            for (int i = 0; i < count; i++) {
+        //                try {
+        //                    //var drom = ParsePage(rnd.Next(1, pages));
+        //                    //await CheckPageAsync(drom);
+        //                } catch {
+        //                    i--;
+        //                    _dr.Refresh();
+        //                    Thread.Sleep(10000);
+        //                }
+        //            }
+        //        });
+        //    } catch (Exception x) {
+        //        Debug.WriteLine("AVTO.PRO: ОШИБКА ПАРСИНГА\n" + x.Message + "\n" + x.InnerException.Message);
+        //    }
+        //}
 
-        async Task CheckPageAsync(List<RootObject> drom) {
-            for (int i = 0; i < drom.Count; i++) {
-                await CheckItemAsync(drom[i]);
-            }
-        }
+        //async Task CheckPageAsync(List<RootObject> drom) { //TODO автопро убрать лишний метод
+        //    for (int i = 0; i < drom.Count; i++) {
+        //        await CheckItemAsync(drom[i]);
+        //    }
+        //}
 
-        async Task CheckItemAsync(RootObject b) {
-            var i = _bus.FindIndex(f => f.drom.Contains(b.id));
-            if (i < 0 && !b.description.Contains("далено")) {
-                _dr.Navigate(b.avtopro);
-                //DeleteAsync();
-            }
-            if (i > -1 &&
-                ((b.price != _bus[i].price && !_bus[i].description.Contains("Залог:")) ||
-                !b.description.Contains("далено") && _bus[i].amount <= 0 ||
-                (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
-                )) {
-                await EditAsync(i);
-            }
-        }
+        //async Task CheckItemAsync(RootObject b) {//TODO автопро убрать лишний метод
+        //    var i = _bus.FindIndex(f => f.drom.Contains(b.id));
+        //    if (i < 0 && !b.description.Contains("далено")) {
+        //        _dr.Navigate(b.avtopro);
+        //        //DeleteAsync();
+        //    }
+        //    if (i > -1 &&
+        //        ((b.price != _bus[i].price && !_bus[i].description.Contains("Залог:")) ||
+        //        !b.description.Contains("далено") && _bus[i].amount <= 0 ||
+        //        (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
+        //        )) {
+        //        await EditAsync(i);
+        //    }
+        //}
 
-        private List<RootObject> ParsePage(int i) {
-            var page = "https://avto.pro/warehouses/79489?page=" + i;
-            _dr.Navigate(page);
-            var avtopro = new List<RootObject>();
-            foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
-                var el = item.FindElements(By.XPath(".//span[@data-role='price']"));
-                var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("₽", "")) : 0;
-                var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
-                var status = item.FindElement(By.XPath(".//div[contains(@class,'bulletin-additionals_right-column')]")).Text;
-                var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
-                var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
-                avtopro.Add(new RootObject {
-                    name = name,
-                    id = id,
-                    price = price,
-                    description = status,
-                    avtopro = url
-                });
-            }
-            return avtopro;
-        }
+        //private List<RootObject> ParsePage(int i) { //TODO автопро убрать лишний метод
+        //    var page = "https://avto.pro/warehouses/79489?page=" + i;
+        //    _dr.Navigate(page);
+        //    var avtopro = new List<RootObject>();
+        //    foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
+        //        var el = item.FindElements(By.XPath(".//span[@data-role='price']"));
+        //        var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("₽", "")) : 0;
+        //        var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
+        //        var status = item.FindElement(By.XPath(".//div[contains(@class,'bulletin-additionals_right-column')]")).Text;
+        //        var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
+        //        var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
+        //        avtopro.Add(new RootObject {
+        //            name = name,
+        //            id = id,
+        //            price = price,
+        //            description = status,
+        //            avtopro = url
+        //        });
+        //    }
+        //    return avtopro;
+        //}
     }
 }
