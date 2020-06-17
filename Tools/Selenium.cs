@@ -28,6 +28,12 @@ namespace Selen.Tools {
             ConfirmAlert();
         }
 
+        public async Task NavigateAsync(string url) {
+            await Task.Factory.StartNew(() => {
+                Navigate(url);
+            });
+        }
+
         public void Refresh() {
             _drv.Navigate().Refresh();
             Thread.Sleep(10000);

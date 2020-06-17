@@ -199,11 +199,7 @@ namespace Selen.Sites {
             do {
                 try {
                     _dr.Navigate("https://avto.pro/warehouses/79489/");
-                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 ||
-                        _dr.GetElementsCount("//div[@class='er_code']") > 0) {
-                        _dr.Refresh();
-                        Thread.Sleep(5000);
-                    }
+                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 || _dr.GetElementsCount("//div[@class='er_code']") > 0) _dr.Refresh();
                     _dr.ButtonClick("//div[text()='Поиск']");
                     _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
                     while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(5000);

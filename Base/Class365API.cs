@@ -72,8 +72,8 @@ namespace Selen {
             //6
             Uri url = new Uri(baseAdr, "repair.json?" + ps);
 
-            //string s = await wc.DownloadStringTaskAsync(url);
             HttpResponseMessage res = await hc.GetAsync(url);
+
             var js = await res.Content.ReadAsStringAsync();
 
             if (res.StatusCode != HttpStatusCode.OK || js.Contains("Превышение лимита")) {

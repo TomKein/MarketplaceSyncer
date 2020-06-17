@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.20.2";
+        string _version = "1.21.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -942,8 +942,16 @@ namespace Selen {
             }
             return s;
         }
+
+        private void TiuCheckPopup() {
+            var el = tiu.FindElements(By.XPath("//span[contains(@class,'overlay__close-button')]"));
+            if (el.Count > 0)
+                el.First().Click();
+        }
+
         private void TiuOfferUpdate(int b) {
             tiu.Navigate().GoToUrl(bus[b].tiu);
+            TiuCheckPopup();
             WriteToIWebElement(tiu, tiu.FindElement(By.CssSelector("input[data-qaid='product_name_input']")), bus[b].name);
             WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//*[@id='cke_1_contents']/iframe")), sl: GetTiuDesc(b));
 
