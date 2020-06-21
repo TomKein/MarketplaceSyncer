@@ -285,13 +285,11 @@ namespace Selen.Sites {
                 var inactive = int.Parse(el[0]);
                 var active = int.Parse(el[1]);
                 var old = int.Parse(el[2]);
-                //проверяю по одной случайной странице активных и старых объявлений
+                //проверяю случайную страницу активных объявлений
                 ParsePage("/active", GetRandomPageNum(active));
-                ParsePage("/old", GetRandomPageNum(old));
-                //проход страниц неактивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-                for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) {
-                    ParsePage("/inactive", i);
-                }
+                //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
+                for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) { ParsePage("/inactive", i); }
+                for (int i = 1; i <= old / 10 && CountToUp > 0; i++) { ParsePage("/old", i); }
             });
         }
 
