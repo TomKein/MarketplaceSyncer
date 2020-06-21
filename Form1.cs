@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.21.1";
+        string _version = "1.22.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();

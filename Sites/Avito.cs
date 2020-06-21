@@ -282,20 +282,24 @@ namespace Selen.Sites {
                 _dr.Navigate("https://www.avito.ru/profile");
                 while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(); }
                 var el = _dr.FindElements("//li/span[@class='nav-tab-num']").Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
-                var inactivePages = int.Parse(el[0]) / 10;
-                var activePages = int.Parse(el[1]) / 10;
-                var oldPages = int.Parse(el[2]) / 10;
-                ParsePage("/active", activePages);
-                do {
-                    ParsePage("/old", oldPages);
-                    ParsePage("/inactive", inactivePages);
-                } while (CountToUp > 0);
+                var inactive = int.Parse(el[0]);
+                var active = int.Parse(el[1]);
+                var old = int.Parse(el[2]);
+                //проверяю по одной случайной странице активных и старых объявлений
+                ParsePage("/active", GetRandomPageNum(active));
+                ParsePage("/old", GetRandomPageNum(old));
+                //проход страниц неактивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
+                for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) {
+                    ParsePage("/inactive", i);
+                }
             });
         }
 
-        private void ParsePage(string location, int pageCount) {
-            //выбираю случайную страницу
-            int numPage = 1 + rnd.Next(1, pageCount) / rnd.Next(1, pageCount / 3);
+        private int GetRandomPageNum(int count) {
+            return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 10);
+        }
+
+        private void ParsePage(string location, int numPage) {
             //перехожу в раздел
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
             _dr.Navigate(url);
