@@ -105,7 +105,7 @@ namespace Selen.Sites {
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
                 await Task.Factory.StartNew(() => {
-                    _dr.Navigate("https://www.avito.ru/items/edit/" + _bus[b].avito.Split('_').Last());
+                    _dr.Navigate("https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/","_").Split('_').Last());
                     while (_dr.GetElementsCount("//a[@href='/profile']") == 0) { _dr.Refresh(); }
                 });
                 if (await CheckIsOfferAlive(b)) {
@@ -327,7 +327,7 @@ namespace Selen.Sites {
                     }
                     //если объявление в разделе "архив" или "ждут действий", но есть на остатках и цена больше пороговой - поднимаю
                     if (CountToUp > 0 &&
-                        _bus[b].price > _priceLevel &&
+                        _bus[b].price >= _priceLevel &&
                         _bus[b].amount > 0 &&
                         (location == "/old" || location == "/inactive")) {
                         UpOffer(b);
@@ -567,94 +567,94 @@ namespace Selen.Sites {
                 }
                 if (selector.Length > 0) {
                     AvitoClickTo(selector);
-                    _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
-                    Thread.Sleep(1000);
                     switch (_bus[b].GroupName()) {
                         case "Пластик кузова":
                         case "Ручки и замки кузова":
                         case "Петли":
                         case "Кузовные запчасти":
+                            _dr.ButtonClick("//span[text()='Тип детали кузова']/../../..//select");
                             if (bn.Contains("накладка") || bn.Contains("молдинг") || bn.Contains("бархот")) {
-                                _dr.ButtonClick("option[value='16822']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "молд" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("бампер")) {
-                                _dr.ButtonClick("option[value='16806']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "бамп" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("балка") || bn.Contains("лонжер") || bn.Contains("подрамник")) {
-                                _dr.ButtonClick("option[value='16805']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "балк" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("брызговик")) {
-                                _dr.ButtonClick("option[value='16807']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "брызг" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("замок") || bn.Contains("личинк") || bn.Contains("замка")) {
-                                _dr.ButtonClick("option[value='16810']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "замк" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("бака")) {
-                                _dr.ButtonClick("option[value='16815']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "креп" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("защита") || bn.Contains("ыльник") || bn.Contains("щит ") || bn.Contains("щиток ")) {
-                                _dr.ButtonClick("option[value='16811']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "защи" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("дверь")) {
-                                _dr.ButtonClick("option[value='16808']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "двер" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("креплен") || bn.Contains("ронштейн") || bn.Contains("ержатель") ||
                                 bn.Contains("аправляющ") || bn.Contains("петл")) {
-                                _dr.ButtonClick("option[value='16815']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "креп" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("крыло ")) {
-                                _dr.ButtonClick("option[value='16816']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "крыл" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("крыша")) {
-                                _dr.ButtonClick("option[value='16819']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "кузов" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("крышка") && bn.Contains("багажн")) {
-                                _dr.ButtonClick("option[value='16818']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "крышк" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("капот")) {
-                                _dr.ButtonClick("option[value='16814']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "капот" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("порог")) {
-                                _dr.ButtonClick("option[value='16823']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "порог" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("решет") && bn.Contains("радиатор")) {
-                                _dr.ButtonClick("option[value='16825']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "решет" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
-                            _dr.ButtonClick("option[value='16819']");
+                            _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "кузов" + OpenQA.Selenium.Keys.Enter);
                             break;
                         case "Зеркала":
-                            _dr.ButtonClick("option[value='16812']");
+                            _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "зерк" + OpenQA.Selenium.Keys.Enter);
                             break;
                         case "Кронштейны, опоры":
-                            _dr.ButtonClick("option[value='16815']");
+                            _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "креп" + OpenQA.Selenium.Keys.Enter);
                             break;
                         case "Тросы автомобильные":
-                            _dr.ButtonClick("option[value='16819']");
+                            _dr.WriteToSelector("//option[contains(text(),'Двери')]/..", "кузов" + OpenQA.Selenium.Keys.Enter);
                             break;
                         case "Детали двигателей":
                         case "Двигатели":
+                            _dr.ButtonClick("//span[text()='Тип детали двигателя']/../../..//select");
                             if (bn.Contains("цилиндр") || bn.Contains("гбц ") ||
                                 bn.Contains("низ ") || bn.Contains("поддон")) {
-                                _dr.ButtonClick("option[value='16827']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "блок" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("двигатель")) {
-                                _dr.ButtonClick("option[value='16830']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "двига" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("ремн") || bn.Contains("грм ") ||
@@ -662,38 +662,38 @@ namespace Selen.Sites {
                                 bn.Contains("клапан ") || bn.Contains("клапанной") || bn.Contains("клапана") ||
                                 bn.Contains("вал ") || bn.Contains("вала ") || bn.Contains("газорасп") ||
                                 bn.Contains("компенсат") || bn.Contains("шестерн") || bn.Contains("шкив")) {
-                                _dr.ButtonClick("option[value='16841']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "ремни" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("коленвал") || bn.Contains("маховик") || bn.Contains("венец")) {
-                                _dr.ButtonClick("option[value='16833']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "колен" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("ролик") || bn.Contains("натяжитель")) {
-                                _dr.ButtonClick("option[value='16839']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "привод" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("крышка") || bn.Contains("плита")) {
-                                _dr.ButtonClick("option[value='16832']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "клапан" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("проклад")) {
-                                _dr.ButtonClick("option[value='16840']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "прокла" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("масло") || bn.Contains("маслян")) {
-                                _dr.ButtonClick("option[value='16836']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "маслян" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("поршен") || bn.Contains("шатун") || bn.Contains("кольц") || bn.Contains("вкладыш")) {
-                                _dr.ButtonClick("option[value='16838']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "поршн" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
                             if (bn.Contains("вентиля")) {
-                                _dr.ButtonClick("option[value='16837']");
+                                _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "патру" + OpenQA.Selenium.Keys.Enter);
                                 break;
                             }
-                            _dr.ButtonClick("option[value='16827']");
+                            _dr.WriteToSelector("//option[contains(text(),'Двигатель')]/..", "блок" + OpenQA.Selenium.Keys.Enter);
                             break;
                     }
                 }

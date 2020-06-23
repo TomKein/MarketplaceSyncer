@@ -34,9 +34,10 @@ namespace Selen.Tools {
             });
         }
 
-        public void Refresh() {
+        public void Refresh(string url = "") {
             _drv.Navigate().Refresh();
             Thread.Sleep(10000);
+            if (url.Contains("http")) _drv.Navigate().GoToUrl(url);
         }
 
         public void ButtonClick(string s) {

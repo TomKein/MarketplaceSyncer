@@ -944,7 +944,7 @@ namespace Selen {
         }
 
         private void TiuCheckPopup() {
-            var el = tiu.FindElements(By.XPath("//span[contains(@class,'overlay__close-button')]"));
+            var el = tiu.FindElements(By.XPath("//div[contains(@class,'sliding-panel__close-btn')]"));
             if (el.Count > 0)
                 el.First().Click();
         }
