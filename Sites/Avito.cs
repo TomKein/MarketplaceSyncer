@@ -105,8 +105,9 @@ namespace Selen.Sites {
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
                 await Task.Factory.StartNew(() => {
-                    _dr.Navigate("https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/","_").Split('_').Last());
-                    while (_dr.GetElementsCount("//a[@href='/profile']") == 0) { _dr.Refresh(); }
+                    var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
+                    _dr.Navigate(url);
+                    while (_dr.GetElementsCount("//a[@href='/profile']") == 0) { _dr.Refresh(url); }
                 });
                 if (await CheckIsOfferAlive(b)) {
                     await Task.Factory.StartNew(() => {
@@ -150,7 +151,7 @@ namespace Selen.Sites {
                 if ((_bus[b].avito == null || !_bus[b].avito.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
                     _bus[b].amount > 0 &&
-                    _bus[b].price > _priceLevel &&
+                    _bus[b].price >= _priceLevel &&
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("https://avito.ru/additem");
@@ -279,14 +280,16 @@ namespace Selen.Sites {
 
         private async Task AvitoUpAsync() {
             await Task.Factory.StartNew(() => {
-                _dr.Navigate("https://www.avito.ru/profile");
-                while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(); }
+                var url = "https://www.avito.ru/profile";
+                _dr.Navigate(url);
+                while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(url); }
                 var el = _dr.FindElements("//li/span[@class='nav-tab-num']").Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
                 var inactive = int.Parse(el[0]);
                 var active = int.Parse(el[1]);
                 var old = int.Parse(el[2]);
                 //проверяю случайную страницу активных объявлений
                 ParsePage("/active", GetRandomPageNum(active));
+                ParsePage("/old", GetRandomPageNum(old));
                 //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
                 for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) { ParsePage("/inactive", i); }
                 for (int i = 1; i <= old / 10 && CountToUp > 0; i++) { ParsePage("/old", i); }
@@ -302,7 +305,7 @@ namespace Selen.Sites {
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
             _dr.Navigate(url);
             //проверяю, что страница загрузилась
-            while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(); }
+            while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(url); }
             //парсинг объявлений на странице
             var items = _dr.FindElements("//div[contains(@class,'text-t')]//a");
             var urls = items.Select(s => s.GetAttribute("href")).ToList();
