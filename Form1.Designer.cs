@@ -105,8 +105,6 @@ namespace Selen
             this.checkBox_avto_pro_use = new System.Windows.Forms.CheckBox();
             this.button_avto_pro = new System.Windows.Forms.Button();
             this.numericUpDown_avto_pro_add = new System.Windows.Forms.NumericUpDown();
-            this.numericUpDown_avto_pro_check = new System.Windows.Forms.NumericUpDown();
-            this.label7 = new System.Windows.Forms.Label();
             this.checkBox_avito_use = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
@@ -123,7 +121,6 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DromCheckPageCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_add)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_check)).BeginInit();
             this.SuspendLayout();
             // 
             // button_drom_get
@@ -206,8 +203,6 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
-            this.checkBox_sync.Checked = true;
-            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(15, 686);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
@@ -271,7 +266,7 @@ namespace Selen
             this.button_drom_add_new.Name = "button_drom_add_new";
             this.button_drom_add_new.Size = new System.Drawing.Size(108, 23);
             this.button_drom_add_new.TabIndex = 56;
-            this.button_drom_add_new.Text = "Добавление";
+            this.button_drom_add_new.Text = "Добавить";
             this.button_drom_add_new.UseVisualStyleBackColor = true;
             this.button_drom_add_new.Click += new System.EventHandler(this.ButtonDromAddNewClick);
             // 
@@ -361,7 +356,7 @@ namespace Selen
             this.button_auto_add.Name = "button_auto_add";
             this.button_auto_add.Size = new System.Drawing.Size(107, 23);
             this.button_auto_add.TabIndex = 68;
-            this.button_auto_add.Text = "Добавление";
+            this.button_auto_add.Text = "Добавить";
             this.button_auto_add.UseVisualStyleBackColor = true;
             this.button_auto_add.Click += new System.EventHandler(this.AutoNewAddAsync);
             // 
@@ -465,7 +460,7 @@ namespace Selen
             this.button_avito_add.Name = "button_avito_add";
             this.button_avito_add.Size = new System.Drawing.Size(108, 22);
             this.button_avito_add.TabIndex = 89;
-            this.button_avito_add.Text = "Добавление";
+            this.button_avito_add.Text = "Добавить";
             this.button_avito_add.UseVisualStyleBackColor = true;
             this.button_avito_add.Click += new System.EventHandler(this.button_avito_add_Click);
             // 
@@ -654,7 +649,7 @@ namespace Selen
             this.buttonKupiprodaiAdd.Name = "buttonKupiprodaiAdd";
             this.buttonKupiprodaiAdd.Size = new System.Drawing.Size(107, 23);
             this.buttonKupiprodaiAdd.TabIndex = 112;
-            this.buttonKupiprodaiAdd.Text = "Добавление";
+            this.buttonKupiprodaiAdd.Text = "Добавить";
             this.buttonKupiprodaiAdd.UseVisualStyleBackColor = true;
             this.buttonKupiprodaiAdd.Click += new System.EventHandler(this.buttonKupiprodaiAdd_Click);
             // 
@@ -706,7 +701,7 @@ namespace Selen
             this.button_GdeAdd.Name = "button_GdeAdd";
             this.button_GdeAdd.Size = new System.Drawing.Size(107, 23);
             this.button_GdeAdd.TabIndex = 117;
-            this.button_GdeAdd.Text = "Добавление";
+            this.button_GdeAdd.Text = "Добавить";
             this.button_GdeAdd.UseVisualStyleBackColor = true;
             this.button_GdeAdd.Click += new System.EventHandler(this.button_GdeAdd_Click);
             // 
@@ -949,34 +944,6 @@ namespace Selen
             0,
             0});
             // 
-            // numericUpDown_avto_pro_check
-            // 
-            this.numericUpDown_avto_pro_check.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_avto_pro_check.Location = new System.Drawing.Point(202, 93);
-            this.numericUpDown_avto_pro_check.Maximum = new decimal(new int[] {
-            999,
-            0,
-            0,
-            0});
-            this.numericUpDown_avto_pro_check.Name = "numericUpDown_avto_pro_check";
-            this.numericUpDown_avto_pro_check.Size = new System.Drawing.Size(39, 21);
-            this.numericUpDown_avto_pro_check.TabIndex = 141;
-            this.numericUpDown_avto_pro_check.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.numericUpDown_avto_pro_check.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
-            // 
-            // label7
-            // 
-            this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(173, 97);
-            this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(27, 13);
-            this.label7.TabIndex = 142;
-            this.label7.Text = "чек:";
-            // 
             // checkBox_avito_use
             // 
             this.checkBox_avito_use.AutoSize = true;
@@ -996,8 +963,6 @@ namespace Selen
             this.BackColor = System.Drawing.Color.Gray;
             this.ClientSize = new System.Drawing.Size(872, 731);
             this.Controls.Add(this.checkBox_avito_use);
-            this.Controls.Add(this.label7);
-            this.Controls.Add(this.numericUpDown_avto_pro_check);
             this.Controls.Add(this.numericUpDown_avto_pro_add);
             this.Controls.Add(this.button_avto_pro);
             this.Controls.Add(this.checkBox_avto_pro_use);
@@ -1088,7 +1053,6 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DromCheckPageCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_add)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_check)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1171,8 +1135,6 @@ namespace Selen
         private System.Windows.Forms.CheckBox checkBox_avto_pro_use;
         private System.Windows.Forms.Button button_avto_pro;
         private System.Windows.Forms.NumericUpDown numericUpDown_avto_pro_add;
-        private System.Windows.Forms.NumericUpDown numericUpDown_avto_pro_check;
-        private System.Windows.Forms.Label label7;
         private System.Windows.Forms.CheckBox checkBox_avito_use;
     }
 }

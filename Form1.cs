@@ -4915,22 +4915,28 @@ namespace Selen {
 
         //=== выгрузка avto.pro ===
         private async void button_avto_pro_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
             if (checkBox_avto_pro_use.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     ToLog("avto.pro: начало выгрузки...");
                     while (base_rescan_need) await Task.Delay(30000);
-                    await _avtoPro.AvtoProStartAsync(
-                        bus,
-                        (int) numericUpDown_avto_pro_add.Value,
-                        (int) numericUpDown_avto_pro_check.Value);
-                    ToLog("avto.pro: выгрузка завершена успешно!");
+                    await _avtoPro.AvtoProStartAsync(bus, (int) numericUpDown_avto_pro_add.Value);
+                    ToLog("avto.pro: выгрузка завершена!");
+
+                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
+                    if(DateTime.Parse(lastScanTime).Day < DateTime.Now.Day) { //достаточно проверять один раз в сутки
+                        ToLog("avto.pro: парсинг сайта...");
+                        await _avtoPro.CheckAsync();
+                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
+                        dSet.WriteXml(fSet);
+                        ToLog("avto.pro: парсинг завершен");
+                    }
+                    ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
                 }
             }
-            ChangeStatus(sender, ButtonStates.Active);
         }
 
     }

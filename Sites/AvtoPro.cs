@@ -1,4 +1,5 @@
 ﻿using OpenQA.Selenium;
+using OpenQA.Selenium.Interactions;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
@@ -32,12 +33,11 @@ namespace Selen.Sites {
 
         Random rnd = new Random();
 
-        public async Task AvtoProStartAsync(List<RootObject> bus, int addCount = 10, int chkCount = 10) {
+        public async Task AvtoProStartAsync(List<RootObject> bus, int addCount = 10) {
             _bus = bus;
             await AuthAsync();
             await MassEditAsync();
             await AddAsync(addCount);
-            //await CheckAsync(chkCount);
         }
 
         public void LoadCookies() {
@@ -282,104 +282,47 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='Price']", b.price.ToString());
         }
 
-        //public async Task UpAsync() {//TODO автопро убрать лишний метод
-        //    try {
-        //        await Task.Factory.StartNew(() => {
-        //            var pages = GetPagesCount("non_active");
-        //            for (int i = pages; i > 0; i--) {
-        //                _dr.Navigate("https://baza.drom.ru/personal/non_active/bulletins?page=" + i);
-        //                _dr.ButtonClick("//input[@id='selectAll']");
-        //                Thread.Sleep(2000);
-        //                if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
-        //                    _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
-        //                    Thread.Sleep(2000);
-        //                    PressSubmitButton();
-        //                    Thread.Sleep(10000);
-        //                    _dr.Refresh();
-        //                } else
-        //                    break;
-        //            }
-        //        });
-        //    } catch (Exception x) {
-        //        Debug.WriteLine("AVTO.PRO: ОШИБКА МАССОВОГО ПОДЪЕМА\n" + x.Message + "\n" + x.InnerException.Message);
-        //    }
-        //}
-
-        //private int GetPagesCount(string type) { //TODO автопро убрать лишний метод
-        //    try {
-        //        //_dr.Navigate("https://baza.drom.ru/personal/all/bulletins");
-        //        var count = _dr.GetElementsCount("//div/a[contains(@href,'" + type + "/bulletins')]");
-        //        if (count > 0) {
-        //            var str = _dr.GetElementText("//div/a[contains(@href,'" + type + "/bulletins')]/../small");
-        //            var num = HttpUtility.HtmlDecode(str);
-        //            var i = int.Parse(num);
-        //            return (i / 50) + 1;
-        //        }
-        //    } catch { }
-        //    return 1;
-        //}
-
-        //public async Task CheckAsync(int count = 10) { //TODO автопро убрать лишний метод
-        //    try {
-        //        await Task.Factory.StartNew(() => {
-        //            //var pages = GetPagesCount("all");
-        //            for (int i = 0; i < count; i++) {
-        //                try {
-        //                    //var drom = ParsePage(rnd.Next(1, pages));
-        //                    //await CheckPageAsync(drom);
-        //                } catch {
-        //                    i--;
-        //                    _dr.Refresh();
-        //                    Thread.Sleep(10000);
-        //                }
-        //            }
-        //        });
-        //    } catch (Exception x) {
-        //        Debug.WriteLine("AVTO.PRO: ОШИБКА ПАРСИНГА\n" + x.Message + "\n" + x.InnerException.Message);
-        //    }
-        //}
-
-        //async Task CheckPageAsync(List<RootObject> drom) { //TODO автопро убрать лишний метод
-        //    for (int i = 0; i < drom.Count; i++) {
-        //        await CheckItemAsync(drom[i]);
-        //    }
-        //}
-
-        //async Task CheckItemAsync(RootObject b) {//TODO автопро убрать лишний метод
-        //    var i = _bus.FindIndex(f => f.drom.Contains(b.id));
-        //    if (i < 0 && !b.description.Contains("далено")) {
-        //        _dr.Navigate(b.avtopro);
-        //        //DeleteAsync();
-        //    }
-        //    if (i > -1 &&
-        //        ((b.price != _bus[i].price && !_bus[i].description.Contains("Залог:")) ||
-        //        !b.description.Contains("далено") && _bus[i].amount <= 0 ||
-        //        (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
-        //        )) {
-        //        await EditAsync(i);
-        //    }
-        //}
-
-        //private List<RootObject> ParsePage(int i) { //TODO автопро убрать лишний метод
-        //    var page = "https://avto.pro/warehouses/79489?page=" + i;
-        //    _dr.Navigate(page);
-        //    var avtopro = new List<RootObject>();
-        //    foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
-        //        var el = item.FindElements(By.XPath(".//span[@data-role='price']"));
-        //        var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("₽", "")) : 0;
-        //        var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
-        //        var status = item.FindElement(By.XPath(".//div[contains(@class,'bulletin-additionals_right-column')]")).Text;
-        //        var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
-        //        var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
-        //        avtopro.Add(new RootObject {
-        //            name = name,
-        //            id = id,
-        //            price = price,
-        //            description = status,
-        //            avtopro = url
-        //        });
-        //    }
-        //    return avtopro;
-        //}
+        public async Task CheckAsync() {
+            await Task.Factory.StartNew(() => {
+                //меняю формат выдачи - по 1000 шт
+                _dr.ButtonClick("//div[contains(text(),'Выводить')]");
+                _dr.ButtonClick("//div[@class='pro-select__option' and contains(text(),'1000')]");
+                //раскрываем список полностью
+                while (_dr.GetElementsCount("//button[contains(@class,'show')]") > 0) {
+                    _dr.ButtonClick("//button[contains(@class,'show')]");
+                }
+                //получаю товары сайта
+                foreach (var item in _dr.FindElements("//tr/td[contains(@data-col,'code')]/..").ToList()) {
+                    //кнопка удаления объявления
+                    var deleteButton = item.FindElement(By.XPath("./td/a"));
+                    //получаю ссылку на объявление
+                    var url = deleteButton.GetAttribute("href").Replace("delete", "edit");
+                    //получаю цену
+                    var price = item.FindElement(By.XPath("./td[contains(@data-col,'priceoriginal')]//b")).Text.Split('.').First().Replace(" ", "");
+                    //проверяю наличие фото
+                    var photo = item.FindElements(By.XPath(".//img"));
+                    //ищу в базе карточку
+                    var b = _bus.FindIndex(f => f.avtopro.Contains(url));
+                    if (b < 0 ||                                            //если индекс не найден или
+                        _bus[b].price != int.Parse(price) ||                //не совпадает цена или
+                        _bus[b].amount <= 0 ||                              //нет на остатках или
+                        (photo.Count == 0 && _bus[b].images.Count > 0)) {   //нет фото, хотя в карточке есть - удаляю объявление
+                        Actions a = new Actions(_dr._drv);
+                        a.MoveToElement(deleteButton);
+                        deleteButton.Click();
+                        Thread.Sleep(3000);
+                        PressSubmitButton();
+                        if (b >= 0) {                                       //если была ссылка в карточке - тоже удаляю
+                            _bus[b].avtopro = "";
+                            Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", _bus[b].id},
+                                {"name", _bus[b].name},
+                                {_url, _bus[b].avtopro}
+                            });
+                        }
+                    }
+                }
+            });
+        }
     }
 }
