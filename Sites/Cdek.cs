@@ -25,6 +25,19 @@ namespace Selen.Sites {
         };
         Selenium _dr;
         List<RootObject> _bus = null;
+
+        public void LoadCookies() {
+            _dr.Navigate("https://cdek.market/v/");
+            _dr.LoadCookies("cdek.json");
+            Thread.Sleep(1000);
+        }
+
+        public void SaveCookies() {
+            _dr.Navigate("https://cdek.market/v/?dispatch=products.manage");
+            _dr.SaveCookies("cdek.json");
+        }
+
+
         public async Task SyncCdekAsync(List<RootObject> bus, int addCount = 10) {
             _bus = bus;
             await Autorize_async();
@@ -217,6 +230,8 @@ namespace Selen.Sites {
                 await Task.Factory.StartNew(() => {
                     if (_dr == null) {
                         _dr = new Selenium();
+                        LoadCookies();
+                        _dr.Refresh();
                     }
                     _dr.Navigate("https://cdek.market/v/");
                     if (_dr.GetElementsCount("#mainrightnavbar") == 0) {
@@ -224,6 +239,9 @@ namespace Selen.Sites {
                         _dr.WriteToSelector("#password", "rad701242");
                         _dr.ButtonClick("input[type='submit']");
                     }
+                    while (_dr.GetElementsCount("//*[@class='admin-content']") == 0) //если элементов слева нет ждем ручной вход
+                        Thread.Sleep(60000);
+                    SaveCookies();
                 });
             } catch (Exception x) {
                 if (x.Message.Contains("timed out")) throw x; //сайт не отвечает - кидаю исключение дальше и завершаю текущий цикл
@@ -265,7 +283,8 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 _dr.Navigate(_bus[b].cdek);
                 Thread.Sleep(5000);
-                isDead = _dr.GetElementsCount("//label[@for='product_description_product']") == 0;
+                isDead = _dr.GetElementsCount("//label[@for='product_description_product']") == 0 &&
+                          _dr.GetElementText("h2").StartsWith("40");
                 if (!isDead && IsImageDead()) {
                     _dr.ButtonClick("//input[@id='elm_product_status_0_d']");
                     PressOkButton();

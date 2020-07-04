@@ -16,14 +16,13 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class AvtoPro {
+        public int AddCount { get; set; }
         List<RootObject> _bus;
         private readonly string _url = "1437133"; //поле ссылки в карточке бизнес.ру 
         readonly string[] _addDesc = new[]
         {
-            "Дополнительные фото по запросу. ",
-            "Вы можете установить данную деталь на нашем АвтоСервисе с доп.гарантией и со скидкой! ",
             "Отправляем наложенным платежом ТК СДЭК (только негабаритные посылки) ",
-            "Бесплатная доставка до транспортной компании!"
+            "Бесплатная доставка до ТК!"
         };
         Selenium _dr;
 
@@ -33,11 +32,11 @@ namespace Selen.Sites {
 
         Random rnd = new Random();
 
-        public async Task AvtoProStartAsync(List<RootObject> bus, int addCount = 10) {
+        public async Task AvtoProStartAsync(List<RootObject> bus) {
             _bus = bus;
             await AuthAsync();
             await MassEditAsync();
-            await AddAsync(addCount);
+            await AddAsync();
         }
 
         public void LoadCookies() {
@@ -140,8 +139,8 @@ namespace Selen.Sites {
             });
         }
 
-        public async Task AddAsync(int count = 10) {
-            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
+        public async Task AddAsync() {
+            for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--) {
                 if ((_bus[b].avtopro == null || !_bus[b].avtopro.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
                     _bus[b].amount > 0 &&
@@ -165,7 +164,7 @@ namespace Selen.Sites {
                             SetImages(_bus[b]);
                             PressSaveButton();
                         });
-                        count--; //TODO сдэк сделать переменную из параметра публичным полем и добавить в обработчик контрола
+                        AddCount--;
                     } catch (Exception x) {
                         Debug.WriteLine("AVTO.PRO: ОШИБКА ДОБАВЛЕНИЯ!\n" + _bus[b].name + "\n" + x.Message);
                         break;
@@ -262,9 +261,12 @@ namespace Selen.Sites {
         }
 
         void PressSaveButton() {
-            while (_dr.GetElementsCount("//button[text()='Сохранить']")>0) {
+            for (int i = 1; _dr.GetElementsCount("//button[text()='Сохранить']") > 0; i++) { 
                 _dr.ButtonClick("//button[text()='Сохранить']");
-                if (_dr.GetElementsCount("//span[contains(text(),'уже есть на складе')]") > 0) break;
+                if (_dr.GetElementsCount("//span[contains(text(),'уже есть на складе')]") > 0)
+                    throw new Exception("Товар уже есть на складе!");
+                if (i>=10)
+                    throw new Exception("Не нажимается кнопка Сохранить!");
                 while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(2000);
             }
         }
@@ -285,14 +287,22 @@ namespace Selen.Sites {
         public async Task CheckAsync() {
             await Task.Factory.StartNew(() => {
                 //меняю формат выдачи - по 1000 шт
+                _dr.Navigate("https://avto.pro/warehouses/79489");
                 _dr.ButtonClick("//div[contains(text(),'Выводить')]");
                 _dr.ButtonClick("//div[@class='pro-select__option' and contains(text(),'1000')]");
+                //ожидаю, пока прогрузится список (проверяю наличие шестеренки загрузки)
+                while (_dr.GetElementsCount("//span[@class='pro-form__frame__preloader']")>0) Thread.Sleep(1000);
                 //раскрываем список полностью
                 while (_dr.GetElementsCount("//button[contains(@class,'show')]") > 0) {
+                    //нажимаю кнопку "показать еще"
                     _dr.ButtonClick("//button[contains(@class,'show')]");
+                    //пока кнопка неактивна - ожидаю
+                    while (_dr.GetElementsCount("//button[contains(@class,'show') and  @disabled='']") > 0) Thread.Sleep(1000);
                 }
                 //получаю товары сайта
-                foreach (var item in _dr.FindElements("//tr/td[contains(@data-col,'code')]/..").ToList()) {
+                var offerList = _dr.FindElements("//tr/td[contains(@data-col,'code')]/..").ToList();
+                var indexList = new List<int>();
+                foreach (var item in offerList) {
                     //кнопка удаления объявления
                     var deleteButton = item.FindElement(By.XPath("./td/a"));
                     //получаю ссылку на объявление
@@ -303,6 +313,7 @@ namespace Selen.Sites {
                     var photo = item.FindElements(By.XPath(".//img"));
                     //ищу в базе карточку
                     var b = _bus.FindIndex(f => f.avtopro.Contains(url));
+                    if (b >= 0 && !indexList.Contains(b)) indexList.Add(b); //если индекс найден и не содержится в списке найденных - добавляю
                     if (b < 0 ||                                            //если индекс не найден или
                         _bus[b].price != int.Parse(price) ||                //не совпадает цена или
                         _bus[b].amount <= 0 ||                              //нет на остатках или
@@ -321,6 +332,18 @@ namespace Selen.Sites {
                             });
                         }
                     }
+                }
+                //список карточек к базе, имеющих ссылку на авто.про и не найденных на сайте
+                var busList = _bus.Where(b => b.avtopro.Contains("http") && !indexList.Contains(_bus.IndexOf(b))).ToList();
+                if (busList.Count > 100) throw new Exception("слишком много расхождений, возможно проблема парсинга!");
+                foreach (var bus in busList) {
+                    bus.avtopro = "";
+                    Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", bus.id},
+                                {"name", bus.name},
+                                {_url, bus.avtopro}
+                            });
+                    Thread.Sleep(10000);
                 }
             });
         }

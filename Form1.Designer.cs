@@ -203,6 +203,8 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
+            this.checkBox_sync.Checked = true;
+            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(15, 686);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
@@ -473,7 +475,7 @@ namespace Selen
             this.numericUpDown_AvitoAddCount.TabIndex = 90;
             this.numericUpDown_AvitoAddCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_AvitoAddCount.Value = new decimal(new int[] {
-            10,
+            5,
             0,
             0,
             0});
@@ -662,7 +664,7 @@ namespace Selen
             this.numericUpDownKupiprodaiAdd.TabIndex = 113;
             this.numericUpDownKupiprodaiAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDownKupiprodaiAdd.Value = new decimal(new int[] {
-            100,
+            10,
             0,
             0,
             0});
@@ -825,7 +827,7 @@ namespace Selen
             this.numericUpDown_СdekCheckUrls.TabIndex = 131;
             this.numericUpDown_СdekCheckUrls.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_СdekCheckUrls.Value = new decimal(new int[] {
-            30,
+            50,
             0,
             0,
             0});
@@ -939,10 +941,11 @@ namespace Selen
             this.numericUpDown_avto_pro_add.TabIndex = 140;
             this.numericUpDown_avto_pro_add.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_avto_pro_add.Value = new decimal(new int[] {
-            5,
+            3,
             0,
             0,
             0});
+            this.numericUpDown_avto_pro_add.ValueChanged += new System.EventHandler(this.numericUpDown_avto_pro_add_ValueChanged);
             // 
             // checkBox_avito_use
             // 
