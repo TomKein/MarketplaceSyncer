@@ -18,7 +18,6 @@ namespace Selen.Sites {
         Selenium _dr;
         readonly string _url = "209326";
         List<RootObject> _bus = null;
-        bool _needRestart = false;
         int _priceLevel = 2000;
         Random rnd = new Random();
         public int CountToUp { get; set; }
@@ -54,7 +53,7 @@ namespace Selen.Sites {
         }
 
         public void SaveCookies() {
-            _dr.Navigate("https://avito.ru");
+            _dr.Navigate("https://avito.ru/profile");
             _dr.SaveCookies("avito.json");
         }
 
@@ -73,7 +72,6 @@ namespace Selen.Sites {
 
         private async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
-                if (_needRestart) Quit();
                 if (_dr == null) {
                     _dr = new Selenium();
                     LoadCookies();
@@ -83,23 +81,36 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("input[name='login']", "9106027626@mail.ru");
                     _dr.WriteToSelector("input[name='password']", "rad00239000");
                     _dr.ButtonClick("//button[@type='submit']");
+                    _dr.Refresh();
                 }
-                while (_dr.GetElementsCount(".nav-tabs") == 0) Thread.Sleep(20000);
+                while (_dr.GetElementsCount(".nav-tabs") == 0) Thread.Sleep(10000);
+                SaveCookies();
             });
         }
 
         private async Task EditAllAsync() {
             //новые изменния
-                for (int b = 0; b < _bus.Count; b++) {
-                    if (_bus[b].IsTimeUpDated() &&
-                        _bus[b].avito != null &&
-                        _bus[b].avito.Contains("http")) {
-                        if (_bus[b].amount <= 0) {
-                            await DeleteAsync(b);
-                        } else
-                            await EditAsync(b);
-                    }
+            for (int b = 0; b < _bus.Count; b++) {
+                if (_bus[b].IsTimeUpDated() &&
+                    _bus[b].avito != null &&
+                    _bus[b].avito.Contains("http")) {
+                    await ChechAuthAsync();
+                    if (_bus[b].amount <= 0) {
+                        await DeleteAsync(b);
+                    } else
+                        await EditAsync(b);
                 }
+            }
+        }
+
+        private async Task ChechAuthAsync() {
+            if (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
+                if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0) _dr.Refresh();
+                else {
+                    Quit();
+                    await AuthAsync();
+                }
+            }
         }
 
         private async Task EditAsync(int b) {
@@ -153,6 +164,7 @@ namespace Selen.Sites {
                     _bus[b].amount > 0 &&
                     _bus[b].price >= _priceLevel &&
                     _bus[b].images.Count > 0) {
+                    await ChechAuthAsync();
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("https://avito.ru/additem");
                         SetCategory(b);

@@ -178,14 +178,16 @@ namespace Selen.Sites {
         }
 
         async Task SaveUrlAsync(RootObject b) {
-            do {
+            await Task.Factory.StartNew(() => {
                 do {
-                    FindOffer();
-                } while (_dr.GetElementsCount("//td[@data-col='category.name']") != 1);
-                _dr.ButtonClick("//td[@data-col='category.name']");
-                while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) {Thread.Sleep(1000);}
-            } while(_dr.GetElementText("//textarea[@name='Info']").Length == 0);
-            b.avtopro = _dr.GetUrl();
+                    do {
+                        FindOffer();
+                    } while (_dr.GetElementsCount("//td[@data-col='category.name']") != 1);
+                    _dr.ButtonClick("//td[@data-col='category.name']");
+                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) {Thread.Sleep(1000);}
+                } while(_dr.GetElementText("//textarea[@name='Info']").Length == 0);
+                b.avtopro = _dr.GetUrl();
+            });
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                 {"id", b.id},
                 {"name", b.name},

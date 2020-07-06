@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.23.2";
+        string _version = "1.24.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -3968,24 +3968,27 @@ namespace Selen {
         }
 
         private async Task KupiProdaiAutorize() {
-            if (kp == null) {
-                kp = new ChromeDriver();
-                kp.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-            }
             Task t = Task.Factory.StartNew(() => {
+                if (kp == null) {
+                    kp = new ChromeDriver();
+                    kp.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+                    Thread.Sleep(2000);
+                    kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/");
+                    LoadCookies(kp, "kupiprodai.json");
+                }
                 kp.Navigate().GoToUrl("https://kupiprodai.ru/login");
-                if (!kp.FindElement(By.CssSelector("#user_link")).Text.Contains("9106027626@mail.ru")) {
-                    var email = kp.FindElement(By.CssSelector("input[name='login']"));
+                if (kp.FindElements(By.XPath("//span[@id='nickname']")).Count == 0) {
+                    var email = kp.FindElement(By.XPath("//input[@name='login']"));
                     WriteToIWebElement(kp, email, "9106027626@mail.ru");
                     Thread.Sleep(2000);
-
-                    var password = kp.FindElement(By.CssSelector("input[name='pass']"));
+                    var password = kp.FindElement(By.XPath("//input[@name='pass']"));
                     WriteToIWebElement(kp, password, "rad00239000");
                     Thread.Sleep(2000);
-
-                    var but = kp.FindElement(By.CssSelector("ul input[type='submit']"));
+                    var but = kp.FindElement(By.XPath("//input[@value='Войти']"));
                     but.Click();
-                    Thread.Sleep(2000);
+                    //если в кабинет не попали - ждем ручной вход
+                    while(kp.FindElements(By.XPath("//span[@id='nickname']")).Count == 0) Thread.Sleep(10000);
+                    SaveCookies(kp, "kupiprodai.json");
                 }
             });
             try {
