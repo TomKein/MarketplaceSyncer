@@ -189,7 +189,9 @@ namespace Selen.Tools {
         }
 
         public void Quit() {
-            _drv?.Close();
+            try {
+                _drv?.Close();
+            } catch{}
         }
     }
 }

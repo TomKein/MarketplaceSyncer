@@ -28,7 +28,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.24.1";
+        string _version = "1.24.3";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -208,24 +208,23 @@ namespace Selen {
             sync_start = DateTime.Now;
             if (checkBox_sync.Checked) {
                 button_avito_get.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_drom_get.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_cdek.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_auto_get.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 buttonKupiprodai.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_GdeGet.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_tiu_sync.PerformClick();
-                await Task.Delay(15000);
-                button_vk_sync.PerformClick();
-                await Task.Delay(15000);
+                await Task.Delay(30000);
                 button_avto_pro.PerformClick();
+                await Task.Delay(30000);
+                button_vk_sync.PerformClick();
             }
-
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
 
@@ -1010,7 +1009,6 @@ namespace Selen {
             }
             Task ts = Task.Factory.StartNew(() => {
                 tiu.Navigate().GoToUrl("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
-
                 Thread.Sleep(3000);
                 try {
                     tiu.FindElement(By.Id("phone_email")).SendKeys("9106027626@mail.ru");
@@ -1044,7 +1042,6 @@ namespace Selen {
                 c = tiu.FindElements(By.XPath("//div[text()='Скрытые']")).First();
                 a.MoveToElement(c).Perform();
                 Thread.Sleep(1000);
-                //a.Click().Perform();
                 c.Click();
                 Thread.Sleep(2000);
             } catch /*(Exception x)*/ {
@@ -1092,7 +1089,6 @@ namespace Selen {
                                               .ToList();
                 });
                 await t1;
-
                 foreach (var d in bus_dubl) {
                     int ind = bus.FindLastIndex(t => t.name.ToUpper() == d);
                     bus[ind].name += !string.IsNullOrEmpty(bus[ind].part) && !bus[ind].name.Contains(bus[ind].part) ? " " + bus[ind].part :
@@ -1103,14 +1099,11 @@ namespace Selen {
                         { "id" , bus[ind].id},
                         { "name" , bus[ind].name}
                     });
-
                     ToLog("база исправлен дубль названия " + bus[ind].name);
                     Thread.Sleep(1000);
                 }
-
             } while (bus_dubl.Count() > 0);
             Thread.Sleep(10);
-
         }
 
         //редактирование описаний, добавленние синонимов
@@ -3529,25 +3522,25 @@ namespace Selen {
 
                     if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
                         await AddPartNumsAsync();//добавление артикулов из описания
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_avito_get.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_drom_get.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_auto_get.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         buttonSatom.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         buttonKupiprodai.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_GdeGet.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_cdek.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_tiu_sync.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_vk_sync.PerformClick();
-                        await Task.Delay(15000);
+                        await Task.Delay(60000);
                         button_avto_pro.PerformClick();
                         //нужно подождать конца обновлений объявлений
                         while (!IsButtonsActive()) {
@@ -3812,24 +3805,21 @@ namespace Selen {
         async void buttonKupiprodai_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await KupiProdaiAutorize();
+                await KupiProdaiAuth();
                 while (base_rescan_need) {
                     ToLog("купипродай ожидает загрузку базы... ");
                     await Task.Delay(60000);
                 }
                 labelKP.Text = bus.Count(c => c.kp != null && c.kp.Contains("http")).ToString();
-                //проверяем изменеия
                 await KupiProdaiEditAsync();
-                //выкладываем объявления
                 await KupiProdaiAddAsync();
-                //продливаем объявления
                 await KupiProdaiUpAsync();
-                //удаляем ненужные
                 await KupiProdaiDelAsync();
+                ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 ToLog("Купипродай Ошибка при обработке\n" + x.Message);
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
-            ChangeStatus(sender, ButtonStates.Active);
         }
 
         private async Task KupiProdaiDelAsync() {
@@ -3967,7 +3957,7 @@ namespace Selen {
             Thread.Sleep(500);
         }
 
-        private async Task KupiProdaiAutorize() {
+        private async Task KupiProdaiAuth() {
             Task t = Task.Factory.StartNew(() => {
                 if (kp == null) {
                     kp = new ChromeDriver();
@@ -3994,7 +3984,9 @@ namespace Selen {
             try {
                 await t;
             } catch (Exception x) {
-                //ToLog(x.Message);
+                kp = null;
+                Thread.Sleep(180000);
+                await KupiProdaiAuth();
             }
         }
 
@@ -4899,8 +4891,16 @@ namespace Selen {
                     }
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
-                    ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _avtoPro?.Quit();
+                        Thread.Sleep(180000);
+                        _avtoPro = new AvtoPro();
+                        button_avto_pro_Click(sender, e);
+                    }
                 }
             }
         }

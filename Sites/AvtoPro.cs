@@ -26,11 +26,7 @@ namespace Selen.Sites {
         };
         Selenium _dr;
 
-        bool _needRestart = false;//TODO never used?
-
         string _part;
-
-        Random rnd = new Random();
 
         public async Task AvtoProStartAsync(List<RootObject> bus) {
             _bus = bus;
@@ -57,7 +53,6 @@ namespace Selen.Sites {
 
         public async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
-                if (_needRestart) Quit();
                 if (_dr == null) {
                     _dr = new Selenium();
                     LoadCookies();
@@ -82,7 +77,9 @@ namespace Selen.Sites {
                         if (_bus[b].amount > 0) await EditAsync(b);
                         else await DeleteAsync(_bus[b]);
                     } catch (Exception x) {
-                        Debug.WriteLine(x.Message);
+                        if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("chrome not reachable")) throw;
                     }
                 }
             }
@@ -205,7 +202,11 @@ namespace Selen.Sites {
                     _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
                     while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(5000);
                     break;
-                } catch { }
+                } catch (Exception x){
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed")||
+                        x.Message.Contains("chrome not reachable")) throw;
+                }
             } while (true);
         }        
 
@@ -290,12 +291,17 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 //меняю формат выдачи - по 1000 шт
                 _dr.Navigate("https://avto.pro/warehouses/79489");
+                while (_dr.GetElementsCount("//div[contains(text(),'Выводить')]") == 0) Thread.Sleep(1000);
                 _dr.ButtonClick("//div[contains(text(),'Выводить')]");
                 _dr.ButtonClick("//div[@class='pro-select__option' and contains(text(),'1000')]");
                 //ожидаю, пока прогрузится список (проверяю наличие шестеренки загрузки)
                 while (_dr.GetElementsCount("//span[@class='pro-form__frame__preloader']")>0) Thread.Sleep(1000);
+                //страховка от зависания цикла разворачивания списка, когда кнопка "показать еще" активна, но ничего не добавляет
+                //обчно такая кнопка становится неактивной, если список развернут полностью, но на авто.про случается и не такое
+                //запаса в 2 раза более чем достаточно
+                var maxNum = _bus.Count(b => b.avtopro.Contains("http"))/500;
                 //раскрываем список полностью
-                while (_dr.GetElementsCount("//button[contains(@class,'show')]") > 0) {
+                while (_dr.GetElementsCount("//button[contains(@class,'show')]") > 0 && maxNum-- > 0) {
                     //нажимаю кнопку "показать еще"
                     _dr.ButtonClick("//button[contains(@class,'show')]");
                     //пока кнопка неактивна - ожидаю
@@ -317,7 +323,7 @@ namespace Selen.Sites {
                     var b = _bus.FindIndex(f => f.avtopro.Contains(url));
                     if (b >= 0 && !indexList.Contains(b)) indexList.Add(b); //если индекс найден и не содержится в списке найденных - добавляю
                     if (b < 0 ||                                            //если индекс не найден или
-                        _bus[b].price != int.Parse(price) ||                //не совпадает цена или
+                        (price.Length == 0 || _bus[b].price != int.Parse(price)) ||                //не совпадает цена или
                         _bus[b].amount <= 0 ||                              //нет на остатках или
                         (photo.Count == 0 && _bus[b].images.Count > 0)) {   //нет фото, хотя в карточке есть - удаляю объявление
                         Actions a = new Actions(_dr._drv);
@@ -325,6 +331,7 @@ namespace Selen.Sites {
                         deleteButton.Click();
                         Thread.Sleep(3000);
                         PressSubmitButton();
+                        while (_dr.GetElementsCount("//div/div/button[@type='submit']")>0) Thread.Sleep(5000);
                         if (b >= 0) {                                       //если была ссылка в карточке - тоже удаляю
                             _bus[b].avtopro = "";
                             Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{

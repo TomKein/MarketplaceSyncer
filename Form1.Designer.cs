@@ -818,7 +818,7 @@ namespace Selen
             this.numericUpDown_СdekCheckUrls.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.numericUpDown_СdekCheckUrls.Location = new System.Drawing.Point(124, 529);
             this.numericUpDown_СdekCheckUrls.Maximum = new decimal(new int[] {
-            10000,
+            200,
             0,
             0,
             0});
@@ -827,7 +827,7 @@ namespace Selen
             this.numericUpDown_СdekCheckUrls.TabIndex = 131;
             this.numericUpDown_СdekCheckUrls.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_СdekCheckUrls.Value = new decimal(new int[] {
-            50,
+            25,
             0,
             0,
             0});

@@ -107,10 +107,9 @@ namespace Selen.Sites {
         }
         private void SetTimeToReturn() {
             //прокручиваем страницу вверх
-            _dr.WriteToSelector("#elm_product_code", OpenQA.Selenium.Keys.PageUp + OpenQA.Selenium.Keys.PageUp);
+            _dr.SendKeysToSelector("//body", OpenQA.Selenium.Keys.Home);
             _dr.ButtonClick("#addons");
             _dr.WriteToSelector("#return_period", "14");
-            //PressOkButton();
         }
         private void SetWeight(int b) {
             if (_bus[b].weight != null && _bus[b].weight > 0) {
@@ -244,9 +243,12 @@ namespace Selen.Sites {
                     SaveCookies();
                 });
             } catch (Exception x) {
-                if (x.Message.Contains("timed out")) throw x; //сайт не отвечает - кидаю исключение дальше и завершаю текущий цикл
+                if (x.Message.Contains("timed out") ||
+                    x.Message.Contains("already closed") ||
+                    x.Message.Contains("chrome not reachable")) throw; //сайт не отвечает - кидаю исключение дальше и завершаю текущий цикл
                 if (x.Message.Contains("invalid session")) { //перезапуск браузера до победного
                     Quit();
+                    Thread.Sleep(180000);
                     await Autorize_async();
                 }
             }

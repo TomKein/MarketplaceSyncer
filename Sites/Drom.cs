@@ -258,7 +258,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine("DROM.RU: ОШИБКА МАССОВОГО ПОДЪЕМА\n" + x.Message + "\n" + x.InnerException.Message);
+                throw new Exception("ошибка массового подъема!!\n" + x.Message);
             }
         }
         private int GetPagesCount(string type) {
@@ -271,7 +271,9 @@ namespace Selen.Sites {
                     var i = int.Parse(num);
                     return (i / 50) + 1;
                 }
-            } catch { }
+            } catch(Exception x) {
+                throw new Exception("ошибка запроса количества объявлений на сайте!!\n" + x.Message);
+            }
             return 1;
         }
         public async Task CheckAsync(int count = 10) {
