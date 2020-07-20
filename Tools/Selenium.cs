@@ -19,7 +19,9 @@ namespace Selen.Tools {
         public readonly IWebDriver _drv;
 
         public Selenium() {
-            _drv = new ChromeDriver();
+            ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
+            chromeservice.HideCommandPromptWindow = true;
+            _drv = new ChromeDriver(chromeservice);
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
         }
 
@@ -65,10 +67,19 @@ namespace Selen.Tools {
                                                            : _drv.FindElements(By.CssSelector(s));
         }
 
+        public async Task<IReadOnlyCollection<IWebElement>> FindElementsAsync(string s) {
+            IReadOnlyCollection<IWebElement> res = null;
+            await Task.Factory.StartNew(() => {
+                res = FindElements(s);
+            });
+            return res;
+        }
+
+
         public void WriteToSelector(string sel, string s = null, List<string> sl = null) {
             if (s != null || sl != null) {
                 var el = FindElements(sel);
-                if(el.Count>0) WriteToIWebElement(el.First(), s, sl);
+                if (el.Count > 0) WriteToIWebElement(el.First(), s, sl);
             }
         }
 

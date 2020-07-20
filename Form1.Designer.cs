@@ -74,7 +74,6 @@ namespace Selen
             this.label2 = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.button_autoCheck = new System.Windows.Forms.Button();
-            this.checkBox_youlaUp = new System.Windows.Forms.CheckBox();
             this.buttonSatom = new System.Windows.Forms.Button();
             this.labelKS = new System.Windows.Forms.Label();
             this.checkBox_art_clear = new System.Windows.Forms.CheckBox();
@@ -91,7 +90,7 @@ namespace Selen
             this.button_cdek = new System.Windows.Forms.Button();
             this.label_cdek = new System.Windows.Forms.Label();
             this.button_SaveCookie = new System.Windows.Forms.Button();
-            this.vkAddUpDown = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown_vkAdd = new System.Windows.Forms.NumericUpDown();
             this.checkBoxCdekSyncActive = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
             this.numericUpDown_AvitoToUpCount = new System.Windows.Forms.NumericUpDown();
@@ -106,6 +105,7 @@ namespace Selen
             this.button_avto_pro = new System.Windows.Forms.Button();
             this.numericUpDown_avto_pro_add = new System.Windows.Forms.NumericUpDown();
             this.checkBox_avito_use = new System.Windows.Forms.CheckBox();
+            this.checkBox_IgnoreUrls = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_dromAddCount)).BeginInit();
@@ -115,7 +115,7 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_LOG)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.vkAddUpDown)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_vkAdd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvitoToUpCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
@@ -205,7 +205,7 @@ namespace Selen
             this.checkBox_sync.AutoSize = true;
             this.checkBox_sync.Checked = true;
             this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sync.Location = new System.Drawing.Point(15, 686);
+            this.checkBox_sync.Location = new System.Drawing.Point(15, 679);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
             this.checkBox_sync.TabIndex = 35;
@@ -282,7 +282,7 @@ namespace Selen
             // 
             // button_put_desc
             // 
-            this.button_put_desc.Location = new System.Drawing.Point(279, 671);
+            this.button_put_desc.Location = new System.Drawing.Point(310, 673);
             this.button_put_desc.Name = "button_put_desc";
             this.button_put_desc.Size = new System.Drawing.Size(146, 24);
             this.button_put_desc.TabIndex = 59;
@@ -328,7 +328,7 @@ namespace Selen
             // label_Mem_Usage
             // 
             this.label_Mem_Usage.AutoSize = true;
-            this.label_Mem_Usage.Location = new System.Drawing.Point(131, 706);
+            this.label_Mem_Usage.Location = new System.Drawing.Point(154, 714);
             this.label_Mem_Usage.Name = "label_Mem_Usage";
             this.label_Mem_Usage.Size = new System.Drawing.Size(73, 13);
             this.label_Mem_Usage.TabIndex = 62;
@@ -500,7 +500,7 @@ namespace Selen
             this.numericUpDown_LOG.TabIndex = 92;
             this.numericUpDown_LOG.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_LOG.Value = new decimal(new int[] {
-            500,
+            700,
             0,
             0,
             0});
@@ -531,7 +531,7 @@ namespace Selen
             this.checkBox_liteSync.AutoSize = true;
             this.checkBox_liteSync.Checked = true;
             this.checkBox_liteSync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_liteSync.Location = new System.Drawing.Point(15, 705);
+            this.checkBox_liteSync.Location = new System.Drawing.Point(15, 696);
             this.checkBox_liteSync.Name = "checkBox_liteSync";
             this.checkBox_liteSync.Size = new System.Drawing.Size(100, 17);
             this.checkBox_liteSync.TabIndex = 95;
@@ -551,7 +551,7 @@ namespace Selen
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(11, 666);
+            this.label2.Location = new System.Drawing.Point(11, 658);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(116, 13);
             this.label2.TabIndex = 98;
@@ -562,7 +562,7 @@ namespace Selen
             this.dateTimePicker1.CalendarForeColor = System.Drawing.Color.Red;
             this.dateTimePicker1.CustomFormat = "dd/MM/yyyy HH:mm";
             this.dateTimePicker1.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dateTimePicker1.Location = new System.Drawing.Point(125, 664);
+            this.dateTimePicker1.Location = new System.Drawing.Point(124, 654);
             this.dateTimePicker1.MaxDate = new System.DateTime(2099, 12, 31, 0, 0, 0, 0);
             this.dateTimePicker1.MinDate = new System.DateTime(2017, 1, 1, 0, 0, 0, 0);
             this.dateTimePicker1.Name = "dateTimePicker1";
@@ -580,17 +580,6 @@ namespace Selen
             this.button_autoCheck.Text = "auto check";
             this.button_autoCheck.UseVisualStyleBackColor = true;
             this.button_autoCheck.Click += new System.EventHandler(this.button_autoCheck_Click);
-            // 
-            // checkBox_youlaUp
-            // 
-            this.checkBox_youlaUp.AutoSize = true;
-            this.checkBox_youlaUp.Enabled = false;
-            this.checkBox_youlaUp.Location = new System.Drawing.Point(15, 647);
-            this.checkBox_youlaUp.Name = "checkBox_youlaUp";
-            this.checkBox_youlaUp.Size = new System.Drawing.Size(75, 17);
-            this.checkBox_youlaUp.TabIndex = 102;
-            this.checkBox_youlaUp.Text = "включено";
-            this.checkBox_youlaUp.UseVisualStyleBackColor = true;
             // 
             // buttonSatom
             // 
@@ -618,7 +607,7 @@ namespace Selen
             this.checkBox_art_clear.AutoSize = true;
             this.checkBox_art_clear.Checked = true;
             this.checkBox_art_clear.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_art_clear.Location = new System.Drawing.Point(284, 650);
+            this.checkBox_art_clear.Location = new System.Drawing.Point(315, 652);
             this.checkBox_art_clear.Name = "checkBox_art_clear";
             this.checkBox_art_clear.Size = new System.Drawing.Size(64, 17);
             this.checkBox_art_clear.TabIndex = 109;
@@ -628,7 +617,7 @@ namespace Selen
             // checkBox_photo_clear
             // 
             this.checkBox_photo_clear.AutoSize = true;
-            this.checkBox_photo_clear.Location = new System.Drawing.Point(363, 650);
+            this.checkBox_photo_clear.Location = new System.Drawing.Point(394, 652);
             this.checkBox_photo_clear.Name = "checkBox_photo_clear";
             this.checkBox_photo_clear.Size = new System.Drawing.Size(79, 17);
             this.checkBox_photo_clear.TabIndex = 110;
@@ -758,24 +747,25 @@ namespace Selen
             this.button_SaveCookie.UseVisualStyleBackColor = true;
             this.button_SaveCookie.Click += new System.EventHandler(this.button_SaveCookie_Click);
             // 
-            // vkAddUpDown
+            // numericUpDown_vkAdd
             // 
-            this.vkAddUpDown.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.vkAddUpDown.Location = new System.Drawing.Point(124, 420);
-            this.vkAddUpDown.Maximum = new decimal(new int[] {
+            this.numericUpDown_vkAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.numericUpDown_vkAdd.Location = new System.Drawing.Point(124, 420);
+            this.numericUpDown_vkAdd.Maximum = new decimal(new int[] {
             10000,
             0,
             0,
             0});
-            this.vkAddUpDown.Name = "vkAddUpDown";
-            this.vkAddUpDown.Size = new System.Drawing.Size(43, 21);
-            this.vkAddUpDown.TabIndex = 124;
-            this.vkAddUpDown.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.vkAddUpDown.Value = new decimal(new int[] {
-            3,
+            this.numericUpDown_vkAdd.Name = "numericUpDown_vkAdd";
+            this.numericUpDown_vkAdd.Size = new System.Drawing.Size(43, 21);
+            this.numericUpDown_vkAdd.TabIndex = 124;
+            this.numericUpDown_vkAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.numericUpDown_vkAdd.Value = new decimal(new int[] {
+            5,
             0,
             0,
             0});
+            this.numericUpDown_vkAdd.ValueChanged += new System.EventHandler(this.numericUpDown_vkAdd_ValueChanged);
             // 
             // checkBoxCdekSyncActive
             // 
@@ -827,7 +817,7 @@ namespace Selen
             this.numericUpDown_СdekCheckUrls.TabIndex = 131;
             this.numericUpDown_СdekCheckUrls.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_СdekCheckUrls.Value = new decimal(new int[] {
-            25,
+            10,
             0,
             0,
             0});
@@ -959,12 +949,25 @@ namespace Selen
             this.checkBox_avito_use.Text = "вкл";
             this.checkBox_avito_use.UseVisualStyleBackColor = true;
             // 
+            // checkBox_IgnoreUrls
+            // 
+            this.checkBox_IgnoreUrls.AutoSize = true;
+            this.checkBox_IgnoreUrls.Checked = true;
+            this.checkBox_IgnoreUrls.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_IgnoreUrls.Location = new System.Drawing.Point(15, 713);
+            this.checkBox_IgnoreUrls.Name = "checkBox_IgnoreUrls";
+            this.checkBox_IgnoreUrls.Size = new System.Drawing.Size(137, 17);
+            this.checkBox_IgnoreUrls.TabIndex = 144;
+            this.checkBox_IgnoreUrls.Text = "игнорировать ссылки";
+            this.checkBox_IgnoreUrls.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Gray;
             this.ClientSize = new System.Drawing.Size(872, 731);
+            this.Controls.Add(this.checkBox_IgnoreUrls);
             this.Controls.Add(this.checkBox_avito_use);
             this.Controls.Add(this.numericUpDown_avto_pro_add);
             this.Controls.Add(this.button_avto_pro);
@@ -979,7 +982,7 @@ namespace Selen
             this.Controls.Add(this.numericUpDown_AvitoToUpCount);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.checkBoxCdekSyncActive);
-            this.Controls.Add(this.vkAddUpDown);
+            this.Controls.Add(this.numericUpDown_vkAdd);
             this.Controls.Add(this.button_SaveCookie);
             this.Controls.Add(this.label_cdek);
             this.Controls.Add(this.button_cdek);
@@ -996,7 +999,6 @@ namespace Selen
             this.Controls.Add(this.checkBox_art_clear);
             this.Controls.Add(this.labelKS);
             this.Controls.Add(this.buttonSatom);
-            this.Controls.Add(this.checkBox_youlaUp);
             this.Controls.Add(this.button_autoCheck);
             this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.label2);
@@ -1050,7 +1052,7 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_LOG)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.vkAddUpDown)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_vkAdd)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvitoToUpCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
@@ -1107,7 +1109,6 @@ namespace Selen
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
         private System.Windows.Forms.Button button_autoCheck;
-        private System.Windows.Forms.CheckBox checkBox_youlaUp;
         private System.Windows.Forms.Button buttonSatom;
         private System.Windows.Forms.Label labelKS;
         private System.Windows.Forms.CheckBox checkBox_art_clear;
@@ -1124,7 +1125,7 @@ namespace Selen
         private System.Windows.Forms.Button button_cdek;
         private System.Windows.Forms.Label label_cdek;
         private System.Windows.Forms.Button button_SaveCookie;
-        private System.Windows.Forms.NumericUpDown vkAddUpDown;
+        private System.Windows.Forms.NumericUpDown numericUpDown_vkAdd;
         private System.Windows.Forms.CheckBox checkBoxCdekSyncActive;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.NumericUpDown numericUpDown_AvitoToUpCount;
@@ -1139,6 +1140,7 @@ namespace Selen
         private System.Windows.Forms.Button button_avto_pro;
         private System.Windows.Forms.NumericUpDown numericUpDown_avto_pro_add;
         private System.Windows.Forms.CheckBox checkBox_avito_use;
+        private System.Windows.Forms.CheckBox checkBox_IgnoreUrls;
     }
 }
 

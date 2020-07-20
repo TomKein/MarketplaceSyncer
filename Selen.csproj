@@ -215,6 +215,7 @@
     <Compile Include="Sites\Cdek.cs" />
     <Compile Include="Sites\Drom.cs" />
     <Compile Include="Sites\Offer.cs" />
+    <Compile Include="Sites\VK.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
     <Compile Include="Tools\PhpKSort.cs" />
     <Compile Include="Tools\QueryStringBilder.cs" />

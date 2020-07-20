@@ -113,7 +113,7 @@ namespace Selen.Sites {
                         dict[auto[i]]++;
                 }
             }
-            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();
+            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();//TODO не заполняется изготовитель
             string manuf;
             if (best.Count > 0) {
                 var s = best[0].Split(';');
@@ -177,9 +177,11 @@ namespace Selen.Sites {
         async Task SaveUrlAsync(RootObject b) {
             await Task.Factory.StartNew(() => {
                 do {
-                    do {
+                    for (int i = 0; ; i++) {
                         FindOffer();
-                    } while (_dr.GetElementsCount("//td[@data-col='category.name']") != 1);
+                        if (_dr.GetElementsCount("//td[@data-col='category.name']") == 1) break;
+                        if (i > 50) throw new Exception("ошибка поиска объявления");
+                    };
                     _dr.ButtonClick("//td[@data-col='category.name']");
                     while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) {Thread.Sleep(1000);}
                 } while(_dr.GetElementText("//textarea[@name='Info']").Length == 0);

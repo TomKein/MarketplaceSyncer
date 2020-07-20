@@ -104,8 +104,9 @@ namespace Selen.Sites {
         }
 
         private async Task ChechAuthAsync() {
-            if (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
-                if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0) _dr.Refresh();
+            while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
+                if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
+                    _dr.Refresh();
                 else {
                     Quit();
                     await AuthAsync();
@@ -115,12 +116,17 @@ namespace Selen.Sites {
 
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
-                await Task.Factory.StartNew(() => {
-                    var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
-                    _dr.Navigate(url);
-                    while (_dr.GetElementsCount("//a[@href='/profile']") == 0) { _dr.Refresh(url); }
-                });
-                if (await CheckIsOfferAlive(b)) {
+                var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
+                bool isAlive = true;
+                for(int i=0; ; i++) {
+                    if (i == 30) throw new Exception("не удалось загрузить страницу редактирования!\n" + _bus[b].name + "url: " + url);
+                    await ChechAuthAsync();
+                    await _dr.NavigateAsync(url);
+                    if (_dr.GetElementsCount("//a[@href='/profile']") > 0 && _dr.GetElementsCount("//div[@data-marker='category']")>0) break;
+                    isAlive = await CheckIsOfferAlive(b);
+                    if (!isAlive) break;
+                }
+                if (isAlive) {
                     await Task.Factory.StartNew(() => {
                         SetStatus(b);
                         SetTitle(b);
@@ -198,7 +204,7 @@ namespace Selen.Sites {
                 await Task.Delay(5000); //ждем, потому что объявление не всегда сразу готово
                 var id = _dr.GetElementAttribute("//a[contains(@href,'itemId')]", "href").Split('=').Last();
                 var url = "https://www.avito.ru/items/" + id;
-                _dr.Navigate(url);
+                await _dr.NavigateAsync(url);
                 _bus[b].avito = _dr.GetUrl();
             }
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
@@ -206,7 +212,7 @@ namespace Selen.Sites {
                 {"name", _bus[b].name},
                 {_url, _bus[b].avito}
             });
-            await Task.Delay(5000);
+            await Task.Delay(10000);
         }
 
         private void SetDiskParams(int b) {
@@ -291,28 +297,29 @@ namespace Selen.Sites {
         }
 
         private async Task AvitoUpAsync() {
-            await Task.Factory.StartNew(() => {
-                var url = "https://www.avito.ru/profile";
-                _dr.Navigate(url);
-                while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(url); }
-                var el = _dr.FindElements("//li/span[@class='nav-tab-num']").Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
-                var inactive = int.Parse(el[0]);
-                var active = int.Parse(el[1]);
-                var old = int.Parse(el[2]);
-                //проверяю случайную страницу активных объявлений
-                ParsePage("/active", GetRandomPageNum(active));
-                ParsePage("/old", GetRandomPageNum(old));
-                //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-                for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) { ParsePage("/inactive", i); }
-                for (int i = 1; i <= old / 10 && CountToUp > 0; i++) { ParsePage("/old", i); }
-            });
+            var url = "https://www.avito.ru/profile";
+            while (_dr.GetElementsCount(".nav-tab-title") == 0) {
+                await ChechAuthAsync();
+                await _dr.NavigateAsync(url);
+            }
+            var el = await _dr.FindElementsAsync("//li/span[@class='nav-tab-num']");
+            var txt = el.Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
+            var inactive = int.Parse(txt[0]);
+            var active = int.Parse(txt[1]);
+            var old = int.Parse(txt[2]);
+            //проверяю случайную страницу активных объявлений
+            await ParsePage("/active", GetRandomPageNum(active));
+            await ParsePage("/old", GetRandomPageNum(old));
+            //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
+            for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) { await ParsePage("/inactive", i); }
+            for (int i = 1; i <= old / 10 && CountToUp > 0; i++) { await ParsePage("/old", i); }
         }
 
         private int GetRandomPageNum(int count) {
             return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 10);
         }
 
-        private void ParsePage(string location, int numPage) {
+        private async Task ParsePage(string location, int numPage) {
             //перехожу в раздел
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
             _dr.Navigate(url);
@@ -338,7 +345,7 @@ namespace Selen.Sites {
                     //если цена или наименование не совпадают надо редактировать
                     if (_bus[b].price != int.Parse(prices[i]) ||
                         !_bus[b].name.ToLowerInvariant().Contains(names[i].ToLowerInvariant())) {
-                        EditAsync(b);
+                        await EditAsync(b);
                     }
                     //если объявление в разделе "архив" или "ждут действий", но есть на остатках и цена больше пороговой - поднимаю
                     if (CountToUp > 0 &&
@@ -349,7 +356,7 @@ namespace Selen.Sites {
                     }
                 }
             }
-            Thread.Sleep(20000);
+            Thread.Sleep(30000);
         }
 
         private void UpOffer(int b) {

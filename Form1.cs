@@ -13,62 +13,41 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
-using VkNet;
-using VkNet.Enums.Filters;
-using VkNet.Model;
+
 using Application = System.Windows.Forms.Application;
 using System.Text.RegularExpressions;
 using BlueSimilarity;
 using Color = System.Drawing.Color;
-using VkNet.Model.Attachments;
 using Selen.Sites;
 using Selen.Tools;
-using VkNet.Model.RequestParams.Market;
 using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.24.3";
+        string _version = "1.25.2";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
-        public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
-        public List<Market> vkMark = new List<Market>();
         public List<AvitoObject> avito = new List<AvitoObject>();
         public List<DromObject> drom = new List<DromObject>();
         public List<AutoObject> auto = new List<AutoObject>();
         private List<RootObject> newTiuGoods = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
 
-        VkApi _vk = new VkApi();
+        VK _vk = new VK();
         Cdek _cdek = new Cdek();
         Drom _drom = new Drom();
         AvtoPro _avtoPro = new AvtoPro();
         Avito _avito = new Avito();
 
         public IWebDriver tiu;
-        public IWebDriver av;
         public IWebDriver au;
         public IWebDriver kp;
         public IWebDriver gde;
 
-        long marketId = 23570129;
-        int pageLimitVk = 200;
         int pageLimitBase = 250;
 
         string tiuXmlUrl = "http://xn--80aejmkqfc6ab8a1b.xn--p1ai/yandex_market.xml?html_description=1&hash_tag=3f22d0f72761b35f77efeaffe7f4bcbe&yandex_cpa=0&group_ids=&exclude_fields=&sales_notes=&product_ids=";
-
-        string dopDescVk = "Дополнительные фотографии по запросу\n" +
-                           "Есть и другие запчасти на данный автомобиль!\n" +
-                           "Вы можете установить данную деталь на нашем АвтоСервисе с доп.гарантией и со скидкой!\n" +
-                           "Перед выездом обязательно уточняйте наличие запчастей по телефону - товар на складе!\n" +
-                           "Время на проверку и установку - 2 недели!\n" +
-                           "Отправляем наложенным платежом ТК СДЭК (только негабаритные посылки)\n" +
-                           "Бесплатная доставка до транспортной компании!";//TODO add \n
-
-        string dopDescVk2 = "АДРЕС: г.Калуга, ул. Московская, д. 331\n" +
-                            "ТЕЛ: 8-920-899-45-45, 8-910-602-76-26, Viber/WhatsApp 8-962-178-79-15\n" +
-                            "Звонить строго с 9-00 до 19-00 (воскресенье-выходной)";
 
         string dopDescTiu = "Дополнительные фотографии по запросу<br />" +
                             "Есть и другие запчасти на данный автомобиль!<br />" +
@@ -451,25 +430,17 @@ namespace Selen {
             }
         }
 
-        //=== вк ===
+        //==========
+        //    ВК
+        //==========
         private async void VkSyncAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                ToLog("вк начало выгрузки");
                 while (base_rescan_need) await Task.Delay(20000);
-                if (await IsVKAuthorizatedAsync()) {
-                    await GetAlbumsVKAsync();
-                    ToLog("получено альбомов вк " + vkAlb.Count);
-                    if (vkAlb.Count > 0) {
-                        //3. получим товары из вк
-                        await GetVKAsync();
-                        label_vk.Text = vkMark.Count.ToString();
-                        ToLog("Получено товаров вк " + vkMark.Count);
-                        //4. удаляем объявления, которых нет в базе товаров, или они обновлены
-                        await DeleteVKAsync();
-                        //5. выкладываем товары вк из тех, которые имеют фото, есть ссылка тиу, цена и кол-во
-                        await AddVKAsync();
-                    }
-                }
+                _vk.AddCount = (int) numericUpDown_vkAdd.Value;
+                await _vk.VkSyncAsync(bus);
+                ToLog("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 ToLog("ошибка синхронизации вк: " + x.Message);
@@ -477,237 +448,31 @@ namespace Selen {
             }
         }
 
-        private async Task AddVKAsync() {
-            int newVk = 0;
-            for (int i = 0; i < bus.Count && newVk < vkAddUpDown.Value; i++) {
-                if (base_rescan_need) break;
-                if (bus[i].images.Count > 0 && bus[i].tiu.Contains("http")
-                    && bus[i].price > 0 && bus[i].amount > 0) {
-                    int indVk = 0;
-                    await Task.Factory.StartNew(() => { indVk = vkMark.FindIndex(t => bus[i].vk.Contains(t.Id.ToString())); });
-                    if (indVk < 0) {                                                        //если индекс не найден значит надо выложить
-                        var task = Task.Factory.StartNew(() => {
-                            //количество фото ограничиваем до 5
-                            int numPhotos = bus[i].images.Count > 5 ? 5 : bus[i].images.Count;
-                            //сперва опрелелим индекс группы из базы
-                            int busGrInd = busGr.FindIndex(t => t.id == bus[i].group_id);
-                            //если индекс -1, то для вк тоже указываем -1, что значит привязывать к альбому не будем
-                            int vkAlbInd = busGrInd < 0 ? -1 : vkAlb.FindIndex(t => t.Title == busGr[busGrInd].name);
-                            //переменные для хранения индексов фото, загруженных на сервер вк
-                            long mainPhoto = 0;
-                            List<long> dopPhotos = new List<long>();
-                            //отправляем каждую фотку на сервер вк
-                            WebClient cl = new WebClient();
-                            cl.Encoding = Encoding.UTF8;
-                            for (int u = 0; u < numPhotos; u++) {
-                                for (int x = 0; x < 3; x++) {
-                                    try {
-                                        byte[] bts = cl.DownloadData(bus[i].images[u].url);
-                                        File.WriteAllBytes("vk_" + u + ".jpg", bts);
-                                        break;
-                                    } catch (Exception ex) {
-                                        if (x == 3) throw;
-                                        Thread.Sleep(30000);
-                                    }
-                                }
-                                try {
-                                    //запросим адрес сервера для загрузки фото
-                                    var uplSever = _vk.Photo.GetMarketUploadServer(marketId, true, 0, 0);
-                                    //аплодим файл асинхронно
-                                    var respImg = Encoding.ASCII.GetString(
-                                            cl.UploadFile(uplSever.UploadUrl, Application.StartupPath + "\\" + "vk_" + u + ".jpg"));
-                                    //сохраняем фото в маркете
-                                    var photo = _vk.Photo.SaveMarketPhoto(marketId, respImg);
-                                    //проверим, главное ли фото, или дополнительное
-                                    if (u == 0) //first photo
-                                    {
-                                        mainPhoto = photo.FirstOrDefault().Id.Value;
-                                    } else {
-                                        dopPhotos.Add(photo.FirstOrDefault().Id.Value);
-                                    }
-                                } catch (Exception ex) {
-                                    throw;
-                                }
-                            }
-                            //меняем доп описание
-                            string desc = bus[i].description.Replace("&nbsp;", " ")
-                                        .Replace("&quot;", "")
-                                        .Replace("</p>", "\n")
-                                        .Replace("<p>", "")
-                                        .Replace("<br>", "\n")
-                                        .Replace("<br />", "\n")
-                                        .Replace("<strong>", "")
-                                        .Replace("</strong>", "")
-                                        .Replace(" &gt", "")
-                                        .Replace("Есть", "|")
-                                        .Split('|')[0];
-                            //если группа не автохимия и не колеса, добавляем описсание есть и другие запчасти на данный автомобиль...
-                            if (bus[i].IsGroupValid()) {
-                                desc += dopDescVk;
-                            }
-                            desc += dopDescVk2;
-                            //выкладываем товар вк!
-                            //создаем товар
-                            long itemId = _vk.Markets.Add(new MarketProductParams {
-                                OwnerId = -marketId,
-                                Name = bus[i].name,
-                                Description = desc,
-                                CategoryId = 404,
-                                Price = bus[i].price,
-                                MainPhotoId = mainPhoto,
-                                PhotoIds = dopPhotos,
-                                Deleted = false
-                            });
-                            //привяжем к альбому если есть индекс
-                            if (vkAlbInd > -1) {
-                                List<long> sList = new List<long>();
-                                sList.Add((long)vkAlb[vkAlbInd].Id);
-                                _vk.Markets.AddToAlbum(-marketId, itemId, sList);
-                            }
-                            bus[i].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
-                            bus[i].updated = DateTime.Now.AddMinutes(-224).ToString();
-
-                        });
-                        try {
-                            await task;
-                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                                    {"id", bus[i].id},
-                                                    {"name", bus[i].name},
-                                                    {"209360", bus[i].vk}
-                                        });
-                            ToLog("вк добавлено успешно!! " + newVk + "\n" + bus[i].name);
-                            label_vk.Text = (vkMark.Count + ++newVk).ToString();
-                        } catch (Exception ex) {
-                            ToLog("вк ошибка добавления товара\n" + bus[i].name + "\n" + ex.Message);
-                        }
-                    }
-                }
-            }
-        }
-
-        private async Task GetVKAsync() {
-            await Task.Factory.StartNew(() => {
-                vkMark.Clear();
-                for (int v = 0; ; v++) {
-                    int num = vkMark.Count;
-                    try {
-                        vkMark.AddRange(_vk.Markets.Get(-marketId, count: pageLimitVk, offset: v * pageLimitVk));
-                        Thread.Sleep(600);
-                        if (num == vkMark.Count) break;
-                    } catch (Exception ex) {
-                        ToLog("вк ошибка запроса товаров\n" + ex.Message);
-                        Thread.Sleep(10000);
-                        v--;
-                    }
-                }
-            });
-        }
-
-        private async Task DeleteVKAsync() {
-            await Task.Factory.StartNew(() => {
-                for (int i = 0; i < vkMark.Count; i++) {
-
-                    if (base_rescan_need) break;
-                    //для каждого товара поищем индекс в базе карточек товаров
-                    int iBus = bus.FindIndex(t => t.vk.EndsWith(vkMark[i].Id.ToString()));
-                    //если не найден - значит удаляю объявление
-                    var vkDate = vkMark[i].Date;
-                    //var busDate = bus[iBus].updated;
-                    if (iBus == -1 ||
-                        bus[iBus].price != vkMark[i].Price.Amount / 100 ||
-                        bus[iBus].amount <= 0 ||
-                        bus[iBus].name != vkMark[i].Title ||
-                        DateTime.Parse(bus[iBus].updated).AddMinutes(-223).CompareTo(vkDate) > 0
-                        //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1
-                        //|| vkMark[i].Description.Contains("70-70-97")
-                        ) {
-                        //удаляем из вк
-                        try {
-                            _vk.Markets.Delete(-marketId, (long)vkMark[i].Id);
-                            Thread.Sleep(330);
-                            vkMark.Remove(vkMark[i]);
-                            ToLog("удалено из вк:\n" + vkMark[i].Title);
-                            //label_vk.Text = vkMark.Count.ToString();
-                            i--;
-                        } catch {
-                            ToLog("вк не удалось удалить\n" + bus[iBus].name);
-                        }
-                    }
-                }
-            });
-        }
-
-        private async Task GetAlbumsVKAsync() {
-            await Task.Factory.StartNew(() => {
-                //2. проверяем соответствие групп вк с базой
-                bool f; //флаг было добавление группы в цикле - нужно пересканировать
-                do {
-                    vkAlb.Clear();
-                    try {
-                        vkAlb.AddRange(_vk.Markets.GetAlbums(-marketId));
-                    } catch (Exception ex) {
-                        throw ex;
-                    }
-                    f = false;
-                    for (int u = 0; u < busGr.Count; u++) {
-                        if (busGr[u].name != "Корневая группа") //Корневая группа не нужна в вк
-                        {
-                            //ищем группы из базы в группах вк
-                            int ind = vkAlb.FindIndex(t => t.Title == busGr[u].name);
-                            //если индекс -1 значит нет такой в списке
-                            if (ind == -1) {
-                                //добавляем группу товаров вк
-                                try {
-                                    _vk.Markets.AddAlbum(-marketId, busGr[u].name);
-                                    Thread.Sleep(1000);
-                                    f = true;
-                                } catch (Exception ex) {
-                                    throw ex;
-                                }
-                            }
-                        }
-                    }
-                } while (f);
-            });
-        }
-
-        //проверяем авторизацию вк
-        private async Task<bool> IsVKAuthorizatedAsync() {
-            // https://vk.com/market-23570129?w=product-23570129_552662
-            // 23570129 - id группы
-            // 552662 - id товара
-            var t = Task.Factory.StartNew(() => {
-                _vk.Authorize(new ApiAuthParams {
-                    ApplicationId = 5820993,
-                    Login = "rogachev.aleksey@gmail.com",
-                    Password = "$drum122",
-                    Settings = Settings.All,
-                    AccessToken = "ba600fc83b526e417526749b992277da60ac125353644a2dd32f4eceb1527e130a75ce872ec706555a6dc"
-                    //AccessToken = "UZjSkUeX3OAZ51PtDSu9"
-                });
-            });
+        private void numericUpDown_vkAdd_ValueChanged(object sender, EventArgs e) {
             try {
-                await t;
-                ToLog("авторизация вк успешно!");
-                return true;
-            } catch (Exception ex) {
-                ToLog("вк ошибка авторизации\n" + ex.Message);
-                return false;
+                _vk.AddCount = (int)numericUpDown_vkAdd.Value;
+            } catch (Exception x) {
+                ToLog("ВК: ошибка установки количества добавляемых объявлений");
             }
         }
 
-        //=========================//
-        // выгрузка - загрузка tiu //
-        //=========================//
+        //==============
+        //    TIU.RU
+        //==============
         private async void TiuSyncAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (base_rescan_need) {await Task.Delay(10000);}
-            await TiuUploadAsync();
-            await TiuHide();
-            await AddPhotosToBaseAsync();
-            await AddSupplyAsync();
-            await TiuSyncAsync2();
-            ChangeStatus(sender, ButtonStates.Active); 
+            try {
+                while (base_rescan_need) {await Task.Delay(10000);}
+                await TiuUploadAsync();
+                await TiuHide();
+                await AddPhotosToBaseAsync();
+                await AddSupplyAsync();
+                await TiuSyncAsync2();
+                ChangeStatus(sender, ButtonStates.Active); 
+            } catch (Exception x) {
+                ToLog("tiu.ru ошибка: " + x.Message);
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem); 
+            }
         }
 
         async Task TiuUploadAsync() {
@@ -1000,7 +765,9 @@ namespace Selen {
         private async Task TiuHide() {
             if (tiu == null) {
                 await Task.Factory.StartNew(() => {
-                    tiu = new ChromeDriver();
+                    ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
+                    chromeservice.HideCommandPromptWindow = true;
+                    tiu = new ChromeDriver(chromeservice);
                     tiu.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
                     Thread.Sleep(2000);
                     tiu.Navigate().GoToUrl("https://my.tiu.ru/cms");
@@ -1019,7 +786,9 @@ namespace Selen {
                     Thread.Sleep(3000);
                     tiu.FindElement(By.Id("enterPasswordConfirmButton")).Click();
                     Thread.Sleep(3000);
+                    if (tiu.Url.Contains("sing-in")) throw new Exception("ошибка авторизации!");
                 } catch { }
+                SaveCookies(tiu, "tiu.json");
                 tiu.Navigate().Refresh();
                 Thread.Sleep(3000);
             });
@@ -1374,7 +1143,9 @@ namespace Selen {
             ToLog("парсим авто.ру...");
             //откроем браузер
             if (au == null) {
-                au = new ChromeDriver();
+                ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
+                chromeservice.HideCommandPromptWindow = true;
+                au = new ChromeDriver(chromeservice);
                 au.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
                 au.Navigate().GoToUrl("https://auto.ru/404");
                 LoadCookies(au, "auto.json");
@@ -3487,10 +3258,28 @@ namespace Selen {
                     //переносим обновления в загруженную базу
                     foreach (var lg in lightSyncGoods) {
                         var ind = bus.FindIndex(f => f.id == lg.id);
+                        //индекс карточки найден
                         if (ind != -1) {
-                            bus[ind] = lg;
-                            bus[ind].updated = sync_start.ToString();
-                        } else {
+                            //если чекбокс "игнорировать ссылки" активен
+                            if (checkBox_IgnoreUrls.Checked) {
+                                if (bus[ind].amount != lg.amount ||         //если изменилось количество или
+                                    bus[ind].price != lg.price ||           //если изменилась цена или
+                                    bus[ind].archive != lg.archive ||       //статус архивный или
+                                    bus[ind].name != lg.name ||             //изменилось наименование или
+                                    bus[ind].description != lg.description    //изменилось описание
+                                    ) {
+                                    //переносим все данные
+                                    bus[ind] = lg;
+                                    //время обновления карточки сдвигаю на время начала цикла синхронизации
+                                    bus[ind].updated = sync_start.ToString();
+                                } else {
+                                    //сохраняю в новых данных старую дату обновления
+                                    lg.updated = bus[ind].updated;
+                                    //переношу все новые данные
+                                    bus[ind] = lg;
+                                }
+                            }
+                        } else { //если индекс карточки не найден - добавляем в коллекцию
                             lg.updated = sync_start.ToString();
                             bus.Add(lg);
                         }
@@ -3522,7 +3311,7 @@ namespace Selen {
 
                     if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
                         await AddPartNumsAsync();//добавление артикулов из описания
-                        await Task.Delay(60000);
+                        await Task.Delay(30000);
                         button_avito_get.PerformClick();
                         await Task.Delay(60000);
                         button_drom_get.PerformClick();
@@ -3960,7 +3749,9 @@ namespace Selen {
         private async Task KupiProdaiAuth() {
             Task t = Task.Factory.StartNew(() => {
                 if (kp == null) {
-                    kp = new ChromeDriver();
+                    ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
+                    chromeservice.HideCommandPromptWindow = true;
+                    kp = new ChromeDriver(chromeservice);
                     kp.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
                     Thread.Sleep(2000);
                     kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/");
@@ -4245,7 +4036,9 @@ namespace Selen {
 
         private async Task GdeAutorize() {
             if (gde == null) {
-                gde = new ChromeDriver();
+                ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
+                chromeservice.HideCommandPromptWindow = true;
+                gde = new ChromeDriver(chromeservice);
                 gde.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
             }
             Task t = Task.Factory.StartNew(() => {
@@ -4912,5 +4705,6 @@ namespace Selen {
                 ToLog("avto.pro: ошибка установки количества добавляемых объявлений");
             }
         }
+
     }
 }
