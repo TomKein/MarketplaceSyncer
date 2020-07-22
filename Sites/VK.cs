@@ -136,7 +136,7 @@ namespace Selen.Sites {
                                 _vk.Markets.AddToAlbum(-marketId, itemId, sList);
                             }
                             _bus[i].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
-                            _bus[i].updated = DateTime.Now.AddMinutes(-224).ToString();
+                            //_bus[i].updated = DateTime.Now.AddMinutes(-224).ToString();
 
                         });
                         try {
@@ -178,18 +178,19 @@ namespace Selen.Sites {
         private async Task DeleteVKAsync() {
             await Task.Factory.StartNew(() => {
                 for (int i = 0; i < vkMark.Count; i++) {
-
                     //для каждого товара поищем индекс в базе карточек товаров
                     int iBus = _bus.FindIndex(t => t.vk.EndsWith(vkMark[i].Id.ToString()));
                     //если не найден - значит удаляю объявление
                     var vkDate = vkMark[i].Date;
-                    //var busDate = bus[iBus].updated;
+                    var busDate = _bus[iBus].updated;
+                    var compareDates = DateTime.Parse(busDate).AddMinutes(-223).CompareTo(vkDate);
                     if (iBus == -1 ||
                         _bus[iBus].price != vkMark[i].Price.Amount / 100 ||
                         _bus[iBus].amount <= 0 ||
                         _bus[iBus].name != vkMark[i].Title ||
-                        DateTime.Parse(_bus[iBus].updated).AddMinutes(-223).CompareTo(vkDate) > 0
-                        //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1
+                        DateTime.Parse(busDate).AddMinutes(-223).CompareTo(vkDate) > 0
+                        //TODO вк раскоментировать поиск дублей
+                        //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1 
                         //|| vkMark[i].Description.Contains("70-70-97")
                         ) {
                         //удаляем из вк

@@ -3262,11 +3262,12 @@ namespace Selen {
                         if (ind != -1) {
                             //если чекбокс "игнорировать ссылки" активен
                             if (checkBox_IgnoreUrls.Checked) {
-                                if (bus[ind].amount != lg.amount ||         //если изменилось количество или
-                                    bus[ind].price != lg.price ||           //если изменилась цена или
-                                    bus[ind].archive != lg.archive ||       //статус архивный или
-                                    bus[ind].name != lg.name ||             //изменилось наименование или
-                                    bus[ind].description != lg.description    //изменилось описание
+                                if (bus[ind].amount != lg.amount ||             //если изменилось количество или
+                                    bus[ind].price != lg.price ||               //если изменилась цена или
+                                    bus[ind].archive != lg.archive ||           //статус архивный или
+                                    bus[ind].name != lg.name ||                 //изменилось наименование или
+                                    bus[ind].description != lg.description ||   //изменилось описание или
+                                    bus[ind].part != lg.part                    //изменился артикул
                                     ) {
                                     //переносим все данные
                                     bus[ind] = lg;

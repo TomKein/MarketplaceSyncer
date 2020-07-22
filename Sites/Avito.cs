@@ -83,7 +83,10 @@ namespace Selen.Sites {
                     _dr.ButtonClick("//button[@type='submit']");
                     _dr.Refresh();
                 }
-                while (_dr.GetElementsCount(".nav-tabs") == 0) Thread.Sleep(10000);
+                while (_dr.GetElementsCount(".nav-tabs") == 0) {
+                    _dr.Refresh();
+                    Thread.Sleep(60000);
+                }
                 SaveCookies();
             });
         }
@@ -322,16 +325,19 @@ namespace Selen.Sites {
         private async Task ParsePage(string location, int numPage) {
             //перехожу в раздел
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
-            _dr.Navigate(url);
+            await _dr.NavigateAsync(url);
             //проверяю, что страница загрузилась
-            while (_dr.GetElementsCount(".nav-tab-title") == 0) { _dr.Refresh(url); }
+            while (_dr.GetElementsCount(".nav-tab-title") == 0) {
+                await ChechAuthAsync();
+                await _dr.NavigateAsync(url);
+            }
             //парсинг объявлений на странице
-            var items = _dr.FindElements("//div[contains(@class,'text-t')]//a");
+            var items = await _dr.FindElementsAsync("//div[contains(@class,'text-t')]//a");
             var urls = items.Select(s => s.GetAttribute("href")).ToList();
             var ids = urls.Select(s => s.Split('_').Last()).ToList();
             var names = items.Select(s => s.Text).ToList();
-            var prices = _dr.FindElements("//div[contains(@class,'price-root')]/span")
-                            .Select(s => s.Text.Replace(" ", "").TrimEnd('\u20BD')).ToList();
+            var el = await _dr.FindElementsAsync("//div[contains(@class,'price-root')]/span");
+            var prices = el.Select(s => s.Text.Replace(" ", "").TrimEnd('\u20BD')).ToList();
             //проверка результатов парсинга
             if (items.Count == 0) throw new Exception("ошибка парсинга: не найдны ссылки на товары");
             if (items.Count != names.Count || names.Count != prices.Count) throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
@@ -352,17 +358,17 @@ namespace Selen.Sites {
                         _bus[b].price >= _priceLevel &&
                         _bus[b].amount > 0 &&
                         (location == "/old" || location == "/inactive")) {
-                        UpOffer(b);
+                        await UpOfferAsync(b);
                     }
                 }
             }
-            Thread.Sleep(30000);
+            await Task.Delay(30000);
         }
 
-        private void UpOffer(int b) {
+        private async Task UpOfferAsync(int b) {
             var id = _bus[b].avito.Split('_').Last();
             var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
-            _dr.Navigate(url);
+            await _dr.NavigateAsync(url);
             //проверка наличия формы редактирования
             if (_dr.GetElementsCount("//*[contains(text(),'Состояние')]") > 0) {
                 SetStatus(b);
@@ -373,7 +379,7 @@ namespace Selen.Sites {
             if (butOpub.Count > 0) {
                 butOpub.First().Click();
                 CountToUp--;
-                Thread.Sleep(15000);
+                await Task.Delay(30000);
             }
         }
 
