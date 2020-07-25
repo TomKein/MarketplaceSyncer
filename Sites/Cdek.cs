@@ -46,8 +46,17 @@ namespace Selen.Sites {
             await DeleteNonActiveAsync();
         }
 
+        private void DeleteNotApproved() {
+            _dr.Navigate("https://cdek.market/v/?type=simple&pcode_from_q=Y&is_search=Y&cid=&category_name=%D0%92%D1%81%D0%B5+%D0%BA%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D0%B8&subcats=N&subcats=Y&free_shipping=&status=A&approved=N&sort_by=list_price&sort_order=asc&period=A&hint_new_view=%D0%9D%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5&dispatch%5Bproducts.manage%5D=%D0%9D%D0%B0%D0%B9%D1%82%D0%B8");
+            _dr.ButtonClick("//input[@name='check_all']");
+            _dr.ButtonClick("//span[contains(text(),'Статус')]");
+            _dr.ButtonClick("//a[contains(text(),'Выключить товары')]");
+            Thread.Sleep(5000);
+        }
+
         private async Task DeleteNonActiveAsync() {
             await Task.Factory.StartNew(() => {
+                DeleteNotApproved();
                 _dr.Navigate("https://cdek.market/v/?type=simple&pcode_from_q=Y&is_search=Y&category_name=%D0%92%D1%81%D0%B5+%D0%BA%D0%B0%D1%82%D0%B5%D0%B3%D0%BE%D1%80%D0%B8%D0%B8&subcats=N&subcats=Y&status=D&period=A&hint_new_view=%D0%9D%D0%B0%D0%B7%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5&dispatch%5Bproducts.manage%5D=%D0%9D%D0%B0%D0%B9%D1%82%D0%B8");
                 _dr.ButtonClick("//input[@name='check_all']");
                 _dr.ButtonClick("//span[contains(text(),'Действия')]");
@@ -286,7 +295,7 @@ namespace Selen.Sites {
                 _dr.Navigate(_bus[b].cdek);
                 Thread.Sleep(5000);
                 isDead = _dr.GetElementsCount("//label[@for='product_description_product']") == 0 &&
-                          _dr.GetElementText("h2").StartsWith("40");
+                          _dr.GetElementText("//div[@class='content-wrap']//h2").StartsWith("40");
                 if (!isDead && IsImageDead()) {
                     _dr.ButtonClick("//input[@id='elm_product_status_0_d']");
                     PressOkButton();

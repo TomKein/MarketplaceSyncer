@@ -81,11 +81,12 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("input[name='login']", "9106027626@mail.ru");
                     _dr.WriteToSelector("input[name='password']", "rad00239000");
                     _dr.ButtonClick("//button[@type='submit']");
-                    _dr.Refresh();
                 }
                 while (_dr.GetElementsCount(".nav-tabs") == 0) {
-                    _dr.Refresh();
-                    Thread.Sleep(60000);
+                    Thread.Sleep(10000);
+                    _dr.ButtonClick("//a[contains(@href,'reload')]");
+                    _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
+                    
                 }
                 SaveCookies();
             });
@@ -112,6 +113,7 @@ namespace Selen.Sites {
                     _dr.Refresh();
                 else {
                     Quit();
+                    Thread.Sleep(30000);
                     await AuthAsync();
                 }
             }
@@ -146,7 +148,7 @@ namespace Selen.Sites {
         private async Task<bool> CheckIsOfferAlive(int b) {
             var count = 0;
             await Task.Factory.StartNew(() => {
-                count = _dr.GetElementsCount("//p[contains(text(),'Вы удалили это объявление навсегда')]");
+                count = _dr.GetElementsCount("//p[contains(text(),'удалили это объявление') or contains(text(),'неверной ссылке')]");
             });
             if (count > 0) return false;
             return true;

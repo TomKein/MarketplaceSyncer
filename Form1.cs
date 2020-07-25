@@ -24,7 +24,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.25.2";
+        string _version = "1.26.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -3777,7 +3777,7 @@ namespace Selen {
                 await t;
             } catch (Exception x) {
                 kp = null;
-                Thread.Sleep(180000);
+                Thread.Sleep(180000);//TODO изменить на 600000
                 await KupiProdaiAuth();
             }
         }
