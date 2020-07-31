@@ -95,6 +95,7 @@ namespace Selen.Sites {
             SetDesc(b);
             SetPrice(b);
             SetPart(b);
+            SetWeight(b);
             PressOkButton();
             Thread.Sleep(10000);
             if (b.amount <= 0) Delete();
@@ -130,6 +131,7 @@ namespace Selen.Sites {
                         SetOptions(_bus[b]);
                         SetDiam(_bus[b]);
                         SetAudioSize(_bus[b]);
+                        SetWeight(_bus[b]);
                         PressPublicFreeButton();
                     });
                     try {
@@ -143,6 +145,12 @@ namespace Selen.Sites {
                 }
             }
         }
+
+        private void SetWeight(RootObject b) {
+            var weight = b.weight ?? 1.00;
+            _dr.WriteToSelector("//input[contains(@name,'Weight')]", ((int)weight).ToString());
+        }
+
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl().Split('-').Last().Split('.').First();
 
