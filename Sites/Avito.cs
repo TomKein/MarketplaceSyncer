@@ -150,7 +150,7 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 count = _dr.GetElementsCount("//p[contains(text(),'удалили это объявление') or contains(text(),'неверной ссылке')]");
             });
-            if (count > 0) return false;
+            if (count > 0 && !_dr.GetUrl().Contains("isDirect=1")) return false;
             return true;
         }
        

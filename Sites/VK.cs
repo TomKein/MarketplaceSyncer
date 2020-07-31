@@ -164,7 +164,7 @@ namespace Selen.Sites {
                     int num = vkMark.Count;
                     try {
                         vkMark.AddRange(_vk.Markets.Get(-marketId, count: pageLimitVk, offset: v * pageLimitVk));
-                        Thread.Sleep(600);
+                        Thread.Sleep(1000);
                         if (num == vkMark.Count) break;
                     } catch (Exception ex) {
                         //ToLog("вк ошибка запроса товаров\n" + ex.Message);
@@ -189,11 +189,10 @@ namespace Selen.Sites {
                         _bus[iBus].amount <= 0 ||
                         _bus[iBus].name != vkMark[i].Title ||
                         DateTime.Parse(busDate).AddMinutes(-223).CompareTo(vkDate) > 0
-                        //TODO вк раскоментировать поиск дублей
-                        //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1 
+                        //поиск дублей
+                        || vkMark.Count(c => c.Title == vkMark[i].Title) > 1 
                         //|| vkMark[i].Description.Contains("70-70-97")
                         ) {
-                        //удаляем из вк
                         try {
                             _vk.Markets.Delete(-marketId, (long)vkMark[i].Id);
                             Thread.Sleep(330);

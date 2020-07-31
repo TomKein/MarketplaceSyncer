@@ -171,14 +171,17 @@ namespace Selen.Sites {
                     (_bus[b].IsTimeUpDated() || _bus[b].amount <= 0)) {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate(_bus[b].cdek);
-                        SetTitle(b);
-                        SetPrice(b);
-                        SetCategory(b);
-                        SetDesc(b);
-                        SetStatus(b);
-                        SetAmount(b);
-                        PressOkButton();
-                        SetWeight(b);
+                        if (_dr.GetElementsCount("//label[@for='product_description_product']") > 0 &&
+                         _dr.GetElementsCount("//h4[contains(text(),'страница не найдена')]") == 0) {
+                            SetTitle(b);
+                            SetPrice(b);
+                            SetCategory(b);
+                            SetDesc(b);
+                            SetStatus(b);
+                            SetAmount(b);
+                            PressOkButton();
+                            SetWeight(b);
+                        }
                     });
                     try {
                         await t;
@@ -293,9 +296,8 @@ namespace Selen.Sites {
             var isDead = false;
             await Task.Factory.StartNew(() => {
                 _dr.Navigate(_bus[b].cdek);
-                Thread.Sleep(5000);
                 isDead = _dr.GetElementsCount("//label[@for='product_description_product']") == 0 &&
-                          _dr.GetElementText("//div[@class='content-wrap']//h2").StartsWith("40");
+                         _dr.GetElementsCount("//h4[contains(text(),'страница не найдена')]") > 0;
                 if (!isDead && IsImageDead()) {
                     _dr.ButtonClick("//input[@id='elm_product_status_0_d']");
                     PressOkButton();

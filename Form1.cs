@@ -24,7 +24,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.26.1";
+        string _version = "1.27.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -4587,9 +4587,12 @@ namespace Selen {
         //тестим селениум
         private async void SeleniumTest(object sender, EventArgs e) {
             try {
-                for (int b = 0; b < bus.Count; b++) {
-                    if (bus[b].name.Contains("\u00a0")) ToLog(bus[b].name);
+                foreach (var item in bus.Where(b => b.tiu.Contains("http") && b.amount > 0 && b.images.Count == 0)) {
+                    ToLog(item.name);
                 }
+                //for (int b = 0; b < bus.Count; b++) {
+                //    if (bus[b].tiu.Contains("http")) ToLog(bus[b].name);
+                //}
                 await Task.Delay(1000);
                 //string res =  await  Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
                 //            {"archive", "0"},
