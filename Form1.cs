@@ -24,7 +24,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.27.2";
+        string _version = "1.28.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -3267,7 +3267,8 @@ namespace Selen {
                                     bus[ind].archive != lg.archive ||           //статус архивный или
                                     bus[ind].name != lg.name ||                 //изменилось наименование или
                                     bus[ind].description != lg.description ||   //изменилось описание или
-                                    bus[ind].part != lg.part                    //изменился артикул
+                                    bus[ind].part != lg.part ||                 //изменился артикул
+                                    bus[ind].weight != lg.weight                //изменился вес
                                     ) {
                                     //переносим все данные
                                     bus[ind] = lg;

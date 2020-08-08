@@ -124,7 +124,7 @@ namespace Selen.Sites {
                 var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
                 bool isAlive = true;
                 for(int i=0; ; i++) {
-                    if (i == 30) throw new Exception("не удалось загрузить страницу редактирования!\n" + _bus[b].name + "url: " + url);
+                    if (i == 20) break;// throw new Exception("не удалось загрузить страницу редактирования!\n" + _bus[b].name + "url: " + url);
                     await ChechAuthAsync();
                     await _dr.NavigateAsync(url);
                     if (_dr.GetElementsCount("//a[@href='/profile']") > 0 && _dr.GetElementsCount("//div[@data-marker='category']")>0) break;

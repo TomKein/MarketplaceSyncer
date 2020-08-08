@@ -77,9 +77,13 @@ namespace Selen.Tools {
 
 
         public void WriteToSelector(string sel, string s = null, List<string> sl = null) {
-            if (s != null || sl != null) {
-                var el = FindElements(sel);
-                if (el.Count > 0) WriteToIWebElement(el.First(), s, sl);
+            try {
+                if (s != null || sl != null) {
+                    var el = FindElements(sel);
+                    if (el.Count > 0) WriteToIWebElement(el.First(), s, sl);
+                }
+            } catch (Exception x){
+                Debug.WriteLine(x.Message);
             }
         }
 

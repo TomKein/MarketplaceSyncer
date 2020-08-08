@@ -148,7 +148,7 @@ namespace Selen.Sites {
 
         private void SetWeight(RootObject b) {
             var weight = b.weight ?? 1.00;
-            _dr.WriteToSelector("//input[contains(@name,'Weight')]", ((int)weight).ToString());
+            _dr.WriteToSelector("//input[contains(@name,'ProviderWeight')]", ((int)weight).ToString()+OpenQA.Selenium.Keys.Tab);
         }
 
         async Task SaveUrlAsync(int b) {
@@ -245,6 +245,7 @@ namespace Selen.Sites {
                 PressServiseSubmitButton();
                 _dr.ButtonClick("//a[@data-applier='prolongBulletin']");
                 PressServiseSubmitButton();
+                _dr.ButtonClick("//a[contains(@href,'publish')]");
             }
         }
         public async Task UpAsync() {
