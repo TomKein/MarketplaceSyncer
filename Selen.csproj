@@ -259,6 +259,7 @@
     <Compile Include="Sites\Offer.cs" />
     <Compile Include="Sites\VK.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
+    <Compile Include="Tools\Log.cs" />
     <Compile Include="Tools\PhpKSort.cs" />
     <Compile Include="Tools\QueryStringBilder.cs" />
     <Compile Include="Base\AdditionalClasses.cs" />

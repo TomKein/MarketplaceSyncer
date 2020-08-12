@@ -20,11 +20,12 @@ using BlueSimilarity;
 using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
+using Selen.Base;
 using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.28.1";
+        string _version = "1.29.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -3983,6 +3984,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
+        //TODO вынести в отдельный класс
         //========//
         // gde.ru //
         //========//
@@ -4409,10 +4411,49 @@ namespace Selen {
             Thread.Sleep(5000);
         }
 
-        //
-        //
-        // CDEK
-        //
+        //=== выгрузка avto.pro === 
+        private async void button_avto_pro_Click(object sender, EventArgs e) {
+            if (checkBox_avto_pro_use.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    ToLog("avto.pro: начало выгрузки...");
+                    while (base_rescan_need) await Task.Delay(30000);
+                    _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
+                    await _avtoPro.AvtoProStartAsync(bus);
+                    ToLog("avto.pro: выгрузка завершена!");
+
+                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
+                    if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 7) { //достаточно проверять один раз в сутки, и только ночью
+                        ToLog("avto.pro: парсинг сайта...");
+                        await _avtoPro.CheckAsync();
+                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
+                        dSet.WriteXml(fSet);
+                        ToLog("avto.pro: парсинг завершен");
+                    }
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _avtoPro?.Quit();
+                        Thread.Sleep(180000);
+                        _avtoPro = new AvtoPro();
+                        button_avto_pro_Click(sender, e);
+                    }
+                }
+            }
+        }
+        private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
+            try {
+                _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
+            } catch (Exception x) {
+                ToLog("avto.pro: ошибка установки количества добавляемых объявлений");
+            }
+        }        
+        
+        //=== синхронизация CDEK ===
         private async void button_cdek_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || !button_base_get.Enabled) {
@@ -4441,7 +4482,7 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
-
+        //загрузка куки
         private void button_SaveCookie_Click(object sender, EventArgs e) {
             SaveCookies(tiu, "tiu.json");
             SaveCookies(au, "auto.json");
@@ -4452,7 +4493,6 @@ namespace Selen {
             //SaveCookie(gde);
             //SaveCookie(cd);
         }
-
         private void SaveCookies(IWebDriver dr, string name) {
             try {
                 var ck = dr.Manage().Cookies.AllCookies;
@@ -4462,7 +4502,6 @@ namespace Selen {
                 ToLog("ошибка сохранения куки " + name + "\n" + x.Message);
             }
         }
-
         private void LoadCookies(IWebDriver dr, string name) {
             try {
                 var json = File.ReadAllText(name);
@@ -4519,37 +4558,14 @@ namespace Selen {
             Thread.Sleep(1000);
         }
 
-
-        //запись лога
-        public void ToLog(string s) {
-            lock (thisLock) {
-                for (int i = 0; i < 3; i++) {
-                    try {
-                        var dt = DateTime.Now;
-                        s = dt + " " + s + "\n";
-                        logBox.Text += s;
-                        if (logBox.Lines.Count() > numericUpDown_LOG.Value) {
-                            logBox.Lines = logBox.Lines.Skip(10).ToArray();
-                        }
-                        if (checkBox_WriteLog.Checked) {
-                            var date = dt.Year + "." + dt.Month + "." + dt.Day;
-                            File.AppendAllText("log_" + date + ".txt", s);
-                            break;
-                        }
-                        break;
-                    } catch { }
-                }
-            }
-
-        }
-        //прокрутка лога
-        private void richTextBox1_TextChanged(object sender, EventArgs e) {
-            logBox.SelectionStart = logBox.Text.Length - 1;
-            logBox.ScrollToCaret();
-        }
-
         private async void Form1_Load(object sender, EventArgs e) {
+            //подписываю обработчик на событие
+            Log.LogUpdate += LogUpdate;
+            //устанавливаю глубину логирования
+            Log.Level = (int)numericUpDown_LOG.Value;
+            //меняю заголовок окна
             this.Text += _version;
+            //подгружаю базу
             await LoadBus();
         }
 
@@ -4584,132 +4600,57 @@ namespace Selen {
             }
         }
 
+        //Вывод лога на форму
+        public void ToLog(string s) {
+            s = s + "\n";
+            lock (thisLock) {
+                for (int i = 0; i < 3; i++) {
+                    try {
+                        if (logBox.InvokeRequired)
+                            logBox.Invoke(new Action<string>((a) => logBox.Text += a), s);
+                        else
+                            logBox.Text += s;
+                        break;
+                    } catch {
+                        Thread.Sleep(1000);
+                    }
+                }
+            }
+        }
+        //прокрутка лога
+        private void richTextBox1_TextChanged(object sender, EventArgs e) {
+            logBox.SelectionStart = logBox.Text.Length - 1;
+            logBox.ScrollToCaret();
+        }
+        //обработка события на добавление записи
+        public void LogUpdate() {
+            ToLog(Log.LogLastAdded);
+        }
         //=========================//
-        //тестим селениум
-        private async void SeleniumTest(object sender, EventArgs e) {
+        //метод для тестирования
+        private async void ButtonTest(object sender, EventArgs e) {
             try {
-                foreach (var item in bus.Where(b => b.tiu.Contains("http") && b.amount > 0 && b.images.Count == 0)) {
-                    ToLog(item.name);
+                //создаю объект для работы с базой данных
+                DB db = new DB();
+                //пробую записать в лог из вторичного потока
+                Task.Factory.StartNew(() => {
+                    for (int i = 0; i < 300; i++) {
+                        db.ToLog("site", "secondary thread = " + i.ToString());
+                    }
+                });
+                Task.Factory.StartNew(() => {
+                    for (int i = 0; i < 300; i++) {
+                        db.ToLog("site", "third thread = " + i.ToString());
+                    }
+                });
+                for (int i = 0; i < 300; i++) {
+                    db.ToLog("site", "main thread - "+ i.ToString());
                 }
-                //for (int b = 0; b < bus.Count; b++) {
-                //    if (bus[b].tiu.Contains("http")) ToLog(bus[b].name);
-                //}
-                await Task.Delay(1000);
-                //string res =  await  Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
-                //            {"archive", "0"},
-                //            {"type", "1"},
-                //            {"with_additional_fields", "1"},
-                //            {"with_remains", "1"},
-                //            {"with_prices", "1"},
-                //            {"type_price_ids[0]","75524" }
-                //        });
-                //if (res.Contains("name")) {
-                //    res = res.Replace("\"209325\":", "\"tiu\":")
-                //        .Replace("\"209326\":", "\"avito\":")
-                //        .Replace("\"209334\":", "\"drom\":")
-                //        .Replace("\"209360\":", "\"vk\":")
-                //        .Replace("\"313971\":", "\"auto\":")
-                //        .Replace("\"402489\":", "\"youla\":")
-                //        .Replace("\"657256\":", "\"ks\":")
-                //        .Replace("\"833179\":", "\"kp\":")
-                //        .Replace("\"854872\":", "\"gde\":")
-                //        .Replace("\"1437133\":", "\"avtopro\":")
-                //        .Replace("\"854874\":", "\"cdek\":");
-                //    bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(res));
-                //}
 
-                //var s = JsonConvert.SerializeObject(bus);
-                //File.WriteAllText("bus.json", s);
-                //File.WriteAllText("bus-utf8.json", s, Encoding.UTF8);
-
-                //var busNew = JsonConvert.DeserializeObject<List<RootObject>>(File.ReadAllText("bus.json"));
-                //Thread.Sleep(1000);
-
-                //await _cdek.CheckUrlsAsync();
-
-                //var tst = new Selenium();
-                //tst.Navigate("https://cdek.market/v/");
-                //if (tst.GetElementsCount("#mainrightnavbar") == 0) {
-                //    tst.WriteToSelector("#username", "rad.i.g@list.ru");
-                //    tst.WriteToSelector("#password", "rad701242");
-                //    tst.ButtonClick("input[type='submit']");
-                //}          
-                //tst.Navigate("https://cdek.market/v/?dispatch=products.add");
-                //var inp_but = tst.FindElements("//span/ul/li/input").First();
-                //inp_but.Click();
-                //while (tst.GetElementsCount("//li[contains(@class,'results__option--load-more')]")>0) {
-                //    inp_but.SendKeys(OpenQA.Selenium.Keys.ArrowDown);
-                //}
-
-                //var str = new StringBuilder();
-                //foreach(var el in tst.FindElements("//li[@class='select2-results__option']")) {
-                //    str.Append(el.FindElements(By.XPath(".//div[@class='select2__category-name']")).First().Text);
-                //    str.Append(" / ");
-                //    str.Append(el.FindElements(By.XPath(".//div[@class='select2__category-parents']")).First().Text);
-                //    str.Append("\n");
-                //}
-                //File.WriteAllText("cdek_category.txt", str.ToString());
-
-
-
-                //tst.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-                //tst.Navigate().GoToUrl("https://my.tiu.ru");
-                //LoadCookies(tst, "tiu.json");
-
-                //var s = await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
-                //        {"updated[from]", DateTime.Now.AddHours(-24).ToString()},
-
-                //        {"price_type_id","75524" } //интересуют только отпускные цены
-                //    });
 
             } catch (Exception x) {
-                Debug.WriteLine(x.Message);
-            }
-
-        }
-
-        //=== выгрузка avto.pro ===
-        private async void button_avto_pro_Click(object sender, EventArgs e) {
-            if (checkBox_avto_pro_use.Checked) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                try {
-                    ToLog("avto.pro: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);
-                    _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
-                    await _avtoPro.AvtoProStartAsync(bus);
-                    ToLog("avto.pro: выгрузка завершена!");
-
-                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
-                    if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 7) { //достаточно проверять один раз в сутки, и только ночью
-                        ToLog("avto.pro: парсинг сайта...");
-                        await _avtoPro.CheckAsync();
-                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
-                        dSet.WriteXml(fSet);
-                        ToLog("avto.pro: парсинг завершен");
-                    }
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _avtoPro?.Quit();
-                        Thread.Sleep(180000);
-                        _avtoPro = new AvtoPro();
-                        button_avto_pro_Click(sender, e);
-                    }
-                }
+                ToLog(x.Message);
             }
         }
-
-        private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
-            try {
-                _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
-            } catch (Exception x) {
-                ToLog("avto.pro: ошибка установки количества добавляемых объявлений");
-            }
-        }
-
     }
 }

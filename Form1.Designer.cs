@@ -174,7 +174,7 @@ namespace Selen
             this.buttonTest.TabIndex = 20;
             this.buttonTest.Text = "Test";
             this.buttonTest.UseVisualStyleBackColor = true;
-            this.buttonTest.Click += new System.EventHandler(this.SeleniumTest);
+            this.buttonTest.Click += new System.EventHandler(this.ButtonTest);
             // 
             // button_vk_sync
             // 
@@ -203,8 +203,6 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
-            this.checkBox_sync.Checked = true;
-            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(15, 679);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
