@@ -13,7 +13,6 @@ using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
-
 using Application = System.Windows.Forms.Application;
 using System.Text.RegularExpressions;
 using BlueSimilarity;
@@ -21,11 +20,10 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
-using System.Diagnostics;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.29.1";
+        string _version = "1.29.2";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -4632,22 +4630,34 @@ namespace Selen {
             try {
                 //создаю объект для работы с базой данных
                 DB db = new DB();
-                //пробую записать в лог из вторичного потока
-                Task.Factory.StartNew(() => {
-                    for (int i = 0; i < 300; i++) {
-                        db.ToLog("site", "secondary thread = " + i.ToString());
-                    }
-                });
-                Task.Factory.StartNew(() => {
-                    for (int i = 0; i < 300; i++) {
-                        db.ToLog("site", "third thread = " + i.ToString());
-                    }
-                });
-                for (int i = 0; i < 300; i++) {
-                    db.ToLog("site", "main thread - "+ i.ToString());
-                }
+
+                var json = JsonConvert.SerializeObject(bus[0]);
+
+                var x = db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                var y = db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+
+                var j = db.GetGood("id",bus[0].id.ToString());
+                var b = JsonConvert.DeserializeObject<RootObject>(j);
+
+                var j2 = db.GetGood("drom", "47176874");
+                var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
 
 
+                //var res = db.SetParam("test", "123");
+                //var res2 = db.SetParam("test", "777");
+                //var str = db.GetParamStr("test");
+                //var i = db.GetParamInt("test");
+                //res = db.SetParam("test", DateTime.Now.ToString());
+                //var dt = db.GetParamDateTime("test");
+
+                //пробую записать в лог из вторичного потока (в 10 потоков)
+                //for (int j = 0; j < 10; j++) {
+                //    Task.Factory.StartNew(() => {
+                //        for (int i = 0; i < 100; i++) {
+                //            db.ToLog("site", j+" thread = " + i.ToString());
+                //        }
+                //    });
+                //}
             } catch (Exception x) {
                 ToLog(x.Message);
             }

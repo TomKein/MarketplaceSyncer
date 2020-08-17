@@ -9,90 +9,166 @@ using System.Threading.Tasks;
 namespace Selen.Base {
     /// <summary>
     /// 1. класс будет обеспечивать соединение с бд
-    /// 2. связь с таблицей goods
+    /// 2. связь с таблицей logs
     /// 3. связь с таблицей settings
+    /// 4. связь с таблицей goods
     /// </summary>
     class DB {
         private static readonly string connectionString =
-            "server=31.31.196.233;database=u0573801_business.ru;user=u0573_businessru;password=123abc123;";
-        public MySqlConnection conn = new MySqlConnection(connectionString);
-        private object _lock = new object();
+            "server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";
+        //запрос для записи в лог
+        private string _queryToLog = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
+                                     "VALUES (NOW(), @site, @message);";
+        //запрос для получения настроек
+        private string _queryGetParamStr = "SELECT `value` " +
+                                           "FROM `settings` " +
+                                           "WHERE `name`= @key;";
+        //запрос для сохранения настроек
+        private string _querySetParam = "INSERT INTO `settings` (`name`, `value`) " +
+                                        "VALUES (@name, @value) " +
+                                        "ON DUPLICATE KEY UPDATE `value` = @value;";
 
+        public MySqlConnection connection = new MySqlConnection(connectionString);
+        private readonly object _lock = new object();
+        //конструктор по умолчанию - открывает соединение сразу
         public DB() {
             OpenConnection();
+            var query = "SET NAMES utf8; " +
+                        "SET character_set_server=`utf8`;";
+            MySqlCommand command = new MySqlCommand(query, connection);
+            command.ExecuteNonQuery();
+            //query = "show variables like 'char%';";
+            //command = new MySqlCommand(query, connection);
+            //var res = ExecuteCommandQuery(command);
         }
+        //деструктор - закрывает соединение на всякий случай
         ~DB() {
             CloseConnection();
         }
+        //открыть соединение
         public void OpenConnection() {
-            if (conn.State == System.Data.ConnectionState.Closed)
-                conn.Open();
+            if (connection.State == ConnectionState.Closed)
+                connection.Open();
         }
+        //закрыть соединение
         public void CloseConnection() {
-            if (conn.State == System.Data.ConnectionState.Open)
-                conn.Close();
+            if (connection.State == ConnectionState.Open)
+                connection.Close();
         }
+        //ссылка на текущее соединение
         public MySqlConnection GetConnection() {
-            return conn;
+            return connection;
         }
-        public DataTable SqlQuery(string q) {
+        //исполнить sql строку с возвратом данных в виде таблицы
+        public DataTable SqlQuery(string query) {
+            MySqlCommand command = new MySqlCommand(query, connection);
+            return ExecuteCommandQuery(command);
+        }
+        //вызов комманды с получением данных в виде таблицы
+        private DataTable ExecuteCommandQuery(MySqlCommand query) {
             DataTable table = new DataTable();
             MySqlDataAdapter adapter = new MySqlDataAdapter();
-            MySqlCommand command = new MySqlCommand(q, conn);
-            adapter.SelectCommand = command;
-            adapter.Fill(table);
+            adapter.SelectCommand = query;
+            lock (_lock) {
+                OpenConnection();
+                adapter.Fill(table);
+            }
             return table;
         }
-        //запрос информации о товаре из базы данных
-        //передаем в запросе идин id или сразу несколько
-        public DataTable GetGoods(int id=-1, int[] ids=null) { 
-            //формируем строку запроса sql с указанием данных id
-            //передаю запрос и возвращаю данные в табличной форме
-            return new DataTable();
-        }
-        //обновление данных о товаре
-        public void UpdateGood(int id) {
-            //проверим, есть ли в базе запись о такой карточке
-            var dt = GetGoods(id:id);
-            if (dt.Rows.Count > 0) {
-                //запись есть, поэтому обновляем
-            } else {
-                //записи нет - добавляем
+        //вызов комманды без получения данных, возвращает количество затронутых строк
+        private int ExecuteCommandNonQuery(MySqlCommand command) {
+            int result = 0;
+            lock (_lock) {
+                OpenConnection();
+                result = command.ExecuteNonQuery();
             }
+            return result;
         }
-        //обновление таблицы настроек
-        //передаем пару ключ-значение
-        public void UpdateSetting(string key, string value) {
-            //формируем sql строку запроса для обновления настройки
-            //отправляем запрос
+        //добавление либо обновление параметра в таблице settings
+        public int SetParam(string name, string value) { 
+            //создаем команду
+            MySqlCommand command = new MySqlCommand(_querySetParam, connection);
+            command.Parameters.Add("@name", MySqlDbType.VarChar).Value = name;
+            command.Parameters.Add("@value", MySqlDbType.VarChar).Value = value;
+            //отправляем запрос, возвращаем результат
+            return ExecuteCommandNonQuery(command);
         }
-        //получаем настройки
-        //передаем ключ, или массив ключей
-        public DataTable GetSettings(string key = null, string[] keys=null) {
-            //формируем sql строку запроса для получения настройки
+        //получаем настройки как строку
+        public string GetParamStr(string key) {
+            //создаем команду
+            MySqlCommand command = new MySqlCommand(_queryGetParamStr, connection);
+            //добавляем параметр
+            command.Parameters.Add("@key", MySqlDbType.VarChar).Value = key;
             //отправляем запрос и возвращаю таблицу значений
-            return new DataTable();
+            var result = ExecuteCommandQuery(command);
+            return First(result);
+        }
+        //получаем настройки как число
+        public int GetParamInt(string key) {
+            //перевызываем метод получения строки
+            var result = GetParamStr(key);
+            //приводим к числовому типу
+            int i;
+            if (int.TryParse(result, out i))
+                return i;
+            return -1;
+        }
+        //получаем параметр как дату-время
+        public DateTime GetParamDateTime(string key) {
+            //перевызываем метод получения строки
+            var result = GetParamStr(key);
+            //приводим тип к дате
+            DateTime i;
+            if (DateTime.TryParse(result, out i))
+                return i;
+            //если парсинг неудачный - возвращаем минимальное значение
+            return DateTime.MinValue;
+        }
+        //возвращает первый элемент из таблицы как строку
+        private string First(DataTable dataTable) {
+            //если строк больше 0, возвращаем значение первого столбца первой строки
+            if (dataTable.Rows.Count >0)
+                return dataTable.Rows[0].ItemArray[0].ToString();
+            //иначе
+            return null;
         }
         //метод для записи логов в базу
         public void ToLog(string site, string message) {
-            //формируем sql строку
-            var q = "INSERT INTO `logs` (`datetime`, `site`, `text`) VALUES (NOW(), @site, @message)";
             //создаю команду
-            MySqlCommand command = new MySqlCommand(q, conn);
-            //добавляю параметры
+            MySqlCommand command = new MySqlCommand(_queryToLog, connection);
             command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
             command.Parameters.Add("@message", MySqlDbType.VarChar).Value = message;
             //выполняю запрос
-            ExecuteCommand(command);
+            ExecuteCommandNonQuery(command);
         }
-        //метод вызова комманд
-        private void ExecuteCommand(MySqlCommand c) {
-            int res = 0;
-            lock (_lock) {
-                OpenConnection();
-                res = c.ExecuteNonQuery();
-            }
-            if (res==0) throw new Exception("БД: ошибка записи в лог");
+        //запрос карточки товара из базы данных
+        public string GetGood(string arg, string text) {
+            //формируем строку запроса sql
+            var query = "SELECT json " +
+                        "FROM goods " +
+                        "WHERE json->'$."+arg+"' LIKE '%"+text+"%';";
+            //передаю запрос
+            MySqlCommand command = new MySqlCommand(query, connection);
+            //command.Parameters.Add("@text", MySqlDbType.VarChar).Value = text;
+            //command.Parameters.Add("@arg", MySqlDbType.VarChar).Value = arg;
+            var res = command.ExecuteScalar();
+            //возвращаю строку
+            return res.ToString();
+        }
+        //обновление данных о товаре
+        //dateTime - строка с временем изменения карточки
+        //json - строковое представление карточки товара
+        //возвращает число измененных строк
+        public int SetGood(int id, string updated, string json) {
+            //строка запроса
+            var query = "INSERT INTO `goods` (`id`, `json`, `updated`) " +
+                        "VALUES (@id, @json, @updated) " +
+                        "ON DUPLICATE KEY UPDATE `json` = @json, `updated`=@updated;";
+            MySqlCommand command = new MySqlCommand(query, connection);
+            command.Parameters.Add("@json", MySqlDbType.JSON).Value = json;
+            command.Parameters.Add("@updated", MySqlDbType.VarChar).Value = updated;
+            command.Parameters.Add("@id", MySqlDbType.UInt32).Value = id;
+            return ExecuteCommandNonQuery(command);
         }
     }
 }
