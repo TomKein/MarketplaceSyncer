@@ -127,11 +127,14 @@ namespace Selen.Base {
             //если парсинг неудачный - возвращаем минимальное значение
             return DateTime.MinValue;
         }
-        //получаем все параметры
-        public DataTable GetParamsAll() {
+        //получаем параметры
+        public DataTable GetParams(string filter = null) {
             //строка запроса
-            string query = "SELECT * FROM settings;";
-            //возвращаю результат запрос
+            string query = "SELECT * FROM settings";
+            //если параметр не нулевой - добавляем в запрос
+            if (!string.IsNullOrEmpty(filter))
+                query += " WHERE name LIKE '%" + filter + "%' OR value LIKE '%" + filter + "%' ";
+            //возвращаю результат запроса таблицей
             return SqlQuery(query);
         }
         //возвращает первый элемент из таблицы как строку

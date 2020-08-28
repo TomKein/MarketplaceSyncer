@@ -25,7 +25,7 @@
         private void InitializeComponent() {
             this.panel_Common = new System.Windows.Forms.Panel();
             this.panel_Search = new System.Windows.Forms.Panel();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.textBox_Search = new System.Windows.Forms.TextBox();
             this.button_Search = new System.Windows.Forms.Button();
             this.panel_DataGrid = new System.Windows.Forms.Panel();
             this.dataGridView_Settings = new System.Windows.Forms.DataGridView();
@@ -47,7 +47,7 @@
             // 
             // panel_Search
             // 
-            this.panel_Search.Controls.Add(this.textBox2);
+            this.panel_Search.Controls.Add(this.textBox_Search);
             this.panel_Search.Controls.Add(this.button_Search);
             this.panel_Search.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel_Search.Location = new System.Drawing.Point(0, 0);
@@ -56,15 +56,15 @@
             this.panel_Search.Size = new System.Drawing.Size(728, 46);
             this.panel_Search.TabIndex = 4;
             // 
-            // textBox2
+            // textBox_Search
             // 
-            this.textBox2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.textBox2.Location = new System.Drawing.Point(10, 10);
-            this.textBox2.Margin = new System.Windows.Forms.Padding(5);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(605, 26);
-            this.textBox2.TabIndex = 1;
+            this.textBox_Search.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textBox_Search.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.textBox_Search.Location = new System.Drawing.Point(10, 10);
+            this.textBox_Search.Margin = new System.Windows.Forms.Padding(5);
+            this.textBox_Search.Name = "textBox_Search";
+            this.textBox_Search.Size = new System.Drawing.Size(605, 26);
+            this.textBox_Search.TabIndex = 1;
             // 
             // button_Search
             // 
@@ -77,6 +77,7 @@
             this.button_Search.TabIndex = 2;
             this.button_Search.Text = "Найти";
             this.button_Search.UseVisualStyleBackColor = true;
+            this.button_Search.Click += new System.EventHandler(this.button_Search_Click);
             // 
             // panel_DataGrid
             // 
@@ -90,12 +91,13 @@
             // 
             // dataGridView_Settings
             // 
+            this.dataGridView_Settings.AllowUserToResizeRows = false;
             this.dataGridView_Settings.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridView_Settings.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridView_Settings.Location = new System.Drawing.Point(10, 10);
             this.dataGridView_Settings.MultiSelect = false;
             this.dataGridView_Settings.Name = "dataGridView_Settings";
-            this.dataGridView_Settings.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridView_Settings.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.dataGridView_Settings.Size = new System.Drawing.Size(708, 478);
             this.dataGridView_Settings.TabIndex = 3;
             this.dataGridView_Settings.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_Settings_CellEndEdit);
@@ -124,7 +126,7 @@
         private System.Windows.Forms.Panel panel_DataGrid;
         private System.Windows.Forms.DataGridView dataGridView_Settings;
         private System.Windows.Forms.Panel panel_Search;
-        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox textBox_Search;
         private System.Windows.Forms.Button button_Search;
     }
 }
