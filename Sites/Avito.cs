@@ -86,7 +86,7 @@ namespace Selen.Sites {
                     Thread.Sleep(10000);
                     _dr.ButtonClick("//a[contains(@href,'reload')]");
                     _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
-                    
+                    if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
                 }
                 SaveCookies();
             });
@@ -162,6 +162,7 @@ namespace Selen.Sites {
 
         private void Delete(int b) {
             _dr.Navigate(_bus[b].avito);
+            if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0) Thread.Sleep(5000);
             if (_dr.GetElementsCount("//*[text()='Снять с публикации']") > 0) {
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
                 _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");

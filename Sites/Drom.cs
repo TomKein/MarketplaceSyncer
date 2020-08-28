@@ -221,7 +221,7 @@ namespace Selen.Sites {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");
         }
         void PressServiseSubmitButton() {
-            _dr.ButtonClick("//*[@id='serviceSubmit']");
+            _dr.ButtonClick("//*[@id='serviceSubmit' and not(contains(text(),'платить'))]");
         }
         void PressPublicFreeButton() {
             _dr.ButtonClick("//button[@id='bulletin_publication_free']");

@@ -203,6 +203,8 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
+            this.checkBox_sync.Checked = true;
+            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(15, 679);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);

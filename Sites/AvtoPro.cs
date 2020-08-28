@@ -104,16 +104,17 @@ namespace Selen.Sites {
 
         void SetManufacturer(RootObject b) {
             var desc = b.name.ToLowerInvariant() + " " + b.description.ToLowerInvariant();
-            var auto = File.ReadAllLines(Application.StartupPath + "\\auto.txt");
+            var auto = File.ReadAllLines(Application.StartupPath + "\\auto.txt")
+                           .Where(w => w.Length > 0 && w.Contains(";")).ToList();
             var dict = new Dictionary<string, int>();
-            for (int i = 0; i < auto.Length; i++) {
+            for (int i = 0; i < auto.Count; i++) {
                 dict.Add(auto[i], 0);
                 foreach (var word in auto[i].Split(';')) {
                     if (desc.Contains(word))
                         dict[auto[i]]++;
                 }
             }
-            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();//TODO не заполняется изготовитель
+            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 1).Select(s => s.Key).ToList();//TODO не заполняется изготовитель
             string manuf;
             if (best.Count > 0) {
                 var s = best[0].Split(';');

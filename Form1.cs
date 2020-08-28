@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.29.2";
+        string _version = "1.30.1";
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -785,11 +785,14 @@ namespace Selen {
                     Thread.Sleep(3000);
                     tiu.FindElement(By.Id("enterPasswordConfirmButton")).Click();
                     Thread.Sleep(3000);
-                    if (tiu.Url.Contains("sing-in")) throw new Exception("ошибка авторизации!");
+                    if (tiu.Url.Contains("sing-in")) throw new Exception("ошибка авторизации!");//TODO заменить на while для ожидания входа
                 } catch { }
                 SaveCookies(tiu, "tiu.json");
                 tiu.Navigate().Refresh();
                 Thread.Sleep(3000);
+                //закрываю окно объявления
+                var bat = tiu.FindElements(By.XPath("//button/span[contains(text(),'Хорошо')]/.."));
+                if (bat.Count > 0) bat.First().Click();
             });
             try {
                 await ts;
@@ -4600,8 +4603,8 @@ namespace Selen {
 
         //Вывод лога на форму
         public void ToLog(string s) {
-            s = s + "\n";
-            lock (thisLock) {
+            s = DateTime.Now.ToString() + " " + s + "\n";
+            //lock (thisLock) {  //подвисает главный поток - пока отключил
                 for (int i = 0; i < 3; i++) {
                     try {
                         if (logBox.InvokeRequired)
@@ -4613,7 +4616,7 @@ namespace Selen {
                         Thread.Sleep(1000);
                     }
                 }
-            }
+            //}
         }
         //прокрутка лога
         private void richTextBox1_TextChanged(object sender, EventArgs e) {
