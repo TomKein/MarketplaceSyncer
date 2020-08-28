@@ -14,8 +14,11 @@ namespace Selen.Base {
     /// 4. связь с таблицей goods
     /// </summary>
     class DB {
+        //строка подключения
         private static readonly string connectionString =
             "server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";
+        //ссылка на экземпляр себя
+        public static DB _db = null;
         //запрос для записи в лог
         private string _queryToLog = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
                                      "VALUES (NOW(), @site, @message);";
@@ -27,19 +30,19 @@ namespace Selen.Base {
         private string _querySetParam = "INSERT INTO `settings` (`name`, `value`) " +
                                         "VALUES (@name, @value) " +
                                         "ON DUPLICATE KEY UPDATE `value` = @value;";
-
+        //создаю подключение
         public MySqlConnection connection = new MySqlConnection(connectionString);
         private readonly object _lock = new object();
         //конструктор по умолчанию - открывает соединение сразу
         public DB() {
             OpenConnection();
+            //утанавливаю кодировку принудительно
             var query = "SET NAMES utf8; " +
                         "SET character_set_server=`utf8`;";
             MySqlCommand command = new MySqlCommand(query, connection);
             command.ExecuteNonQuery();
-            //query = "show variables like 'char%';";
-            //command = new MySqlCommand(query, connection);
-            //var res = ExecuteCommandQuery(command);
+            //сохраняю ссылку на себя
+            _db = this;
         }
         //деструктор - закрывает соединение на всякий случай
         ~DB() {
@@ -123,6 +126,13 @@ namespace Selen.Base {
                 return i;
             //если парсинг неудачный - возвращаем минимальное значение
             return DateTime.MinValue;
+        }
+        //получаем все параметры
+        public DataTable GetParamsAll() {
+            //строка запроса
+            string query = "SELECT * FROM settings;";
+            //возвращаю результат запрос
+            return SqlQuery(query);
         }
         //возвращает первый элемент из таблицы как строку
         private string First(DataTable dataTable) {

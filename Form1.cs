@@ -4634,16 +4634,22 @@ namespace Selen {
                 //создаю объект для работы с базой данных
                 DB db = new DB();
 
-                var json = JsonConvert.SerializeObject(bus[0]);
+                FormSettings fs = new FormSettings();
+                fs.Owner = this;
+                fs.ShowDialog();
+                fs.Dispose();
 
-                var x = db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
-                var y = db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
 
-                var j = db.GetGood("id",bus[0].id.ToString());
-                var b = JsonConvert.DeserializeObject<RootObject>(j);
+                //var json = JsonConvert.SerializeObject(bus[0]);
 
-                var j2 = db.GetGood("drom", "47176874");
-                var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+                //var x = db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                //var y = db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+
+                //var j = db.GetGood("id",bus[0].id.ToString());
+                //var b = JsonConvert.DeserializeObject<RootObject>(j);
+
+                //var j2 = db.GetGood("drom", "47176874");
+                //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
 
 
                 //var res = db.SetParam("test", "123");

@@ -106,6 +106,7 @@ namespace Selen
             this.numericUpDown_avto_pro_add = new System.Windows.Forms.NumericUpDown();
             this.checkBox_avito_use = new System.Windows.Forms.CheckBox();
             this.checkBox_IgnoreUrls = new System.Windows.Forms.CheckBox();
+            this.button_SettingsFormOpen = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_dromAddCount)).BeginInit();
@@ -203,8 +204,6 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
-            this.checkBox_sync.Checked = true;
-            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(15, 679);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
@@ -961,6 +960,15 @@ namespace Selen
             this.checkBox_IgnoreUrls.Text = "игнорировать ссылки";
             this.checkBox_IgnoreUrls.UseVisualStyleBackColor = true;
             // 
+            // button_SettingsFormOpen
+            // 
+            this.button_SettingsFormOpen.Location = new System.Drawing.Point(310, 700);
+            this.button_SettingsFormOpen.Name = "button_SettingsFormOpen";
+            this.button_SettingsFormOpen.Size = new System.Drawing.Size(146, 24);
+            this.button_SettingsFormOpen.TabIndex = 59;
+            this.button_SettingsFormOpen.Text = "НАСТРОЙКИ";
+            this.button_SettingsFormOpen.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -1023,6 +1031,7 @@ namespace Selen
             this.Controls.Add(this.label_Mem_Usage);
             this.Controls.Add(this.buttonTestPartners);
             this.Controls.Add(this.numericUpDown_dromAddCount);
+            this.Controls.Add(this.button_SettingsFormOpen);
             this.Controls.Add(this.button_put_desc);
             this.Controls.Add(this.label_drom);
             this.Controls.Add(this.button_drom_add_new);
@@ -1141,6 +1150,7 @@ namespace Selen
         private System.Windows.Forms.NumericUpDown numericUpDown_avto_pro_add;
         private System.Windows.Forms.CheckBox checkBox_avito_use;
         private System.Windows.Forms.CheckBox checkBox_IgnoreUrls;
+        private System.Windows.Forms.Button button_SettingsFormOpen;
     }
 }
 
