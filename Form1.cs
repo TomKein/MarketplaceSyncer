@@ -23,7 +23,9 @@ using Selen.Base;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.30.1";
+        string _version = "1.31.3";
+        
+        DB _db = new DB();
 
         public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
@@ -4603,19 +4605,19 @@ namespace Selen {
 
         //Вывод лога на форму
         public void ToLog(string s) {
-            s = DateTime.Now.ToString() + " " + s + "\n";
+            //s = DateTime.Now.ToString() + " " + s + "\n";
             //lock (thisLock) {  //подвисает главный поток - пока отключил
-                for (int i = 0; i < 3; i++) {
+            //    for (int i = 0; i < 3; i++) {
                     try {
                         if (logBox.InvokeRequired)
-                            logBox.Invoke(new Action<string>((a) => logBox.Text += a), s);
+                            logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
                         else
-                            logBox.Text += s;
-                        break;
+                            logBox.Text += s + "\n";
+                        //break;
                     } catch {
-                        Thread.Sleep(1000);
+                        //Thread.Sleep(1000);
                     }
-                }
+            //}
             //}
         }
         //прокрутка лога
@@ -4631,14 +4633,11 @@ namespace Selen {
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
-                //создаю объект для работы с базой данных
-                DB db = new DB();
 
                 FormSettings fs = new FormSettings();
                 fs.Owner = this;
                 fs.ShowDialog();
                 fs.Dispose();
-
 
                 //var json = JsonConvert.SerializeObject(bus[0]);
 

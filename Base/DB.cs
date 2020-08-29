@@ -19,17 +19,6 @@ namespace Selen.Base {
             "server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";
         //ссылка на экземпляр себя
         public static DB _db = null;
-        //запрос для записи в лог
-        private string _queryToLog = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
-                                     "VALUES (NOW(), @site, @message);";
-        //запрос для получения настроек
-        private string _queryGetParamStr = "SELECT `value` " +
-                                           "FROM `settings` " +
-                                           "WHERE `name`= @key;";
-        //запрос для сохранения настроек
-        private string _querySetParam = "INSERT INTO `settings` (`name`, `value`) " +
-                                        "VALUES (@name, @value) " +
-                                        "ON DUPLICATE KEY UPDATE `value` = @value;";
         //создаю подключение
         public MySqlConnection connection = new MySqlConnection(connectionString);
         private readonly object _lock = new object();
@@ -87,10 +76,22 @@ namespace Selen.Base {
             }
             return result;
         }
-        //добавление либо обновление параметра в таблице settings
-        public int SetParam(string name, string value) { 
+        //изменение названия параметра в таблице settings
+        public int UpdateParamName(string nameOld, string nameNew) {
+            var query = "UPDATE settings SET name = '" + nameNew + "' WHERE name = '" + nameOld + "';";
             //создаем команду
-            MySqlCommand command = new MySqlCommand(_querySetParam, connection);
+            MySqlCommand command = new MySqlCommand(query, connection);
+            //отправляем запрос, возвращаем результат
+            return ExecuteCommandNonQuery(command);
+        }
+        //добавление либо обновление параметра в таблице settings
+        public int SetParam(string name, string value) {
+            //запрос для сохранения настроек
+            string query = "INSERT INTO `settings` (`name`, `value`) " +
+                           "VALUES (@name, @value) " +
+                           "ON DUPLICATE KEY UPDATE `value` = @value;";
+            //создаем команду
+            MySqlCommand command = new MySqlCommand(query, connection);
             command.Parameters.Add("@name", MySqlDbType.VarChar).Value = name;
             command.Parameters.Add("@value", MySqlDbType.VarChar).Value = value;
             //отправляем запрос, возвращаем результат
@@ -98,8 +99,12 @@ namespace Selen.Base {
         }
         //получаем настройки как строку
         public string GetParamStr(string key) {
+            //запрос для получения настроек
+            var query = "SELECT `value` " +
+                        "FROM `settings` " +
+                        "WHERE `name`= @key;";
             //создаем команду
-            MySqlCommand command = new MySqlCommand(_queryGetParamStr, connection);
+            MySqlCommand command = new MySqlCommand(query, connection);
             //добавляем параметр
             command.Parameters.Add("@key", MySqlDbType.VarChar).Value = key;
             //отправляем запрос и возвращаю таблицу значений
@@ -146,9 +151,12 @@ namespace Selen.Base {
             return null;
         }
         //метод для записи логов в базу
-        public void ToLog(string site, string message) {
+        public void ToLog(string message, string site = "") {
+            //запрос для записи в лог
+            var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
+                        "VALUES (NOW(), @site, @message);";            
             //создаю команду
-            MySqlCommand command = new MySqlCommand(_queryToLog, connection);
+            MySqlCommand command = new MySqlCommand(query, connection);
             command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
             command.Parameters.Add("@message", MySqlDbType.VarChar).Value = message;
             //выполняю запрос

@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Selen.Base;
 
 namespace Selen.Tools {
 
     public delegate void EventDelegate();
 
     static class Log {
+        //сохраняю ссылку на объект базы данных
+        static DB _db = DB._db;
         //событие - изменение лога
         public static event EventDelegate LogUpdate = null;
         //объект для потокобезопасности при работе со списком
@@ -27,6 +30,7 @@ namespace Selen.Tools {
             } }
         //добавить в лог
         public static void Add(string s) {
+            _db.ToLog(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
