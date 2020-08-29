@@ -4629,15 +4629,18 @@ namespace Selen {
         public void LogUpdate() {
             ToLog(Log.LogLastAdded);
         }
+        //настройки
+        private void button_SettingsFormOpen_Click(object sender, EventArgs e) {
+            FormSettings fs = new FormSettings();
+            fs.Owner = this;
+            fs.ShowDialog();
+            fs.Dispose();
+        }
         //=========================//
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
 
-                FormSettings fs = new FormSettings();
-                fs.Owner = this;
-                fs.ShowDialog();
-                fs.Dispose();
 
                 //var json = JsonConvert.SerializeObject(bus[0]);
 
@@ -4670,5 +4673,6 @@ namespace Selen {
                 ToLog(x.Message);
             }
         }
+
     }
 }
