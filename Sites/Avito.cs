@@ -317,12 +317,12 @@ namespace Selen.Sites {
             await ParsePage("/active", GetRandomPageNum(active));
             await ParsePage("/old", GetRandomPageNum(old));
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-            for (int i = 1; i <= inactive / 10 && CountToUp > 0; i++) { await ParsePage("/inactive", i); }
-            for (int i = 1; i <= old / 10 && CountToUp > 0; i++) { await ParsePage("/old", i); }
+            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i+1); }
+            for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i+1); }
         }
 
         private int GetRandomPageNum(int count) {
-            return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 10);
+            return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 50);
         }
 
         private async Task ParsePage(string location, int numPage) {
