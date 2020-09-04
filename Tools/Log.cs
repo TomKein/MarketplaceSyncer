@@ -29,7 +29,7 @@ namespace Selen.Tools {
                 return _log.Aggregate((a, b) => a + "\n" + b);
             } }
         //добавить в лог
-        public static void Add(string s) {
+        public static void Add(string s)     {
             _db.ToLog(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
@@ -37,10 +37,10 @@ namespace Selen.Tools {
                 _log.Add(s);
                 //ограничение размера лога
                 if (_log.Count > Level) _log.RemoveRange(0, 10);
-                var date = dt.Year + "." + dt.Month + "." + dt.Day;
-                File.AppendAllText("log_" + date + ".txt", s);
-                LogUpdate.Invoke();
+                //var date = dt.Year + "." + dt.Month + "." + dt.Day;
+                //File.AppendAllText("log_" + date + ".txt", s);
             }
+            LogUpdate.Invoke();
         }
     }
 }

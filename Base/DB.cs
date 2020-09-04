@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -61,9 +62,13 @@ namespace Selen.Base {
             DataTable table = new DataTable();
             MySqlDataAdapter adapter = new MySqlDataAdapter();
             adapter.SelectCommand = query;
-            lock (_lock) {
-                OpenConnection();
-                adapter.Fill(table);
+            try {
+                lock (_lock) {
+                    OpenConnection();
+                    adapter.Fill(table);
+                }
+            } catch (Exception x) {
+                Debug.WriteLine(x.Message);
             }
             return table;
         }
@@ -71,8 +76,12 @@ namespace Selen.Base {
         private int ExecuteCommandNonQuery(MySqlCommand command) {
             int result = 0;
             lock (_lock) {
-                OpenConnection();
-                result = command.ExecuteNonQuery();
+                try {
+                    OpenConnection();
+                    result = command.ExecuteNonQuery();
+                } catch (Exception x) {
+                    Debug.WriteLine(x.Message);
+                }
             }
             return result;
         }

@@ -170,8 +170,8 @@ namespace Selen.Sites {
                     var s = b.description.ToLowerInvariant().Replace(" din","din").Replace("din ", "din").Split(' ').First(f => f.Contains("din"));
                     if (s.Contains("2")) _dr.ButtonClick("//label[contains(text(),'2 DIN')]");
                     else if (s.Contains("5")) _dr.ButtonClick("//label[contains(text(),'1,5 DIN')]");
-                    else _dr.ButtonClick("//label[contains(text(),'1 DIN')]");
                 }
+                else _dr.ButtonClick("//label[contains(text(),'1 DIN')]");
                 if (_dr.GetElementsCount("//div[@data-name='model']/div[contains(@class,'annotation') and contains(@style,'none')]") == 0) {
                     _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", "штатная");
                 }

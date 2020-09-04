@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Selen.Tools;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -54,7 +55,7 @@ namespace Selen
                     }
                     catch (Exception ex)
                     {
-                        main.ToLog("ошибка загрузки картинки\n" + ex.Message);
+                        Log.Add("ошибка загрузки картинки\n" + ex.Message);
                         System.Threading.Thread.Sleep(1000);
                     }
                 }
@@ -111,7 +112,7 @@ namespace Selen
             }
             else
             {
-                main.ToLog("ИНДЕКС ЗА ПРЕДЕЛАМИ !!");
+                Log.Add("ИНДЕКС ЗА ПРЕДЕЛАМИ !!");
             }
         }
 

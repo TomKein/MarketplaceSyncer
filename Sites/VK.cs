@@ -12,6 +12,7 @@ using System.Threading;
 using Application = System.Windows.Forms.Application;
 using VkNet.Model.RequestParams.Market;
 using VkNet.Enums.Filters;
+using Selen.Tools;
 
 namespace Selen.Sites {
     class VK {
@@ -39,12 +40,11 @@ namespace Selen.Sites {
             _bus = bus;
             await IsVKAuthorizatedAsync();
             await GetAlbumsVKAsync();
-            //ToLog("получено альбомов вк " + vkAlb.Count);
+            Log.Add("vk.com: получено " + vkAlb.Count + " альбомов");
             if (vkAlb.Count > 0) {
                 //3. получим товары из вк
                 await GetVKAsync();
-                //label_vk.Text = vkMark.Count.ToString();
-                //ToLog("Получено товаров вк " + vkMark.Count);
+                Log.Add("vk.com: получено " + vkMark.Count + " товаров");
                 //4. удаляем объявления, которых нет в базе товаров, или они обновлены
                 await DeleteVKAsync();
                 //5. выкладываем товары вк из тех, которые имеют фото, есть ссылка тиу, цена и кол-во
@@ -147,10 +147,9 @@ namespace Selen.Sites {
                                                     {"name", _bus[i].name},
                                                     {"209360", _bus[i].vk}
                                         });
-                            //ToLog("вк добавлено успешно!! " + newVk + "\n" + bus[i].name);
-                            //label_vk.Text = (vkMark.Count + ++newVk).ToString();
+                            Log.Add("vk.com: "+ _bus[i].name + " - добавлено");
                         } catch (Exception ex) {
-                            //ToLog("вк ошибка добавления товара\n" + bus[i].name + "\n" + ex.Message);
+                            Log.Add("vk.com: " + _bus[i].name + " - ошибка при добавлении! " + ex.Message);
                         }
                     }
                 }
@@ -167,7 +166,7 @@ namespace Selen.Sites {
                         Thread.Sleep(1000);
                         if (num == vkMark.Count) break;
                     } catch (Exception ex) {
-                        //ToLog("вк ошибка запроса товаров\n" + ex.Message);
+                        Log.Add("vk.com: ошибка при запросе товаров! " + ex.Message);
                         Thread.Sleep(10000);
                         v--;
                     }
@@ -197,11 +196,10 @@ namespace Selen.Sites {
                             _vk.Markets.Delete(-marketId, (long)vkMark[i].Id);
                             Thread.Sleep(330);
                             vkMark.Remove(vkMark[i]);
-                            //ToLog("удалено из вк:\n" + vkMark[i].Title);
-                            //label_vk.Text = vkMark.Count.ToString();
+                            Log.Add("vk.com: "+ vkMark[i].Title + " - удалено!");
                             i--;
                         } catch {
-                            //ToLog("вк не удалось удалить\n" + bus[iBus].name);
+                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка при удалении!");
                         }
                     }
                 }

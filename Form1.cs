@@ -211,8 +211,8 @@ namespace Selen {
             await AddPartNumsAsync();//добавление артикулов из описания
 
             var tlog = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
-            ToLog("получено интернет товаров с остатками " + tlog);
-            ToLog("из них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
+            Log.Add("получено интернет товаров с остатками " + tlog);
+            Log.Add("из них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
             label_bus.Text = tlog;
 
             await SaveBus();
@@ -245,11 +245,11 @@ namespace Selen {
 
                     dSet.Tables["controls"].Rows[0]["controlBusGr"] = busGr.Count.ToString();
                 } catch (Exception x) {
-                    ToLog("ОШИБКА ЗАПРОСА ГРУПП ТОВАРОВ ИЗ БАЗЫ!!!\n" + x.Message + "\n" + x.InnerException.Message);
+                    Log.Add("ОШИБКА ЗАПРОСА ГРУПП ТОВАРОВ ИЗ БАЗЫ!!!\n" + x.Message + "\n" + x.InnerException.Message);
                     await Task.Delay(60000);
                 }
             } while (busGr.Count == 0 || lastScan != busGr.Count);
-            ToLog("получено групп товаров из базы " + busGr.Count);
+            Log.Add("получено групп товаров из базы " + busGr.Count);
             RootObject.Groups = busGr;
             dSet.WriteXml(fSet);
         }
@@ -289,12 +289,12 @@ namespace Selen {
                         await Task.Delay(2000);
                     }
                 } catch (Exception x) {
-                    ToLog("ОШИБКА ПРИ ЗАПРОСЕ КАРТОЧЕК ТОВАРОВ ИЗ БАЗЫ!!!\n" + x.Message);
+                    Log.Add("ОШИБКА ПРИ ЗАПРОСЕ КАРТОЧЕК ТОВАРОВ ИЗ БАЗЫ!!!\n" + x.Message);
                     await Task.Delay(10000);
                 }
                 dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
             } while (bus.Count == 0 || Math.Abs(lastScan - bus.Count) > 400);
-            ToLog("получено карточек товаров " + bus.Count);
+            Log.Add("получено карточек товаров " + bus.Count);
             dSet.WriteXml(fSet);
         }
 
@@ -338,7 +338,7 @@ namespace Selen {
                         await Task.Delay(1000);
                         break;
                     } catch (Exception x) {
-                        ToLog("ОШИБКА ЗАПРОСА КАРТОЧЕК ИЗ БАЗЫ!\n" + d + "\n" + x.Message + "\n" + s);
+                        Log.Add("ОШИБКА ЗАПРОСА КАРТОЧЕК ИЗ БАЗЫ!\n" + d + "\n" + x.Message + "\n" + s);
                         err++;
                         await Task.Delay(10000);
                     }
@@ -354,9 +354,9 @@ namespace Selen {
                         File.WriteAllText("bus.json", JsonConvert.SerializeObject(bus));
                     });
                 } catch (Exception x) {
-                    ToLog("Ошибка сохранения bus.json");
+                    Log.Add("Ошибка сохранения bus.json");
                 }
-                ToLog("bus.json - сохранение успешно");
+                Log.Add("bus.json - сохранение успешно");
             }
         }
 
@@ -383,15 +383,15 @@ namespace Selen {
             if (checkBox_avito_use.Checked) {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                    ToLog("avito.ru: начало выгрузки...");
+                    Log.Add("avito.ru: начало выгрузки...");
                     if (sync_start.Hour >= 6 && sync_start.Hour < 20) _avito.CountToUp = (int)numericUpDown_AvitoToUpCount.Value;
                     else _avito.CountToUp = 0;
-                    ToLog("avito: поднимаю " + _avito.CountToUp + " объявлений");
+                    Log.Add("avito: поднимаю " + _avito.CountToUp + " объявлений");
                     _avito.AddCount = (int)numericUpDown_AvitoAddCount.Value;
                     await _avito.AvitoStartAsync(bus);
-                    ToLog("avito.ru: выгрузка завершена");
+                    Log.Add("avito.ru: выгрузка завершена");
                 } catch (Exception x) {
-                    ToLog("avito.ru: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
+                    Log.Add("avito.ru: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
                 }
             }
@@ -403,12 +403,12 @@ namespace Selen {
             if (checkBox_avito_use.Checked) {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                    ToLog("avito.ru: добавляю объявления...");
+                    Log.Add("avito.ru: добавляю объявления...");
                     _avito.AddCount = (int) numericUpDown_AvitoAddCount.Value;
                     await _avito.AddAsync();
-                    ToLog("avito.ru: добавление завершено.");
+                    Log.Add("avito.ru: добавление завершено.");
                 } catch (Exception x) {
-                    ToLog("avito.ru: ОШИБКА ДОБАВЛЕНИЯ ОБЪЯВЛЕНИЙ! \n" + x.Message);
+                    Log.Add("avito.ru: ОШИБКА ДОБАВЛЕНИЯ ОБЪЯВЛЕНИЙ! \n" + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
                 }
             }
@@ -419,7 +419,7 @@ namespace Selen {
             try {
                 _avito.AddCount = (int) numericUpDown_AvitoAddCount.Value;
             } catch (Exception x) {
-                ToLog("avito.ru: ошибка установки количества добавляемых объявлений");
+                Log.Add("avito.ru: ошибка установки количества добавляемых объявлений");
             }
         }
 
@@ -427,7 +427,7 @@ namespace Selen {
             try {
                 _avito.CountToUp = (int)numericUpDown_AvitoToUpCount.Value;
             } catch (Exception x) {
-                ToLog("avito.ru: ошибка установки количества поднимаемых объявлений");
+                Log.Add("avito.ru: ошибка установки количества поднимаемых объявлений");
             }
         }
 
@@ -437,14 +437,14 @@ namespace Selen {
         private async void VkSyncAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                ToLog("вк начало выгрузки");
+                Log.Add("вк начало выгрузки");
                 while (base_rescan_need) await Task.Delay(20000);
                 _vk.AddCount = (int) numericUpDown_vkAdd.Value;
                 await _vk.VkSyncAsync(bus);
-                ToLog("вк выгрузка завершена");
+                Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
-                ToLog("ошибка синхронизации вк: " + x.Message);
+                Log.Add("ошибка синхронизации вк: " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
@@ -453,7 +453,7 @@ namespace Selen {
             try {
                 _vk.AddCount = (int)numericUpDown_vkAdd.Value;
             } catch (Exception x) {
-                ToLog("ВК: ошибка установки количества добавляемых объявлений");
+                Log.Add("ВК: ошибка установки количества добавляемых объявлений");
             }
         }
 
@@ -471,7 +471,7 @@ namespace Selen {
                 await TiuSyncAsync2();
                 ChangeStatus(sender, ButtonStates.Active); 
             } catch (Exception x) {
-                ToLog("tiu.ru ошибка: " + x.Message);
+                Log.Add("tiu.ru ошибка: " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem); 
             }
         }
@@ -489,10 +489,10 @@ namespace Selen {
                     });
                 } catch {
                     loadSuccess = false;
-                    ToLog("TIU - ОШИБКА ЗАПРОСА XML!");
+                    Log.Add("TIU - ОШИБКА ЗАПРОСА XML!");
                 }
                 if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) {//выгружать 1 раз в конце каждого 4го часа будет достаточно
-                    ToLog("тиу.ру подготовка выгрузки...");
+                    Log.Add("тиу.ру подготовка выгрузки...");
                     var fexp = "ex3.xls";
                     var ftemp = "tmpl.xls";
                     do {
@@ -500,7 +500,7 @@ namespace Selen {
                             File.Copy(Application.StartupPath + "\\" + "tmpl.xls", Application.StartupPath + "\\" + "ex3.xls", true);
                             break;
                         } catch (Exception ex) {
-                            ToLog("ошибка доступа к файлу выгрузки xls!\n" + ex.Message);
+                            Log.Add("ошибка доступа к файлу выгрузки xls!\n" + ex.Message);
                             await Task.Delay(30000);
                         }
                     } while (true);
@@ -511,10 +511,10 @@ namespace Selen {
                     //проверяем количество полученных товарных позиций
                     tiuCount = ds.Tables["offer"].Rows.Count;
                     label_tiu.Text = tiuCount.ToString();
-                    ToLog("тиу получено объявлений из кабинета " + tiuCount.ToString());
+                    Log.Add("тиу получено объявлений из кабинета " + tiuCount.ToString());
 
                     while (base_rescan_need || bus.Count == 0) {
-                        ToLog("тиу ожидает загрузку базы... ");
+                        Log.Add("тиу ожидает загрузку базы... ");
                         await Task.Delay(60000);
                     }
 
@@ -573,7 +573,7 @@ namespace Selen {
                                 }
                             } else {
                                 if (bus[i].amount > 0)
-                                    ToLog("TIU ID ИЗ ССЫЛКИ В КАРТОЧКЕ НЕ НАЙДЕН В ВЫГРУЗКЕ XML\n" + bus[i].name + "\n" + idTiu);
+                                    Log.Add("TIU ID ИЗ ССЫЛКИ В КАРТОЧКЕ НЕ НАЙДЕН В ВЫГРУЗКЕ XML\n" + bus[i].name + "\n" + idTiu);
                             }
                         }
                     }
@@ -584,7 +584,7 @@ namespace Selen {
                         .Select(s => s.name)
                         .ToList();
                     foreach (var good in goods) {
-                        ToLog("НЕТ ССЫЛКИ В КАРТОЧКЕ НА САЙТ\n" + good);
+                        Log.Add("НЕТ ССЫЛКИ В КАРТОЧКЕ НА САЙТ\n" + good);
                     }
 
                     //111 переделать в xls
@@ -609,16 +609,16 @@ namespace Selen {
                         });
                         try {
                             await tt;
-                            ToLog("тиу: ex3.xls успешно отправлен на сервер!");
+                            Log.Add("тиу: ex3.xls успешно отправлен на сервер!");
                             break;
                         } catch (Exception ex) {
-                            ToLog("тиу ошибка выгрузки на FTP, попытка " + f + "\n" + ex.Message);
+                            Log.Add("тиу ошибка выгрузки на FTP, попытка " + f + "\n" + ex.Message);
                             await Task.Delay(30000);
                         }
                     }
                 }
             } catch (Exception x) {
-                ToLog("Tiu ошибка выгрузки:\n" + x.Message);
+                Log.Add("Tiu ошибка выгрузки:\n" + x.Message);
             }
         }
         private async Task TiuSyncAsync2() {
@@ -629,7 +629,7 @@ namespace Selen {
                         await Task.Factory.StartNew(() => { TiuOfferUpdate(b); });
 
                     } catch (Exception x) {
-                        ToLog("tiu.ru ошибка!/n" + x.Message);
+                        Log.Add("tiu.ru ошибка!/n" + x.Message);
                     }
                 }
             }
@@ -745,11 +745,11 @@ namespace Selen {
                                         {"name", bus[b].name},
                                         {"images", JsonConvert.SerializeObject(bus[b].images.ToArray())}
                                 });
-                                ToLog("НЕТ ИЗОБРАЖЕНИЙ... ПОДГРУЖЕНЫ ИЗ ТИУ!\n" + bus[b].name + "\n" + s);
+                                Log.Add("НЕТ ИЗОБРАЖЕНИЙ... ПОДГРУЖЕНЫ ИЗ ТИУ!\n" + bus[b].name + "\n" + s);
                                 Thread.Sleep(3000);
                             }
                         } catch {
-                            ToLog("Ошибка загрузки фотографий с тиу в базу\n" + bus[b].name);
+                            Log.Add("Ошибка загрузки фотографий с тиу в базу\n" + bus[b].name);
                         }
                     }
                 }
@@ -757,9 +757,8 @@ namespace Selen {
         }
         public async Task WaitTiuAsync() {
             while (tiuCount == 0) {
-                ToLog("ожидаем загрузку tiu...");
-                var task = Task.Factory.StartNew(() => { Thread.Sleep(10000); });
-                await task;
+                Log.Add("ожидаем загрузку tiu...");
+                await Task.Factory.StartNew(() => { Thread.Sleep(10000); });
             }
         }
         //скрываем на тиу объявления, которых нет в наличии
@@ -818,7 +817,7 @@ namespace Selen {
                 c.Click();
                 Thread.Sleep(2000);
             } catch /*(Exception x)*/ {
-                //ToLog("Ошибка тиу.ру!\n" + x.Message);
+                //Log.Add("Ошибка тиу.ру!\n" + x.Message);
             }
         }
 
@@ -836,7 +835,7 @@ namespace Selen {
                 label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
-                ToLog("DROM.RU ОШИБКА СИНХРОНИЗАЦИИ! \n" + x.Message + "\n" + x.InnerException.Message);
+                Log.Add("DROM.RU ОШИБКА СИНХРОНИЗАЦИИ! \n" + x.Message + "\n" + x.InnerException.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
@@ -872,7 +871,7 @@ namespace Selen {
                         { "id" , bus[ind].id},
                         { "name" , bus[ind].name}
                     });
-                    ToLog("база исправлен дубль названия " + bus[ind].name);
+                    Log.Add("база исправлен дубль названия " + bus[ind].name);
                     Thread.Sleep(1000);
                 }
             } while (bus_dubl.Count() > 0);
@@ -929,7 +928,7 @@ namespace Selen {
                             //                    + "set_desc.php?id=" + bus[tmp_ind].id
                             //                    + "&name=" + bus[tmp_ind].name
                             //                    + "&description=" + bus[tmp_ind].description);
-                            ToLog("база обновлена карточка\n" + bus[i].name + "\n" + bus[i].description);
+                            Log.Add("база обновлена карточка\n" + bus[i].name + "\n" + bus[i].description);
                         }
                         f4.Dispose();
                     }
@@ -964,13 +963,13 @@ namespace Selen {
                         }
                     }
                 } catch {
-                    ToLog("ОШИБКА ПРИ ЗАПРОСЕ КОНТАКТНОЙ ИНФОРМАЦИИ ИЗ БАЗЫ!!!");
+                    Log.Add("ОШИБКА ПРИ ЗАПРОСЕ КОНТАКТНОЙ ИНФОРМАЦИИ ИЗ БАЗЫ!!!");
                     Thread.Sleep(2000);
                 }
                 //обновляем полученное количество товаров
                 //    dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
             } while (pc.Count == 0);
-            ToLog("получено контактов " + pc.Count);
+            Log.Add("получено контактов " + pc.Count);
             var dub = pc.Where(w => pc.Count(c => c.contact_info
                                         .Contains(w.contact_info
                                             .Replace("-", "")
@@ -982,7 +981,7 @@ namespace Selen {
                                             .TrimStart('8'))
                                     ) > 1);
             foreach (var d in dub) {
-                ToLog("НАЙДЕНЫ ДУБЛИ: " + d.contact_info);
+                Log.Add("НАЙДЕНЫ ДУБЛИ: " + d.contact_info);
             }
         }
 
@@ -1089,7 +1088,7 @@ namespace Selen {
 
                         await Class365API.RequestAsync("put", "goods", args);
 
-                        ToLog("исправлена карточка\n" +
+                        Log.Add("исправлена карточка\n" +
                               bus[b].name + "\n" +
                               new_name + "\n" +
                               bus[b].part + "\t" + bus[b].store_code + "\n" +
@@ -1101,7 +1100,7 @@ namespace Selen {
                         await Task.Delay(1000);
                     }
                 } catch (Exception x) {
-                    ToLog("Ошибка при обработке артикулов\n" + bus[b].name + "\n" + x.Message);
+                    Log.Add("Ошибка при обработке артикулов\n" + bus[b].name + "\n" + x.Message);
                     Thread.Sleep(10000);
                 }
             }
@@ -1126,7 +1125,7 @@ namespace Selen {
                         {"name", bus[b].name},
                         {"group_id", bus[b].group_id}
                     });
-                    ToLog("карточка перемещена в группу заказы " + b + " " + bus[b].name);
+                    Log.Add("карточка перемещена в группу заказы " + b + " " + bus[b].name);
                     await Task.Delay(1000);
                 }
             }
@@ -1144,7 +1143,7 @@ namespace Selen {
         //5. выкладываем новые
         private async void button_auto_get_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            ToLog("парсим авто.ру...");
+            Log.Add("парсим авто.ру...");
             //откроем браузер
             if (au == null) {
                 ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
@@ -1158,13 +1157,13 @@ namespace Selen {
                 await AutoAuthAsync();
 
                 while (base_rescan_need || !button_base_get.Enabled) {
-                    ToLog("авто ожидает загрузку базы... ");
+                    Log.Add("авто ожидает загрузку базы... ");
                     await Task.Delay(60000);
                 }
                 //выводим статистику
                 var busCnt = bus.Count(c => c.auto.Length > 4);
                 label_auto.Text = busCnt.ToString();
-                ToLog("авто.ру: ссылок в базе " + busCnt);
+                Log.Add("авто.ру: ссылок в базе " + busCnt);
                 //закрытие всплывающей рекламы
                 var closeButtons = au.FindElements(By.XPath("//div[@aria-hidden='false']//div[@class='Modal__closer']"));
                 //если есть окошко с крестиком
@@ -1224,7 +1223,7 @@ namespace Selen {
                                     }
                                 });
                             } catch {
-                                ToLog("auto: ошибка удаления \n" + bus[b].name + "\n" + bus[b].auto);
+                                Log.Add("auto: ошибка удаления \n" + bus[b].name + "\n" + bus[b].auto);
                             }
                         } while (flag);
                         //теперь можно удалить ссылку из карточки в базе
@@ -1235,7 +1234,7 @@ namespace Selen {
                         {"313971", ""}
                     });
                         bus[b].auto = "";
-                        ToLog("авто удалено объявление - нет на остатках\n" + b + " " + bus[b].name);
+                        Log.Add("авто удалено объявление - нет на остатках\n" + b + " " + bus[b].name);
                         label_auto.Text = bus.Count(c => c.auto.Length > 4).ToString();
                     }
 
@@ -1279,13 +1278,13 @@ namespace Selen {
                                 } catch { }
                             });
                         } catch (Exception x) {
-                            ToLog("Ошибка обновления auto.ru\n" + bus[b].name + "\n" + x.Message);
+                            Log.Add("Ошибка обновления auto.ru\n" + bus[b].name + "\n" + x.Message);
                         }
                     }
                     //catch
                     //{
                     //    //wasErrors = true;  //авто ру не будем пока учитывать
-                    //    ToLog("АВТО ОШИБКА ПРИ ВНЕСЕНИИ ИЗМЕНЕНИЙ! " + bus[b].name);
+                    //    Log.Add("АВТО ОШИБКА ПРИ ВНЕСЕНИИ ИЗМЕНЕНИЙ! " + bus[b].name);
                     //}            
                 }
 
@@ -1330,7 +1329,7 @@ namespace Selen {
                     try {
                         await tb;
                     } catch (Exception ex) {
-                        ToLog("авто.ру ошибка парсинга сайта, страница " + i + "\n" + ex.Message);
+                        Log.Add("авто.ру ошибка парсинга сайта, страница " + i + "\n" + ex.Message);
                     }
                     if (base_rescan_need) { break; }
                 }
@@ -1387,7 +1386,7 @@ namespace Selen {
                                 {"313971", bus[iBus].auto}
                             });
                         BindedName = "";
-                        ToLog("авто привязано объявление " + a + " " + bus[iBus].name);
+                        Log.Add("авто привязано объявление " + a + " " + bus[iBus].name);
                     }
                 }
                 //5.удаляем неоплаченные по 10 шт за проход 
@@ -1419,7 +1418,7 @@ namespace Selen {
                 //                                {"name", bus[b].name},
                 //                                {"313971", bus[b].auto}
                 //                            });
-                //                        ToLog("auto.ru удалена ссылка из базы " + (i+1) + "\n" + bus[b].name);
+                //                        Log.Add("auto.ru удалена ссылка из базы " + (i+1) + "\n" + bus[b].name);
                 //                        label_auto.Text = bus.Count(c => c.auto.Length > 4).ToString();
                 //                        await Task.Delay(1000);
                 //                    }
@@ -1471,7 +1470,7 @@ namespace Selen {
                                          {"name", bus[b].name},
                                          {"313971", bus[b].auto}
                                      });
-                                    ToLog("auto.ru удалена ссылка из базы\n" + bus[b].name);
+                                    Log.Add("auto.ru удалена ссылка из базы\n" + bus[b].name);
                                     label_auto.Text = bus.Count(c => c.auto.Length > 4).ToString();
                                     await Task.Delay(2000);
                                 }
@@ -1492,7 +1491,7 @@ namespace Selen {
                     }
                 }
             } catch (Exception x) {
-                ToLog("auto.ru:ошибка загрузки страницы!/n" + x.Message);
+                Log.Add("auto.ru:ошибка загрузки страницы!/n" + x.Message);
             }
 
             if (checkBox_auto_chbox.Checked) {
@@ -1537,7 +1536,7 @@ namespace Selen {
                 we.Click();
                 Thread.Sleep(500);
             } catch {
-                ToLog("авто.ру ошибка при выборе группы!");
+                Log.Add("авто.ру ошибка при выборе группы!");
             }
         }
 
@@ -2832,7 +2831,7 @@ namespace Selen {
                                         flagSucc = true;
                                         break;
                                     } catch (Exception ex) {
-                                        ToLog("авто.ру: " + ex.ToString() + "\nошибка загрузки фото " + i + "\n" + bus[b].name + "\n" + bus[b].images[u].url);
+                                        Log.Add("авто.ру: " + ex.ToString() + "\nошибка загрузки фото " + i + "\n" + bus[b].name + "\n" + bus[b].images[u].url);
                                         flagSucc = false;
                                     }
                                 }
@@ -2875,7 +2874,8 @@ namespace Selen {
                                 do {
                                     au.Navigate().GoToUrl("https://auto.ru/parts/lk/?text=" + num);
                                     var webElements = au.FindElements(By.CssSelector("a.UserOffersItem__link"));
-                                    if (webElements.Count == 1) {
+                                    if (webElements.Count >= 1) {
+                                        //TODO добавить проверку названия перед привязкой ссылки - var name = webElements[0].Text...
                                         var id = webElements[0].GetAttribute("href")
                                             .Replace("offer/", "|")
                                             .Split('|')
@@ -2889,7 +2889,7 @@ namespace Selen {
                                             {"name", bus[b].name},
                                             {"313971", bus[b].auto}
                                         });
-                                            ToLog("авто добавлено новое объявление " + (newCount + 1) + "\n" + b + " " + bus[b].name);
+                                            Log.Add("авто добавлено новое объявление " + (newCount + 1) + "\n" + b + " " + bus[b].name);
                                             newCount++;
                                             break;
                                         }
@@ -2897,17 +2897,17 @@ namespace Selen {
                                     await Task.Delay(5000);
                                 } while (true);
                             } catch (Exception x) {
-                                ToLog("auto.ru ошибка при привязке объявления в базу\n" + bus[b].name + "\n" + x.Message);
+                                Log.Add("auto.ru ошибка при привязке объявления в базу\n" + bus[b].name + "\n" + x.Message);
                             }
                             label_auto.Text = bus.Count(c => c.auto.Length > 4).ToString();
                         } catch (Exception ex) {
-                            ToLog("авто.ру ошибка при добавлении объявления!\n" + ex.Message);
+                            Log.Add("авто.ру ошибка при добавлении объявления!\n" + ex.Message);
                             break;
                         }
                     }
                 }
             } catch (Exception x) {
-                ToLog(x.Message + "\n\n" + x.InnerException.Message);
+                Log.Add(x.Message + "\n\n" + x.InnerException.Message);
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -3009,7 +3009,7 @@ namespace Selen {
                             bus_dubles = bus.Select(tn => tn.name.ToUpper()).Where(f => f == tiuName.ToUpper()).ToArray();
                             if (bus_dubles.Length > 0) {
                                 tiuName += tiuName.EndsWith("`") ? "`" : " `";
-                                ToLog("Исправлен дубль названия в создаваемой карточке \n" + tiuName);
+                                Log.Add("Исправлен дубль названия в создаваемой карточке \n" + tiuName);
                             }
                         } while (bus_dubles.Length > 0);
                         //добавим в список товаров, на которые нужно сделать поступление и цены
@@ -3036,7 +3036,7 @@ namespace Selen {
                         good.amount = int.Parse(tiu.FindElement(By.CssSelector("input[data-qaid='stock_input']")).GetAttribute("value"));
                         if (good.amount == 0) good.amount = 1;
                     } catch (Exception x) {
-                        ToLog(x.Message);
+                        Log.Add(x.Message);
                     }
                     var measureTiu = tiu.FindElement(By.CssSelector("div[data-qaid='unit_dd'] span")).Text;
                     good.measure_id = measureTiu == "пара"
@@ -3070,7 +3070,7 @@ namespace Selen {
                             {"measure_id", good.measure_id}
                         });
                     }
-                    ToLog("СОЗДАНА КАРТОЧКА В БАЗЕ\n" + good.name);
+                    Log.Add("СОЗДАНА КАРТОЧКА В БАЗЕ\n" + good.name);
                     Thread.Sleep(1000);
                 }
                 //если есть что оприходовать
@@ -3087,7 +3087,7 @@ namespace Selen {
                         {"date", DateTime.Now.ToShortDateString()},
                         {"comment", "Создано автоматически, цена закупки 50% от реализации"}
                     }));
-                    ToLog("СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ №9999");
+                    Log.Add("СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ №9999");
                     Thread.Sleep(1000);
                     //делаем привязку к поступлению каждого товара
                     foreach (var good in newTiuGoods) {
@@ -3102,7 +3102,7 @@ namespace Selen {
                             {"sum", Convert.ToString(good.amount*good.price/2)}
                         }));
                         Thread.Sleep(1000);
-                        ToLog("ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
+                        Log.Add("ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
                     }
 
                     //создаём новый прайс лист
@@ -3112,7 +3112,7 @@ namespace Selen {
                             {"organization_id", "75519"},//радчено и.г.
                             {"responsible_employee_id", "76221"},//рогачев
                         }));
-                    ToLog("СОЗДАН НОВЫЙ ПРАЙС ЛИСТ " + spl.id);
+                    Log.Add("СОЗДАН НОВЫЙ ПРАЙС ЛИСТ " + spl.id);
                     Thread.Sleep(1000);
                     //привяжем к нему тип цены
                     var splpt = JsonConvert.DeserializeObject<PostSuccessAnswer>(
@@ -3121,7 +3121,7 @@ namespace Selen {
                         {"price_list_id", spl.id},
                         {"price_type_id", "75524"}//розничная
                     }));
-                    ToLog("ПРИВЯЗАН ТИП ЦЕН К ПРАЙСУ 75524 (розничная)");
+                    Log.Add("ПРИВЯЗАН ТИП ЦЕН К ПРАЙСУ 75524 (розничная)");
                     Thread.Sleep(1000);
 
                     //для каждого товара сделаем привязку у прайс листу
@@ -3132,7 +3132,7 @@ namespace Selen {
                                 {"price_list_id", spl.id},
                                 {"good_id", good.id},
                             }));
-                        ToLog("ПРИВЯЗАНА КАРТОЧКА К ПРАЙС-ЛИСТУ \n" + good.name);
+                        Log.Add("ПРИВЯЗАНА КАРТОЧКА К ПРАЙС-ЛИСТУ \n" + good.name);
 
                         Thread.Sleep(1000);
                         //и назначение цены
@@ -3143,13 +3143,13 @@ namespace Selen {
                                 {"price_type_id", "75524"},
                                 {"price", good.price.ToString()}
                             }));
-                        ToLog("НАЗНАЧЕНА ЦЕНА К ПРИВЯЗКЕ ПРАЙС ЛИСТА " + good.price);
+                        Log.Add("НАЗНАЧЕНА ЦЕНА К ПРИВЯЗКЕ ПРАЙС ЛИСТА " + good.price);
                         Thread.Sleep(1000);
                     }
-                    ToLog("ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ В БАЗЕ НА " + newTiuGoods.Count + " ТОВАРОВ!");
+                    Log.Add("ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ В БАЗЕ НА " + newTiuGoods.Count + " ТОВАРОВ!");
                 }
             } catch (Exception ex) {
-                ToLog("AddSupplyAsync: " + ex.Message);
+                Log.Add("AddSupplyAsync: " + ex.Message);
             }
             newTiuGoods.Clear();
         }
@@ -3165,7 +3165,7 @@ namespace Selen {
             Thread.Sleep(100);
 
 
-            //ToLog(c.ToString());
+            //Log.Add(c.ToString());
 
 
             //var s = await api.RequestAsync("get", "tasks", new Dictionary<string, string>
@@ -3190,7 +3190,7 @@ namespace Selen {
 
                     sync_start = DateTime.Now;
 
-                    ToLog("lite sync started...");
+                    Log.Add("lite sync started...");
                     stage = "запрашиваем время последней синхронизации...";
                     var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
                     stage = "запрашиваем карточки из базы...";
@@ -3256,7 +3256,7 @@ namespace Selen {
                             lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
                     }
 
-                    ToLog("Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
+                    Log.Add("Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
                     stage = "...";
 
                     //переносим обновления в загруженную базу
@@ -3358,11 +3358,11 @@ namespace Selen {
                         wasErrors = false;
                         await SaveBus();
                     }
-                    ToLog("lite sync complete.");
+                    Log.Add("lite sync complete.");
                     base_can_rescan = true;
                 }
             } catch (Exception ex) {
-                ToLog("ошибка lite sync: " + ex.Message + "\n"
+                Log.Add("ошибка lite sync: " + ex.Message + "\n"
                     + ex.Source + "\n"
                     + ex.InnerException + "\n"
                     + stage);
@@ -3388,7 +3388,7 @@ namespace Selen {
         private async Task CheckMultipleApostropheAsync() {
             try {
                 foreach (var item in bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.amount > 0)) {
-                    ToLog("ОБНАРУЖЕНО НАЗВАНИЕ С МНОЖЕСТВОМ АПОСТРОФОВ\n" + item.name);
+                    Log.Add("ОБНАРУЖЕНО НАЗВАНИЕ С МНОЖЕСТВОМ АПОСТРОФОВ\n" + item.name);
                     var s = item.name;
                     while (s.EndsWith("'") || s.EndsWith("`"))
                         s = s.TrimEnd('\'').TrimEnd('`').TrimEnd(' ');
@@ -3397,11 +3397,11 @@ namespace Selen {
                                 {"id", item.id},
                                 {"name", item.name}
                     });
-                    ToLog("ИСПРАВЛЕНО ИМЯ С МНОЖЕСТВОМ АПОСТРОФОВ \n" + item.name);
+                    Log.Add("ИСПРАВЛЕНО ИМЯ С МНОЖЕСТВОМ АПОСТРОФОВ \n" + item.name);
                     Thread.Sleep(1000);
                 }
             } catch (Exception x) {
-                ToLog("Ошибка при переименовании множественных апострофов\n" + x.Message);
+                Log.Add("Ошибка при переименовании множественных апострофов\n" + x.Message);
             }
         }
 
@@ -3409,7 +3409,7 @@ namespace Selen {
             try {
                 var i = 0;
                 foreach (var item in bus.Where(w => (!string.IsNullOrEmpty(w.description) && w.description.Contains("№") && string.IsNullOrEmpty(w.part)))) {
-                    ToLog("ОБНАРУЖЕН ПУСТОЙ АРТИКУЛ\n" + item.name);
+                    Log.Add("ОБНАРУЖЕН ПУСТОЙ АРТИКУЛ\n" + item.name);
                     //ищем номера в описании
                     string num = item.description
                             .Split('№')[1]
@@ -3428,14 +3428,14 @@ namespace Selen {
                                 {"name", item.name},
                                 {"part", num}
                         });
-                        ToLog("ДОБАВЛЕН АРТИКУЛ\n" + num);
+                        Log.Add("ДОБАВЛЕН АРТИКУЛ\n" + num);
                         Thread.Sleep(1000);
                     }
                     i++;
                     //if (i > 10) break;
                 }
             } catch (Exception x) {
-                ToLog("ОШИБКА ПРИ ДОБАВЛЕНИИ АРТИКУЛА\n" + x.Message);
+                Log.Add("ОШИБКА ПРИ ДОБАВЛЕНИИ АРТИКУЛА\n" + x.Message);
             }
 
         }
@@ -3448,7 +3448,7 @@ namespace Selen {
                 RootObject.ScanTime = scanTime;
                 dSet.WriteXml(fSet);
             } catch (Exception x){
-                ToLog("Ошибка изменения даты синхронизации\n"+x.Message+"\n"+x.InnerException.Message);
+                Log.Add("Ошибка изменения даты синхронизации\n"+x.Message+"\n"+x.InnerException.Message);
             }
         }
 
@@ -3481,14 +3481,14 @@ namespace Selen {
                                 {"name", bus[b].name},
                                 {"313971", bus[b].auto},
                             });
-                            ToLog("AUTO.RU УДАЛЕНА БИТАЯ ССЫЛКА ИЗ БАЗЫ!!!!!!!!\n" + bus[b].name);
+                            Log.Add("AUTO.RU УДАЛЕНА БИТАЯ ССЫЛКА ИЗ БАЗЫ!!!!!!!!\n" + bus[b].name);
                         } else {
                             label_auto.Text = b.ToString() + " (" + b * 100 / bus.Count + "%)";
                             dSet.Tables["controls"].Rows[0]["controlAuto"] = b + 1;
                             try {
                                 dSet.WriteXml(fSet);
                             } catch (Exception x) {
-                                ToLog("ошибка записи файла настроек!\n" + x.Message);
+                                Log.Add("ошибка записи файла настроек!\n" + x.Message);
                             }
 
                             //редактируем цену
@@ -3523,7 +3523,7 @@ namespace Selen {
                             //but[0].Click();
                         }
                     } catch (Exception ex) {
-                        ToLog("button_autoCheck_Click: " + ex.Message);
+                        Log.Add("button_autoCheck_Click: " + ex.Message);
                         break;
                     }
                 }
@@ -3567,11 +3567,11 @@ namespace Selen {
                                     {"images", im}
                                 });
                         //bus[b].images = null;
-                        ToLog("база - удалены лишние фото из карточки!\n" + bus[b].name);
+                        Log.Add("база - удалены лишние фото из карточки!\n" + bus[b].name);
                         await Task.Delay(1000);
                         break;
                     } catch (Exception x) {
-                        ToLog("ошибка при удалении фото из базы!\n" + bus[b].name + "\n" + x.Message);
+                        Log.Add("ошибка при удалении фото из базы!\n" + bus[b].name + "\n" + x.Message);
                     }
                 }
             }
@@ -3588,7 +3588,7 @@ namespace Selen {
                         {"209325",bus[b].tiu}
                     });
                     i++;
-                    ToLog("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
+                    Log.Add("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
                     if (i >= 10) break;
                 }
             }
@@ -3602,7 +3602,7 @@ namespace Selen {
             try {
                 await KupiProdaiAuth();
                 while (base_rescan_need) {
-                    ToLog("купипродай ожидает загрузку базы... ");
+                    Log.Add("купипродай ожидает загрузку базы... ");
                     await Task.Delay(60000);
                 }
                 labelKP.Text = bus.Count(c => c.kp != null && c.kp.Contains("http")).ToString();
@@ -3612,7 +3612,7 @@ namespace Selen {
                 await KupiProdaiDelAsync();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
-                ToLog("Купипродай Ошибка при обработке\n" + x.Message);
+                Log.Add("Купипродай Ошибка при обработке\n" + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
@@ -3638,7 +3638,7 @@ namespace Selen {
             try {
                 await t;
             } catch (Exception x) {
-                ToLog("купипродай: ошибка при поднятии!\n" + x.Message);
+                Log.Add("купипродай: ошибка при поднятии!\n" + x.Message);
             }
         }
 
@@ -3663,7 +3663,7 @@ namespace Selen {
             try {
                 await t;
             } catch (Exception x) {
-                ToLog("купипродай: ошибка при поднятии!\n" + x.Message);
+                Log.Add("купипродай: ошибка при поднятии!\n" + x.Message);
             }
         }
 
@@ -3707,7 +3707,7 @@ namespace Selen {
                                 {"833179", bus[b].kp}
                             });
 
-                                ToLog("купипродай выложено и привязано объявление " + b + "\n" + bus[b].name);
+                                Log.Add("купипродай выложено и привязано объявление " + b + "\n" + bus[b].name);
                                 numericUpDownKupiprodaiAdd.Value--;
 
                                 //labelKP.Text = bus.Count(c => c.kp.Contains("http")).ToString();
@@ -3718,7 +3718,7 @@ namespace Selen {
                             throw new Exception("не найдено объявление для привязки");
                         }
                     } catch (Exception e) {
-                        ToLog("купипродай ошибка добавления!\n" + bus[b].name + "\n" + e.Message);
+                        Log.Add("купипродай ошибка добавления!\n" + bus[b].name + "\n" + e.Message);
                     }
                 }
             }
@@ -3801,7 +3801,7 @@ namespace Selen {
                         try {
                             await t;
                         } catch (Exception x) {
-                            ToLog("купипродай ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
+                            Log.Add("купипродай ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
                         }
                         //убиваем ссылку из базы в любом случае, потому что удалим физически, проверив отстатки после парсинга и подъема неактивных
                         bus[b].kp = " ";
@@ -3810,7 +3810,7 @@ namespace Selen {
                             {"name", bus[b].name},
                             {"833179", bus[b].kp}
                         });
-                        ToLog("купипродай - удалена ссылка из карточки\n" + bus[b].name);
+                        Log.Add("купипродай - удалена ссылка из карточки\n" + bus[b].name);
                         await Task.Delay(5000);
                     } else if (bus[b].kp != null && bus[b].price > 0 && bus[b].IsTimeUpDated()) {// редактируем
                         var t = Task.Factory.StartNew(() => {
@@ -3823,7 +3823,7 @@ namespace Selen {
                         try {
                             await t;
                         } catch (Exception x) {
-                            ToLog("KupiProdaiEditAsync: " + bus[b].name + "\n" + x.Message);
+                            Log.Add("KupiProdaiEditAsync: " + bus[b].name + "\n" + x.Message);
                         }
                     }
                 }
@@ -3839,7 +3839,7 @@ namespace Selen {
                 var title = kp.FindElement(By.CssSelector("input[name*='title']"));
                 WriteToIWebElement(kp, title, name);
             } catch (Exception x) {
-                ToLog("купипродай: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
+                Log.Add("купипродай: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
             }
         }
 
@@ -3848,7 +3848,7 @@ namespace Selen {
                 var pr = kp.FindElement(By.CssSelector("input[name*='price']"));
                 WriteToIWebElement(kp, pr, bus[b].price.ToString());
             } catch (Exception x) {
-                ToLog("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
+                Log.Add("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
             }
         }
 
@@ -3902,7 +3902,7 @@ namespace Selen {
                             File.WriteAllBytes("kp_" + u + ".jpg", bts);
                             flag = true;
                         } catch (Exception ex) {
-                            ToLog("SetKPImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
+                            Log.Add("SetKPImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
                             flag = false;
                         }
                         Thread.Sleep(100);
@@ -3912,7 +3912,7 @@ namespace Selen {
                                 .SendKeys(Application.StartupPath + "\\" + "kp_" + u + ".jpg ");
                 }
             } catch (Exception e) {
-                ToLog("SetKPImages: " + e.Message);
+                Log.Add("SetKPImages: " + e.Message);
             }
             Thread.Sleep(500);
         }
@@ -3931,7 +3931,7 @@ namespace Selen {
                     kp.FindElement(By.CssSelector("input[type='submit']")).Click();
                 } while (kp.FindElements(By.CssSelector("input[name='captcha']")).Count > 0);
             } catch (Exception x) {
-                ToLog("KPPressOkButton: " + x.Message);
+                Log.Add("KPPressOkButton: " + x.Message);
             }
         }
 
@@ -3967,19 +3967,19 @@ namespace Selen {
                             //    {"name", bus[b].name},
                             //    {"313971", bus[b].auto},
                             //});
-                            ToLog("!!!!!!!!!!!!!!!!!!!!!! KP БИТАЯ ССЫЛКА В БАЗЕ!!!!!!!!!!!!!!!!\n" + "в базе:" + bus[b].name + "\nна kp:" + nameParse + "\n!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                            Log.Add("!!!!!!!!!!!!!!!!!!!!!! KP БИТАЯ ССЫЛКА В БАЗЕ!!!!!!!!!!!!!!!!\n" + "в базе:" + bus[b].name + "\nна kp:" + nameParse + "\n!!!!!!!!!!!!!!!!!!!!!!!!!!");
                         } else {
                             labelKP.Text = b.ToString() + " (" + b * 100 / bus.Count + "%)";
-                            ToLog("kp... " + b);
+                            Log.Add("kp... " + b);
                             dSet.Tables["controls"].Rows[0]["controlKP"] = b + 1;
                             try {
                                 dSet.WriteXml(fSet);
                             } catch (Exception x) {
-                                ToLog("ошибка записи файла настроек!\n" + x.Message);
+                                Log.Add("ошибка записи файла настроек!\n" + x.Message);
                             }
                         }
                     } catch (Exception ex) {
-                        ToLog("button_autoCheck_Click: " + ex.Message);
+                        Log.Add("button_autoCheck_Click: " + ex.Message);
                         break;
                     }
                 }
@@ -3996,7 +3996,7 @@ namespace Selen {
             try {
                 await GdeAutorize();
                 while (base_rescan_need) {
-                    ToLog("Gde.ru ожидает загрузку базы... ");
+                    Log.Add("Gde.ru ожидает загрузку базы... ");
                     await Task.Delay(60000);
                 }
                 labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
@@ -4009,7 +4009,7 @@ namespace Selen {
                 //удаляем ненужные
                 await GdeDelAsync();
             } catch (Exception x) {
-                ToLog("Gde.ru Ошибка при обработке\n" + x.Message);
+                Log.Add("Gde.ru Ошибка при обработке\n" + x.Message);
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -4026,7 +4026,7 @@ namespace Selen {
             try {
                 await t;
             } catch (Exception x) {
-                ToLog("gde.ru ошибка удаления!\n" + x.Message);
+                Log.Add("gde.ru ошибка удаления!\n" + x.Message);
                 if (x.Message.Contains("Unexpected error") || x.Message.Contains("timed out")) {
                     gde.Quit();
                     gde = null;
@@ -4067,7 +4067,7 @@ namespace Selen {
             try {
                 await t;
             } catch (Exception x) {
-                //ToLog(x.Message);
+                //Log.Add(x.Message);
             }
         }
 
@@ -4090,7 +4090,7 @@ namespace Selen {
                         try {
                             await t;
                         } catch (Exception x) {
-                            ToLog("gde.ru ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
+                            Log.Add("gde.ru ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
                         }
                         //убиваем ссылку из базы в любом случае, потому что удалим физически, проверив отстатки после парсинга и подъема неактивных
                         bus[b].gde = " ";
@@ -4099,7 +4099,7 @@ namespace Selen {
                             {"name", bus[b].name},
                             {"854872", bus[b].gde}
                         });
-                        ToLog("gde.ru - удалена ссылка из карточки\n" + bus[b].name);
+                        Log.Add("gde.ru - удалена ссылка из карточки\n" + bus[b].name);
                         await Task.Delay(3000);
                     } else if (bus[b].gde != null && bus[b].price > 0 && bus[b].IsTimeUpDated()) {// редактируем
                         var t = Task.Factory.StartNew(() => {
@@ -4123,7 +4123,7 @@ namespace Selen {
                             //    });
                             //}
                         } catch (Exception x) {
-                            ToLog("GdeEditAsync: " + bus[b].name + "\n" + x.Message);
+                            Log.Add("GdeEditAsync: " + bus[b].name + "\n" + x.Message);
                             if (x.Message.Contains("Unexpected error")) {
                                 gde.Quit();
                                 gde = null;
@@ -4140,7 +4140,7 @@ namespace Selen {
                 var addr = gde.FindElement(By.CssSelector("#AInfoForm_address"));
                 WriteToIWebElement(gde, addr, "ул. Московская, д. 331");
             } catch (Exception x) {
-                ToLog("gde.ru: ошибка добавления адреса в объявление\n" + x.Message);
+                Log.Add("gde.ru: ошибка добавления адреса в объявление\n" + x.Message);
             }
         }
 
@@ -4153,7 +4153,7 @@ namespace Selen {
                 var title = gde.FindElement(By.CssSelector("#AInfoForm_title"));
                 WriteToIWebElement(gde, title, name);
             } catch (Exception x) {
-                ToLog("gde.ru: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
+                Log.Add("gde.ru: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
             }
         }
 
@@ -4163,7 +4163,7 @@ namespace Selen {
                 var priceInput = gde.FindElement(By.CssSelector("#AInfoForm_price"));
                 WriteToIWebElement(gde, priceInput, bus[b].price.ToString());
             } catch (Exception x) {
-                ToLog("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
+                Log.Add("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
             }
         }
 
@@ -4172,7 +4172,7 @@ namespace Selen {
                 var phInput = gde.FindElement(By.CssSelector("#AInfoForm_phone"));
                 WriteToIWebElement(gde, phInput, "9621787915");
             } catch (Exception x) {
-                ToLog("купипродай: ошибка добавления номера телефона\n" + x.Message);
+                Log.Add("купипродай: ошибка добавления номера телефона\n" + x.Message);
             }
         }
         private void SetGdeDesc(int b) {
@@ -4216,7 +4216,7 @@ namespace Selen {
                 gde.FindElement(By.CssSelector("#post-item")).Click();
                 Thread.Sleep(3000);
             } catch (Exception x) {
-                ToLog("GdePressOkButton: " + x.Message);
+                Log.Add("GdePressOkButton: " + x.Message);
             }
         }
 
@@ -4224,7 +4224,7 @@ namespace Selen {
             try {
                 gde.FindElement(By.CssSelector("label[for='radio-0']")).Click();
             } catch (Exception x) {
-                ToLog("GdeCheckFreeOfCharge: " + x.Message);
+                Log.Add("GdeCheckFreeOfCharge: " + x.Message);
             }
         }
 
@@ -4276,11 +4276,11 @@ namespace Selen {
                                 {"name", bus[b].name},
                                 {"854872", bus[b].gde}
                             });
-                            ToLog("Gde.ru выложено и привязано объявление " + b + "\n" + bus[b].name);
+                            Log.Add("Gde.ru выложено и привязано объявление " + b + "\n" + bus[b].name);
                             labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                         }
                     } catch (Exception e) {
-                        ToLog("GDE.RU ОШИБКА ДОБАВЛЕНИЯ!\n" + bus[b].name + "\n");
+                        Log.Add("GDE.RU ОШИБКА ДОБАВЛЕНИЯ!\n" + bus[b].name + "\n");
                     }
                 }
             }
@@ -4399,7 +4399,7 @@ namespace Selen {
                             File.WriteAllBytes("gde_" + u + ".jpg", bts);
                             flag = true;
                         } catch (Exception ex) {
-                            ToLog("SetGdeImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
+                            Log.Add("SetGdeImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
                             flag = false;
                         }
                         Thread.Sleep(1000);
@@ -4409,7 +4409,7 @@ namespace Selen {
                                 .SendKeys(Application.StartupPath + "\\" + "gde_" + u + ".jpg ");
                 }
             } catch (Exception e) {
-                ToLog("SetGdeImages: " + e.Message);
+                Log.Add("SetGdeImages: " + e.Message);
             }
             Thread.Sleep(5000);
         }
@@ -4419,26 +4419,27 @@ namespace Selen {
             if (checkBox_avto_pro_use.Checked) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
-                    ToLog("avto.pro: начало выгрузки...");
+                    Log.Add("avto.pro: начало выгрузки...");
                     while (base_rescan_need) await Task.Delay(30000);
                     _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
                     await _avtoPro.AvtoProStartAsync(bus);
-                    ToLog("avto.pro: выгрузка завершена!");
+                    Log.Add("avto.pro: выгрузка завершена!");
 
                     var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
                     if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 7) { //достаточно проверять один раз в сутки, и только ночью
-                        ToLog("avto.pro: парсинг сайта...");
+                        Log.Add("avto.pro: парсинг сайта...");
                         await _avtoPro.CheckAsync();
                         dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
                         dSet.WriteXml(fSet);
-                        ToLog("avto.pro: парсинг завершен");
+                        Log.Add("avto.pro: парсинг завершен");
                     }
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    ToLog("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
+                    Log.Add("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);//TODO изменить регистр сообщения 
                     if (x.Message.Contains("timed out") ||
                         x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) {
                         _avtoPro?.Quit();
                         Thread.Sleep(180000);
@@ -4452,7 +4453,7 @@ namespace Selen {
             try {
                 _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
             } catch (Exception x) {
-                ToLog("avto.pro: ошибка установки количества добавляемых объявлений");
+                Log.Add("avto.pro: ошибка установки количества добавляемых объявлений");
             }
         }        
         
@@ -4460,17 +4461,17 @@ namespace Selen {
         private async void button_cdek_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || !button_base_get.Enabled) {
-                ToLog("CDEK ожидает загрузку базы... ");
+                Log.Add("CDEK ожидает загрузку базы... ");
                 await Task.Delay(60000);
             }
             if (checkBoxCdekSyncActive.Checked) {
                 try {
                     await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
                 } catch (Exception x) {
-                    ToLog("CDEK ошибка синхронизации:\n" + x.Message);
+                    Log.Add("CDEK ошибка синхронизации:\n" + x.Message);
                 }
                 label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
-                ToLog("CDEK выгрузка ок!");
+                Log.Add("CDEK выгрузка ок!");
             }
             if (numericUpDown_СdekCheckUrls.Value > 0) {
                 try {
@@ -4480,7 +4481,7 @@ namespace Selen {
                     dSet.WriteXml(fSet);
                     await _cdek.ParseSiteAsync();
                 } catch (Exception x) {
-                    ToLog("CDEK ошибка при проверке объявлений!\n"+x.Message);
+                    Log.Add("CDEK ошибка при проверке объявлений!\n"+x.Message);
                 }
             }
             ChangeStatus(sender, ButtonStates.Active);
@@ -4502,7 +4503,7 @@ namespace Selen {
                 var json = JsonConvert.SerializeObject(ck);
                 File.WriteAllText(name, json);
             } catch (Exception x) {
-                ToLog("ошибка сохранения куки " + name + "\n" + x.Message);
+                Log.Add("ошибка сохранения куки " + name + "\n" + x.Message);
             }
         }
         private void LoadCookies(IWebDriver dr, string name) {
@@ -4521,7 +4522,7 @@ namespace Selen {
                 }
 
             } catch (Exception x) {
-                ToLog("Ошибка загузки куки " + name + "\n" + x.Message);
+                Log.Add("Ошибка загузки куки " + name + "\n" + x.Message);
             }
 
         }
@@ -4531,18 +4532,17 @@ namespace Selen {
             Actions a = new Actions(d);
             if (sl != null) {
                 a.MoveToElement(we)
-                 //.ContextClick()
                  .Click()
                  .Perform();
-                System.Threading.Thread.Sleep(2000);
+                Thread.Sleep(2000);
                 a.KeyDown(OpenQA.Selenium.Keys.Control)
                  .SendKeys("a")
                  .KeyUp(OpenQA.Selenium.Keys.Control)
                  .Perform();
-                System.Threading.Thread.Sleep(200);
+                Thread.Sleep(200);
                 a.SendKeys(OpenQA.Selenium.Keys.Backspace)
                  .Perform();
-                System.Threading.Thread.Sleep(200);
+                Thread.Sleep(200);
                 foreach (var sub in sl) {
                     if (sub.Length > 0) {
                         a.SendKeys(sub);
@@ -4599,26 +4599,21 @@ namespace Selen {
                 dSet.Clear();
                 dSet.ReadXml(fSet);
             } catch (Exception x) {
-                ToLog(x.Message);
+                Log.Add(x.Message);
             }
         }
 
         //Вывод лога на форму
         public void ToLog(string s) {
-            //s = DateTime.Now.ToString() + " " + s + "\n";
-            //lock (thisLock) {  //подвисает главный поток - пока отключил
-            //    for (int i = 0; i < 3; i++) {
-                    try {
-                        if (logBox.InvokeRequired)
-                            logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
-                        else
-                            logBox.Text += s + "\n";
-                        //break;
-                    } catch {
-                        //Thread.Sleep(1000);
-                    }
-            //}
-            //}
+            try {
+                if (logBox.InvokeRequired)
+                    logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
+                else
+                    logBox.Text += s + "\n";
+            } catch (Exception x) {
+                Console.WriteLine(x.Message);
+                Console.ReadLine();
+            }
         }
         //прокрутка лога
         private void richTextBox1_TextChanged(object sender, EventArgs e) {
@@ -4640,8 +4635,6 @@ namespace Selen {
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
-
-
                 //var json = JsonConvert.SerializeObject(bus[0]);
 
                 //var x = db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
@@ -4665,12 +4658,12 @@ namespace Selen {
                 //for (int j = 0; j < 10; j++) {
                 //    Task.Factory.StartNew(() => {
                 //        for (int i = 0; i < 100; i++) {
-                //            db.ToLog("site", j+" thread = " + i.ToString());
+                //            db.Log.Add("site", j+" thread = " + i.ToString());
                 //        }
                 //    });
                 //}
             } catch (Exception x) {
-                ToLog(x.Message);
+                Log.Add(x.Message);
             }
         }
 

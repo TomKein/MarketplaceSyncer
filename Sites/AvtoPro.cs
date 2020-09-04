@@ -79,6 +79,7 @@ namespace Selen.Sites {
                     } catch (Exception x) {
                         if (x.Message.Contains("timed out") ||
                             x.Message.Contains("already closed") ||
+                            x.Message.Contains("invalid session id") ||
                             x.Message.Contains("chrome not reachable")) throw;
                     }
                 }
@@ -181,7 +182,10 @@ namespace Selen.Sites {
                     for (int i = 0; ; i++) {
                         FindOffer();
                         if (_dr.GetElementsCount("//td[@data-col='category.name']") == 1) break;
-                        if (i > 50) throw new Exception("ошибка поиска объявления");
+                        if (i == 10) {
+                            Log.Add("avto.pro: " + _part + " - ошибка, объявление для привязки не найдено!");
+                            throw new Exception("timed out");
+                        }
                     };
                     _dr.ButtonClick("//td[@data-col='category.name']");
                     while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) {Thread.Sleep(1000);}
@@ -197,21 +201,41 @@ namespace Selen.Sites {
         }
 
         private void FindOffer() {
-            do {
+            for (int t = 0; ; t++) {
                 try {
                     _dr.Navigate("https://avto.pro/warehouses/79489/");
-                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 || _dr.GetElementsCount("//div[@class='er_code']") > 0) _dr.Refresh();
+                    for (int q = 0; ; q++) {
+                        if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 ||
+                            _dr.GetElementsCount("//div[@class='er_code']") > 0) _dr.Refresh();
+                        else break;
+                        if (q == 10) {
+                            Log.Add("avto.pro: " + _part + " - ошибка, не удается загрузить страницу склада!");
+                            throw new Exception("timed out");
+                        }
+                    }
                     _dr.ButtonClick("//div[text()='Поиск']");
                     _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
-                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(5000);
+                    for (int p = 0; ; p++) {
+                        if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(10000);
+                        else break;
+                        if (p == 10) {
+                            Log.Add("avto.pro: " + _part + " - ошибка, не удается дождаться поиска!");
+                            throw new Exception("timed out");
+                        }
+                    }
                     break;
-                } catch (Exception x){
+                } catch (Exception x) {
                     if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed")||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) throw;
                 }
-            } while (true);
-        }        
+                if (t == 10) {
+                    Log.Add("avto.pro: " + _part + " - ошибка, не удается выполнить поиск такого номера!");
+                    throw new Exception("timed out");
+                }
+            };
+        }
 
         void SetOptions(RootObject b) {
             if (!b.IsNew()) _dr.ButtonClick("//input[@name='IsUsed']/../.."); //новый или б/у
