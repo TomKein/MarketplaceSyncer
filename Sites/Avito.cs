@@ -167,6 +167,7 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
                 _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
             }
+            Log.Add("avito.ru: " + _bus[b].name + " - объявление снято с публикакии");
         }
 
         public async Task AddAsync() {
@@ -195,8 +196,9 @@ namespace Selen.Sites {
                         AddCount--;
                         await t;
                         await SaveUrlAsync(b);
+                        Log.Add("avito.ru: " + _bus[b].name + " - объявление добавлено");
                     } catch (Exception x) {
-                        Debug.WriteLine("AVITO.RU: ОШИБКА ДОБАВЛЕНИЯ!\n" + _bus[b].name + "\n" + x.Message);
+                        Log.Add("avito.ru: " + _bus[b].name + " - ошибка добавления! " + x.Message);
                         break;
                     }
                 }
@@ -238,15 +240,10 @@ namespace Selen.Sites {
                     _dr.WriteToSelector(selector,"5" + OpenQA.Selenium.Keys.Enter); //ставим 5 по дефолту, т.к. нет инфы
                     //количество отверстий
                     selector = "//option[text()='3']/..";
-                    if (_bus[b].description.Contains("4 x") || _bus[b].description.Contains("4x")) _dr.WriteToSelector(selector, "4" + OpenQA.Selenium.Keys.Enter);
-                    else _dr.WriteToSelector(selector, "5" + OpenQA.Selenium.Keys.Enter);
+                    _dr.WriteToSelector(selector, _bus[b].GetNumberOfHoles() + OpenQA.Selenium.Keys.Enter);
                     //диаметр отверстий
                     selector = "//option[text()='100']/..";
-                    var desc = _bus[b].description.ToLower();
-                    var pattern = @"\d\s*(?:\*|x|х)\s*([0-9]+)(?:<|\ |m|м|.|,)";
-                    var diam = Regex.Match(desc, pattern).Groups[1].Value;
-                    if (diam.Length == 0) diam = "100"; //если не удалось определить с помощью регулярки из описания - ставим 100 по дефолту
-                    _dr.WriteToSelector(selector, diam + OpenQA.Selenium.Keys.Enter);
+                    _dr.WriteToSelector(selector, _bus[b].GetDiameterOfHoles() + OpenQA.Selenium.Keys.Enter);
                     //вылет
                     selector = "//option[text()='-98']/..";
                     _dr.WriteToSelector(selector, "0" + OpenQA.Selenium.Keys.Enter);  //редко указан в объявлении, ставим 0 по дефолту
@@ -381,7 +378,7 @@ namespace Selen.Sites {
             var butOpub = _dr.FindElements("//button[@type='submit']");
             if (butOpub.Count > 0) {
                 butOpub.First().Click();
-                CountToUp--;
+                Log.Add("avito.ru: " + _bus[b].name + " - объявление "+ CountToUp-- + " активировано");
                 await Task.Delay(30000);
             }
         }
@@ -413,17 +410,14 @@ namespace Selen.Sites {
         private void SetImages(int b) {
             WebClient cl = new WebClient();
             cl.Encoding = Encoding.UTF8;
-            var num = _bus[b].images.Count > 5 ? 5 : _bus[b].images.Count;
+            var num = _bus[b].images.Count > 10 ? 10 : _bus[b].images.Count;
             for (int u = 0; u < num; u++) {
-                for (int i = 0; i < 5; i++) {
-                    try {
-                        byte[] bts = cl.DownloadData(_bus[b].images[u].url);
-                        File.WriteAllBytes("avito_" + u + ".jpg", bts);
-                        Thread.Sleep(1000);
-                        _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
-                        break;
-                    } catch { }
-                }
+                byte[] bts = cl.DownloadData(_bus[b].images[u].url);
+                File.WriteAllBytes("avito_" + u + ".jpg", bts);
+                Thread.Sleep(1000);
+                _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
+                if (_dr.GetElementsCount("//div[contains(@class,'alert-content')]/../*[@role='button']") >0)
+                    throw new Exception("ошибка загрузки фото!");
             }
             cl.Dispose();
         }

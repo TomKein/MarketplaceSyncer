@@ -120,7 +120,7 @@ namespace Selen.Tools {
             var el = FindElements(s);
             if (el.Count>0)
                 el.First().SendKeys(k);
-            Thread.Sleep(1000);
+            Thread.Sleep(1200);
         }
 
         public void ClickToSelector(string s) {

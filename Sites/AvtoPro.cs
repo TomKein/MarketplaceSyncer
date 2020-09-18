@@ -126,11 +126,14 @@ namespace Selen.Sites {
         }
 
         async Task DeleteAsync(RootObject b)  {
-            _part = b.avtopro.Split(';').First().Split('/').Last();//получаем номер запчасти из ссылки
-            FindOffer();
-            _dr.ButtonClick("//a[contains(@href,'delete')]");
-            PressSubmitButton();
-            b.avtopro = "";
+            await Task.Factory.StartNew(() => {
+                _part = b.avtopro.Split(';').First().Split('/').Last(); //получаем номер запчасти из ссылки
+                FindOffer();                                            //поиск объявления
+                _dr.SendKeysToSelector("//body", OpenQA.Selenium.Keys.Escape);
+                _dr.ButtonClick("//a[contains(@href,'delete')]");
+                PressSubmitButton();
+                b.avtopro = "";
+            });
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                 {"id", b.id},
                 {"name", b.name},
@@ -206,9 +209,11 @@ namespace Selen.Sites {
                     _dr.Navigate("https://avto.pro/warehouses/79489/");
                     for (int q = 0; ; q++) {
                         if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 ||
-                            _dr.GetElementsCount("//div[@class='er_code']") > 0) _dr.Refresh();
-                        else break;
-                        if (q == 10) {
+                            _dr.GetElementsCount("//div[@class='er_code']") > 0) {
+                            _dr.Refresh();
+                            Thread.Sleep(20000);
+                        } else break;
+                        if (q == 20) {
                             Log.Add("avto.pro: " + _part + " - ошибка, не удается загрузить страницу склада!");
                             throw new Exception("timed out");
                         }
@@ -218,7 +223,7 @@ namespace Selen.Sites {
                     for (int p = 0; ; p++) {
                         if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(10000);
                         else break;
-                        if (p == 10) {
+                        if (p == 30) {
                             Log.Add("avto.pro: " + _part + " - ошибка, не удается дождаться поиска!");
                             throw new Exception("timed out");
                         }
@@ -288,6 +293,7 @@ namespace Selen.Sites {
 
         void PressSubmitButton() {
             _dr.ButtonClick("//div/div/button[@type='submit']");
+            Thread.Sleep(3000);
         }
 
         void PressSaveButton() {

@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.32.1";
+        string _version = "1.33.1";
         
         DB _db = new DB();
 
@@ -629,6 +629,10 @@ namespace Selen {
                         await Task.Factory.StartNew(() => { TiuOfferUpdate(b); });
 
                     } catch (Exception x) {
+                        if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("invalid session id") ||
+                            x.Message.Contains("chrome not reachable")) { tiu.Quit(); tiu = null; }
                         Log.Add("tiu.ru ошибка!/n" + x.Message);
                     }
                 }
@@ -786,7 +790,11 @@ namespace Selen {
                     Thread.Sleep(3000);
                     tiu.FindElement(By.Id("enterPasswordConfirmButton")).Click();
                     Thread.Sleep(3000);
-                    if (tiu.Url.Contains("sing-in")) throw new Exception("ошибка авторизации!");//TODO заменить на while для ожидания входа
+                    while (tiu.Url.Contains("sign-in")) {
+                        Log.Add("tiu.ru: ошибка авторизации! ожидаю вход в кабинет...");
+                        Thread.Sleep(60000);
+                    }
+                    Log.Add("tiu.ru: продолжаю работу...");
                 } catch { }
                 SaveCookies(tiu, "tiu.json");
                 tiu.Navigate().Refresh();
@@ -816,8 +824,15 @@ namespace Selen {
                 Thread.Sleep(1000);
                 c.Click();
                 Thread.Sleep(2000);
-            } catch /*(Exception x)*/ {
-                //Log.Add("Ошибка тиу.ру!\n" + x.Message);
+            } catch (Exception x) {
+                if (x.Message.Contains("timed out") ||
+                x.Message.Contains("already closed") ||
+                x.Message.Contains("invalid session id") ||
+                x.Message.Contains("chrome not reachable")) {
+                    tiu.Quit();
+                    tiu = null;
+                }
+                //Log.Add("tiu.ru: ошибка - " + x.Message);
             }
         }
 
@@ -1518,11 +1533,18 @@ namespace Selen {
                     var pas = p.GetPass();
                     WriteToIWebElement(au, au.FindElement(By.CssSelector("div[class*='FormCodeInput'] input")), pas);
                     Thread.Sleep(1000);
-                    var el = au.FindElement(By.CssSelector("i[class*='WhatsNew__close']"));
-                    Actions a = new Actions(au);
-                    a.MoveToElement(el).Perform();
-                    Thread.Sleep(1000);
-                    a.Click().Perform();
+                    var el = au.FindElements(By.CssSelector("i[class*='WhatsNew__close']"));
+                    if (el.Count > 0) {
+                        Actions a = new Actions(au);
+                        a.MoveToElement(el.First()).Perform();
+                        Thread.Sleep(1000);
+                        a.Click().Perform();
+                    }
+                    //проверяю авторизацию, если ссылка содержит...
+                    if (au.Url.Contains("parts.auto.ru")) {
+                        //сохраняю куки
+                        SaveCookies(au, "auto.json");
+                    }
                 } catch { }
             });
         }
@@ -3782,7 +3804,7 @@ namespace Selen {
                 await t;
             } catch (Exception x) {
                 kp = null;
-                Thread.Sleep(180000);//TODO изменить на 600000
+                Thread.Sleep(300000);
                 await KupiProdaiAuth();
             }
         }

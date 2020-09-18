@@ -57,7 +57,9 @@ namespace Selen.Sites {
                 if (_bus[i].images.Count > 0 && _bus[i].tiu.Contains("http")
                     && _bus[i].price > 0 && _bus[i].amount > 0) {
                     int indVk = 0;
-                    await Task.Factory.StartNew(() => { indVk = vkMark.FindIndex(t => _bus[i].vk.Contains(t.Id.ToString())); });
+                    await Task.Factory.StartNew(() => {
+                        indVk = vkMark.FindIndex(t => _bus[i].vk.Contains(t.Id.ToString()));
+                    });
                     if (indVk < 0) {
                         //если индекс не найден значит надо выложить
                         var task = Task.Factory.StartNew(() => {
@@ -180,14 +182,11 @@ namespace Selen.Sites {
                     //для каждого товара поищем индекс в базе карточек товаров
                     int iBus = _bus.FindIndex(t => t.vk.EndsWith(vkMark[i].Id.ToString()));
                     //если не найден - значит удаляю объявление
-                    var vkDate = vkMark[i].Date;
-                    var busDate = _bus[iBus].updated;
-                    var compareDates = DateTime.Parse(busDate).AddMinutes(-223).CompareTo(vkDate);
                     if (iBus == -1 ||
                         _bus[iBus].price != vkMark[i].Price.Amount / 100 ||
                         _bus[iBus].amount <= 0 ||
                         _bus[iBus].name != vkMark[i].Title ||
-                        DateTime.Parse(busDate).AddMinutes(-223).CompareTo(vkDate) > 0
+                        DateTime.Parse(_bus[iBus].updated).AddMinutes(-223).CompareTo(vkMark[i].Date) > 0
                         //поиск дублей
                         || vkMark.Count(c => c.Title == vkMark[i].Title) > 1 
                         //|| vkMark[i].Description.Contains("70-70-97")

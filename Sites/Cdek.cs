@@ -250,8 +250,10 @@ namespace Selen.Sites {
                         _dr.WriteToSelector("#password", "rad701242");
                         _dr.ButtonClick("input[type='submit']");
                     }
-                    while (_dr.GetElementsCount("//*[@class='admin-content']") == 0) //если элементов слева нет ждем ручной вход
+                    while (_dr.GetElementsCount("//*[@class='admin-content']") == 0){ //если элементов слева нет ждем ручной вход
                         Thread.Sleep(60000);
+                        if (_dr.GetElementText("//h1").Contains("Error")) _dr.Refresh("https://cdek.market/v/");
+                    }
                     SaveCookies();
                 });
             } catch (Exception x) {

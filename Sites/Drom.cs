@@ -331,7 +331,7 @@ namespace Selen.Sites {
                 var el = item.FindElements(By.XPath(".//span[@data-role='price']"));
                 var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("₽", "")) : 0;
                 var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
-                var status = item.FindElement(By.XPath(".//div[contains(@class,'bulletin-additionals_right-column')]")).Text;
+                var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item-content__additional')]")).Text;
                 var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
                 var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
                 drom.Add(new RootObject {

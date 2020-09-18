@@ -48,7 +48,7 @@ namespace Selen
         public string price { get; set; }
     }
 
-    public class RootObject{
+    public class RootObject {
         public string id { get; set; }
         public string name { get; set; }
         public string full_name { get; set; }
@@ -79,9 +79,9 @@ namespace Selen
         public static List<RootGroupsObject> Groups { get; set; }
         public int price {
             get {
-                if (prices.Count>0)
-                    return prices.Select(s => string.IsNullOrEmpty(s.price) ? 0 : 
-                                                (int) float.Parse(s.price.Replace(".", ","))).Max();
+                if (prices.Count > 0)
+                    return prices.Select(s => string.IsNullOrEmpty(s.price) ? 0 :
+                                                (int)float.Parse(s.price.Replace(".", ","))).Max();
                 return 0;
             }
             set {
@@ -90,9 +90,9 @@ namespace Selen
         }
         public float amount {
             get {
-                return remains.Select(s => string.IsNullOrEmpty(s.amount.total) ? 
+                return remains.Select(s => string.IsNullOrEmpty(s.amount.total) ?
                                                 0 :
-                                                float.Parse(s.amount.total.Replace(".",","))).Sum();
+                                                float.Parse(s.amount.total.Replace(".", ","))).Sum();
             }
             set {
                 remains = new List<Remains> {
@@ -109,7 +109,7 @@ namespace Selen
                 group_id == "168723" || //Аудио-видеотехника
                 group_id == "168807" || //Шины, диски, колеса
                 group_id == "289732" || //Автохимия
-                group_id == "530058"){   //Инструменты
+                group_id == "530058") {   //Инструменты
                 return false;
             }
             return true;
@@ -130,7 +130,7 @@ namespace Selen
             return s2;
         }
 
-        public List<string> DescriptionList(int b=3000, string[] dop=null) {
+        public List<string> DescriptionList(int b = 3000, string[] dop = null) {
             var s = Regex.Replace(description
                                     .Replace("Есть и другие", "|")
                                     .Split('|')[0]
@@ -156,8 +156,7 @@ namespace Selen
                 if (s[u].Length + newSLength > b) {
                     s.Remove(s[u]);
                     u = u - 1;
-                }
-                else {
+                } else {
                     newSLength = newSLength + s[u].Length;
                 }
             }
@@ -179,7 +178,7 @@ namespace Selen
                          .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                          .First(f => f.StartsWith("r"))
                          .TrimStart('r');
-            } catch {}
+            } catch { }
             return "14";
         }
 
@@ -187,8 +186,8 @@ namespace Selen
             var low = description.ToLowerInvariant();
             if (GroupName() != "Автохимия" &&
                 GroupName() != "Инструменты" &&
-                !(low.Contains("нова") || 
-                low.Contains("новы") || 
+                !(low.Contains("нова") ||
+                low.Contains("новы") ||
                 low.Contains("ново")))
                 return false;
             return true;
@@ -213,8 +212,8 @@ namespace Selen
             if (!String.IsNullOrEmpty(description) && description.Contains("№")) {
                 return description
                                 .Split('№').Last()
-                                .Replace("\u00A0"," ")
-                                .Replace("\u2009"," ")
+                                .Replace("\u00A0", " ")
+                                .Replace("\u2009", " ")
                                 .Replace("&nbsp;", " ")
                                 .Replace("&thinsp;", " ")
                                 .Replace("<", " ")
@@ -228,7 +227,19 @@ namespace Selen
             }
             return "";
         }
+        //получаем колчество отверстий на диске из описания
+        public string GetNumberOfHoles() {
+            var pattern = @"(?:.+)\s*(\d)(?:\*|x|х)\s*(?:[0-9]+)";
+            var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number)) number = "4";
+            return number;
+        }
+        //получаем диаметр отверстий на диске из описания
+        public string GetDiameterOfHoles() {
+            var pattern = @"\d\s*(?:\*|x|х)\s*([0-9]+)(?:<|\ |m|м|.|,)";
+            var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number)) number = "100";
+            return number;
+        }
     }
-
-
 }
