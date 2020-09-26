@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.33.1";
+        string _version = "1.35.0";
         
         DB _db = new DB();
 
@@ -40,6 +40,7 @@ namespace Selen {
         Drom _drom = new Drom();
         AvtoPro _avtoPro = new AvtoPro();
         Avito _avito = new Avito();
+        Autoru _autoru = new Autoru();
 
         public IWebDriver tiu;
         public IWebDriver au;
@@ -169,6 +170,7 @@ namespace Selen {
             _cdek?.Quit();
             _drom?.Quit();
             _avtoPro?.Quit();
+            //_autoru?.Quit(); //TODO авто.ру реализовать Quit
         }
 
         void ClearTempFiles() {
@@ -850,7 +852,15 @@ namespace Selen {
                 label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
-                Log.Add("DROM.RU ОШИБКА СИНХРОНИЗАЦИИ! \n" + x.Message + "\n" + x.InnerException.Message);
+                Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
+                if (x.Message.Contains("timed out") ||
+                    x.Message.Contains("already closed") ||
+                    x.Message.Contains("invalid session id") ||
+                    x.Message.Contains("chrome not reachable")) {
+                    _drom.Quit();
+                    Thread.Sleep(10000);
+                    DromGetAsync(sender,e);
+                }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
@@ -1149,13 +1159,6 @@ namespace Selen {
         //===================//
         // сканируем auto.ru //
         //===================//
-        //т.к. нет возможности отпарсить полностью авто.ру (выдается только последние 1000 объявлений)
-        //будем опираться на записи в базе
-        //1. удалим объявления, которых нет на остатках
-        //2. редактируем те, что изменились
-        //3. парсим последние несколько листов, привязываем непривязанные
-        //4. парсим неактивные и поднимаем те,что есть на остатках с положительной ценой
-        //5. выкладываем новые
         private async void button_auto_get_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             Log.Add("парсим авто.ру...");
@@ -2957,9 +2960,6 @@ namespace Selen {
             File.AppendAllText(Application.StartupPath + "\\auto.txt", "\n" + desc.Replace("есть и другие", "|").Split('|').First());
             return null;
         }
-
-
-
         //готовим описание для auto.ru
         private List<string> GetAutoDesc(int b) {
             var s = Regex.Replace(bus[b].description
@@ -2994,8 +2994,6 @@ namespace Selen {
             }
             return s;
         }
-
-
 
         //переносим с тиу новые товары в базу - создаем карточки, вводим остатки и цены
         public async Task AddSupplyAsync() {
@@ -3175,7 +3173,6 @@ namespace Selen {
             }
             newTiuGoods.Clear();
         }
-
 
         private async void button_getHelp_Click(object sender, EventArgs e) {
             await Task.Delay(100);

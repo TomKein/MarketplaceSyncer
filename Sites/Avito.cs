@@ -18,7 +18,7 @@ namespace Selen.Sites {
         Selenium _dr;
         readonly string _url = "209326";
         List<RootObject> _bus = null;
-        int _priceLevel = 2000;
+        int _priceLevel = 1500;
         Random rnd = new Random();
         public int CountToUp { get; set; }
         public int AddCount { get; set; }
@@ -106,8 +106,10 @@ namespace Selen.Sites {
                 }
             }
         }
-
+        //метод проверки авторизации
         private async Task ChechAuthAsync() {
+            //закрываю рекламу
+            _dr.ButtonClick("//button[contains(@class,'popup-close')]");
             while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
                 if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
                     _dr.Refresh();
@@ -171,6 +173,7 @@ namespace Selen.Sites {
         }
 
         public async Task AddAsync() {
+            //_priceLevel = 1500;
             for (int b = 0; b < _bus.Count && AddCount > 0; b++) {
                 if ((_bus[b].avito == null || !_bus[b].avito.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
@@ -366,7 +369,7 @@ namespace Selen.Sites {
         }
 
         private async Task UpOfferAsync(int b) {
-            var id = _bus[b].avito.Split('_').Last();
+            var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
             var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
             await _dr.NavigateAsync(url);
             //проверка наличия формы редактирования
