@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.35.0";
+        string _version = "1.35.1";
         
         DB _db = new DB();
 
@@ -40,7 +40,7 @@ namespace Selen {
         Drom _drom = new Drom();
         AvtoPro _avtoPro = new AvtoPro();
         Avito _avito = new Avito();
-        Autoru _autoru = new Autoru();
+        //Autoru _autoru = new Autoru();
 
         public IWebDriver tiu;
         public IWebDriver au;
