@@ -17,7 +17,8 @@ namespace Selen.Base {
     class DB {
         //строка подключения
         private static readonly string connectionString =
-            "server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";
+            "server=35.185.57.11;database=business.ru;uid=business;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";                 //google
+            //"server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";    //reg.ru
         //ссылка на экземпляр себя
         public static DB _db = null;
         //создаю подключение

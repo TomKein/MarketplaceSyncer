@@ -168,13 +168,13 @@ namespace Selen.Sites {
             if (_dr.GetElementsCount("//*[text()='Снять с публикации']") > 0) {
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
                 _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
+                _dr.ButtonClick("//button[@data-marker='save-reason']");
             }
             Log.Add("avito.ru: " + _bus[b].name + " - объявление снято с публикакии");
         }
 
         public async Task AddAsync() {
-            //_priceLevel = 1500;
-            for (int b = 0; b < _bus.Count && AddCount > 0; b++) {
+            for (int b = _bus.Count - 1; b > -1  && AddCount > 0; b--) {
                 if ((_bus[b].avito == null || !_bus[b].avito.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
                     _bus[b].amount > 0 &&
@@ -212,17 +212,25 @@ namespace Selen.Sites {
             if (deleteUrl) {
                 _bus[b].avito = "";
             } else {
-                await Task.Delay(5000); //ждем, потому что объявление не всегда сразу готово
-                var id = _dr.GetElementAttribute("//a[contains(@href,'itemId')]", "href").Split('=').Last();
+                await Task.Delay(15000); //ждем, потому что объявление не всегда сразу готово
+                var id = _dr.GetUrl().Split('[')[1].Split(']')[0];
                 var url = "https://www.avito.ru/items/" + id;
-                await _dr.NavigateAsync(url);
-                _bus[b].avito = _dr.GetUrl();
+                for (int i = 0; ; i++) { 
+                    await _dr.NavigateAsync(url);
+                    url = _dr.GetUrl();
+                    if (!url.Contains("avito.ru/items")) break;
+                    if (i > 9) throw new Exception("ссылка на объявление не найдена!");
+                }
+                //проверяем ссылку
+                if (url.Contains("https://www.avito.ru/kaluga")) {
+                    _bus[b].avito = _dr.GetUrl();
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                        {"id", _bus[b].id},
+                        {"name", _bus[b].name},
+                        {_url, _bus[b].avito}
+                    });
+                }
             }
-            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                {"id", _bus[b].id},
-                {"name", _bus[b].name},
-                {_url, _bus[b].avito}
-            });
             await Task.Delay(10000);
         }
 

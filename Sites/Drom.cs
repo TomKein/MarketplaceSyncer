@@ -224,7 +224,10 @@ namespace Selen.Sites {
             _dr.ButtonClick("//*[@id='serviceSubmit' and not(contains(text(),'платить')) and not(contains(text(),'Поднять объявление —'))]");
         }
         void PressPublicFreeButton() {
-            _dr.ButtonClick("//button[@id='bulletin_publication_free']");
+            for(int i=0; i < 2; i++) {
+                _dr.ButtonClick("//button[@id='bulletin_publication_free']");
+                if (_dr.GetElementsCount("//button[@id='bulletin_publication_free']") == 0) break;
+            }
         }
         void SetDesc(RootObject b) {
             _dr.WriteToSelector("//textarea[@name='text']", sl: b.DescriptionList(2999, _addDesc));

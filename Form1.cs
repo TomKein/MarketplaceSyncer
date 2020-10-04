@@ -20,10 +20,11 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
+using WinSCP;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.35.1";
+        string _version = "1.37.1";
         
         DB _db = new DB();
 
@@ -91,6 +92,9 @@ namespace Selen {
 
         //настройки и контрольные значения
         string fSet = "set.xml";
+        //имена файлов для выгрузки тиу
+        string _fexp = "ex3.xls";
+        string _ftemp = "tmpl.xls";
 
         //для возврата из форм
         public List<string> lForm3 = new List<string>();
@@ -473,7 +477,7 @@ namespace Selen {
                 await TiuSyncAsync2();
                 ChangeStatus(sender, ButtonStates.Active); 
             } catch (Exception x) {
-                Log.Add("tiu.ru ошибка: " + x.Message);
+                Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem); 
             }
         }
@@ -491,34 +495,33 @@ namespace Selen {
                     });
                 } catch {
                     loadSuccess = false;
-                    Log.Add("TIU - ОШИБКА ЗАПРОСА XML!");
+                    Log.Add("tiu.ru: ошибка запроса XML!");
                 }
-                if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) {//выгружать 1 раз в конце каждого 4го часа будет достаточно
-                    Log.Add("тиу.ру подготовка выгрузки...");
-                    var fexp = "ex3.xls";
-                    var ftemp = "tmpl.xls";
-                    do {
-                        try {
-                            File.Copy(Application.StartupPath + "\\" + "tmpl.xls", Application.StartupPath + "\\" + "ex3.xls", true);
-                            break;
-                        } catch (Exception ex) {
-                            Log.Add("ошибка доступа к файлу выгрузки xls!\n" + ex.Message);
-                            await Task.Delay(30000);
-                        }
-                    } while (true);
+                if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) {
 
-                    Workbook wb = Workbook.Load(fexp);
+                    Workbook wb = Workbook.Load(_fexp);
                     Worksheet ws = wb.Worksheets[0];
 
                     //проверяем количество полученных товарных позиций
                     tiuCount = ds.Tables["offer"].Rows.Count;
                     label_tiu.Text = tiuCount.ToString();
-                    Log.Add("тиу получено объявлений из кабинета " + tiuCount.ToString());
+                    Log.Add("tiu.ru: получено объявлений " + tiuCount.ToString());
 
                     while (base_rescan_need || bus.Count == 0) {
-                        Log.Add("тиу ожидает загрузку базы... ");
+                        Log.Add("tiu.ru: ожидаю загрузку базы... ");
                         await Task.Delay(60000);
                     }
+
+                    Log.Add("tiu.ru: готовлю файл выгрузки...");
+                    do {
+                        try {
+                            File.Copy(Application.StartupPath + "\\" + _ftemp, Application.StartupPath + "\\" + _fexp, true);
+                            break;
+                        } catch (Exception x) {
+                            Log.Add("tiu.ru: ошибка доступа к файлу! - " + x.Message);
+                            await Task.Delay(30000);
+                        }
+                    } while (true);
 
                     //текущий индекс строки для записи в таблицу
                     int iRow = 0;
@@ -554,13 +557,8 @@ namespace Selen {
                                         : bus[i].measure_id == "9"
                                             ? "упаковка"
                                             : "шт.";
-
-                                string a = bus[i].amount > 0
-                                    ? "+"
-                                    //: bus[i].pod_zakaz != ""
-                                    //    ? bus[i].pod_zakaz
-                                    : "-";
-                                if (!String.IsNullOrEmpty(bus[i].part)) ws.Cells[iRow, 0] = new Cell(bus[i].part);
+                                string a = bus[i].amount > 0 ? "+" : "-";
+                                if (!string.IsNullOrEmpty(bus[i].part)) ws.Cells[iRow, 0] = new Cell(bus[i].part);
                                 ws.Cells[iRow, 1] = new Cell(bus[i].name);
                                 ws.Cells[iRow, 3] = new Cell(s);
                                 ws.Cells[iRow, 5] = new Cell(bus[i].price > 0 ? bus[i].price : 100);
@@ -569,73 +567,99 @@ namespace Selen {
                                 ws.Cells[iRow, 12] = new Cell(a);
                                 ws.Cells[iRow, 13] = new Cell(bus[i].amount > 0 ? (int)bus[i].amount : 0);
                                 ws.Cells[iRow, 20] = new Cell(idTiu);
-
-                                if (iRow % 10 == 0) {
-                                    label_tiu.Text = iRow.ToString();
-                                }
                             } else {
                                 if (bus[i].amount > 0)
-                                    Log.Add("TIU ID ИЗ ССЫЛКИ В КАРТОЧКЕ НЕ НАЙДЕН В ВЫГРУЗКЕ XML\n" + bus[i].name + "\n" + idTiu);
+                                    Log.Add("tiu.ru: ошибка! - tiu_ID = " + idTiu + " из ссылки карточки не найден в выгрузке XML - " + bus[i].name);
                             }
                         }
                     }
                     label_tiu.Text = iRow.ToString();
 
-                    //проверим, есть ли в базе карточки без ссылки на тиу
-                    var goods = bus.Where(w => w.images.Count > 0 && w.amount > 0 && !w.tiu.Contains("tiu.ru"))
-                        .Select(s => s.name)
-                        .ToList();
-                    foreach (var good in goods) {
-                        Log.Add("НЕТ ССЫЛКИ В КАРТОЧКЕ НА САЙТ\n" + good);
-                    }
-
-                    //111 переделать в xls
+                    CheckTiuUrlsInBus();
                     //сохраняем изменения
-                    wb.Save(Application.StartupPath + "\\" + fexp);
-
-                    System.Net.WebClient ftp = new System.Net.WebClient();
-
-                    //ftp.Credentials = new NetworkCredential("rogachevaleksey", "$drumbotanik");//https://rogachevaleksey.000webhostapp.com/ex3.xls
-                    //ftp.Credentials = new NetworkCredential("u148353358", "$drumbotanik");
-                    //http://basepoint.hol.es/ex3.xls
-
-                    ftp.Credentials = new NetworkCredential("forVano", "$drum122");
-                    //https://nutramir.ru/vano/ex3.xls
-
-                    for (int f = 1; f <= 5; f++) {
-                        //await ftp.UploadFileTaskAsync("ftp://files.000webhost.com:21/public_html/" + fexp, "STOR", fexp);
-                        //await ftp.UploadFileTaskAsync("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
-                        Task tt = Task.Factory.StartNew(() => {
-                            ftp.UploadFile("ftp://31.31.196.233:21/" + fexp, "STOR", fexp);
-                            //  ftp.UploadFile("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
-                        });
-                        try {
-                            await tt;
-                            Log.Add("тиу: ex3.xls успешно отправлен на сервер!");
-                            break;
-                        } catch (Exception ex) {
-                            Log.Add("тиу ошибка выгрузки на FTP, попытка " + f + "\n" + ex.Message);
-                            await Task.Delay(30000);
-                        }
-                    }
+                    wb.Save(Application.StartupPath + "\\" + _fexp);
+                    await SftpUploadAsync();
+                    //await FtpUploadAsync();   //выгрузка по FTP отключена
                 }
             } catch (Exception x) {
-                Log.Add("Tiu ошибка выгрузки:\n" + x.Message);
+                Log.Add("tiu.ru: ошибка выгрузки - " + x.Message);
             }
         }
+        //проверяю, есть ли в базе карточки без ссылки на тиу
+        private void CheckTiuUrlsInBus() {
+            var goods = bus.Where(w => w.images.Count > 0 && w.amount > 0 && !w.tiu.Contains("tiu.ru"))
+                .Select(s => s.name)
+                .ToList();
+            foreach (var good in goods) {
+                Log.Add("tiu.ru: ошибка! - карточка есть на остатках, с фотографиями, но нет ссылки на объявление! - " + good);
+            }
+        }
+        //выгрузка по SFTP - новый протокол
+        private async Task SftpUploadAsync() {
+            Log.Add("tiu.ru: отправляю файл на сервер sftp://35.185.57.11/" + _fexp + " ...");
+            SessionOptions sessionOptions = new SessionOptions {
+                Protocol = Protocol.Sftp,
+                HostName = "35.185.57.11",
+                UserName = "bitnami",
+                SshHostKeyFingerprint = "ssh-rsa 2048 5LaZLFR2u+1xdE9SWnc3KzPksfjDNL2FEFcDM8jztKo=",
+                SshPrivateKeyPath = Application.StartupPath + "\\" + "google_sftp.ppk",
+            };
+            using (Session session = new Session()) {
+                session.Open(sessionOptions);
+                if (session.Opened) {
+                    var res = session.PutFileToDirectory(
+                        Application.StartupPath + "\\" + _fexp, "/opt/bitnami/apps/wordpress/htdocs");
+                    Log.Add("tiu.ru: файл успешно отправлен на сервер!");
+                }
+            }
+        }
+        //выгрузка по FTP - больше не используется
+        private async Task FtpUploadAsync() {
+            System.Net.WebClient ftp = new System.Net.WebClient();
+
+            //ftp.Credentials = new NetworkCredential("rogachevaleksey", "$drumbotanik");//https://rogachevaleksey.000webhostapp.com/ex3.xls
+            //ftp.Credentials = new NetworkCredential("u148353358", "$drumbotanik");
+            //http://basepoint.hol.es/ex3.xls
+
+            ftp.Credentials = new NetworkCredential("forVano", "$drum122");
+            //https://nutramir.ru/vano/ex3.xls
+
+            for (int f = 1; f <= 5; f++) {
+                //await ftp.UploadFileTaskAsync("ftp://files.000webhost.com:21/public_html/" + fexp, "STOR", fexp);
+                //await ftp.UploadFileTaskAsync("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
+                Task tt = Task.Factory.StartNew(() => {
+                    ftp.UploadFile("ftp://31.31.196.233:21/" + _fexp, "STOR", _fexp);
+                    //  ftp.UploadFile("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
+                });
+                try {
+                    await tt;
+                    Log.Add("тиу: ex3.xls успешно отправлен на сервер!");
+                    break;
+                } catch (Exception ex) {
+                    Log.Add("тиу ошибка выгрузки на FTP, попытка " + f + "\n" + ex.Message);
+                    await Task.Delay(30000);
+                }
+            }
+        }
+        //редактируем объявления
         private async Task TiuSyncAsync2() {
             for (int b = 0; b < bus.Count; b++) {
                 if (bus[b].tiu != null && bus[b].tiu.Contains("http") &&
                     bus[b].IsTimeUpDated() && bus[b].price > 0) {
                     try {
-                        await Task.Factory.StartNew(() => { TiuOfferUpdate(b); });
-
+                        await Task.Factory.StartNew(() => {
+                            TiuOfferUpdate(b);
+                        });
                     } catch (Exception x) {
                         if (x.Message.Contains("timed out") ||
                             x.Message.Contains("already closed") ||
                             x.Message.Contains("invalid session id") ||
-                            x.Message.Contains("chrome not reachable")) { tiu.Quit(); tiu = null; }
-                        Log.Add("tiu.ru ошибка!/n" + x.Message);
+                            x.Message.Contains("chrome not reachable")) {
+                            tiu.Quit();
+                            tiu = null;
+                            Log.Add("tiu.ru: ошибка браузера, перезапуск - " + x.Message);
+                        } else
+                            Log.Add("tiu.ru: ошибка! - " + x.Message);
                     }
                 }
             }
@@ -4654,15 +4678,16 @@ namespace Selen {
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
+                await SftpUploadAsync();
                 //var json = JsonConvert.SerializeObject(bus[0]);
 
-                //var x = db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
-                //var y = db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+                //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
 
-                //var j = db.GetGood("id",bus[0].id.ToString());
+                //var j = _db.GetGood("id", bus[0].id.ToString());
                 //var b = JsonConvert.DeserializeObject<RootObject>(j);
 
-                //var j2 = db.GetGood("drom", "47176874");
+                //var j2 = _db.GetGood("drom", "47176874");
                 //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
 
 
