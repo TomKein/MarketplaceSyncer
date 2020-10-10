@@ -35,10 +35,7 @@ namespace Selen.Tools {
             s = dt + ": " + s;
             lock (_thisLock) {
                 _log.Add(s);
-                //ограничение размера лога
                 if (_log.Count > Level) _log.RemoveRange(0, 10);
-                //var date = dt.Year + "." + dt.Month + "." + dt.Day;
-                //File.AppendAllText("log_" + date + ".txt", s);
             }
             LogUpdate.Invoke();
         }

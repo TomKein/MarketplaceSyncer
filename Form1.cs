@@ -4678,7 +4678,7 @@ namespace Selen {
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
-                await SftpUploadAsync();
+                //await SftpUploadAsync();
                 //var json = JsonConvert.SerializeObject(bus[0]);
 
                 //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);

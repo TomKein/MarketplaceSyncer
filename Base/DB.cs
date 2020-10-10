@@ -1,4 +1,5 @@
 ﻿using MySql.Data.MySqlClient;
+using Selen.Tools;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -15,10 +16,9 @@ namespace Selen.Base {
     /// 4. связь с таблицей goods
     /// </summary>
     class DB {
-        //строка подключения
+        //строка подключения google cloud engine
         private static readonly string connectionString =
-            "server=35.185.57.11;database=business.ru;uid=business;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";                 //google
-            //"server=31.31.196.233;database=u0573801_business.ru;uid=u0573_businessru;pwd=123abc123;charset=utf8;";    //reg.ru
+            "server=35.185.57.11;database=business.ru;uid=business;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";
         //ссылка на экземпляр себя
         public static DB _db = null;
         //создаю подключение
@@ -26,14 +26,18 @@ namespace Selen.Base {
         private readonly object _lock = new object();
         //конструктор по умолчанию - открывает соединение сразу
         public DB() {
-            OpenConnection();
-            //утанавливаю кодировку принудительно
-            var query = "SET NAMES utf8; " +
-                        "SET character_set_server=`utf8`;";
-            MySqlCommand command = new MySqlCommand(query, connection);
-            command.ExecuteNonQuery();
-            //сохраняю ссылку на себя
-            _db = this;
+            try {
+                OpenConnection();
+                //утанавливаю кодировку принудительно
+                var query = "SET NAMES utf8; " +
+                            "SET character_set_server=`utf8`;";
+                MySqlCommand command = new MySqlCommand(query, connection);
+                command.ExecuteNonQuery();
+                //сохраняю ссылку на себя
+                _db = this;
+            } catch (Exception x) {
+                Debug.WriteLine(x.Message);
+            }
         }
         //деструктор - закрывает соединение на всякий случай
         ~DB() {
@@ -69,7 +73,7 @@ namespace Selen.Base {
                     adapter.Fill(table);
                 }
             } catch (Exception x) {
-                Debug.WriteLine(x.Message);
+                Log.Add("mysql: ошибка обращения к базе данных! - " + x.Message);
             }
             return table;
         }
@@ -81,7 +85,7 @@ namespace Selen.Base {
                     OpenConnection();
                     result = command.ExecuteNonQuery();
                 } catch (Exception x) {
-                    Debug.WriteLine(x.Message);
+                    Log.Add("mysql: ошибка обращения к базе данных! - " + x.Message);
                 }
             }
             return result;
