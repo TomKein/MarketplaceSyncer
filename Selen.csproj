@@ -267,7 +267,7 @@
     </Compile>
     <Compile Include="Sites\AbstractSite.cs" />
     <Compile Include="Base\ClassRootObject.cs" />
-    <Compile Include="Sites\Autoru.cs" />
+    <Compile Include="Sites\AutoRu.cs" />
     <Compile Include="Sites\Avito.cs" />
     <Compile Include="Sites\AvtoPro.cs" />
     <Compile Include="Sites\Cdek.cs" />

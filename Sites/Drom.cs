@@ -65,7 +65,7 @@ namespace Selen.Sites {
                 _dr.Navigate("http://baza.drom.ru/personal/all/bulletins");
                 if (_dr.GetElementsCount("//div[@class='personal-box']") == 0) {//если элементов в левой панели нет
                     _dr.WriteToSelector("#sign", "rad.i.g@list.ru"); //ввод логина
-                    _dr.WriteToSelector("#password", "rad00239000"); //пароля
+                    _dr.WriteToSelector("#password", "d3xmxdrd"); //пароля
                     _dr.ButtonClick("#signbutton"); //жмем кнопку входа
                     while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
                         Thread.Sleep(30000);

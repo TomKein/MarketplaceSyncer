@@ -24,7 +24,7 @@ using WinSCP;
 
 namespace Selen {
     public partial class Form1 : Form {
-        string _version = "1.37.1";
+        string _version = "1.38.1";
         
         DB _db = new DB();
 
@@ -41,7 +41,7 @@ namespace Selen {
         Drom _drom = new Drom();
         AvtoPro _avtoPro = new AvtoPro();
         Avito _avito = new Avito();
-        //Autoru _autoru = new Autoru();
+        AutoRu _autoRu = new AutoRu();
 
         public IWebDriver tiu;
         public IWebDriver au;
@@ -199,7 +199,7 @@ namespace Selen {
                 await Task.Delay(30000);
                 button_cdek.PerformClick();
                 await Task.Delay(30000);
-                button_auto_get.PerformClick();
+                button_AutoRuStart.PerformClick();
                 await Task.Delay(30000);
                 buttonKupiprodai.PerformClick();
                 await Task.Delay(30000);
@@ -1180,10 +1180,38 @@ namespace Selen {
             }
         }
 
-        //===================//
-        // сканируем auto.ru //
-        //===================//
-        private async void button_auto_get_Click(object sender, EventArgs e) {
+        //=== AUTO.RU ===
+        private async void button_AutoRuStart_Click(object sender, EventArgs e) {
+            if (checkBox_AutoRuSyncEnable.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    Log.Add("auto.ru: начало выгрузки...");
+                    while (base_rescan_need) await Task.Delay(30000);
+                    _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+                    await _autoRu.AutoRuStartAsync(bus);
+                    Log.Add("auto.ru: выгрузка завершена!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    Log.Add("auto.ru: ошибка выгрузки! - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _autoRu?.Quit();
+                        await Task.Delay(180000);
+                        _autoRu = new AutoRu();
+                        button_AutoRuStart_Click(sender, e);
+                    }
+                }
+            }
+        }
+        //метод обработчик изменений количества добавляемых объявлений
+        private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
+            _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+        }
+        //старый метод синхронизации
+        private async void button_auto_get_Click_OLD(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             Log.Add("парсим авто.ру...");
             //откроем браузер
@@ -1403,7 +1431,7 @@ namespace Selen {
                         }
                         sc.Sort((x1, x2) => x2.sim.CompareTo(x1.sim));
 
-                        if (!checkBox_auto_chbox.Checked) {
+                        if (!checkBox_AutoRuSyncEnable.Checked) {
                             //обнуляем возвращаемое имя перед вызовом формы
                             BindedName = "";
                             //вызываем новое окно, в конструктор передаем имя объявления авито и маасив кандидатов
@@ -1536,7 +1564,7 @@ namespace Selen {
                 Log.Add("auto.ru:ошибка загрузки страницы!/n" + x.Message);
             }
 
-            if (checkBox_auto_chbox.Checked) {
+            if (checkBox_AutoRuSyncEnable.Checked) {
                 button_auto_add.PerformClick();
             }
             ChangeStatus(sender, ButtonStates.Active);
@@ -1604,7 +1632,7 @@ namespace Selen {
             try {
                 var newCount = 0;
                 for (int b = bus.Count - 1; b > -1; b--) {
-                    if (newCount >= numericUpDown_auto.Value) break;
+                    if (newCount >= numericUpDown_AutoRuAddCount.Value) break;
                     if (
                         bus[b].tiu.Contains("http") &&
                         !bus[b].auto.Contains("http") &&
@@ -2961,9 +2989,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
-        private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
-            nums_auto = numericUpDown_auto.Value;
-        }
+
         //указываем для какого автомобиля
         public async Task<string> SelectAutoAsync(int b) {
             var desc = bus[b].name.ToLowerInvariant() + " " + bus[b].description.ToLowerInvariant();
@@ -3365,7 +3391,7 @@ namespace Selen {
                         await Task.Delay(60000);
                         button_drom_get.PerformClick();
                         await Task.Delay(60000);
-                        button_auto_get.PerformClick();
+                        button_AutoRuStart.PerformClick();
                         await Task.Delay(60000);
                         buttonSatom.PerformClick();
                         await Task.Delay(60000);
@@ -3422,7 +3448,7 @@ namespace Selen {
                 button_vk_sync.Enabled &&
                 buttonKupiprodai.Enabled &&
                 button_avito_get.Enabled &&
-                button_auto_get.Enabled &&
+                button_AutoRuStart.Enabled &&
                 button_GdeGet.Enabled &&
                 button_cdek.Enabled &&
                 button_avto_pro.Enabled;
@@ -4459,12 +4485,12 @@ namespace Selen {
 
         //=== выгрузка avto.pro === 
         private async void button_avto_pro_Click(object sender, EventArgs e) {
-            if (checkBox_avto_pro_use.Checked) {
+            if (checkBox_AvtoProSyncEnable.Checked) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     Log.Add("avto.pro: начало выгрузки...");
                     while (base_rescan_need) await Task.Delay(30000);
-                    _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
+                    _avtoPro.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
                     await _avtoPro.AvtoProStartAsync(bus);
                     Log.Add("avto.pro: выгрузка завершена!");
 
@@ -4479,13 +4505,13 @@ namespace Selen {
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    Log.Add("AVTO.PRO: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);//TODO изменить регистр сообщения 
+                    Log.Add("avto.pro: ошибка выгрузки! - " + x.Message);//TODO изменить регистр сообщения 
                     if (x.Message.Contains("timed out") ||
                         x.Message.Contains("already closed") ||
                         x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) {
                         _avtoPro?.Quit();
-                        Thread.Sleep(180000);
+                        await Task.Delay(180000);
                         _avtoPro = new AvtoPro();
                         button_avto_pro_Click(sender, e);
                     }
@@ -4494,7 +4520,7 @@ namespace Selen {
         }
         private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
             try {
-                _avtoPro.AddCount = (int)numericUpDown_avto_pro_add.Value;
+                _avtoPro.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
             } catch (Exception x) {
                 Log.Add("avto.pro: ошибка установки количества добавляемых объявлений");
             }

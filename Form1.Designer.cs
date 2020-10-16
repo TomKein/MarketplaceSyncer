@@ -53,11 +53,11 @@ namespace Selen
             this.buttonTestPartners = new System.Windows.Forms.Button();
             this.timer2 = new System.Windows.Forms.Timer(this.components);
             this.label_Mem_Usage = new System.Windows.Forms.Label();
-            this.button_auto_get = new System.Windows.Forms.Button();
+            this.button_AutoRuStart = new System.Windows.Forms.Button();
             this.label_auto = new System.Windows.Forms.Label();
             this.button_auto_add = new System.Windows.Forms.Button();
-            this.numericUpDown_auto = new System.Windows.Forms.NumericUpDown();
-            this.checkBox_auto_chbox = new System.Windows.Forms.CheckBox();
+            this.numericUpDown_AutoRuAddCount = new System.Windows.Forms.NumericUpDown();
+            this.checkBox_AutoRuSyncEnable = new System.Windows.Forms.CheckBox();
             this.label_drom_toup = new System.Windows.Forms.Label();
             this.button_youla_get = new System.Windows.Forms.Button();
             this.label_youla = new System.Windows.Forms.Label();
@@ -101,16 +101,16 @@ namespace Selen
             this.label3 = new System.Windows.Forms.Label();
             this.numericUpDown_DromCheckPageCount = new System.Windows.Forms.NumericUpDown();
             this.button_ReadSetXml = new System.Windows.Forms.Button();
-            this.checkBox_avto_pro_use = new System.Windows.Forms.CheckBox();
+            this.checkBox_AvtoProSyncEnable = new System.Windows.Forms.CheckBox();
             this.button_avto_pro = new System.Windows.Forms.Button();
-            this.numericUpDown_avto_pro_add = new System.Windows.Forms.NumericUpDown();
+            this.numericUpDown_AvtoProAddCount = new System.Windows.Forms.NumericUpDown();
             this.checkBox_avito_use = new System.Windows.Forms.CheckBox();
             this.checkBox_IgnoreUrls = new System.Windows.Forms.CheckBox();
             this.button_SettingsFormOpen = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_dromAddCount)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_auto)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_youla)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvitoAddCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_LOG)).BeginInit();
@@ -121,7 +121,7 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DromCheckPageCount)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_add)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvtoProAddCount)).BeginInit();
             this.SuspendLayout();
             // 
             // button_drom_get
@@ -335,15 +335,15 @@ namespace Selen
             this.label_Mem_Usage.TabIndex = 62;
             this.label_Mem_Usage.Text = "Исп. памяти:";
             // 
-            // button_auto_get
+            // button_AutoRuStart
             // 
-            this.button_auto_get.Location = new System.Drawing.Point(13, 357);
-            this.button_auto_get.Name = "button_auto_get";
-            this.button_auto_get.Size = new System.Drawing.Size(107, 23);
-            this.button_auto_get.TabIndex = 6;
-            this.button_auto_get.Text = "Auto.ru старт";
-            this.button_auto_get.UseVisualStyleBackColor = true;
-            this.button_auto_get.Click += new System.EventHandler(this.button_auto_get_Click);
+            this.button_AutoRuStart.Location = new System.Drawing.Point(13, 357);
+            this.button_AutoRuStart.Name = "button_AutoRuStart";
+            this.button_AutoRuStart.Size = new System.Drawing.Size(107, 23);
+            this.button_AutoRuStart.TabIndex = 6;
+            this.button_AutoRuStart.Text = "Auto.ru старт";
+            this.button_AutoRuStart.UseVisualStyleBackColor = true;
+            this.button_AutoRuStart.Click += new System.EventHandler(this.button_AutoRuStart_Click);
             // 
             // label_auto
             // 
@@ -363,37 +363,37 @@ namespace Selen
             this.button_auto_add.UseVisualStyleBackColor = true;
             this.button_auto_add.Click += new System.EventHandler(this.AutoNewAddAsync);
             // 
-            // numericUpDown_auto
+            // numericUpDown_AutoRuAddCount
             // 
-            this.numericUpDown_auto.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_auto.Location = new System.Drawing.Point(124, 380);
-            this.numericUpDown_auto.Maximum = new decimal(new int[] {
+            this.numericUpDown_AutoRuAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.numericUpDown_AutoRuAddCount.Location = new System.Drawing.Point(124, 380);
+            this.numericUpDown_AutoRuAddCount.Maximum = new decimal(new int[] {
             20,
             0,
             0,
             0});
-            this.numericUpDown_auto.Name = "numericUpDown_auto";
-            this.numericUpDown_auto.Size = new System.Drawing.Size(43, 21);
-            this.numericUpDown_auto.TabIndex = 69;
-            this.numericUpDown_auto.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.numericUpDown_auto.Value = new decimal(new int[] {
+            this.numericUpDown_AutoRuAddCount.Name = "numericUpDown_AutoRuAddCount";
+            this.numericUpDown_AutoRuAddCount.Size = new System.Drawing.Size(43, 21);
+            this.numericUpDown_AutoRuAddCount.TabIndex = 69;
+            this.numericUpDown_AutoRuAddCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.numericUpDown_AutoRuAddCount.Value = new decimal(new int[] {
             1,
             0,
             0,
             0});
-            this.numericUpDown_auto.ValueChanged += new System.EventHandler(this.numericUpDown_auto_ValueChanged);
+            this.numericUpDown_AutoRuAddCount.ValueChanged += new System.EventHandler(this.numericUpDown_auto_ValueChanged);
             // 
-            // checkBox_auto_chbox
+            // checkBox_AutoRuSyncEnable
             // 
-            this.checkBox_auto_chbox.AutoSize = true;
-            this.checkBox_auto_chbox.Checked = true;
-            this.checkBox_auto_chbox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_auto_chbox.Location = new System.Drawing.Point(15, 403);
-            this.checkBox_auto_chbox.Name = "checkBox_auto_chbox";
-            this.checkBox_auto_chbox.Size = new System.Drawing.Size(49, 17);
-            this.checkBox_auto_chbox.TabIndex = 74;
-            this.checkBox_auto_chbox.Text = "авто";
-            this.checkBox_auto_chbox.UseVisualStyleBackColor = true;
+            this.checkBox_AutoRuSyncEnable.AutoSize = true;
+            this.checkBox_AutoRuSyncEnable.Checked = true;
+            this.checkBox_AutoRuSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_AutoRuSyncEnable.Location = new System.Drawing.Point(15, 403);
+            this.checkBox_AutoRuSyncEnable.Name = "checkBox_AutoRuSyncEnable";
+            this.checkBox_AutoRuSyncEnable.Size = new System.Drawing.Size(44, 17);
+            this.checkBox_AutoRuSyncEnable.TabIndex = 74;
+            this.checkBox_AutoRuSyncEnable.Text = "вкл";
+            this.checkBox_AutoRuSyncEnable.UseVisualStyleBackColor = true;
             // 
             // label_drom_toup
             // 
@@ -897,17 +897,17 @@ namespace Selen
             this.button_ReadSetXml.UseVisualStyleBackColor = true;
             this.button_ReadSetXml.Click += new System.EventHandler(this.button_ReadSetXmlClick);
             // 
-            // checkBox_avto_pro_use
+            // checkBox_AvtoProSyncEnable
             // 
-            this.checkBox_avto_pro_use.AutoSize = true;
-            this.checkBox_avto_pro_use.Checked = true;
-            this.checkBox_avto_pro_use.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_avto_pro_use.Location = new System.Drawing.Point(15, 117);
-            this.checkBox_avto_pro_use.Name = "checkBox_avto_pro_use";
-            this.checkBox_avto_pro_use.Size = new System.Drawing.Size(44, 17);
-            this.checkBox_avto_pro_use.TabIndex = 138;
-            this.checkBox_avto_pro_use.Text = "вкл";
-            this.checkBox_avto_pro_use.UseVisualStyleBackColor = true;
+            this.checkBox_AvtoProSyncEnable.AutoSize = true;
+            this.checkBox_AvtoProSyncEnable.Checked = true;
+            this.checkBox_AvtoProSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_AvtoProSyncEnable.Location = new System.Drawing.Point(15, 117);
+            this.checkBox_AvtoProSyncEnable.Name = "checkBox_AvtoProSyncEnable";
+            this.checkBox_AvtoProSyncEnable.Size = new System.Drawing.Size(44, 17);
+            this.checkBox_AvtoProSyncEnable.TabIndex = 138;
+            this.checkBox_AvtoProSyncEnable.Text = "вкл";
+            this.checkBox_AvtoProSyncEnable.UseVisualStyleBackColor = true;
             // 
             // button_avto_pro
             // 
@@ -919,25 +919,25 @@ namespace Selen
             this.button_avto_pro.UseVisualStyleBackColor = true;
             this.button_avto_pro.Click += new System.EventHandler(this.button_avto_pro_Click);
             // 
-            // numericUpDown_avto_pro_add
+            // numericUpDown_AvtoProAddCount
             // 
-            this.numericUpDown_avto_pro_add.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_avto_pro_add.Location = new System.Drawing.Point(126, 93);
-            this.numericUpDown_avto_pro_add.Maximum = new decimal(new int[] {
+            this.numericUpDown_AvtoProAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.numericUpDown_AvtoProAddCount.Location = new System.Drawing.Point(126, 93);
+            this.numericUpDown_AvtoProAddCount.Maximum = new decimal(new int[] {
             999,
             0,
             0,
             0});
-            this.numericUpDown_avto_pro_add.Name = "numericUpDown_avto_pro_add";
-            this.numericUpDown_avto_pro_add.Size = new System.Drawing.Size(43, 21);
-            this.numericUpDown_avto_pro_add.TabIndex = 140;
-            this.numericUpDown_avto_pro_add.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.numericUpDown_avto_pro_add.Value = new decimal(new int[] {
+            this.numericUpDown_AvtoProAddCount.Name = "numericUpDown_AvtoProAddCount";
+            this.numericUpDown_AvtoProAddCount.Size = new System.Drawing.Size(43, 21);
+            this.numericUpDown_AvtoProAddCount.TabIndex = 140;
+            this.numericUpDown_AvtoProAddCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.numericUpDown_AvtoProAddCount.Value = new decimal(new int[] {
             2,
             0,
             0,
             0});
-            this.numericUpDown_avto_pro_add.ValueChanged += new System.EventHandler(this.numericUpDown_avto_pro_add_ValueChanged);
+            this.numericUpDown_AvtoProAddCount.ValueChanged += new System.EventHandler(this.numericUpDown_avto_pro_add_ValueChanged);
             // 
             // checkBox_avito_use
             // 
@@ -981,9 +981,9 @@ namespace Selen
             this.ClientSize = new System.Drawing.Size(872, 731);
             this.Controls.Add(this.checkBox_IgnoreUrls);
             this.Controls.Add(this.checkBox_avito_use);
-            this.Controls.Add(this.numericUpDown_avto_pro_add);
+            this.Controls.Add(this.numericUpDown_AvtoProAddCount);
             this.Controls.Add(this.button_avto_pro);
-            this.Controls.Add(this.checkBox_avto_pro_use);
+            this.Controls.Add(this.checkBox_AvtoProSyncEnable);
             this.Controls.Add(this.button_ReadSetXml);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.numericUpDown_DromCheckPageCount);
@@ -1027,11 +1027,11 @@ namespace Selen
             this.Controls.Add(this.label_youla);
             this.Controls.Add(this.button_youla_get);
             this.Controls.Add(this.label_drom_toup);
-            this.Controls.Add(this.checkBox_auto_chbox);
-            this.Controls.Add(this.numericUpDown_auto);
+            this.Controls.Add(this.checkBox_AutoRuSyncEnable);
+            this.Controls.Add(this.numericUpDown_AutoRuAddCount);
             this.Controls.Add(this.button_auto_add);
             this.Controls.Add(this.label_auto);
-            this.Controls.Add(this.button_auto_get);
+            this.Controls.Add(this.button_AutoRuStart);
             this.Controls.Add(this.label_Mem_Usage);
             this.Controls.Add(this.buttonTestPartners);
             this.Controls.Add(this.numericUpDown_dromAddCount);
@@ -1059,7 +1059,7 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.ds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_dromAddCount)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_auto)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_youla)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvitoAddCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_LOG)).EndInit();
@@ -1070,7 +1070,7 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_DromCheckPageCount)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_avto_pro_add)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvtoProAddCount)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1101,11 +1101,11 @@ namespace Selen
         private System.Windows.Forms.Button buttonTestPartners;
         private System.Windows.Forms.Timer timer2;
         private System.Windows.Forms.Label label_Mem_Usage;
-        private System.Windows.Forms.Button button_auto_get;
+        private System.Windows.Forms.Button button_AutoRuStart;
         private System.Windows.Forms.Label label_auto;
         private System.Windows.Forms.Button button_auto_add;
-        private System.Windows.Forms.NumericUpDown numericUpDown_auto;
-        private System.Windows.Forms.CheckBox checkBox_auto_chbox;
+        private System.Windows.Forms.NumericUpDown numericUpDown_AutoRuAddCount;
+        private System.Windows.Forms.CheckBox checkBox_AutoRuSyncEnable;
         private System.Windows.Forms.Label label_drom_toup;
         private System.Windows.Forms.Button button_youla_get;
         private System.Windows.Forms.Label label_youla;
@@ -1149,9 +1149,9 @@ namespace Selen
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.NumericUpDown numericUpDown_DromCheckPageCount;
         private System.Windows.Forms.Button button_ReadSetXml;
-        private System.Windows.Forms.CheckBox checkBox_avto_pro_use;
+        private System.Windows.Forms.CheckBox checkBox_AvtoProSyncEnable;
         private System.Windows.Forms.Button button_avto_pro;
-        private System.Windows.Forms.NumericUpDown numericUpDown_avto_pro_add;
+        private System.Windows.Forms.NumericUpDown numericUpDown_AvtoProAddCount;
         private System.Windows.Forms.CheckBox checkBox_avito_use;
         private System.Windows.Forms.CheckBox checkBox_IgnoreUrls;
         private System.Windows.Forms.Button button_SettingsFormOpen;
