@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using OpenPop.Mime;
@@ -14,7 +13,7 @@ namespace Selen
 
         public string GetPass()
         {
-            Thread.Sleep(120000);
+            Thread.Sleep(60000);
             List<Message> list = new List<Message>();
             if (!_pop3.Connected)
             {
@@ -26,7 +25,6 @@ namespace Selen
             {
                 Message message = _pop3.GetMessage(i);
                 var texts = message.FindAllTextVersions();
-
                 foreach (var text in texts)
                 {
                     var t = text.GetBodyAsText();
@@ -36,8 +34,6 @@ namespace Selen
                         return t;
                     }
                 }
-                
-                
             }
             return null;
         }

@@ -149,7 +149,8 @@ namespace Selen.Sites {
                             File.WriteAllBytes("cdek_" + u + ".jpg", bts);
                             flag = true;
                         }
-                        catch (Exception ex) {
+                        catch (Exception x) {
+                            Log.Add("cdek.market: ошибка загрузки фото! - " + x.Message);
                             flag = false;
                             Thread.Sleep(5000);
                         }
@@ -160,7 +161,7 @@ namespace Selen.Sites {
                 }
             }
             catch (Exception e) {
-                Debug.WriteLine("SetCdekImages: ошибка \n" + e.Message);
+                Debug.WriteLine("cdek.market: ошибка добавления фото! - " + e.Message);
             }
             cl.Dispose();
             Thread.Sleep(5000);

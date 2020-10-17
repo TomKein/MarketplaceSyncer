@@ -55,7 +55,6 @@ namespace Selen
             this.label_Mem_Usage = new System.Windows.Forms.Label();
             this.button_AutoRuStart = new System.Windows.Forms.Button();
             this.label_auto = new System.Windows.Forms.Label();
-            this.button_auto_add = new System.Windows.Forms.Button();
             this.numericUpDown_AutoRuAddCount = new System.Windows.Forms.NumericUpDown();
             this.checkBox_AutoRuSyncEnable = new System.Windows.Forms.CheckBox();
             this.label_drom_toup = new System.Windows.Forms.Label();
@@ -70,7 +69,6 @@ namespace Selen
             this.label1 = new System.Windows.Forms.Label();
             this.checkBox_WriteLog = new System.Windows.Forms.CheckBox();
             this.checkBox_liteSync = new System.Windows.Forms.CheckBox();
-            this.button_getHelp = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.button_autoCheck = new System.Windows.Forms.Button();
@@ -126,7 +124,7 @@ namespace Selen
             // 
             // button_drom_get
             // 
-            this.button_drom_get.Location = new System.Drawing.Point(13, 226);
+            this.button_drom_get.Location = new System.Drawing.Point(13, 218);
             this.button_drom_get.Name = "button_drom_get";
             this.button_drom_get.Size = new System.Drawing.Size(108, 23);
             this.button_drom_get.TabIndex = 4;
@@ -136,9 +134,9 @@ namespace Selen
             // 
             // button_base_get
             // 
-            this.button_base_get.Location = new System.Drawing.Point(13, 6);
+            this.button_base_get.Location = new System.Drawing.Point(13, 31);
             this.button_base_get.Name = "button_base_get";
-            this.button_base_get.Size = new System.Drawing.Size(108, 21);
+            this.button_base_get.Size = new System.Drawing.Size(113, 21);
             this.button_base_get.TabIndex = 1;
             this.button_base_get.Text = "Старт";
             this.button_base_get.UseVisualStyleBackColor = true;
@@ -146,7 +144,7 @@ namespace Selen
             // 
             // button_avito_get
             // 
-            this.button_avito_get.Location = new System.Drawing.Point(13, 139);
+            this.button_avito_get.Location = new System.Drawing.Point(13, 135);
             this.button_avito_get.Name = "button_avito_get";
             this.button_avito_get.Size = new System.Drawing.Size(108, 25);
             this.button_avito_get.TabIndex = 3;
@@ -159,10 +157,10 @@ namespace Selen
             this.logBox.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.logBox.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.logBox.ForeColor = System.Drawing.Color.LightYellow;
-            this.logBox.Location = new System.Drawing.Point(299, 6);
+            this.logBox.Location = new System.Drawing.Point(265, 6);
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(564, 637);
+            this.logBox.Size = new System.Drawing.Size(598, 637);
             this.logBox.TabIndex = 16;
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
@@ -179,7 +177,7 @@ namespace Selen
             // 
             // button_vk_sync
             // 
-            this.button_vk_sync.Location = new System.Drawing.Point(13, 419);
+            this.button_vk_sync.Location = new System.Drawing.Point(13, 391);
             this.button_vk_sync.Name = "button_vk_sync";
             this.button_vk_sync.Size = new System.Drawing.Size(107, 23);
             this.button_vk_sync.TabIndex = 7;
@@ -189,7 +187,7 @@ namespace Selen
             // 
             // button_tiu_sync
             // 
-            this.button_tiu_sync.Location = new System.Drawing.Point(13, 62);
+            this.button_tiu_sync.Location = new System.Drawing.Point(13, 57);
             this.button_tiu_sync.Name = "button_tiu_sync";
             this.button_tiu_sync.Size = new System.Drawing.Size(108, 23);
             this.button_tiu_sync.TabIndex = 2;
@@ -206,7 +204,7 @@ namespace Selen
             this.checkBox_sync.AutoSize = true;
             this.checkBox_sync.Checked = true;
             this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sync.Location = new System.Drawing.Point(15, 679);
+            this.checkBox_sync.Location = new System.Drawing.Point(15, 675);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
             this.checkBox_sync.TabIndex = 35;
@@ -216,7 +214,7 @@ namespace Selen
             // label_bus
             // 
             this.label_bus.AutoSize = true;
-            this.label_bus.Location = new System.Drawing.Point(127, 9);
+            this.label_bus.Location = new System.Drawing.Point(127, 34);
             this.label_bus.Name = "label_bus";
             this.label_bus.Size = new System.Drawing.Size(132, 13);
             this.label_bus.TabIndex = 36;
@@ -225,7 +223,7 @@ namespace Selen
             // label_tiu
             // 
             this.label_tiu.AutoSize = true;
-            this.label_tiu.Location = new System.Drawing.Point(127, 67);
+            this.label_tiu.Location = new System.Drawing.Point(127, 62);
             this.label_tiu.Name = "label_tiu";
             this.label_tiu.Size = new System.Drawing.Size(10, 13);
             this.label_tiu.TabIndex = 37;
@@ -234,7 +232,7 @@ namespace Selen
             // label_vk
             // 
             this.label_vk.AutoSize = true;
-            this.label_vk.Location = new System.Drawing.Point(173, 424);
+            this.label_vk.Location = new System.Drawing.Point(173, 396);
             this.label_vk.Name = "label_vk";
             this.label_vk.Size = new System.Drawing.Size(10, 13);
             this.label_vk.TabIndex = 38;
@@ -256,7 +254,7 @@ namespace Selen
             this.checkBox_busPhotosUpload.AutoSize = true;
             this.checkBox_busPhotosUpload.Checked = true;
             this.checkBox_busPhotosUpload.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_busPhotosUpload.Location = new System.Drawing.Point(15, 28);
+            this.checkBox_busPhotosUpload.Location = new System.Drawing.Point(15, 641);
             this.checkBox_busPhotosUpload.Name = "checkBox_busPhotosUpload";
             this.checkBox_busPhotosUpload.Size = new System.Drawing.Size(130, 17);
             this.checkBox_busPhotosUpload.TabIndex = 51;
@@ -265,7 +263,7 @@ namespace Selen
             // 
             // button_drom_add_new
             // 
-            this.button_drom_add_new.Location = new System.Drawing.Point(13, 248);
+            this.button_drom_add_new.Location = new System.Drawing.Point(13, 240);
             this.button_drom_add_new.Name = "button_drom_add_new";
             this.button_drom_add_new.Size = new System.Drawing.Size(108, 23);
             this.button_drom_add_new.TabIndex = 56;
@@ -276,7 +274,7 @@ namespace Selen
             // label_drom
             // 
             this.label_drom.AutoSize = true;
-            this.label_drom.Location = new System.Drawing.Point(125, 231);
+            this.label_drom.Location = new System.Drawing.Point(125, 223);
             this.label_drom.Name = "label_drom";
             this.label_drom.Size = new System.Drawing.Size(0, 13);
             this.label_drom.TabIndex = 58;
@@ -294,7 +292,7 @@ namespace Selen
             // numericUpDown_dromAddCount
             // 
             this.numericUpDown_dromAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_dromAddCount.Location = new System.Drawing.Point(125, 249);
+            this.numericUpDown_dromAddCount.Location = new System.Drawing.Point(125, 241);
             this.numericUpDown_dromAddCount.Maximum = new decimal(new int[] {
             49,
             0,
@@ -329,7 +327,7 @@ namespace Selen
             // label_Mem_Usage
             // 
             this.label_Mem_Usage.AutoSize = true;
-            this.label_Mem_Usage.Location = new System.Drawing.Point(154, 714);
+            this.label_Mem_Usage.Location = new System.Drawing.Point(154, 710);
             this.label_Mem_Usage.Name = "label_Mem_Usage";
             this.label_Mem_Usage.Size = new System.Drawing.Size(73, 13);
             this.label_Mem_Usage.TabIndex = 62;
@@ -337,7 +335,7 @@ namespace Selen
             // 
             // button_AutoRuStart
             // 
-            this.button_AutoRuStart.Location = new System.Drawing.Point(13, 357);
+            this.button_AutoRuStart.Location = new System.Drawing.Point(13, 349);
             this.button_AutoRuStart.Name = "button_AutoRuStart";
             this.button_AutoRuStart.Size = new System.Drawing.Size(107, 23);
             this.button_AutoRuStart.TabIndex = 6;
@@ -348,25 +346,15 @@ namespace Selen
             // label_auto
             // 
             this.label_auto.AutoSize = true;
-            this.label_auto.Location = new System.Drawing.Point(123, 360);
+            this.label_auto.Location = new System.Drawing.Point(123, 352);
             this.label_auto.Name = "label_auto";
             this.label_auto.Size = new System.Drawing.Size(0, 13);
             this.label_auto.TabIndex = 66;
             // 
-            // button_auto_add
-            // 
-            this.button_auto_add.Location = new System.Drawing.Point(13, 379);
-            this.button_auto_add.Name = "button_auto_add";
-            this.button_auto_add.Size = new System.Drawing.Size(107, 23);
-            this.button_auto_add.TabIndex = 68;
-            this.button_auto_add.Text = "Добавить";
-            this.button_auto_add.UseVisualStyleBackColor = true;
-            this.button_auto_add.Click += new System.EventHandler(this.AutoNewAddAsync);
-            // 
             // numericUpDown_AutoRuAddCount
             // 
             this.numericUpDown_AutoRuAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_AutoRuAddCount.Location = new System.Drawing.Point(124, 380);
+            this.numericUpDown_AutoRuAddCount.Location = new System.Drawing.Point(124, 350);
             this.numericUpDown_AutoRuAddCount.Maximum = new decimal(new int[] {
             20,
             0,
@@ -388,7 +376,7 @@ namespace Selen
             this.checkBox_AutoRuSyncEnable.AutoSize = true;
             this.checkBox_AutoRuSyncEnable.Checked = true;
             this.checkBox_AutoRuSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_AutoRuSyncEnable.Location = new System.Drawing.Point(15, 403);
+            this.checkBox_AutoRuSyncEnable.Location = new System.Drawing.Point(15, 373);
             this.checkBox_AutoRuSyncEnable.Name = "checkBox_AutoRuSyncEnable";
             this.checkBox_AutoRuSyncEnable.Size = new System.Drawing.Size(44, 17);
             this.checkBox_AutoRuSyncEnable.TabIndex = 74;
@@ -398,7 +386,7 @@ namespace Selen
             // label_drom_toup
             // 
             this.label_drom_toup.AutoSize = true;
-            this.label_drom_toup.Location = new System.Drawing.Point(125, 253);
+            this.label_drom_toup.Location = new System.Drawing.Point(125, 245);
             this.label_drom_toup.Name = "label_drom_toup";
             this.label_drom_toup.Size = new System.Drawing.Size(0, 13);
             this.label_drom_toup.TabIndex = 77;
@@ -406,7 +394,7 @@ namespace Selen
             // button_youla_get
             // 
             this.button_youla_get.Enabled = false;
-            this.button_youla_get.Location = new System.Drawing.Point(13, 582);
+            this.button_youla_get.Location = new System.Drawing.Point(13, 552);
             this.button_youla_get.Name = "button_youla_get";
             this.button_youla_get.Size = new System.Drawing.Size(108, 23);
             this.button_youla_get.TabIndex = 84;
@@ -417,7 +405,7 @@ namespace Selen
             // 
             this.label_youla.AutoSize = true;
             this.label_youla.Enabled = false;
-            this.label_youla.Location = new System.Drawing.Point(126, 587);
+            this.label_youla.Location = new System.Drawing.Point(126, 557);
             this.label_youla.Name = "label_youla";
             this.label_youla.Size = new System.Drawing.Size(0, 13);
             this.label_youla.TabIndex = 85;
@@ -425,7 +413,7 @@ namespace Selen
             // button_youla_add
             // 
             this.button_youla_add.Enabled = false;
-            this.button_youla_add.Location = new System.Drawing.Point(13, 625);
+            this.button_youla_add.Location = new System.Drawing.Point(13, 595);
             this.button_youla_add.Name = "button_youla_add";
             this.button_youla_add.Size = new System.Drawing.Size(108, 21);
             this.button_youla_add.TabIndex = 86;
@@ -436,7 +424,7 @@ namespace Selen
             // 
             this.numericUpDown_youla.Enabled = false;
             this.numericUpDown_youla.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_youla.Location = new System.Drawing.Point(125, 625);
+            this.numericUpDown_youla.Location = new System.Drawing.Point(125, 595);
             this.numericUpDown_youla.Maximum = new decimal(new int[] {
             1000,
             0,
@@ -450,7 +438,7 @@ namespace Selen
             // button_youla_put
             // 
             this.button_youla_put.Enabled = false;
-            this.button_youla_put.Location = new System.Drawing.Point(13, 604);
+            this.button_youla_put.Location = new System.Drawing.Point(13, 574);
             this.button_youla_put.Name = "button_youla_put";
             this.button_youla_put.Size = new System.Drawing.Size(108, 22);
             this.button_youla_put.TabIndex = 88;
@@ -459,7 +447,7 @@ namespace Selen
             // 
             // button_avito_add
             // 
-            this.button_avito_add.Location = new System.Drawing.Point(13, 165);
+            this.button_avito_add.Location = new System.Drawing.Point(13, 160);
             this.button_avito_add.Name = "button_avito_add";
             this.button_avito_add.Size = new System.Drawing.Size(108, 22);
             this.button_avito_add.TabIndex = 89;
@@ -470,7 +458,7 @@ namespace Selen
             // numericUpDown_AvitoAddCount
             // 
             this.numericUpDown_AvitoAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_AvitoAddCount.Location = new System.Drawing.Point(124, 165);
+            this.numericUpDown_AvitoAddCount.Location = new System.Drawing.Point(124, 160);
             this.numericUpDown_AvitoAddCount.Name = "numericUpDown_AvitoAddCount";
             this.numericUpDown_AvitoAddCount.Size = new System.Drawing.Size(45, 21);
             this.numericUpDown_AvitoAddCount.TabIndex = 90;
@@ -532,27 +520,17 @@ namespace Selen
             this.checkBox_liteSync.AutoSize = true;
             this.checkBox_liteSync.Checked = true;
             this.checkBox_liteSync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_liteSync.Location = new System.Drawing.Point(15, 696);
+            this.checkBox_liteSync.Location = new System.Drawing.Point(15, 692);
             this.checkBox_liteSync.Name = "checkBox_liteSync";
-            this.checkBox_liteSync.Size = new System.Drawing.Size(100, 17);
+            this.checkBox_liteSync.Size = new System.Drawing.Size(174, 17);
             this.checkBox_liteSync.TabIndex = 95;
-            this.checkBox_liteSync.Text = "легкий рескан";
+            this.checkBox_liteSync.Text = "использовать легкий рескан";
             this.checkBox_liteSync.UseVisualStyleBackColor = true;
-            // 
-            // button_getHelp
-            // 
-            this.button_getHelp.Location = new System.Drawing.Point(635, 674);
-            this.button_getHelp.Name = "button_getHelp";
-            this.button_getHelp.Size = new System.Drawing.Size(75, 23);
-            this.button_getHelp.TabIndex = 96;
-            this.button_getHelp.Text = "get help";
-            this.button_getHelp.UseVisualStyleBackColor = true;
-            this.button_getHelp.Click += new System.EventHandler(this.button_getHelp_Click);
             // 
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(11, 658);
+            this.label2.Location = new System.Drawing.Point(127, 9);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(116, 13);
             this.label2.TabIndex = 98;
@@ -563,21 +541,21 @@ namespace Selen
             this.dateTimePicker1.CalendarForeColor = System.Drawing.Color.Red;
             this.dateTimePicker1.CustomFormat = "dd/MM/yyyy HH:mm";
             this.dateTimePicker1.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dateTimePicker1.Location = new System.Drawing.Point(124, 654);
+            this.dateTimePicker1.Location = new System.Drawing.Point(13, 6);
             this.dateTimePicker1.MaxDate = new System.DateTime(2099, 12, 31, 0, 0, 0, 0);
             this.dateTimePicker1.MinDate = new System.DateTime(2017, 1, 1, 0, 0, 0, 0);
             this.dateTimePicker1.Name = "dateTimePicker1";
             this.dateTimePicker1.ShowUpDown = true;
-            this.dateTimePicker1.Size = new System.Drawing.Size(120, 20);
+            this.dateTimePicker1.Size = new System.Drawing.Size(113, 20);
             this.dateTimePicker1.TabIndex = 99;
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
             this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
             // 
             // button_autoCheck
             // 
-            this.button_autoCheck.Location = new System.Drawing.Point(472, 700);
+            this.button_autoCheck.Location = new System.Drawing.Point(634, 675);
             this.button_autoCheck.Name = "button_autoCheck";
-            this.button_autoCheck.Size = new System.Drawing.Size(75, 23);
+            this.button_autoCheck.Size = new System.Drawing.Size(76, 23);
             this.button_autoCheck.TabIndex = 101;
             this.button_autoCheck.Text = "auto check";
             this.button_autoCheck.UseVisualStyleBackColor = true;
@@ -586,7 +564,7 @@ namespace Selen
             // buttonSatom
             // 
             this.buttonSatom.Enabled = false;
-            this.buttonSatom.Location = new System.Drawing.Point(13, 557);
+            this.buttonSatom.Location = new System.Drawing.Point(13, 527);
             this.buttonSatom.Name = "buttonSatom";
             this.buttonSatom.Size = new System.Drawing.Size(108, 23);
             this.buttonSatom.TabIndex = 10;
@@ -598,7 +576,7 @@ namespace Selen
             // 
             this.labelKS.AutoSize = true;
             this.labelKS.Enabled = false;
-            this.labelKS.Location = new System.Drawing.Point(124, 562);
+            this.labelKS.Location = new System.Drawing.Point(124, 532);
             this.labelKS.Name = "labelKS";
             this.labelKS.Size = new System.Drawing.Size(80, 13);
             this.labelKS.TabIndex = 104;
@@ -628,7 +606,7 @@ namespace Selen
             // 
             // buttonKupiprodai
             // 
-            this.buttonKupiprodai.Location = new System.Drawing.Point(13, 307);
+            this.buttonKupiprodai.Location = new System.Drawing.Point(13, 299);
             this.buttonKupiprodai.Name = "buttonKupiprodai";
             this.buttonKupiprodai.Size = new System.Drawing.Size(107, 23);
             this.buttonKupiprodai.TabIndex = 5;
@@ -638,7 +616,7 @@ namespace Selen
             // 
             // buttonKupiprodaiAdd
             // 
-            this.buttonKupiprodaiAdd.Location = new System.Drawing.Point(13, 329);
+            this.buttonKupiprodaiAdd.Location = new System.Drawing.Point(13, 321);
             this.buttonKupiprodaiAdd.Name = "buttonKupiprodaiAdd";
             this.buttonKupiprodaiAdd.Size = new System.Drawing.Size(107, 23);
             this.buttonKupiprodaiAdd.TabIndex = 112;
@@ -649,7 +627,7 @@ namespace Selen
             // numericUpDownKupiprodaiAdd
             // 
             this.numericUpDownKupiprodaiAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDownKupiprodaiAdd.Location = new System.Drawing.Point(124, 330);
+            this.numericUpDownKupiprodaiAdd.Location = new System.Drawing.Point(124, 322);
             this.numericUpDownKupiprodaiAdd.Name = "numericUpDownKupiprodaiAdd";
             this.numericUpDownKupiprodaiAdd.Size = new System.Drawing.Size(43, 21);
             this.numericUpDownKupiprodaiAdd.TabIndex = 113;
@@ -663,7 +641,7 @@ namespace Selen
             // labelKP
             // 
             this.labelKP.AutoSize = true;
-            this.labelKP.Location = new System.Drawing.Point(123, 312);
+            this.labelKP.Location = new System.Drawing.Point(123, 304);
             this.labelKP.Name = "labelKP";
             this.labelKP.Size = new System.Drawing.Size(0, 13);
             this.labelKP.TabIndex = 114;
@@ -680,7 +658,7 @@ namespace Selen
             // 
             // button_GdeGet
             // 
-            this.button_GdeGet.Location = new System.Drawing.Point(13, 453);
+            this.button_GdeGet.Location = new System.Drawing.Point(13, 420);
             this.button_GdeGet.Name = "button_GdeGet";
             this.button_GdeGet.Size = new System.Drawing.Size(107, 23);
             this.button_GdeGet.TabIndex = 9;
@@ -690,7 +668,7 @@ namespace Selen
             // 
             // button_GdeAdd
             // 
-            this.button_GdeAdd.Location = new System.Drawing.Point(13, 475);
+            this.button_GdeAdd.Location = new System.Drawing.Point(13, 442);
             this.button_GdeAdd.Name = "button_GdeAdd";
             this.button_GdeAdd.Size = new System.Drawing.Size(107, 23);
             this.button_GdeAdd.TabIndex = 117;
@@ -701,7 +679,7 @@ namespace Selen
             // labelGde
             // 
             this.labelGde.AutoSize = true;
-            this.labelGde.Location = new System.Drawing.Point(125, 458);
+            this.labelGde.Location = new System.Drawing.Point(125, 425);
             this.labelGde.Name = "labelGde";
             this.labelGde.Size = new System.Drawing.Size(0, 13);
             this.labelGde.TabIndex = 118;
@@ -709,7 +687,7 @@ namespace Selen
             // numericUpDownGde
             // 
             this.numericUpDownGde.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDownGde.Location = new System.Drawing.Point(124, 476);
+            this.numericUpDownGde.Location = new System.Drawing.Point(124, 443);
             this.numericUpDownGde.Name = "numericUpDownGde";
             this.numericUpDownGde.Size = new System.Drawing.Size(43, 21);
             this.numericUpDownGde.TabIndex = 119;
@@ -722,7 +700,7 @@ namespace Selen
             // 
             // button_cdek
             // 
-            this.button_cdek.Location = new System.Drawing.Point(13, 505);
+            this.button_cdek.Location = new System.Drawing.Point(13, 472);
             this.button_cdek.Name = "button_cdek";
             this.button_cdek.Size = new System.Drawing.Size(107, 23);
             this.button_cdek.TabIndex = 8;
@@ -733,7 +711,7 @@ namespace Selen
             // label_cdek
             // 
             this.label_cdek.AutoSize = true;
-            this.label_cdek.Location = new System.Drawing.Point(173, 510);
+            this.label_cdek.Location = new System.Drawing.Point(173, 477);
             this.label_cdek.Name = "label_cdek";
             this.label_cdek.Size = new System.Drawing.Size(10, 13);
             this.label_cdek.TabIndex = 122;
@@ -752,7 +730,7 @@ namespace Selen
             // numericUpDown_vkAdd
             // 
             this.numericUpDown_vkAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_vkAdd.Location = new System.Drawing.Point(124, 420);
+            this.numericUpDown_vkAdd.Location = new System.Drawing.Point(124, 392);
             this.numericUpDown_vkAdd.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -763,7 +741,7 @@ namespace Selen
             this.numericUpDown_vkAdd.TabIndex = 124;
             this.numericUpDown_vkAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_vkAdd.Value = new decimal(new int[] {
-            5,
+            10,
             0,
             0,
             0});
@@ -774,7 +752,7 @@ namespace Selen
             this.checkBoxCdekSyncActive.AutoSize = true;
             this.checkBoxCdekSyncActive.Checked = true;
             this.checkBoxCdekSyncActive.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxCdekSyncActive.Location = new System.Drawing.Point(15, 532);
+            this.checkBoxCdekSyncActive.Location = new System.Drawing.Point(15, 499);
             this.checkBoxCdekSyncActive.Name = "checkBoxCdekSyncActive";
             this.checkBoxCdekSyncActive.Size = new System.Drawing.Size(44, 17);
             this.checkBoxCdekSyncActive.TabIndex = 125;
@@ -784,7 +762,7 @@ namespace Selen
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(57, 191);
+            this.label4.Location = new System.Drawing.Point(57, 186);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(65, 13);
             this.label4.TabIndex = 127;
@@ -793,7 +771,7 @@ namespace Selen
             // numericUpDown_AvitoToUpCount
             // 
             this.numericUpDown_AvitoToUpCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_AvitoToUpCount.Location = new System.Drawing.Point(124, 188);
+            this.numericUpDown_AvitoToUpCount.Location = new System.Drawing.Point(124, 183);
             this.numericUpDown_AvitoToUpCount.Name = "numericUpDown_AvitoToUpCount";
             this.numericUpDown_AvitoToUpCount.Size = new System.Drawing.Size(45, 21);
             this.numericUpDown_AvitoToUpCount.TabIndex = 128;
@@ -808,7 +786,7 @@ namespace Selen
             // numericUpDown_СdekCheckUrls
             // 
             this.numericUpDown_СdekCheckUrls.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_СdekCheckUrls.Location = new System.Drawing.Point(124, 529);
+            this.numericUpDown_СdekCheckUrls.Location = new System.Drawing.Point(124, 496);
             this.numericUpDown_СdekCheckUrls.Maximum = new decimal(new int[] {
             200,
             0,
@@ -827,7 +805,7 @@ namespace Selen
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(76, 533);
+            this.label6.Location = new System.Drawing.Point(76, 500);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(44, 13);
             this.label6.TabIndex = 132;
@@ -836,7 +814,7 @@ namespace Selen
             // numericUpDown_CdekAddNewCount
             // 
             this.numericUpDown_CdekAddNewCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_CdekAddNewCount.Location = new System.Drawing.Point(124, 506);
+            this.numericUpDown_CdekAddNewCount.Location = new System.Drawing.Point(124, 473);
             this.numericUpDown_CdekAddNewCount.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -857,7 +835,7 @@ namespace Selen
             this.checkBox_BusSave.AutoSize = true;
             this.checkBox_BusSave.Checked = true;
             this.checkBox_BusSave.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_BusSave.Location = new System.Drawing.Point(15, 45);
+            this.checkBox_BusSave.Location = new System.Drawing.Point(15, 658);
             this.checkBox_BusSave.Name = "checkBox_BusSave";
             this.checkBox_BusSave.Size = new System.Drawing.Size(155, 17);
             this.checkBox_BusSave.TabIndex = 134;
@@ -867,7 +845,7 @@ namespace Selen
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(16, 274);
+            this.label3.Location = new System.Drawing.Point(16, 266);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(107, 13);
             this.label3.TabIndex = 136;
@@ -876,7 +854,7 @@ namespace Selen
             // numericUpDown_DromCheckPageCount
             // 
             this.numericUpDown_DromCheckPageCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_DromCheckPageCount.Location = new System.Drawing.Point(125, 271);
+            this.numericUpDown_DromCheckPageCount.Location = new System.Drawing.Point(125, 263);
             this.numericUpDown_DromCheckPageCount.Name = "numericUpDown_DromCheckPageCount";
             this.numericUpDown_DromCheckPageCount.Size = new System.Drawing.Size(43, 21);
             this.numericUpDown_DromCheckPageCount.TabIndex = 135;
@@ -902,7 +880,7 @@ namespace Selen
             this.checkBox_AvtoProSyncEnable.AutoSize = true;
             this.checkBox_AvtoProSyncEnable.Checked = true;
             this.checkBox_AvtoProSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_AvtoProSyncEnable.Location = new System.Drawing.Point(15, 117);
+            this.checkBox_AvtoProSyncEnable.Location = new System.Drawing.Point(15, 112);
             this.checkBox_AvtoProSyncEnable.Name = "checkBox_AvtoProSyncEnable";
             this.checkBox_AvtoProSyncEnable.Size = new System.Drawing.Size(44, 17);
             this.checkBox_AvtoProSyncEnable.TabIndex = 138;
@@ -911,7 +889,7 @@ namespace Selen
             // 
             // button_avto_pro
             // 
-            this.button_avto_pro.Location = new System.Drawing.Point(13, 92);
+            this.button_avto_pro.Location = new System.Drawing.Point(13, 87);
             this.button_avto_pro.Name = "button_avto_pro";
             this.button_avto_pro.Size = new System.Drawing.Size(108, 23);
             this.button_avto_pro.TabIndex = 139;
@@ -922,7 +900,7 @@ namespace Selen
             // numericUpDown_AvtoProAddCount
             // 
             this.numericUpDown_AvtoProAddCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_AvtoProAddCount.Location = new System.Drawing.Point(126, 93);
+            this.numericUpDown_AvtoProAddCount.Location = new System.Drawing.Point(126, 88);
             this.numericUpDown_AvtoProAddCount.Maximum = new decimal(new int[] {
             999,
             0,
@@ -944,7 +922,7 @@ namespace Selen
             this.checkBox_avito_use.AutoSize = true;
             this.checkBox_avito_use.Checked = true;
             this.checkBox_avito_use.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_avito_use.Location = new System.Drawing.Point(15, 190);
+            this.checkBox_avito_use.Location = new System.Drawing.Point(15, 185);
             this.checkBox_avito_use.Name = "checkBox_avito_use";
             this.checkBox_avito_use.Size = new System.Drawing.Size(44, 17);
             this.checkBox_avito_use.TabIndex = 143;
@@ -956,7 +934,7 @@ namespace Selen
             this.checkBox_IgnoreUrls.AutoSize = true;
             this.checkBox_IgnoreUrls.Checked = true;
             this.checkBox_IgnoreUrls.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_IgnoreUrls.Location = new System.Drawing.Point(15, 713);
+            this.checkBox_IgnoreUrls.Location = new System.Drawing.Point(15, 709);
             this.checkBox_IgnoreUrls.Name = "checkBox_IgnoreUrls";
             this.checkBox_IgnoreUrls.Size = new System.Drawing.Size(137, 17);
             this.checkBox_IgnoreUrls.TabIndex = 144;
@@ -1014,7 +992,6 @@ namespace Selen
             this.Controls.Add(this.button_autoCheck);
             this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.button_getHelp);
             this.Controls.Add(this.checkBox_liteSync);
             this.Controls.Add(this.checkBox_WriteLog);
             this.Controls.Add(this.label1);
@@ -1029,7 +1006,6 @@ namespace Selen
             this.Controls.Add(this.label_drom_toup);
             this.Controls.Add(this.checkBox_AutoRuSyncEnable);
             this.Controls.Add(this.numericUpDown_AutoRuAddCount);
-            this.Controls.Add(this.button_auto_add);
             this.Controls.Add(this.label_auto);
             this.Controls.Add(this.button_AutoRuStart);
             this.Controls.Add(this.label_Mem_Usage);
@@ -1103,7 +1079,6 @@ namespace Selen
         private System.Windows.Forms.Label label_Mem_Usage;
         private System.Windows.Forms.Button button_AutoRuStart;
         private System.Windows.Forms.Label label_auto;
-        private System.Windows.Forms.Button button_auto_add;
         private System.Windows.Forms.NumericUpDown numericUpDown_AutoRuAddCount;
         private System.Windows.Forms.CheckBox checkBox_AutoRuSyncEnable;
         private System.Windows.Forms.Label label_drom_toup;
@@ -1118,7 +1093,6 @@ namespace Selen
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.CheckBox checkBox_WriteLog;
         private System.Windows.Forms.CheckBox checkBox_liteSync;
-        private System.Windows.Forms.Button button_getHelp;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
         private System.Windows.Forms.Button button_autoCheck;
