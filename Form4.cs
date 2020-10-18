@@ -42,7 +42,7 @@ namespace Selen
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Form1 main = this.Owner as Form1;
+            FormMain main = this.Owner as FormMain;
             main.bus[main._i].name = textBox1.Text;
             //main.bus[main._i].price = Convert.ToInt32(textBox_Price.Text);
             main.bus[main._i].description = richTextBox1.Text;
@@ -58,7 +58,7 @@ namespace Selen
 
         private void Form4_Shown(object sender, EventArgs e)
         {
-            Form1 main = this.Owner as Form1;
+            FormMain main = this.Owner as FormMain;
             textBox1.Text = main.bus[main._i].name;
             textBox_Price.Text = main.bus[main._i].price.ToString();
             richTextBox1.Text = main.bus[main._i].description;

@@ -300,6 +300,84 @@ namespace Selen.Sites {
         //парсинг и проверка объявлений
         private async Task CheckAsync() {
             await Task.Delay(100);
+
+
+            //var lastScan = Convert.ToInt32(dSet.Tables["controls"].Rows[0]["controlAuto"]);
+            //lastScan = lastScan + 1 >= bus.Count ? 0 : lastScan;//опрокидываем счетчик
+
+            //for (int b = lastScan; b < bus.Count; b++) {
+            //    if (base_rescan_need) { break; }
+            //    if (bus[b].auto.Contains("http")
+            //        && bus[b].amount > 0) {
+            //        //колчество элементов на странице
+            //        System.Collections.ObjectModel.ReadOnlyCollection<IWebElement> but = null;
+
+            //        var ch = Task.Factory.StartNew(() => {
+            //            au.Navigate().GoToUrl(bus[b].auto);
+            //            Thread.Sleep(1000);
+            //            but = au.FindElements(By.CssSelector("div.FormField.FormField_name_submit > button"));
+            //        });
+            //        try {
+            //            await ch;
+            //            //если нет такого
+            //            if (but.Count == 0) {
+            //                bus[b].auto = " ";
+
+            //                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
+            //                {
+            //                    {"id", bus[b].id},
+            //                    {"name", bus[b].name},
+            //                    {"313971", bus[b].auto},
+            //                });
+            //                Log.Add("AUTO.RU УДАЛЕНА БИТАЯ ССЫЛКА ИЗ БАЗЫ!!!!!!!!\n" + bus[b].name);
+            //            } else {
+            //                label_auto.Text = b.ToString() + " (" + b * 100 / bus.Count + "%)";
+            //                dSet.Tables["controls"].Rows[0]["controlAuto"] = b + 1;
+            //                try {
+            //                    dSet.WriteXml(fSet);
+            //                } catch (Exception x) {
+            //                    Log.Add("ошибка записи файла настроек!\n" + x.Message);
+            //                }
+
+            //                //редактируем цену
+            //                var we = au.FindElement(By.CssSelector("label[class*='PriceFormControl'] input"));
+            //                WriteToIWebElement(au, we, bus[b].price.ToString());
+
+            //                //описание
+            //                //we = au.FindElement(By.CssSelector("div[class='TextArea__box'] textarea"));
+            //                //WriteToIWebElement(au, we, sl: GetAutoDesc(b));
+
+            //                //добавим адрес точки продаж
+            //                Actions a = new Actions(au);
+            //                a.MoveToElement(but[0]).Build().Perform();
+            //                await Task.Delay(200);
+
+            //                var el = au.FindElement(By.CssSelector("div[class*='name_stores'] button"));
+            //                el.Click();
+            //                await Task.Delay(2000);
+            //                if (!el.Text.Contains("Московская")) {
+            //                    a.SendKeys(OpenQA.Selenium.Keys.Enter).Build().Perform();
+            //                    await Task.Delay(500);
+            //                    //если адреса нет - выходим, чтобы дать юзеру дозаполнить и сохранить
+            //                    a.MoveToElement(au.FindElement(By.CssSelector("div[class*='Form__section_name_category']"))).Perform();
+            //                    break;
+            //                }
+            //                //сохраняем
+            //                but[0].Submit();
+            //                await Task.Delay(10000);
+            //                try {
+            //                    au.SwitchTo().Alert().Dismiss();
+            //                } catch { }
+            //                //but[0].Click();
+            //            }
+            //        } catch (Exception ex) {
+            //            Log.Add("button_autoCheck_Click: " + ex.Message);
+            //            break;
+            //        }
+            //    }
+
+            //}
+
             //var pages = (int)numericUpDown_auto.Value;
             //var pages = 0;
             //auto.Clear();
@@ -342,62 +420,7 @@ namespace Selen.Sites {
             //        Log.Add("авто.ру ошибка парсинга сайта, страница " + i + "\n" + ex.Message);
             //    }
             //    if (base_rescan_need) { break; }
-            //}
-            //привязка
-
-            //объект для сравнение строк методом расстояний Джаро-Винклера
-            //JaroWinkler jw = new JaroWinkler();
-            ////пары значений индекс строки - значение расстояния сравнения
-            //List<StrComp> sc = new List<StrComp>();
-
-            //for (int a = 0; a < auto.Count; a++) {
-            //    //проверим, есть ли в базе карточка с таким id в ссылке
-            //    var iBus = bus.FindIndex(b => b.auto.Contains(auto[a].id));
-            //    //если индекс не найден - объявление еще не привязано
-            //    if (iBus == -1) {
-            //        //выберем коллекцию индексов не привязанных карточек кандидатов
-            //        var b_unb = bus.Where(b => b.tiu.Contains("tiu.ru"))
-            //            .Where(b => b.auto.Contains("опубликовано"))
-            //            .Select(b => bus.IndexOf(b))
-            //            .ToList();
-            //        //посчитаем расстояния для всех найденных индексов базы
-            //        sc.Clear();
-            //        foreach (var b in b_unb) {
-            //            sc.Add(new StrComp() {
-            //                ind = b,
-            //                sim = jw.GetSimilarity(auto[a].name, bus[b].name)
-            //            });
-            //        }
-            //        sc.Sort((x1, x2) => x2.sim.CompareTo(x1.sim));
-
-            //        if (!checkBox_auto_chbox.Checked) {
-            //            //обнуляем возвращаемое имя перед вызовом формы
-            //            BindedName = "";
-            //            //вызываем новое окно, в конструктор передаем имя объявления авито и маасив кандидатов
-            //            Form2 f2 = new Form2("auto", a, sc.Select(t => t.ind).ToList());
-            //            f2.Owner = this;
-            //            f2.ShowDialog();
-            //            f2.Dispose();
-            //        } else {
-            //            BindedName = bus[sc[0].ind].name;
-            //        }
-            //        if (BindedName != "") {
-            //            iBus = bus.FindIndex(t => t.name == BindedName);
-            //        }
-            //    }
-            //    if (iBus > -1 && !String.IsNullOrEmpty(BindedName)) {
-            //        bus[iBus].auto = "https://auto.ru/parts/user-offer/?offerId=" + auto[a].id + "&rgid=6";
-
-            //        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
-            //            {
-            //                    {"id", bus[iBus].id},
-            //                    {"name", bus[iBus].name},
-            //                    {"313971", bus[iBus].auto}
-            //                });
-            //        BindedName = "";
-            //        Log.Add("авто привязано объявление " + a + " " + bus[iBus].name);
-            //    }
-            //}
+            //}            
         }
         //выбор категории
         private void SelectCategory(int b, string m) {

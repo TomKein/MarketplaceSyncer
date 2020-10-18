@@ -2,7 +2,7 @@
 
 namespace Selen
 {
-    partial class Form1
+    partial class FormMain
     {
         /// <summary>
         /// Обязательная переменная конструктора.
@@ -71,7 +71,6 @@ namespace Selen
             this.checkBox_liteSync = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
-            this.button_autoCheck = new System.Windows.Forms.Button();
             this.buttonSatom = new System.Windows.Forms.Button();
             this.labelKS = new System.Windows.Forms.Label();
             this.checkBox_art_clear = new System.Windows.Forms.CheckBox();
@@ -202,9 +201,7 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
-            this.checkBox_sync.Checked = true;
-            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sync.Location = new System.Drawing.Point(15, 675);
+            this.checkBox_sync.Location = new System.Drawing.Point(15, 642);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
             this.checkBox_sync.TabIndex = 35;
@@ -254,7 +251,7 @@ namespace Selen
             this.checkBox_busPhotosUpload.AutoSize = true;
             this.checkBox_busPhotosUpload.Checked = true;
             this.checkBox_busPhotosUpload.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_busPhotosUpload.Location = new System.Drawing.Point(15, 641);
+            this.checkBox_busPhotosUpload.Location = new System.Drawing.Point(15, 658);
             this.checkBox_busPhotosUpload.Name = "checkBox_busPhotosUpload";
             this.checkBox_busPhotosUpload.Size = new System.Drawing.Size(130, 17);
             this.checkBox_busPhotosUpload.TabIndex = 51;
@@ -281,7 +278,7 @@ namespace Selen
             // 
             // button_put_desc
             // 
-            this.button_put_desc.Location = new System.Drawing.Point(310, 673);
+            this.button_put_desc.Location = new System.Drawing.Point(391, 673);
             this.button_put_desc.Name = "button_put_desc";
             this.button_put_desc.Size = new System.Drawing.Size(146, 24);
             this.button_put_desc.TabIndex = 59;
@@ -310,9 +307,9 @@ namespace Selen
             // 
             // buttonTestPartners
             // 
-            this.buttonTestPartners.Location = new System.Drawing.Point(472, 674);
+            this.buttonTestPartners.Location = new System.Drawing.Point(546, 674);
             this.buttonTestPartners.Name = "buttonTestPartners";
-            this.buttonTestPartners.Size = new System.Drawing.Size(156, 23);
+            this.buttonTestPartners.Size = new System.Drawing.Size(164, 23);
             this.buttonTestPartners.TabIndex = 61;
             this.buttonTestPartners.Text = "Тест задвоения клиентов";
             this.buttonTestPartners.UseVisualStyleBackColor = true;
@@ -327,7 +324,7 @@ namespace Selen
             // label_Mem_Usage
             // 
             this.label_Mem_Usage.AutoSize = true;
-            this.label_Mem_Usage.Location = new System.Drawing.Point(154, 710);
+            this.label_Mem_Usage.Location = new System.Drawing.Point(206, 710);
             this.label_Mem_Usage.Name = "label_Mem_Usage";
             this.label_Mem_Usage.Size = new System.Drawing.Size(73, 13);
             this.label_Mem_Usage.TabIndex = 62;
@@ -551,16 +548,6 @@ namespace Selen
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
             this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
             // 
-            // button_autoCheck
-            // 
-            this.button_autoCheck.Location = new System.Drawing.Point(634, 675);
-            this.button_autoCheck.Name = "button_autoCheck";
-            this.button_autoCheck.Size = new System.Drawing.Size(76, 23);
-            this.button_autoCheck.TabIndex = 101;
-            this.button_autoCheck.Text = "auto check";
-            this.button_autoCheck.UseVisualStyleBackColor = true;
-            this.button_autoCheck.Click += new System.EventHandler(this.button_autoCheck_Click);
-            // 
             // buttonSatom
             // 
             this.buttonSatom.Enabled = false;
@@ -587,7 +574,7 @@ namespace Selen
             this.checkBox_art_clear.AutoSize = true;
             this.checkBox_art_clear.Checked = true;
             this.checkBox_art_clear.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_art_clear.Location = new System.Drawing.Point(315, 652);
+            this.checkBox_art_clear.Location = new System.Drawing.Point(391, 652);
             this.checkBox_art_clear.Name = "checkBox_art_clear";
             this.checkBox_art_clear.Size = new System.Drawing.Size(64, 17);
             this.checkBox_art_clear.TabIndex = 109;
@@ -597,7 +584,7 @@ namespace Selen
             // checkBox_photo_clear
             // 
             this.checkBox_photo_clear.AutoSize = true;
-            this.checkBox_photo_clear.Location = new System.Drawing.Point(394, 652);
+            this.checkBox_photo_clear.Location = new System.Drawing.Point(461, 652);
             this.checkBox_photo_clear.Name = "checkBox_photo_clear";
             this.checkBox_photo_clear.Size = new System.Drawing.Size(79, 17);
             this.checkBox_photo_clear.TabIndex = 110;
@@ -648,9 +635,9 @@ namespace Selen
             // 
             // button_kp_check
             // 
-            this.button_kp_check.Location = new System.Drawing.Point(635, 700);
+            this.button_kp_check.Location = new System.Drawing.Point(546, 700);
             this.button_kp_check.Name = "button_kp_check";
-            this.button_kp_check.Size = new System.Drawing.Size(75, 23);
+            this.button_kp_check.Size = new System.Drawing.Size(164, 23);
             this.button_kp_check.TabIndex = 115;
             this.button_kp_check.Text = "kp check";
             this.button_kp_check.UseVisualStyleBackColor = true;
@@ -835,7 +822,7 @@ namespace Selen
             this.checkBox_BusSave.AutoSize = true;
             this.checkBox_BusSave.Checked = true;
             this.checkBox_BusSave.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_BusSave.Location = new System.Drawing.Point(15, 658);
+            this.checkBox_BusSave.Location = new System.Drawing.Point(15, 675);
             this.checkBox_BusSave.Name = "checkBox_BusSave";
             this.checkBox_BusSave.Size = new System.Drawing.Size(155, 17);
             this.checkBox_BusSave.TabIndex = 134;
@@ -943,7 +930,7 @@ namespace Selen
             // 
             // button_SettingsFormOpen
             // 
-            this.button_SettingsFormOpen.Location = new System.Drawing.Point(310, 700);
+            this.button_SettingsFormOpen.Location = new System.Drawing.Point(391, 699);
             this.button_SettingsFormOpen.Name = "button_SettingsFormOpen";
             this.button_SettingsFormOpen.Size = new System.Drawing.Size(146, 24);
             this.button_SettingsFormOpen.TabIndex = 59;
@@ -989,7 +976,6 @@ namespace Selen
             this.Controls.Add(this.checkBox_art_clear);
             this.Controls.Add(this.labelKS);
             this.Controls.Add(this.buttonSatom);
-            this.Controls.Add(this.button_autoCheck);
             this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.checkBox_liteSync);
@@ -1095,7 +1081,6 @@ namespace Selen
         private System.Windows.Forms.CheckBox checkBox_liteSync;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
-        private System.Windows.Forms.Button button_autoCheck;
         private System.Windows.Forms.Button buttonSatom;
         private System.Windows.Forms.Label labelKS;
         private System.Windows.Forms.CheckBox checkBox_art_clear;
