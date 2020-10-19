@@ -24,7 +24,7 @@ using WinSCP;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.38.2";
+        string _version = "1.39.1";
         
         DB _db = new DB();
 
