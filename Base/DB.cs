@@ -67,13 +67,20 @@ namespace Selen.Base {
             DataTable table = new DataTable();
             MySqlDataAdapter adapter = new MySqlDataAdapter();
             adapter.SelectCommand = query;
-            try {
-                lock (_lock) {
-                    OpenConnection();
-                    adapter.Fill(table);
+            for (int i = 0; ; i++) {
+                try {
+                    lock (_lock) {
+                        OpenConnection();
+                        adapter.Fill(table);
+                        break;
+                    }
+                } catch (Exception x) {
+                    Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message);
                 }
-            } catch (Exception x) {
-                Log.Add("mysql: ошибка обращения к базе данных! - " + x.Message);
+                if (i == 100) {
+                    Log.Add("mysql: ошибка! - превышено количество попыток обращений!");
+                    break;
+                }
             }
             return table;
         }
@@ -81,11 +88,18 @@ namespace Selen.Base {
         private int ExecuteCommandNonQuery(MySqlCommand command) {
             int result = 0;
             lock (_lock) {
-                try {
-                    OpenConnection();
-                    result = command.ExecuteNonQuery();
-                } catch (Exception x) {
-                    Log.Add("mysql: ошибка обращения к базе данных! - " + x.Message);
+                for (int i = 0; ; i++) {
+                    try {
+                        OpenConnection();
+                        result = command.ExecuteNonQuery();
+                        break;
+                    } catch (Exception x) {
+                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message);
+                    }
+                    if (i == 100) {
+                        Log.Add("mysql: ошибка! - превышено количество попыток обращений!");
+                        break;
+                    }
                 }
             }
             return result;

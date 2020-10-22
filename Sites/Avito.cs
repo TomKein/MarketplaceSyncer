@@ -73,14 +73,13 @@ namespace Selen.Sites {
         //удаление черновиков
         private async Task RemoveDraftAsync() {
             try {
+                //загружаю страницу черновиков
+                await _dr.NavigateAsync("https://www.avito.ru/profile/items/draft");
+                //проверка загрузки
+                await ChechAuthAsync();
                 await Task.Factory.StartNew(() => {
-                    //загружаю страницу черновиков
-                    _dr.Navigate("https://www.avito.ru/profile/items/draft");
                     //если попали на страницу (проверяю url)
                     if (_dr.GetUrl().Contains("/profile/items/draft")) {
-                        //проверка страницы на ошибку
-                        while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
-                            _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
                         //нажимаю первый черновик меню
                         _dr.ButtonClick("//button[contains(@class,'actions-dropdown')]");
                         //нажимаю удалить
@@ -108,7 +107,7 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("input[name='password']", "rad00239000");
                     _dr.ButtonClick("//button[@type='submit']");
                 }
-                while (_dr.GetElementsCount(".nav-tabs") == 0) {
+                while (_dr.GetElementsCount(".profile-tabs") == 0) {
                     Thread.Sleep(10000);
                     _dr.ButtonClick("//a[contains(@href,'reload')]");
                     _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
@@ -135,12 +134,14 @@ namespace Selen.Sites {
         private async Task ChechAuthAsync() {
             //закрываю рекламу
             _dr.ButtonClick("//button[contains(@class,'popup-close')]");
+            while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
+                _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
             while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
                 if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
                     _dr.Refresh();
                 else {
                     Quit();
-                    Thread.Sleep(30000);
+                    await Task.Delay(30000);
                     await AuthAsync();
                 }
             }
@@ -189,6 +190,7 @@ namespace Selen.Sites {
         //удалить объявление
         private void Delete(int b) {
             _dr.Navigate(_bus[b].avito);
+            ChechAuthAsync();
             if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0) Thread.Sleep(5000);
             if (_dr.GetElementsCount("//*[text()='Снять с публикации']") > 0) {
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
@@ -337,11 +339,11 @@ namespace Selen.Sites {
         //подъем объявлений
         private async Task AvitoUpAsync() {
             var url = "https://www.avito.ru/profile";
-            while (_dr.GetElementsCount(".nav-tab-title") == 0) {
+            while (_dr.GetElementsCount(".profile-tabs") == 0) {
                 await ChechAuthAsync();
                 await _dr.NavigateAsync(url);
             }
-            var el = await _dr.FindElementsAsync("//li/span[@class='nav-tab-num']");
+            var el = await _dr.FindElementsAsync("//li/span[contains(@class,'css')][2]");
             var txt = el.Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
             var inactive = int.Parse(txt[0]);
             var active = int.Parse(txt[1]);
@@ -363,7 +365,7 @@ namespace Selen.Sites {
             var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
             await _dr.NavigateAsync(url);
             //проверяю, что страница загрузилась
-            while (_dr.GetElementsCount(".nav-tab-title") == 0) {
+            while (_dr.GetElementsCount(".profile-tabs") == 0) {
                 await ChechAuthAsync();
                 await _dr.NavigateAsync(url);
             }

@@ -24,7 +24,7 @@ using WinSCP;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.39.1";
+        string _version = "1.40.1";
         
         DB _db = new DB();
 
@@ -138,7 +138,7 @@ namespace Selen {
         private void dsOptions_Initialized(object sender, EventArgs e) {
             try {
                 dSet.ReadXml(fSet);
-                dateTimePicker1.Value = DateTime.Parse(dSet.Tables["controls"].Rows[0]["lastScanTime"].ToString());
+                dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             } catch (Exception) {
                 MessageBox.Show("ошибка чтения set.xml");
                 Thread.Sleep(5000);
@@ -383,7 +383,7 @@ namespace Selen {
                         x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) {
                         _avito.Quit();
-                        Thread.Sleep(10000);
+                        await Task.Delay(10000);
                         AvitoGetAsync(sender, e);
                     }
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -861,7 +861,7 @@ namespace Selen {
                     bus,
                     (int)numericUpDown_dromAddCount.Value,
                     (int)numericUpDown_DromCheckPageCount.Value);
-                label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http")).ToString();
+                label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount>0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
@@ -870,7 +870,7 @@ namespace Selen {
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
                     _drom.Quit();
-                    Thread.Sleep(10000);
+                    await Task.Delay(30000);
                     DromGetAsync(sender,e);
                 }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -1641,7 +1641,7 @@ namespace Selen {
         private void dateTimePicker1_ValueChanged(object sender, EventArgs e) {
             try {
                 scanTime = dateTimePicker1.Value;
-                dSet.Tables["controls"].Rows[0]["lastScanTime"] = scanTime;
+                _db.SetParam("lastScanTime", scanTime.ToString());
                 dSet.Tables["controls"].Rows[0]["liteScanTime"] = scanTime;
                 RootObject.ScanTime = scanTime;
                 dSet.WriteXml(fSet);

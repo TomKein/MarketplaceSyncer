@@ -61,19 +61,22 @@ namespace Selen.Sites {
                     Log.Add("auto.ru: запуск нового браузера...");
                     _dr = new Selenium();
                     LoadCookies();
-                    _dr.Refresh();
+                    _dr.Navigate("https://parts.auto.ru/lk");
                 }
-                _dr.Navigate("https://auto.ru/parts/lk?rgid=6");
-                _dr.Navigate("https://auth.auto.ru/login/?r=https%3A%2F%2Fauto.ru%2Fparts%2Flk%3Frgid%3D6");
-                _dr.WriteToSelector("input[name=login]", "9106027626@mail.ru");
-                _dr.ClickToSelector("button[class*=blue]");
-                //отправлено письмо с паролем на вход
-                var p = new Pop3();
-                var pas = p.GetPass();
-                _dr.WriteToSelector("div[class*='FormCodeInput'] input", pas);
+                if (!_dr.GetUrl().Contains("parts.auto.ru/lk")) {
+                    _dr.Navigate("https://auto.ru/parts/lk?rgid=6");
+                    _dr.Navigate("https://auth.auto.ru/login/?r=https%3A%2F%2Fauto.ru%2Fparts%2Flk%3Frgid%3D6");
+                    _dr.WriteToSelector("input[name=login]", "9106027626@mail.ru");
+                    _dr.ClickToSelector("button[class*=blue]");
+                    //отправлено письмо с паролем на вход
+                    var p = new Pop3();
+                    var pas = p.GetPass();
+                    _dr.WriteToSelector("div[class*='FormCodeInput'] input", pas);
+                }
+                //закрываю всплывающее окно
                 _dr.ButtonClick("i[class*='WhatsNew__close']");
                 //проверяю авторизацию, сохраняю куки
-                if (_dr.GetUrl().Contains("parts.auto.ru")) SaveCookies();
+                if (_dr.GetUrl().Contains("parts.auto.ru/lk")) SaveCookies();
                 //закрытие всплывающей рекламы
                 _dr.ButtonClick("//div[@aria-hidden='false']//div[@class='Modal__closer']");
                 _dr.Refresh();
@@ -112,8 +115,6 @@ namespace Selen.Sites {
                         _dr.Navigate("https://auto.ru/parts/lk?rgid=6&id=" + id);
                         //нажимаю кнопку удалить объявление
                         _dr.ButtonClick("//button[@title='Удалить объявление']");
-                        //нажимаю всплывающее подтверждение удаления
-                        _dr.ConfirmAlert();
                         //повторяю, пока не будет точно удалено (удаление срабатывает не всегда с первого раза)
                         Thread.Sleep(10000);
                     } while (_dr.GetElementsCount("//button[@title='Удалить объявление']") > 0);
@@ -147,7 +148,7 @@ namespace Selen.Sites {
         }
         //добавить объявления на сайт
         private async Task AddAsync() {
-            for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--) {
+            for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--, AddCount--) {                        
                 if ((_bus[b].auto == null || !_bus[b].auto.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
                     _bus[b].amount > 0 &&
@@ -172,7 +173,6 @@ namespace Selen.Sites {
                         });
                         await SaveUrlAsync(b);
                         Log.Add("auto.ru: " + _bus[b].name + " - объявление добавлено!");
-                        AddCount--;
                     } catch (Exception x) {
                         Log.Add("auto.ru: ошибка добавления объявления! - " + _bus[b].name + " - " + x.Message);
                         //если ошибка браузера - кидаю исключение дальше
@@ -180,6 +180,7 @@ namespace Selen.Sites {
                             x.Message.Contains("already closed") ||
                             x.Message.Contains("invalid session id") ||
                             x.Message.Contains("chrome not reachable")) throw;
+                        await Task.Delay(20000);
                     }
                 }
             }
@@ -230,7 +231,7 @@ namespace Selen.Sites {
         }
         //установка статуса б/у или новый
         private void SetStatus(int b) {
-            if (_bus[b].IsNew()) _dr.ButtonClick("//button[text()='Новый товар']");
+            if (_bus[b].IsNew()) _dr.ButtonClick("//span[text()='Новый']/../..");
         }
         //загрузка фотографий
         private void SetImages(int b) {
@@ -255,7 +256,7 @@ namespace Selen.Sites {
                     _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "file.jpg");
                     //удаляю дубли - глюк авто.ру
                     while (_dr.GetElementsCount("//li/*[contains(@class,'IconSvg_close')]") > u + 1) {
-                        _dr.ButtonClick("//li/*[contains(@class,'IconSvg_close')]");
+                        _dr.ButtonClick("(//li/*[contains(@class,'IconSvg_close')])[last()]");
                     }
                 } catch(Exception x) {
                     throw new Exception("не удается прикрепить фото к объявлению! - " + x.Message);

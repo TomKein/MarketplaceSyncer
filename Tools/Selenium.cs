@@ -63,8 +63,10 @@ namespace Selen.Tools {
         }
 
         public IReadOnlyCollection<IWebElement> FindElements(string s) {
-            return s.StartsWith("/") || s.StartsWith("./") ? _drv.FindElements(By.XPath(s))
-                                                           : _drv.FindElements(By.CssSelector(s));
+            return s.StartsWith("/")  || 
+                   s.StartsWith("./") ||
+                   s.StartsWith("(//") ? _drv.FindElements(By.XPath(s))
+                                       : _drv.FindElements(By.CssSelector(s));
         }
 
         public async Task<IReadOnlyCollection<IWebElement>> FindElementsAsync(string s) {
