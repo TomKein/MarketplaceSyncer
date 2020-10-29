@@ -26,9 +26,9 @@ namespace Selen {
 
     static class Class365API {
         //поля
-        private static string secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";  //@"qhIMQplRAHTgmgu58ahzcOeU8CPCSOF8";
+        private static string secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
 
-        private static string app_id = "768289";// "394290";
+        private static string app_id = "768289";
 
         private static Uri baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
 
@@ -42,7 +42,7 @@ namespace Selen {
         private static bool flag = false;
 
         //конструктор
-        //public Class365API() { }
+        //public static Class365API() { }
 
         //правильная сортировка на будущее
         //string[] sortedKeys = form.AllKeys.OrderBy(x => x, StringComparer.Ordinal).ToArray();

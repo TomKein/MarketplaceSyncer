@@ -177,19 +177,23 @@ namespace Selen.Tools {
             return el.Count > 0 ? el.First().GetAttribute(attr) : "";
         }
 
-        public void SaveCookies(string name) {
+        public string SaveCookies(string name=null) {
+            var json = "";
             try {
                 var ck = _drv.Manage().Cookies.AllCookies;
-                var json = JsonConvert.SerializeObject(ck);
-                File.WriteAllText(name, json);
+                json = JsonConvert.SerializeObject(ck);
+                if (name != null) File.WriteAllText(name, json);
             } catch (Exception x) {
-                Debug.WriteLine("Ошибка сохранения куки " + name + "\n" + x.Message);
+                Log.Add("selenium: ошибка сохранения куки - " + x.Message);
             }
+            return json;
         }
 
-        public void LoadCookies(string name) {
+        public void LoadCookies(string str) {
             try {
-                var json = File.ReadAllText(name);
+                string json;
+                if (str.StartsWith("[") || str.StartsWith("{")) json = File.ReadAllText(str);
+                else json = str;
                 var cookies = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(json);
                 Cookie ck;
                 foreach (var c in cookies) {
@@ -201,7 +205,7 @@ namespace Selen.Tools {
                     _drv.Manage().Cookies.AddCookie(ck);
                 }
             } catch (Exception x) {
-                Debug.WriteLine("Ошибка загрузки куки " + name + "\n" + x.Message);
+                Log.Add("selenium: ошибка загрузки куки - " + x.Message);
             }
         }
 

@@ -1,5 +1,7 @@
-﻿using OpenQA.Selenium;
+﻿using Newtonsoft.Json;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
+using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
@@ -16,45 +18,35 @@ using System.Windows.Forms;
 namespace Selen.Sites {
     class Avito {
         Selenium _dr;
-        readonly string _url = "209326";
+        DB _db;
+        string _url;
         List<RootObject> _bus = null;
-        int _priceLevel = 1500;
+        int _priceLevel;
         Random rnd = new Random();
         public int CountToUp { get; set; }
         public int AddCount { get; set; }
 
-        readonly string[] _addDesc = new[]
-        {
-            "Дополнительные фотографии по запросу",
-            "Есть и другие запчасти на данный автомобиль!",
-            "Вы можете установить данную деталь в нашем АвтоСервисе с доп.гарантией и со скидкой!",
-            "Перед выездом обязательно уточняйте наличие запчастей по телефону!",
-            "Звоните нам за 30 минут перед выездом (можно бесплатно через Viber) - товар на складе!",
-            "Время на проверку и установку - 2 недели, не понравится - вернём деньги!"
-        };
+        string[] _addDesc;
 
-        readonly string[] _addDesc2 = new[]
-        {
-            "Звонить строго с 9-00 до 19 - 00 (воскресенье - выходной)",
-            "В нашем торговом зале вы можете оплатить товар наличными или картой. Принимаем к оплате карты VISA, MASTERCARD, MAESTRO. Оплата производится моментально. При покупке Вам будет выдан на руки товарный, кассовый чеки.",
-            "От организаций принимаем оплату по безналичному расчету!",
-            "Отправляем в регионы транспортными компаниями: в приоритете ПЭК!",
-            "НАШ АДРЕС: г. Калуга, ул. Московская, д. 331",
-            "Телефон, подробная информация о доставке и оплате - при нажатии на АвтоТехноШик!",
-            "Отправляем наложенным платежом ТК СДЭК (только негабаритные посылки)",
-            "Бесплатная доставка до транспортной компании!",
-            "Осуществляем бесплатную доставку своим транспортом до следующих городов: Малоярославец, Обнинск, Тула (посёлок Иншинский)"
-        };
+        string[] _addDesc2;
+        //конструктор
+        public Avito() {
+            //сохраняю ссылку для работы с базой данных
+            _db = DB._db;
+        }
+
         //загрузить куки
         public void LoadCookies() {
             _dr.Navigate("https://avito.ru/404");
-            _dr.LoadCookies("avito.json");
+            var c = _db.GetParamStr("avito.cookies");
+            _dr.LoadCookies(c);
             Thread.Sleep(1000);
         }
         //сохранить куки
         public void SaveCookies() {
             _dr.Navigate("https://avito.ru/profile");
-            _dr.SaveCookies("avito.json");
+            var c = _dr.SaveCookies();
+            _db.SetParam("avito.cookies", c);
         }
         //закрыть браузер
         public void Quit() {
@@ -64,6 +56,12 @@ namespace Selen.Sites {
         //главный цикл синхронизации
         public async Task AvitoStartAsync(List<RootObject> bus) {
             _bus = bus;
+            _priceLevel = _db.GetParamInt("avito.priceLevel");
+            _url = _db.GetParamStr("avito.url");
+            _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription"));
+            _addDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription2"));
+            CountToUp = _db.GetParamInt("avito.countToUp");
+            AddCount = _db.GetParamInt("avito.countToAdd");
             await AuthAsync();
             await RemoveDraftAsync();
             await EditAllAsync();
@@ -103,8 +101,8 @@ namespace Selen.Sites {
                 }
                 _dr.Navigate("https://avito.ru/profile");
                 if (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
-                    _dr.WriteToSelector("input[name='login']", "9106027626@mail.ru");
-                    _dr.WriteToSelector("input[name='password']", "rad00239000");
+                    _dr.WriteToSelector("input[name='login']", _db.GetParamStr("avito.login"));
+                    _dr.WriteToSelector("input[name='password']", _db.GetParamStr("avito.password"));
                     _dr.ButtonClick("//button[@type='submit']");
                 }
                 while (_dr.GetElementsCount(".profile-tabs") == 0) {
@@ -152,12 +150,15 @@ namespace Selen.Sites {
                 var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
                 bool isAlive = true;
                 for(int i=0; ; i++) {
-                    if (i == 20) break;// throw new Exception("не удалось загрузить страницу редактирования!\n" + _bus[b].name + "url: " + url);
                     await ChechAuthAsync();
                     await _dr.NavigateAsync(url);
                     if (_dr.GetElementsCount("//a[@href='/profile']") > 0 && _dr.GetElementsCount("//div[@data-marker='category']")>0) break;
                     isAlive = await CheckIsOfferAlive(b);
                     if (!isAlive) break;
+                    if (i == 10) {
+                        Log.Add("avito.ru: ошибка! не удается загрузить объявление! - " + _bus[b].name + "  url: " + url);
+                        break;
+                    }
                 }
                 if (isAlive) {
                     await Task.Factory.StartNew(() => {
