@@ -94,7 +94,7 @@
             // button_Clear
             // 
             this.button_Clear.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_Clear.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button_Clear.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.button_Clear.Location = new System.Drawing.Point(615, 10);
             this.button_Clear.Margin = new System.Windows.Forms.Padding(10);
             this.button_Clear.Name = "button_Clear";

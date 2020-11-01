@@ -192,8 +192,8 @@ namespace Selen.Tools {
         public void LoadCookies(string str) {
             try {
                 string json;
-                if (str.StartsWith("[") || str.StartsWith("{")) json = File.ReadAllText(str);
-                else json = str;
+                if (str.StartsWith("[") || str.StartsWith("{")) json = str;
+                else json = File.ReadAllText(str);
                 var cookies = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(json);
                 Cookie ck;
                 foreach (var c in cookies) {

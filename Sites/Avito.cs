@@ -56,17 +56,27 @@ namespace Selen.Sites {
         //главный цикл синхронизации
         public async Task AvitoStartAsync(List<RootObject> bus) {
             _bus = bus;
+            //устанавливаю цену отсечки для подъема/подачи
             _priceLevel = _db.GetParamInt("avito.priceLevel");
+            //получаю номер ссылки в карточке
             _url = _db.GetParamStr("avito.url");
+            //дополнительное описание
             _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription"));
             _addDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription2"));
-            CountToUp = _db.GetParamInt("avito.countToUp");
+            //проверяю время, нужно ли поднимать объявления
+            if (DateTime.Now.Hour >= _db.GetParamInt("avito.upFromHour") && 
+                DateTime.Now.Hour < _db.GetParamInt("avito.upToHour"))
+                CountToUp = _db.GetParamInt("avito.countToUp");
+            else CountToUp = 0;
+            //сколько новых объявлений подавать каждый час
             AddCount = _db.GetParamInt("avito.countToAdd");
+            Log.Add("avito.ru: начало выгрузки...");
             await AuthAsync();
             await RemoveDraftAsync();
             await EditAllAsync();
             await AddAsync();
             await AvitoUpAsync();
+            Log.Add("avito.ru: выгрузка завершена");
         }
         //удаление черновиков
         private async Task RemoveDraftAsync() {

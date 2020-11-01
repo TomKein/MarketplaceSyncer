@@ -149,6 +149,19 @@ namespace Selen.Base {
                 return i;
             return -1;
         }
+        //получаем настройки как булевое значение
+        public bool GetParamBool(string key) {
+            //перевызываем метод получения строки
+            var result = GetParamStr(key).ToLowerInvariant();
+            switch (result) {
+                case "true":
+                case "yes":
+                case "1":
+                    return true;
+                default:
+                    return false;
+            }
+        }
         //получаем параметр как дату-время
         public DateTime GetParamDateTime(string key) {
             //перевызываем метод получения строки

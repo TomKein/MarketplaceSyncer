@@ -24,7 +24,7 @@ using WinSCP;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.40.2";
+        string _version = "1.41.0";
         
         DB _db = new DB();
 
@@ -366,24 +366,19 @@ namespace Selen {
         //=== авито ===
         public async void AvitoGetAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            if (checkBox_avito_use.Checked) {
+            if (_db.GetParamBool("avito.syncEnable")) {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                    Log.Add("avito.ru: начало выгрузки...");
-                    if (sync_start.Hour >= 6 && sync_start.Hour < 20) _avito.CountToUp = (int)numericUpDown_AvitoToUpCount.Value;
-                    else _avito.CountToUp = 0;
-                    Log.Add("avito: поднимаю " + _avito.CountToUp + " объявлений");
-                    _avito.AddCount = (int)numericUpDown_AvitoAddCount.Value;
                     await _avito.AvitoStartAsync(bus);
-                    Log.Add("avito.ru: выгрузка завершена");
                 } catch (Exception x) {
-                    Log.Add("avito.ru: ОШИБКА ВЫГРУЗКИ! \n" + x.Message);
+                    Log.Add("avito.ru: ошибка выгрузки! - " + x.Message);
                     if (x.Message.Contains("timed out") ||
                         x.Message.Contains("already closed") ||
                         x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) {
+                        Log.Add("avito.ru: ошибка браузера, перезапуск через 5 минут...");
+                        await Task.Delay(120000);
                         _avito.Quit();
-                        await Task.Delay(10000);
                         AvitoGetAsync(sender, e);
                     }
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -391,40 +386,6 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
-
-        private async void button_avito_add_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            if (checkBox_avito_use.Checked) {
-                try {
-                    while (base_rescan_need) await Task.Delay(30000);
-                    Log.Add("avito.ru: добавляю объявления...");
-                    _avito.AddCount = (int) numericUpDown_AvitoAddCount.Value;
-                    await _avito.AddAsync();
-                    Log.Add("avito.ru: добавление завершено.");
-                } catch (Exception x) {
-                    Log.Add("avito.ru: ОШИБКА ДОБАВЛЕНИЯ ОБЪЯВЛЕНИЙ! \n" + x.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                }
-            }
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-
-        private void numericUpDown_AvitoAdd_ValueChanged(object sender, EventArgs e) {
-            try {
-                _avito.AddCount = (int) numericUpDown_AvitoAddCount.Value;
-            } catch (Exception x) {
-                Log.Add("avito.ru: ошибка установки количества добавляемых объявлений");
-            }
-        }
-
-        private void numericUpDown_AvitoToUpCount_ValueChanged(object sender, EventArgs e) {
-            try {
-                _avito.CountToUp = (int)numericUpDown_AvitoToUpCount.Value;
-            } catch (Exception x) {
-                Log.Add("avito.ru: ошибка установки количества поднимаемых объявлений");
-            }
-        }
-
         //==========
         //    ВК
         //==========
@@ -442,7 +403,6 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
-
         private void numericUpDown_vkAdd_ValueChanged(object sender, EventArgs e) {
             try {
                 _vk.AddCount = (int)numericUpDown_vkAdd.Value;
@@ -450,7 +410,6 @@ namespace Selen {
                 Log.Add("ВК: ошибка установки количества добавляемых объявлений");
             }
         }
-
         //==============
         //    TIU.RU
         //==============
@@ -965,7 +924,7 @@ namespace Selen {
                             //                    + "set_desc.php?id=" + bus[tmp_ind].id
                             //                    + "&name=" + bus[tmp_ind].name
                             //                    + "&description=" + bus[tmp_ind].description);
-                            Log.Add("база обновлена карточка\n" + bus[i].name + "\n" + bus[i].description);
+                            Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description);
                         }
                         f4.Dispose();
                     }
