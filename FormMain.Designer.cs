@@ -698,7 +698,7 @@ namespace Selen
             this.numericUpDown_vkAdd.TabIndex = 124;
             this.numericUpDown_vkAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.numericUpDown_vkAdd.Value = new decimal(new int[] {
-            10,
+            3,
             0,
             0,
             0});

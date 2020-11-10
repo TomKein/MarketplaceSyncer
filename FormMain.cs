@@ -24,11 +24,11 @@ using WinSCP;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.41.0";
+        string _version = "1.42.2";
         
         DB _db = new DB();
 
-        public List<RootGroupsObject> busGr = new List<RootGroupsObject>();
+        public List<RootGroupsObject> busGroups = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
         private List<RootObject> newTiuGoods = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
@@ -218,30 +218,25 @@ namespace Selen {
                 button_tiu_sync.PerformClick();
             }
         }
-
+        //запрашиваю группы товаров
         public async Task GetBusGroupsAsync() {
-            int lastScan;
             do {
-                lastScan = Convert.ToInt32(dSet.Tables["controls"].Rows[0]["controlBusGr"]);
-                busGr.Clear();
+                busGroups.Clear();
                 try {
                     var tmp = await Class365API.RequestAsync("get", "groupsofgoods", new Dictionary<string, string>{
-                        {"parent_id", "205352"} // интернет магазин
+                        //{"parent_id", "205352"} // интернет магазиy БУ запчасти
                     });
                     var tmp2 = JsonConvert.DeserializeObject<List<RootGroupsObject>>(tmp);
-                    busGr.AddRange(tmp2);
-
-                    dSet.Tables["controls"].Rows[0]["controlBusGr"] = busGr.Count.ToString();
+                    busGroups.AddRange(tmp2);
                 } catch (Exception x) {
                     Log.Add("business.ru: ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException.Message);
                     await Task.Delay(60000);
                 }
-            } while (busGr.Count == 0 || lastScan != busGr.Count);
-            Log.Add("получено групп товаров из базы " + busGr.Count);
-            RootObject.Groups = busGr;
-            dSet.WriteXml(fSet);
+            } while (busGroups.Count < 20);
+            Log.Add("business.ru: получено "+ busGroups.Count +" групп товаров");
+            RootObject.Groups = busGroups;
         }
-
+        //получаю карточки товаров
         public async Task GetBusGoodsAsync2() {
             int lastScan;
             do {
@@ -1008,6 +1003,7 @@ namespace Selen {
                         || bus[b].name.StartsWith(" ")
                         || bus[b].name.EndsWith(" ")
                         || bus[b].name.Contains("  ")
+                        || bus[b].name.Contains(";")
                         || bus[b].name.Contains(@"\")
                         || bus[b].name.Contains("!")
                         || bus[b].name.Contains("\t")
@@ -1067,6 +1063,7 @@ namespace Selen {
                             .Replace("  ", " ")
                             .Replace(@"\", " ")
                             .Replace("!", " ")
+                            .Replace(";", ",")
                             .Replace("\t", " ");
 
                         if (desc.Contains("лев")) {
@@ -1096,7 +1093,7 @@ namespace Selen {
                         await Task.Delay(1000);
                     }
                 } catch (Exception x) {
-                    Log.Add("Ошибка при обработке артикулов\n" + bus[b].name + "\n" + x.Message);
+                    Log.Add("business.ru: " + bus[b].name + " - ошибка при обработке артикулов! - "+ x.Message);
                     Thread.Sleep(10000);
                 }
             }
@@ -1121,7 +1118,7 @@ namespace Selen {
                         {"name", bus[b].name},
                         {"group_id", bus[b].group_id}
                     });
-                    Log.Add("карточка перемещена в группу заказы " + b + " " + bus[b].name);
+                    Log.Add("business.ru: "+ bus[b].name + " --> в группу Заказы");
                     await Task.Delay(1000);
                 }
             }
@@ -1198,7 +1195,7 @@ namespace Selen {
                         //добавим в список товаров, на которые нужно сделать поступление и цены
                         string group_id;
                         try {
-                            group_id = busGr.Find(f => f.name.Contains(category_Text.Trim())).id;
+                            group_id = busGroups.Find(f => f.name.Contains(category_Text.Trim())).id;
                         } catch {
                             group_id = "169326";
                         }
@@ -1809,7 +1806,7 @@ namespace Selen {
             kp.FindElement(By.CssSelector("option[value='7_6']")).Click();
             Thread.Sleep(500);
             //подгруппы
-            var group = busGr.Find(f => f.id == bus[b].group_id).name;
+            var group = busGroups.Find(f => f.id == bus[b].group_id).name;
             switch (group) {
                 case "Автохимия":
                     kp.FindElement(By.CssSelector("option[value='622']")).Click();

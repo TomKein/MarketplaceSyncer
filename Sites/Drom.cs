@@ -30,7 +30,7 @@ namespace Selen.Sites {
         List<RootObject> _bus;
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
         bool _needRestart = false;
-        Random rnd = new Random();
+        Random _rnd = new Random();
 
         public void LoadCookies() {
             _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
@@ -97,7 +97,7 @@ namespace Selen.Sites {
             SetPart(b);
             SetWeight(b);
             PressOkButton();
-            Thread.Sleep(10000);
+            Thread.Sleep(2000);
             if (b.amount <= 0) Delete();
             else Up();
         }
@@ -147,8 +147,10 @@ namespace Selen.Sites {
         }
 
         private void SetWeight(RootObject b) {
+            _dr.ButtonClick("//div[contains(@class,'_hidden')]/../label[text()='До Почты России']/input");
+            _dr.ButtonClick("//a[@title='бесплатно до Почты России']");
             var weight = b.weight ?? 1.00;
-            _dr.WriteToSelector("//input[contains(@name,'ProviderWeight')]", ((int)weight).ToString()+OpenQA.Selenium.Keys.Tab);
+            _dr.WriteToSelector("//input[contains(@name,'ProviderWeight')]", weight.ToString("0.00")+OpenQA.Selenium.Keys.Tab);
         }
 
         async Task SaveUrlAsync(int b) {
@@ -251,20 +253,19 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//a[contains(@href,'publish')]");
             }
         }
+        //подъем объявлений
         public async Task UpAsync() {
             try {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("non_active");
-                    for (int i = pages; i > 0; i--) {
+                    //обрабатываем до 40 страниц неактивных объявлений за раз
+                    for (int i = pages; i > 0 && pages - i < 40; i--) { 
                         _dr.Navigate("https://baza.drom.ru/personal/non_active/bulletins?page=" + i);
                         _dr.ButtonClick("//input[@id='selectAll']");
-                        Thread.Sleep(2000);
                         if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
                             _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
-                            Thread.Sleep(2000);
                             PressServiseSubmitButton();
-                            Thread.Sleep(10000);
-                            _dr.Refresh();
+                            EditOffersWithErrors();
                         } else
                             break;
                     }
@@ -273,6 +274,30 @@ namespace Selen.Sites {
                 throw new Exception("ошибка массового подъема!!\n" + x.Message);
             }
         }
+        //редактирую объявления с ошибками (например, не указан вес)
+        private void EditOffersWithErrors() {
+            var drom = new List<RootObject>();
+            //для каждого объявления, в статусе которого есть предупреждение
+            foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
+                //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
+                if (_rnd.Next(30) != 1) continue;
+                //сохраняю содержимое предупреждения 
+                var status = item.FindElement(By.XPath(".//div[contains(@class,'alert')]/p")).Text;
+                //сохраняю id объявления
+                var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
+                //добавляю в список
+                drom.Add(new RootObject {
+                    id = id,
+                    description = status,
+                });
+            }
+            //обрабатываю получившийся список объявлений с ошибками
+            foreach (var item in drom.Where(w=>w.description.Contains("содержит ошибки"))) {
+                var b = _bus.Find(f => f.drom.Contains(item.id));
+                Edit(b);
+            }
+        }
+        //получаю колчество страниц объявлений
         private int GetPagesCount(string type) {
             try {
                 _dr.Navigate("https://baza.drom.ru/personal/all/bulletins");
@@ -294,7 +319,7 @@ namespace Selen.Sites {
                     var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
                         try {
-                            var drom = ParsePage(rnd.Next(1, pages));
+                            var drom = ParsePage(_rnd.Next(1, pages));
                             CheckPage(drom);
                         } catch {
                             i--;

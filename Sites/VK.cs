@@ -217,8 +217,9 @@ namespace Selen.Sites {
                         throw ex;
                     }
                     f = false;
-                    foreach (var group in RootObject.Groups.Select(s=>s.name)) {
-                        if (group != "Корневая группа") //Корневая группа не нужна в вк
+                    //проверяем только группы бу запчасти
+                    foreach (var group in RootObject.Groups.Where(w=>w.parent_id == "205352").Select(s=>s.name)) {
+                        if (group != "Корневая группа")//Корневая группа не нужна в вк
                         {
                             //ищем группы из базы в группах вк
                             int ind = vkAlb.FindIndex(a => a.Title == group);
