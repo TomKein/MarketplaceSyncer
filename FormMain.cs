@@ -20,7 +20,6 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
-using WinSCP;
 
 namespace Selen {
     public partial class FormMain : Form {
@@ -520,8 +519,7 @@ namespace Selen {
                     CheckTiuUrlsInBus();
                     //сохраняем изменения
                     wb.Save(Application.StartupPath + "\\" + _fexp);
-                    await SftpUploadAsync();
-                    //await FtpUploadAsync();   //выгрузка по FTP отключена
+                    SftpClient.Upload(Application.StartupPath + "\\" + _fexp);
                 }
             } catch (Exception x) {
                 Log.Add("tiu.ru: ошибка выгрузки - " + x.Message);
@@ -534,53 +532,6 @@ namespace Selen {
                 .ToList();
             foreach (var good in goods) {
                 Log.Add("tiu.ru: ошибка! - карточка есть на остатках, с фотографиями, но нет ссылки на объявление! - " + good);
-            }
-        }
-        //выгрузка по SFTP - новый протокол
-        private async Task SftpUploadAsync() {
-            Log.Add("tiu.ru: отправляю файл на сервер sftp://35.185.57.11/" + _fexp + " ...");
-            SessionOptions sessionOptions = new SessionOptions {
-                Protocol = Protocol.Sftp,
-                HostName = "35.185.57.11",
-                UserName = "bitnami",
-                SshHostKeyFingerprint = "ssh-rsa 2048 5LaZLFR2u+1xdE9SWnc3KzPksfjDNL2FEFcDM8jztKo=",
-                SshPrivateKeyPath = Application.StartupPath + "\\" + "google_sftp.ppk",
-            };
-            using (Session session = new Session()) {
-                session.Open(sessionOptions);
-                if (session.Opened) {
-                    var res = session.PutFileToDirectory(
-                        Application.StartupPath + "\\" + _fexp, "/opt/bitnami/apps/wordpress/htdocs");
-                    Log.Add("tiu.ru: файл успешно отправлен на сервер!");
-                }
-            }
-        }
-        //выгрузка по FTP - больше не используется
-        private async Task FtpUploadAsync() {
-            System.Net.WebClient ftp = new System.Net.WebClient();
-
-            //ftp.Credentials = new NetworkCredential("rogachevaleksey", "$drumbotanik");//https://rogachevaleksey.000webhostapp.com/ex3.xls
-            //ftp.Credentials = new NetworkCredential("u148353358", "$drumbotanik");
-            //http://basepoint.hol.es/ex3.xls
-
-            ftp.Credentials = new NetworkCredential("forVano", "$drum122");
-            //https://nutramir.ru/vano/ex3.xls
-
-            for (int f = 1; f <= 5; f++) {
-                //await ftp.UploadFileTaskAsync("ftp://files.000webhost.com:21/public_html/" + fexp, "STOR", fexp);
-                //await ftp.UploadFileTaskAsync("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
-                Task tt = Task.Factory.StartNew(() => {
-                    ftp.UploadFile("ftp://31.31.196.233:21/" + _fexp, "STOR", _fexp);
-                    //  ftp.UploadFile("ftp://93.188.160.137:21/" + fexp, "STOR", fexp);
-                });
-                try {
-                    await tt;
-                    Log.Add("тиу: ex3.xls успешно отправлен на сервер!");
-                    break;
-                } catch (Exception ex) {
-                    Log.Add("тиу ошибка выгрузки на FTP, попытка " + f + "\n" + ex.Message);
-                    await Task.Delay(30000);
-                }
             }
         }
         //редактируем объявления
@@ -2197,8 +2148,13 @@ namespace Selen {
                             //    });
                             //}
                         } catch (Exception x) {
-                            Log.Add("GdeEditAsync: " + bus[b].name + "\n" + x.Message);
-                            if (x.Message.Contains("Unexpected error")) {
+                            Log.Add("gde.ru: ошибка! - " + bus[b].name + " - " + x.Message);
+                            if (x.Message.Contains("Unexpected error")||
+                                x.Message.Contains("timed out") ||
+                                x.Message.Contains("already closed") ||
+                                x.Message.Contains("invalid session id") ||
+                                x.Message.Contains("chrome not reachable")) {
+                                Log.Add("gde.ru: перезапуск модуля...");
                                 gde.Quit();
                                 gde = null;
                                 break;
@@ -2500,7 +2456,7 @@ namespace Selen {
                     Log.Add("avto.pro: выгрузка завершена!");
 
                     var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
-                    if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 7) { //достаточно проверять один раз в сутки, и только ночью
+                    if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 5) { //достаточно проверять один раз в сутки, и только ночью
                         Log.Add("avto.pro: парсинг сайта...");
                         await _avtoPro.CheckAsync();
                         dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;

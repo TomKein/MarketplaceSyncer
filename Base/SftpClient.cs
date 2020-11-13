@@ -1,0 +1,56 @@
+﻿using Selen.Tools;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Text;
+using System.Threading.Tasks;
+using WinSCP;
+
+namespace Selen.Base {
+    static class SftpClient {
+
+        //выгрузка SFTP - новый протокол
+        public static void Upload(string fname) {
+            try {
+                Log.Add("tiu.ru: отправляю файл на сервер sftp://35.185.57.11/" + fname + " ...");
+                SessionOptions sessionOptions = new SessionOptions {
+                    Protocol = Protocol.Sftp,
+                    HostName = "35.185.57.11",
+                    UserName = "bitnami",
+                    SshHostKeyFingerprint = "ssh-rsa 2048 5LaZLFR2u+1xdE9SWnc3KzPksfjDNL2FEFcDM8jztKo=",
+                    SshPrivateKeyPath = "google_sftp.ppk",
+                    //SshPrivateKeyPath = Application.StartupPath + "\\" + "google_sftp.ppk",
+                };
+                using (Session session = new Session()) {
+                    session.Open(sessionOptions);
+                    if (session.Opened) {
+                        var res = session.PutFileToDirectory(
+                            fname, "/opt/bitnami/apps/wordpress/htdocs");
+                            //Application.StartupPath + "\\" + fname, "/opt/bitnami/apps/wordpress/htdocs");
+                        Log.Add("SftpClient: " + fname + " - успешно отправлен!");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add("SftpClient: " + fname + " - ошибка отправки sftp! - " + x.Message);
+            }
+        }
+        //выгрузка FTP
+        private static async Task FtpUploadAsync(string fname) {
+            System.Net.WebClient ftp = new System.Net.WebClient();
+            ftp.Credentials = new NetworkCredential("forVano", "$drum122"); 
+            for (int f = 1; f <= 5; f++) {
+                try {
+                    await Task.Factory.StartNew(() => {
+                        ftp.UploadFile(new Uri("ftp://31.31.196.233:21/" + fname), "STOR", fname);
+                    }); ;
+                    Log.Add("SftpClient: "+fname+" - успешно отправлен!");
+                    break;
+                } catch (Exception ex) {
+                    Log.Add("SftpClient: " + fname + " - ошибка отправки FTP (" + f + ") - " + ex.Message);
+                    await Task.Delay(60000);
+                }
+            }
+        }
+    }
+}

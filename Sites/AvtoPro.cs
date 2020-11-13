@@ -115,12 +115,13 @@ namespace Selen.Sites {
                         dict[auto[i]]++;
                 }
             }
-            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 1).Select(s => s.Key).ToList();//TODO не заполняется изготовитель
+            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 1);
             string manuf;
-            if (best.Count > 0) {
-                var s = best[0].Split(';');
-                manuf = Regex.Replace(s[0], "[^0-9a-zA-Z]", "");
-            } else manuf = "VAG";//если не определили - пишем VAG
+            if (best.Count() > 0) {
+                var s = best.First().Key.Split(';').First();
+                manuf = Regex.Replace(s, "[^0-9a-zA-Z]", "");
+                if (manuf.Length == 0) manuf = "VAG";
+            } else manuf = "VAG";
             _dr.ButtonClick("//div[text()='Производитель']");
             _dr.SendKeysToSelector("//input[@class='pro-select__search']", manuf+OpenQA.Selenium.Keys.Enter);
         }

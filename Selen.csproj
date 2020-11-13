@@ -259,6 +259,7 @@
   <ItemGroup>
     <Compile Include="Base\Class365API.cs" />
     <Compile Include="Base\DB.cs" />
+    <Compile Include="Base\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>
     </Compile>
