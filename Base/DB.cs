@@ -121,7 +121,7 @@ namespace Selen.Base {
             //создаем команду
             MySqlCommand command = new MySqlCommand(query, connection);
             command.Parameters.Add("@name", MySqlDbType.VarChar).Value = name;
-            command.Parameters.Add("@value", MySqlDbType.VarChar).Value = value;
+            command.Parameters.Add("@value", MySqlDbType.Text).Value = value;
             //отправляем запрос, возвращаем результат
             return ExecuteCommandNonQuery(command);
         }
@@ -199,10 +199,20 @@ namespace Selen.Base {
             //создаю команду
             MySqlCommand command = new MySqlCommand(query, connection);
             command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
-            command.Parameters.Add("@message", MySqlDbType.VarChar).Value = message;
+            command.Parameters.Add("@message", MySqlDbType.Text).Value = message;
             //выполняю запрос
             ExecuteCommandNonQuery(command);
+            //чистка лога
+            if (DateTime.Now.Millisecond <= 10) TruncLog();
         }
+        //удаляю из лога записи старше 30 дней
+        private void TruncLog() {
+            var query = "DELETE FROM `logs`" +
+                        "WHERE DATE_SUB(CURDATE(),INTERVAL 30 DAY) > `datetime`";
+            MySqlCommand command = new MySqlCommand(query, connection);
+            ExecuteCommandNonQuery(command); 
+        }
+
         //запрос карточки товара из базы данных
         public string GetGood(string arg, string text) {
             //формируем строку запроса sql

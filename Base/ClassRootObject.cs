@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Selen.Base;
+using Selen.Tools;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -181,14 +183,8 @@ namespace Selen
         }
 
         public bool IsNew() {
-            var low = description.ToLowerInvariant();
-            if (GroupName() != "Автохимия" &&
-                GroupName() != "Инструменты" &&
-                !(low.Contains("нова") ||
-                low.Contains("новы") ||
-                low.Contains("ново")))
-                return false;
-            return true;
+            var low = (name+":"+description).ToLowerInvariant();
+            return !Regex.IsMatch(low, @"(б[\/\\.]у)");
         }
 
         public bool IsOrigin() {
@@ -239,5 +235,24 @@ namespace Selen
             if (string.IsNullOrEmpty(number)) number = "100";
             return number;
         }
+        //производители
+        private static string[] manufactures;
+        public string GetManufacture() {
+            var n = (name + " | " + Regex.Replace(description ?? "", "<[^>]+>", " "))
+                .ToUpperInvariant()
+                .Replace("\n", " ").Replace("\r", " ")
+                .Replace(".", " ").Replace(",", " ")
+                .Replace("(", " ").Replace(")", " ")
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim());
+            var man = manufactures.Where(w => n.Contains(w));
+            if (man.Any()) return man.First();
+            return "";
+        }
+        //перечитать из таблицы настроек
+        public static void ResetManufactures() {
+            manufactures = DB._db.GetParamStr("manufactures").Split(',');
+        }
+
     }
 }

@@ -13,7 +13,7 @@ namespace Selen.Base {
         //выгрузка SFTP - новый протокол
         public static void Upload(string fname) {
             try {
-                Log.Add("tiu.ru: отправляю файл на сервер sftp://35.185.57.11/" + fname + " ...");
+                Log.Add("SftpClient: " + fname + " - отправляю файл на сервер sftp://35.185.57.11/ ...");
                 SessionOptions sessionOptions = new SessionOptions {
                     Protocol = Protocol.Sftp,
                     HostName = "35.185.57.11",

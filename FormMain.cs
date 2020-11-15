@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.42.2";
+        string _version = "1.42.3";
         
         DB _db = new DB();
 
@@ -38,6 +38,7 @@ namespace Selen {
         AvtoPro _avtoPro = new AvtoPro();
         Avito _avito = new Avito();
         AutoRu _autoRu = new AutoRu();
+        EuroAuto _euroAuto = new EuroAuto();
 
         public IWebDriver tiu;
         public IWebDriver kp;
@@ -214,6 +215,8 @@ namespace Selen {
 
             //если авто синхронизация включена
             if (checkBox_sync.Checked) {
+                button_EuroAuto.PerformClick();
+                await Task.Delay(30000);
                 button_tiu_sync.PerformClick();
             }
         }
@@ -231,7 +234,7 @@ namespace Selen {
                     Log.Add("business.ru: ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException.Message);
                     await Task.Delay(60000);
                 }
-            } while (busGroups.Count < 20);
+            } while (busGroups.Count < 30);
             Log.Add("business.ru: получено "+ busGroups.Count +" групп товаров");
             RootObject.Groups = busGroups;
         }
@@ -404,13 +407,11 @@ namespace Selen {
                 Log.Add("ВК: ошибка установки количества добавляемых объявлений");
             }
         }
-        //==============
-        //    TIU.RU
-        //==============
+        //=== синхронизация TIU.RU ===
         private async void TiuSyncAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (base_rescan_need) {await Task.Delay(10000);}
+                while (base_rescan_need || bus.Count == 0) {await Task.Delay(60000);}
                 await TiuUploadAsync();
                 await TiuHide();
                 await AddPhotosToBaseAsync();
@@ -438,20 +439,11 @@ namespace Selen {
                     loadSuccess = false;
                     Log.Add("tiu.ru: ошибка запроса XML!");
                 }
-                if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) {
-
-                    Workbook wb = Workbook.Load(_fexp);
-                    Worksheet ws = wb.Worksheets[0];
-
+                if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) { //TODO добавить в settings время последней отправки файла
                     //проверяем количество полученных товарных позиций
                     tiuCount = ds.Tables["offer"].Rows.Count;
                     label_tiu.Text = tiuCount.ToString();
                     Log.Add("tiu.ru: получено объявлений " + tiuCount.ToString());
-
-                    while (base_rescan_need || bus.Count == 0) {
-                        Log.Add("tiu.ru: ожидаю загрузку базы... ");
-                        await Task.Delay(60000);
-                    }
 
                     Log.Add("tiu.ru: готовлю файл выгрузки...");
                     do {
@@ -464,6 +456,8 @@ namespace Selen {
                         }
                     } while (true);
 
+                    Workbook wb = Workbook.Load(_fexp);
+                    Worksheet ws = wb.Worksheets[0];
                     //текущий индекс строки для записи в таблицу
                     int iRow = 0;
 
@@ -1427,6 +1421,8 @@ namespace Selen {
                         await Task.Delay(60000);
                         button_drom_get.PerformClick();
                         await Task.Delay(60000);
+                        button_tiu_sync.PerformClick();
+                        await Task.Delay(60000);
                         button_AutoRuStart.PerformClick();
                         await Task.Delay(60000);
                         buttonSatom.PerformClick();
@@ -1437,11 +1433,11 @@ namespace Selen {
                         await Task.Delay(60000);
                         button_cdek.PerformClick();
                         await Task.Delay(60000);
-                        button_tiu_sync.PerformClick();
-                        await Task.Delay(60000);
                         button_vk_sync.PerformClick();
                         await Task.Delay(60000);
                         button_avto_pro.PerformClick();
+                        await Task.Delay(60000);
+                        button_EuroAuto.PerformClick();
                         //нужно подождать конца обновлений объявлений
                         while (!IsButtonsActive()) {
                             await Task.Delay(60000);
@@ -1480,6 +1476,7 @@ namespace Selen {
         bool IsButtonsActive() {
             return
                 button_tiu_sync.Enabled &&
+                button_EuroAuto.Enabled &&
                 button_drom_get.Enabled &&
                 button_vk_sync.Enabled &&
                 buttonKupiprodai.Enabled &&
@@ -2491,17 +2488,18 @@ namespace Selen {
         private async void button_cdek_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || !button_base_get.Enabled) {
-                Log.Add("CDEK ожидает загрузку базы... ");
+                Log.Add("cdek.market: ожидаю загрузку базы... ");
                 await Task.Delay(60000);
             }
             if (checkBoxCdekSyncActive.Checked) {
                 try {
                     await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
+                    label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
+                    ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
-                    Log.Add("CDEK ошибка синхронизации:\n" + x.Message);
+                    Log.Add("cdek.market: ошибка синхронизации! - " + x.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
                 }
-                label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
-                Log.Add("CDEK выгрузка ок!");
             }
             if (numericUpDown_СdekCheckUrls.Value > 0) {
                 try {
@@ -2511,10 +2509,25 @@ namespace Selen {
                     dSet.WriteXml(fSet);
                     await _cdek.ParseSiteAsync();
                 } catch (Exception x) {
-                    Log.Add("CDEK ошибка при проверке объявлений!\n"+x.Message);
+                    Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
                 }
             }
-            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //=== синхронизация EUROAUTO.RU ===
+        private async void button_EuroAuto_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need || !button_base_get.Enabled) {
+                Log.Add("euroauto.ru: ожидаю загрузку базы... ");
+                await Task.Delay(60000);
+            }
+            try {
+                await _euroAuto.SyncAsync(bus);
+                Log.Add("euroauto.ru: выгрузка ок!");
+                ChangeStatus(sender, ButtonStates.Active);
+            } catch (Exception x) {
+                Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message+x.InnerException.Message);
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            }
         }
         //загрузка куки
         private void button_SaveCookie_Click(object sender, EventArgs e) {
@@ -2694,6 +2707,5 @@ namespace Selen {
                 Log.Add(x.Message);
             }
         }
-
     }
 }

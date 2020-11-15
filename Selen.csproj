@@ -273,6 +273,7 @@
     <Compile Include="Sites\AvtoPro.cs" />
     <Compile Include="Sites\Cdek.cs" />
     <Compile Include="Sites\Drom.cs" />
+    <Compile Include="Sites\EuroAuto.cs" />
     <Compile Include="Sites\Offer.cs" />
     <Compile Include="Sites\VK.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
