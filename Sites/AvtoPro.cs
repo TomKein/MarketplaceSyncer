@@ -36,14 +36,18 @@ namespace Selen.Sites {
         }
 
         public void LoadCookies() {
-            _dr.Navigate("https://avto.pro/warehouses/79489");
-            _dr.LoadCookies("avtopro.json");
-            Thread.Sleep(1000);
+            if (_dr != null) {
+                _dr.Navigate("https://avto.pro/warehouses/79489");
+                _dr.LoadCookies("avtopro.json");
+                Thread.Sleep(1000);
+            }
         }
 
         public void SaveCookies() {
-            _dr.Navigate("https://avto.pro");
-            _dr.SaveCookies("avtopro.json");
+            if (_dr != null) {
+                _dr.Navigate("https://avto.pro");
+                _dr.SaveCookies("avtopro.json");
+            }
         }
 
         public void Quit() {
@@ -56,13 +60,13 @@ namespace Selen.Sites {
                 if (_dr == null) {
                     _dr = new Selenium();
                     LoadCookies();
-                    _dr.Refresh();
                 }
+                _dr.Refresh();
                 if (_dr.GetElementsCount("//a[@href='/warehouses/']") == 0) {//если нет ссылки на склады в левом меню
                     _dr.WriteToSelector("//input[@name='Login']", "9106027626@mail.ru"); //ввод логина
                     _dr.WriteToSelector("//input[@name='Password']", "33107173"); //пароля
                     _dr.ButtonClick("//button[contains(@class,'--submit')]"); //жмем кнопку входа
-                    while (_dr.GetElementsCount("//a[@href='/warehouses/']") == 0) //если элементов слева нет ждем ручной вход
+                    while (_dr.GetElementsCount("//a[@href='/warehouses/']") == 0) //если элементов слева нет ждем ручной вход 5 мин
                         Thread.Sleep(60000);
                     SaveCookies();
                 }

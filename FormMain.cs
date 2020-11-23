@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.42.3";
+        string _version = "1.44.1";
         
         DB _db = new DB();
 
@@ -152,10 +152,15 @@ namespace Selen {
             tiu?.Quit();
             kp?.Quit();
             gde?.Quit();
+            _avito?.SaveCookies();
             _avito?.Quit();
+            _cdek?.SaveCookies();
             _cdek?.Quit();
+            _drom?.SaveCookies();
             _drom?.Quit();
+            _avtoPro?.SaveCookies();
             _avtoPro?.Quit();
+            _autoRu?.SaveCookies();
             _autoRu?.Quit();
         }
 
@@ -756,10 +761,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 while (base_rescan_need) { await Task.Delay(20000); }
-                await _drom.DromStartAsync(
-                    bus,
-                    (int)numericUpDown_dromAddCount.Value,
-                    (int)numericUpDown_DromCheckPageCount.Value);
+                await _drom.DromStartAsync(bus);
                 label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount>0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
@@ -774,12 +776,6 @@ namespace Selen {
                 }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
-        }
-
-        async void ButtonDromAddNewClick(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            await _drom.AddAsync((int)numericUpDown_dromAddCount.Value);
-            ChangeStatus(sender, ButtonStates.Active);
         }
 
         //========================================

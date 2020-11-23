@@ -37,16 +37,20 @@ namespace Selen.Sites {
 
         //загрузить куки
         public void LoadCookies() {
-            _dr.Navigate("https://avito.ru/404");
-            var c = _db.GetParamStr("avito.cookies");
-            _dr.LoadCookies(c);
-            Thread.Sleep(1000);
+            if (_dr != null) {
+                _dr.Navigate("https://avito.ru/404");
+                var c = _db.GetParamStr("avito.cookies");
+                _dr.LoadCookies(c);
+                Thread.Sleep(1000);
+            }
         }
         //сохранить куки
         public void SaveCookies() {
-            _dr.Navigate("https://avito.ru/profile");
-            var c = _dr.SaveCookies();
-            _db.SetParam("avito.cookies", c);
+            if (_dr != null) {
+                _dr.Navigate("https://avito.ru/profile");
+                var c = _dr.SaveCookies();
+                _db.SetParam("avito.cookies", c);
+            }
         }
         //закрыть браузер
         public void Quit() {
@@ -414,7 +418,7 @@ namespace Selen.Sites {
             await Task.Delay(30000);
         }
         //активация объявления
-        private async Task UpOfferAsync(int b) {
+        private async Task UpOfferAsync(int b) { //TODO убрать из главного потока
             var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
             var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
             await _dr.NavigateAsync(url);
@@ -424,7 +428,7 @@ namespace Selen.Sites {
                 PressOk();
             }
             //нажимаю активировать и уменьшаю счетчик
-            var butOpub = _dr.FindElements("//button[@type='submit']");
+            var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
             if (butOpub.Count > 0) {
                 butOpub.First().Click();
                 Log.Add("avito.ru: " + _bus[b].name + " - объявление "+ CountToUp-- + " активировано");

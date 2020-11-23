@@ -32,14 +32,18 @@ namespace Selen.Sites {
         public int AddCount { get; set; } = 1;
         //загрузка куки
         public void LoadCookies() {
-            _dr.Navigate("https://auto.ru/404");
-            _dr.LoadCookies("auto.json");
-            Thread.Sleep(1000);
-            _dr.Refresh();
+            if (_dr != null) {
+                _dr.Navigate("https://auto.ru/404");
+                _dr.LoadCookies("auto.json");
+                Thread.Sleep(1000);
+                _dr.Refresh();
+            }
         }
         //сохранение куки
         public void SaveCookies() {
-            _dr.SaveCookies("auto.json");
+            if (_dr != null) {
+                _dr.SaveCookies("auto.json");
+            }
         }
         //завершение работы
         public void Quit() {

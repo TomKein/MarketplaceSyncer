@@ -203,7 +203,7 @@ namespace Selen.Base {
             //выполняю запрос
             ExecuteCommandNonQuery(command);
             //чистка лога
-            if (DateTime.Now.Millisecond <= 10) TruncLog();
+            if (DateTime.Now.Millisecond <= 5) TruncLog();
         }
         //удаляю из лога записи старше 30 дней
         private void TruncLog() {

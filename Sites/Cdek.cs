@@ -27,14 +27,18 @@ namespace Selen.Sites {
         List<RootObject> _bus = null;
 
         public void LoadCookies() {
-            _dr.Navigate("https://cdek.market/v/");
-            _dr.LoadCookies("cdek.json");
-            Thread.Sleep(1000);
+            if (_dr != null) {
+                _dr.Navigate("https://cdek.market/v/");
+                _dr.LoadCookies("cdek.json");
+                Thread.Sleep(1000);
+            }
         }
 
         public void SaveCookies() {
-            _dr.Navigate("https://cdek.market/v/?dispatch=products.manage");
-            _dr.SaveCookies("cdek.json");
+            if (_dr != null) {
+                _dr.Navigate("https://cdek.market/v/?dispatch=products.manage");
+                _dr.SaveCookies("cdek.json");
+            }
         }
 
 

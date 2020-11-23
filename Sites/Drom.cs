@@ -1,7 +1,9 @@
 ﻿//изменен метод SetPrice для товаров с залоговой стоимостью
 
+using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
@@ -18,42 +20,55 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class Drom {
-        readonly string _url = "209334"; //поле ссылки в карточке бизнес.ру
-        readonly string[] _addDesc = new[]
-        {
-            "Дополнительные фотографии по запросу",
-            "Вы можете установить данную деталь в нашем АвтоСервисе с доп.гарантией и со скидкой!",
-            "Перед выездом обязательно уточняйте наличие запчастей (кнопка Спросить) - запчасти на складе!",
-            "Отправляем наложенным платежом ТК СДЭК (только негабаритные посылки)"
-        };
-        Selenium _dr;
-        List<RootObject> _bus;
+        Selenium _dr;               //браузер
+        DB _db;                     //база данных
+        string _url;                //ссылка в карточке товара
+        string[] _addDesc;          //дополнительное описание
+        List<RootObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
         bool _needRestart = false;
         Random _rnd = new Random();
+        //конструктор
+        public Drom() {
+            //сохраняю ссылку для работы с базой данных
+            _db = DB._db;
+        }
 
         public void LoadCookies() {
-            _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
-            _dr.LoadCookies("drom.json");
-            Thread.Sleep(1000);
+            if (_dr != null) {
+                _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
+                var c = _db.GetParamStr("drom.cookies");
+                _dr.LoadCookies(c);
+                Thread.Sleep(1000);
+            }
         }
 
         public void SaveCookies() {
-            _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
-            _dr.SaveCookies("drom.json");
+            if (_dr != null) {
+                _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
+                var c = _dr.SaveCookies();
+                _db.SetParam("drom.cookies", c);
+            }
         }
 
         public void Quit() {
             _dr?.Quit();
             _dr = null;
         }
-        public async Task DromStartAsync(List<RootObject> bus, int addCount = 10, int chkCount = 10) {
+        public async Task DromStartAsync(List<RootObject> bus) {
+            //сохраняю список товаров
             _bus = bus;
+            //получаю номер ссылки в карточке
+            _url = _db.GetParamStr("drom.url");
+            //дополнительное описание
+            _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
+            Log.Add("drom.ru: начало выгрузки...");
             await AuthAsync();
             await UpAsync();
             await EditAsync();
-            await AddAsync(addCount);
-            await CheckAsync(chkCount);
+            await AddAsync();
+            await CheckAsync();
+            Log.Add("drom.ru: выгрузка завершена");
         }
         public async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
@@ -64,13 +79,13 @@ namespace Selen.Sites {
                 }
                 _dr.Navigate("http://baza.drom.ru/personal/all/bulletins");
                 if (_dr.GetElementsCount("//div[@class='personal-box']") == 0) {//если элементов в левой панели нет
-                    _dr.WriteToSelector("#sign", "rad.i.g@list.ru"); //ввод логина
-                    _dr.WriteToSelector("#password", "d3xmxdrd"); //пароля
+                    _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
+                    _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
                     _dr.ButtonClick("#signbutton"); //жмем кнопку входа
                     while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
                         Thread.Sleep(30000);
-                    SaveCookies();
                 }
+                SaveCookies();
             });
         }
         public async Task EditAsync() {
@@ -111,7 +126,8 @@ namespace Selen.Sites {
             PressServiseSubmitButton();
         }
 
-        public async Task AddAsync(int count = 10) {
+        public async Task AddAsync() {
+            var count = _db.GetParamInt("drom.addCount");
             for (int b = 0; b < _bus.Count && count > 0; b++) {
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
@@ -313,7 +329,8 @@ namespace Selen.Sites {
             }
             return 1;
         }
-        public async Task CheckAsync(int count = 10) {
+        public async Task CheckAsync() {
+            int count = _db.GetParamInt("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("all");
