@@ -418,22 +418,24 @@ namespace Selen.Sites {
             await Task.Delay(30000);
         }
         //активация объявления
-        private async Task UpOfferAsync(int b) { //TODO убрать из главного потока
-            var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
-            var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
-            await _dr.NavigateAsync(url);
-            //проверка наличия формы редактирования
-            if (_dr.GetElementsCount("//*[contains(text(),'Состояние')]") > 0) {
-                SetStatus(b);
-                PressOk();
-            }
-            //нажимаю активировать и уменьшаю счетчик
-            var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
-            if (butOpub.Count > 0) {
-                butOpub.First().Click();
-                Log.Add("avito.ru: " + _bus[b].name + " - объявление "+ CountToUp-- + " активировано");
-                await Task.Delay(30000);
-            }
+        private async Task UpOfferAsync(int b) {
+            await Task.Factory.StartNew(()=> {
+                var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
+                var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
+                _dr.Navigate(url);
+                //проверка наличия формы редактирования
+                if (_dr.GetElementsCount("//*[contains(text(),'Состояние')]") > 0) {
+                    SetStatus(b);
+                    PressOk();
+                }
+                //нажимаю активировать и уменьшаю счетчик
+                var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
+                if (butOpub.Count > 0) {
+                    butOpub.First().Click();
+                    Log.Add("avito.ru: " + _bus[b].name + " - объявление " + CountToUp-- + " активировано");
+                    Thread.Sleep(30000);
+                }
+            });
         }
         //выбор статуса
         private void SetStatus(int b) {
@@ -627,6 +629,7 @@ namespace Selen.Sites {
                         break;
                     case "Система отопления и кондиционирования":
                     case "Система охлаждения двигателя":
+                    case "РАДИАТОРЫ ОХЛАЖДЕНИЯ (НОВЫЕ)":
                         selector = "Система охлаждения";
                         break;
                     case "Двигатели":
@@ -640,7 +643,7 @@ namespace Selen.Sites {
                         selector = "Автосвет";
                         break;
                     default:
-                        selector = "";
+                        selector = "Запчасти для ТО";
                         break;
                 }
                 if (selector.Length > 0) {

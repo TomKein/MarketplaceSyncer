@@ -180,7 +180,7 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 for (int i = 0; i < vkMark.Count; i++) {
                     //для каждого товара поищем индекс в базе карточек товаров
-                    int iBus = _bus.FindIndex(t => t.vk.EndsWith(vkMark[i].Id.ToString()));
+                    int iBus = _bus.FindIndex(t => t.vk.Split('_').Last()== vkMark[i].Id.ToString());
                     //если не найден - значит удаляю объявление
                     if (iBus == -1 ||
                         _bus[iBus].price != vkMark[i].Price.Amount / 100 ||

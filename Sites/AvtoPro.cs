@@ -66,8 +66,10 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("//input[@name='Login']", "9106027626@mail.ru"); //ввод логина
                     _dr.WriteToSelector("//input[@name='Password']", "33107173"); //пароля
                     _dr.ButtonClick("//button[contains(@class,'--submit')]"); //жмем кнопку входа
-                    while (_dr.GetElementsCount("//a[@href='/warehouses/']") == 0) //если элементов слева нет ждем ручной вход 5 мин
-                        Thread.Sleep(60000);
+                    for (int i = 0; _dr.GetElementsCount("//a[@href='/warehouses/']") == 0; i++) {//если элементов слева нет ждем ручной вход 10 мин
+                        Thread.Sleep(60*1000);
+                        if (i >= 10) throw new Exception("проблема авторизации, не могу попасть в личный кабинет!");
+                    }
                     SaveCookies();
                 }
             });
@@ -132,6 +134,8 @@ namespace Selen.Sites {
 
         async Task DeleteAsync(RootObject b)  {
             await Task.Factory.StartNew(() => {
+                //_dr.Navigate(b.avtopro.Replace("edit", "delete"));
+
                 _part = b.avtopro.Split(';').First().Split('/').Last(); //получаем номер запчасти из ссылки
                 FindOffer();                                            //поиск объявления
                 _dr.SendKeysToSelector("//body", OpenQA.Selenium.Keys.Escape);
@@ -186,18 +190,25 @@ namespace Selen.Sites {
 
         async Task SaveUrlAsync(RootObject b) {
             await Task.Factory.StartNew(() => {
-                do {
-                    for (int i = 0; ; i++) {
+                for (int j = 1; ; j++) {
+                    for (int i = 1; ; i++) {
+                        Log.Add("avto.pro: поиск объявления для привязки (" + i + ")...");
                         FindOffer();
-                        if (_dr.GetElementsCount("//td[@data-col='category.name']") == 1) break;
-                        if (i == 10) {
-                            Log.Add("avto.pro: " + _part + " - ошибка, объявление для привязки не найдено!");
-                            throw new Exception("timed out");
-                        }
+                        var elementsCount = _dr.GetElementsCount("//td[@data-col='category.name']");
+                        Log.Add("avto.pro: найдено " + i);
+                        if (elementsCount == 1) break;
+                        if (i >= 100) throw new Exception("не могу найти объявление для привязки! - ссылка не была сохранена!");
                     };
                     _dr.ButtonClick("//td[@data-col='category.name']");
-                    while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) {Thread.Sleep(1000);}
-                } while(_dr.GetElementText("//textarea[@name='Info']").Length == 0);
+                    for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
+                        Log.Add("avto.pro: ожидаю загрузку страницы ("+i+")...");
+                        if (i >= 100) throw new Exception("ошибка ожидания загрузки страницы - ссылка не была сохранена!");
+                        Thread.Sleep(1000);
+                    }
+                    var elementText = _dr.GetElementText("//textarea[@name='Info']");
+                    if (!string.IsNullOrEmpty(elementText)) break;
+                    if (j >= 100) throw new Exception("ошибка проверки текста формы - ссылка не была сохранена!");
+                }
                 b.avtopro = _dr.GetUrl();
             });
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
@@ -205,33 +216,29 @@ namespace Selen.Sites {
                 {"name", b.name},
                 {_url, b.avtopro}
             });
+            Log.Add("avto.pro: ссылка на объявление успешно сохранена (" + b.avtopro + ")");
             await Task.Delay(2000);
         }
 
         private void FindOffer() {
-            for (int t = 0; ; t++) {
+            for (int j = 1; ; j++) {
                 try {
+                    Log.Add("avto.pro: поиск номера " + _part + " ("+j+")");
                     _dr.Navigate("https://avto.pro/warehouses/79489/");
-                    for (int q = 0; ; q++) {
-                        if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0 ||
-                            _dr.GetElementsCount("//div[@class='er_code']") > 0) {
+                    for (int i = 1; 
+                        _dr.GetElementsCount("//div[@class='pro-loader']") > 0 ||
+                        _dr.GetElementsCount("//div[@class='er_code']") > 0; i++) {
+                        if (i >= 10) throw new Exception("timed out - не удается загрузить страницу склада");
+                            Log.Add("avto.pro: обновляю страницу склада (" + i + ")");
                             _dr.Refresh();
                             Thread.Sleep(20000);
-                        } else break;
-                        if (q == 20) {
-                            Log.Add("avto.pro: " + _part + " - ошибка, не удается загрузить страницу склада!");
-                            throw new Exception("timed out");
-                        }
                     }
                     _dr.ButtonClick("//div[text()='Поиск']");
                     _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
-                    for (int p = 0; ; p++) {
-                        if (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(10000);
-                        else break;
-                        if (p == 30) {
-                            Log.Add("avto.pro: " + _part + " - ошибка, не удается дождаться поиска!");
-                            throw new Exception("timed out");
-                        }
+                    for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
+                        if (i >= 100) throw new Exception("timed out - не удается дождаться поиска "+ _part);
+                        Log.Add("avto.pro: ожидаю загрузку страницы (" + i + ")");
+                        Thread.Sleep(1000);
                     }
                     break;
                 } catch (Exception x) {
@@ -240,9 +247,8 @@ namespace Selen.Sites {
                         x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) throw;
                 }
-                if (t == 10) {
-                    Log.Add("avto.pro: " + _part + " - ошибка, не удается выполнить поиск такого номера!");
-                    throw new Exception("timed out");
+                if (j == 10) {
+                    throw new Exception("timed out - не удается выполнить поиск номера");
                 }
             };
         }
@@ -302,13 +308,17 @@ namespace Selen.Sites {
         }
 
         void PressSaveButton() {
-            for (int i = 1; _dr.GetElementsCount("//button[text()='Сохранить']") > 0; i++) { 
+            for (int j = 1; _dr.GetElementsCount("//button[text()='Сохранить']") > 0; j++) {
+                if (j >= 100) throw new Exception("кнопка Сохранить не срабатывает!");
+                Log.Add("avto.pro: жму кнопку сохранить (" + j + ")...");
                 _dr.ButtonClick("//button[text()='Сохранить']");
                 if (_dr.GetElementsCount("//span[contains(text(),'уже есть на складе')]") > 0)
-                    throw new Exception("Товар уже есть на складе!");
-                if (i>=10)
-                    throw new Exception("Не нажимается кнопка Сохранить!");
-                while (_dr.GetElementsCount("//div[@class='pro-loader']") > 0) Thread.Sleep(2000);
+                    throw new Exception("не срабатывает кнопка Сохраненить - данный товар уже есть на складе!");
+                for (int i = 0; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
+                    if (i >= 100) throw new Exception("ошибка ожидания загрузки страницы после нажатия Сохранить!");
+                    Log.Add("avto.pro: ожидаю загрузку страницы (" + i + ")...");
+                    Thread.Sleep(1000);
+                }
             }
         }
 
@@ -328,12 +338,19 @@ namespace Selen.Sites {
         public async Task CheckAsync() {
             await Task.Factory.StartNew(() => {
                 //меняю формат выдачи - по 1000 шт
+                Log.Add("avto.pro: загружаю склад...");
                 _dr.Navigate("https://avto.pro/warehouses/79489");
-                while (_dr.GetElementsCount("//div[contains(text(),'Выводить')]") == 0) Thread.Sleep(1000);
+                for(int i=0; _dr.GetElementsCount("//div[contains(text(),'Выводить')]") == 0; i++) {
+                    if (i >= 100) throw new Exception("не могу дождаться элемент Выводить");
+                    Thread.Sleep(1000);
+                }
                 _dr.ButtonClick("//div[contains(text(),'Выводить')]");
                 _dr.ButtonClick("//div[@class='pro-select__option' and contains(text(),'1000')]");
                 //ожидаю, пока прогрузится список (проверяю наличие шестеренки загрузки)
-                while (_dr.GetElementsCount("//span[@class='pro-form__frame__preloader']")>0) Thread.Sleep(1000);
+                for (int i = 0; _dr.GetElementsCount("//span[@class='pro-form__frame__preloader']") > 0; i++) {
+                    if(i>=100) throw new Exception("не могу дождаться элемент Выводить");
+                    Thread.Sleep(1000);
+                }
                 //страховка от зависания цикла разворачивания списка, когда кнопка "показать еще" активна, но ничего не добавляет
                 //обчно такая кнопка становится неактивной, если список развернут полностью, но на авто.про случается и не такое
                 //запаса в 2 раза более чем достаточно
@@ -343,7 +360,10 @@ namespace Selen.Sites {
                     //нажимаю кнопку "показать еще"
                     _dr.ButtonClick("//button[contains(@class,'show')]");
                     //пока кнопка неактивна - ожидаю
-                    while (_dr.GetElementsCount("//button[contains(@class,'show') and  @disabled='']") > 0) Thread.Sleep(1000);
+                    for (int i = 0; _dr.GetElementsCount("//button[contains(@class,'show') and  @disabled='']") > 0; i++) {
+                        if(i>=100) throw new Exception("не могу дождаться кнопку Показать еще!");
+                        Thread.Sleep(1000);
+                    }
                 }
                 //получаю товары сайта
                 var offerList = _dr.FindElements("//tr/td[contains(@data-col,'code')]/..").ToList();
@@ -369,7 +389,11 @@ namespace Selen.Sites {
                         deleteButton.Click();
                         Thread.Sleep(3000);
                         PressSubmitButton();
-                        while (_dr.GetElementsCount("//div/div/button[@type='submit']")>0) Thread.Sleep(5000);
+                        for (int i = 0; _dr.GetElementsCount("//div/div/button[@type='submit']") > 0; i++) {
+                            if (i>=100) throw new Exception("не могу дождаться закрытия диалога после нажатия Удалить!");
+                            Thread.Sleep(1000);
+                        }
+
                         if (b >= 0) {                                       //если была ссылка в карточке - тоже удаляю
                             _bus[b].avtopro = "";
                             Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
@@ -382,7 +406,7 @@ namespace Selen.Sites {
                 }
                 //список карточек к базе, имеющих ссылку на авто.про и не найденных на сайте
                 var busList = _bus.Where(b => b.avtopro.Contains("http") && !indexList.Contains(_bus.IndexOf(b))).ToList();
-                if (busList.Count > 100) throw new Exception("слишком много расхождений, возможно проблема парсинга!");
+                if (busList.Count > 100) throw new Exception("слишком много расхождений ("+ busList.Count + "), возможно проблема парсинга!");
                 foreach (var bus in busList) {
                     bus.avtopro = "";
                     Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{

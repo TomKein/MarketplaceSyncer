@@ -99,9 +99,9 @@ namespace Selen
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
-            this.panel4 = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
+            this.panel4 = new System.Windows.Forms.Panel();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).BeginInit();
@@ -923,17 +923,6 @@ namespace Selen
             this.panel3.Size = new System.Drawing.Size(666, 25);
             this.panel3.TabIndex = 148;
             // 
-            // panel4
-            // 
-            this.panel4.Controls.Add(this.logBox);
-            this.panel4.Controls.Add(this.panel3);
-            this.panel4.Controls.Add(this.panel1);
-            this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel4.Location = new System.Drawing.Point(0, 0);
-            this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(872, 641);
-            this.panel4.TabIndex = 149;
-            // 
             // textBox_LogFilter
             // 
             this.textBox_LogFilter.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -954,6 +943,17 @@ namespace Selen
             this.button_LogFilterClear.TabIndex = 1;
             this.button_LogFilterClear.Text = "Очистить";
             this.button_LogFilterClear.UseVisualStyleBackColor = true;
+            // 
+            // panel4
+            // 
+            this.panel4.Controls.Add(this.logBox);
+            this.panel4.Controls.Add(this.panel3);
+            this.panel4.Controls.Add(this.panel1);
+            this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.panel4.Location = new System.Drawing.Point(0, 0);
+            this.panel4.Name = "panel4";
+            this.panel4.Size = new System.Drawing.Size(872, 641);
+            this.panel4.TabIndex = 149;
             // 
             // FormMain
             // 

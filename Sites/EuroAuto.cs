@@ -90,9 +90,9 @@ namespace Selen.Sites {
                 if(n%200==0) Log.Add("euroauto.ru: выгружено " + n + " товаров");
             }
             Log.Add("euroauto.ru: всего выгружено " + n + " товаров");
-            File.WriteAllText(_fexp, s.ToString());
+            File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
             Log.Add("euroauto.ru: пропущено " + e + " товаров");
-            File.WriteAllText(_ferr, err.ToString());
+            File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
         }
     }
 }

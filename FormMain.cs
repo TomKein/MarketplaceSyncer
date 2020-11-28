@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.44.1";
+        string _version = "1.44.2";
         
         DB _db = new DB();
 
@@ -372,6 +372,7 @@ namespace Selen {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     await _avito.AvitoStartAsync(bus);
+                    ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка выгрузки! - " + x.Message);
                     if (x.Message.Contains("timed out") ||
@@ -382,11 +383,10 @@ namespace Selen {
                         await Task.Delay(120000);
                         _avito.Quit();
                         AvitoGetAsync(sender, e);
-                    }
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+
                 }
             }
-            ChangeStatus(sender, ButtonStates.Active);
         }
         //==========
         //    ВК
@@ -1130,7 +1130,7 @@ namespace Selen {
                             bus_dubles = bus.Select(tn => tn.name.ToUpper()).Where(f => f == tiuName.ToUpper()).ToArray();
                             if (bus_dubles.Length > 0) {
                                 tiuName += tiuName.EndsWith("`") ? "`" : " `";
-                                Log.Add("Исправлен дубль названия в создаваемой карточке \n" + tiuName);
+                                Log.Add("business.ru: исправлен дубль названия в создаваемой карточке \n" + tiuName);
                             }
                         } while (bus_dubles.Length > 0);
                         //добавим в список товаров, на которые нужно сделать поступление и цены
@@ -1149,66 +1149,88 @@ namespace Selen {
                         });
                     }
                 }
-                foreach (var good in newTiuGoods) {
-                    //подгружаем цену, количество и ед имз. для каждого товара
-                    try {
-                        tiu.Navigate().GoToUrl(good.tiu);
-                        good.price = int.Parse(tiu.FindElement(By.CssSelector("input[data-qaid='product_price_input']")).GetAttribute("value"));
-                        good.amount = int.Parse(tiu.FindElement(By.CssSelector("input[data-qaid='stock_input']")).GetAttribute("value"));
-                        if (good.amount == 0) good.amount = 1;
-                    } catch (Exception x) {
-                        Log.Add(x.Message);
-                    }
-                    var measureTiu = tiu.FindElement(By.CssSelector("div[data-qaid='unit_dd'] span")).Text;
-                    good.measure_id = measureTiu == "пара"
-                        ? "11"
-                        : measureTiu == "комплект"
-                            ? "13"
-                            : measureTiu == "упаковка"
-                                ? "9"
-                                : "1";
-                    //создаем карточку товара
-                    good.id = JsonConvert.DeserializeObject<PostSuccessAnswer>(
-                        await Class365API.RequestAsync("post", "goods", new Dictionary<string, string>()
-                        {
-                            {"name", good.name},
-                            {"group_id", good.group_id},
-                            {"description", good.description},
-                            {"209325", good.tiu}
-                        })).id;
-                    //если единицы измерения не шт, то необходимо поменять привязку ед. изм. в карточке
-                    if (good.measure_id != "1") {
-                        //находим привязку единиц измерения
-                        var gm = JsonConvert.DeserializeObject<GoodsMeasures[]>(
-                            await Class365API.RequestAsync("get", "goodsmeasures", new Dictionary<string, string>()
-                            {
-                                {"good_id", good.id}
-                            }));
-                        //меняем значение кода единицы изм
-                        var s = await Class365API.RequestAsync("put", "goodsmeasures", new Dictionary<string, string>()
-                        {
-                            {"id", gm[0].id},
-                            {"measure_id", good.measure_id}
-                        });
-                    }
-                    Log.Add("СОЗДАНА КАРТОЧКА В БАЗЕ\n" + good.name);
-                    Thread.Sleep(1000);
-                }
-                //если есть что оприходовать
                 if (newTiuGoods.Count > 0) {
+                    Log.Add("business.ru: обнаружено " + newTiuGoods.Count + " новых товаров на тиу.ру:\n"
+                        + newTiuGoods.Select(s => s.name).Aggregate((a, b) => a + "\n" + b));
+                    for (int i = 0; newTiuGoods.Count > 0; i++) {
+                        //подгружаем цену, количество и ед имз. для каждого товара
+                        try {
+                            tiu.Navigate().GoToUrl(newTiuGoods[i].tiu);
+                            newTiuGoods[i].price = int.Parse(
+                                tiu.FindElement(By.CssSelector("input[data-qaid='product_price_input']"))
+                                .GetAttribute("value"));
+                            if (newTiuGoods[i].price == 0) {
+                                Log.Add("business.ru: ошибка при получении цены товара, пропущена позиция '" 
+                                    + newTiuGoods[i].name + "'");
+                                newTiuGoods.RemoveAt(i--);
+                                continue;
+                            }
+                            newTiuGoods[i].amount = int.Parse(
+                                tiu.FindElement(By.CssSelector("input[data-qaid='stock_input']"))
+                                .GetAttribute("value"));
+                            if (newTiuGoods[i].amount == 0) {
+                                Log.Add("business.ru: ошибка при получении количества товара, пропущена позиция '" 
+                                    + newTiuGoods[i].name + "'");
+                                newTiuGoods.RemoveAt(i--);
+                                continue;
+                            }
+                        } catch (Exception x) {
+                            Log.Add("business.ru: ошибка при получении цены и остатков, пропущена позиция '" 
+                                + newTiuGoods[i].name + "' - " + x.Message);
+                            newTiuGoods.RemoveAt(i--);
+                            continue;
+                        }
+                        var measureTiu = tiu.FindElement(By.CssSelector("div[data-qaid='unit_dd'] span")).Text;
+                        newTiuGoods[i].measure_id = measureTiu == "пара"
+                            ? "11"
+                            : measureTiu == "комплект"
+                                ? "13"
+                                : measureTiu == "упаковка"
+                                    ? "9"
+                                    : "1";
+                        //создаем карточку товара
+                        newTiuGoods[i].id = JsonConvert.DeserializeObject<PostSuccessAnswer>(
+                            await Class365API.RequestAsync("post", "goods", new Dictionary<string, string>()
+                            {
+                            {"name", newTiuGoods[i].name},
+                            {"group_id", newTiuGoods[i].group_id},
+                            {"description", newTiuGoods[i].description},
+                            {"209325", newTiuGoods[i].tiu}
+                            })).id;
+                        //если единицы измерения не шт, то необходимо поменять привязку ед. изм. в карточке
+                        if (newTiuGoods[i].measure_id != "1") {
+                            //находим привязку единиц измерения
+                            var gm = JsonConvert.DeserializeObject<GoodsMeasures[]>(
+                                await Class365API.RequestAsync("get", "goodsmeasures", new Dictionary<string, string>()
+                                {
+                                {"good_id", newTiuGoods[i].id}
+                                }));
+                            //меняем значение кода единицы изм
+                            var s = await Class365API.RequestAsync("put", "goodsmeasures", new Dictionary<string, string>()
+                            {
+                            {"id", gm[0].id},
+                            {"measure_id", newTiuGoods[i].measure_id}
+                        });
+                        }
+                        Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + newTiuGoods[i].name+",  ост. "+ newTiuGoods[i].amount + ", цена "+newTiuGoods[i].price);
+                        Thread.Sleep(1000);
+                    }
+                }
+
+                if (newTiuGoods.Count > 0) {
+                    var number = DateTime.Now.ToString().Replace(".","");
                     //сделаем новое поступление
                     var remain = JsonConvert.DeserializeObject<PostSuccessAnswer>(
-                        await Class365API.RequestAsync("post", "remains", new Dictionary<string, string>()
-                    {
-                        {"organization_id", "75519"},//радченко
-                        {"store_id", "1204484"},//склад
-                        {"number", "9999"},//номер документа
-                        {"employee_id", "76221"},//-рогачев 76197-радченко
-                        {"currency_id", "1"},
-                        {"date", DateTime.Now.ToShortDateString()},
-                        {"comment", "Создано автоматически, цена закупки 50% от реализации"}
+                        await Class365API.RequestAsync("post", "remains", new Dictionary<string, string>() {
+                            { "organization_id", "75519"},//радченко
+                            {"store_id", "1204484"},//склад
+                            {"number", number},//номер документа
+                            {"employee_id", "76221"},//-рогачев 76197-радченко
+                            {"currency_id", "1"},
+                            {"date", DateTime.Now.ToShortDateString()},
+                            {"comment", "Создано автоматически, цена закупки 50% от реализации"}
                     }));
-                    Log.Add("СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ №9999");
+                    Log.Add("business.ru: СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ № "+ number);
                     Thread.Sleep(1000);
                     //делаем привязку к поступлению каждого товара
                     foreach (var good in newTiuGoods) {
@@ -1222,8 +1244,8 @@ namespace Selen {
                             {"price", Convert.ToString(good.price/2)},
                             {"sum", Convert.ToString(good.amount*good.price/2)}
                         }));
+                        Log.Add("business.ru: ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
                         Thread.Sleep(1000);
-                        Log.Add("ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
                     }
 
                     //создаём новый прайс лист
@@ -1233,7 +1255,7 @@ namespace Selen {
                             {"organization_id", "75519"},//радчено и.г.
                             {"responsible_employee_id", "76221"},//рогачев
                         }));
-                    Log.Add("СОЗДАН НОВЫЙ ПРАЙС ЛИСТ " + spl.id);
+                    Log.Add("business.ru: СОЗДАН НОВЫЙ ПРАЙС ЛИСТ " + spl.id);
                     Thread.Sleep(1000);
                     //привяжем к нему тип цены
                     var splpt = JsonConvert.DeserializeObject<PostSuccessAnswer>(
@@ -1242,7 +1264,7 @@ namespace Selen {
                         {"price_list_id", spl.id},
                         {"price_type_id", "75524"}//розничная
                     }));
-                    Log.Add("ПРИВЯЗАН ТИП ЦЕН К ПРАЙСУ 75524 (розничная)");
+                    Log.Add("business.ru: ПРИВЯЗАН ТИП ЦЕН К ПРАЙСУ 75524 (розничная)");
                     Thread.Sleep(1000);
 
                     //для каждого товара сделаем привязку у прайс листу
@@ -1253,8 +1275,7 @@ namespace Selen {
                                 {"price_list_id", spl.id},
                                 {"good_id", good.id},
                             }));
-                        Log.Add("ПРИВЯЗАНА КАРТОЧКА К ПРАЙС-ЛИСТУ \n" + good.name);
-
+                        Log.Add("business.ru: КАРТОЧКА ПРИВЯЗАНА К ПРАЙС-ЛИСТУ \n" + good.name);
                         Thread.Sleep(1000);
                         //и назначение цены
                         var splgp = JsonConvert.DeserializeObject<PostSuccessAnswer>(
@@ -1264,13 +1285,14 @@ namespace Selen {
                                 {"price_type_id", "75524"},
                                 {"price", good.price.ToString()}
                             }));
-                        Log.Add("НАЗНАЧЕНА ЦЕНА К ПРИВЯЗКЕ ПРАЙС ЛИСТА " + good.price);
+                        Log.Add("business.ru: НАЗНАЧЕНА ЦЕНА К ПРИВЯЗКЕ ПРАЙС ЛИСТА " + good.price);
                         Thread.Sleep(1000);
                     }
-                    Log.Add("ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ В БАЗЕ НА " + newTiuGoods.Count + " ТОВАРОВ!");
+                    Log.Add("business.ru: ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ НА " + newTiuGoods.Count + " ТОВАРОВ!");
                 }
-            } catch (Exception ex) {
-                Log.Add("AddSupplyAsync: " + ex.Message);
+                
+            } catch (Exception x) {
+                Log.Add("business.ru: ошибка при создании поступления в AddSupplyAsync - " + x.Message);
             }
             newTiuGoods.Clear();
         }
@@ -2609,6 +2631,7 @@ namespace Selen {
         }
 
         void ChangeStatus(object sender, ButtonStates buttonState) {
+            //button_avito_get.Enabled = true;
             var but = sender as System.Windows.Forms.Button;
             if (but != null) {
                 switch (buttonState) {

@@ -141,7 +141,7 @@ namespace Selen.Sites {
                 Encoding = Encoding.UTF8
             };
             try {
-                var num = _bus[b].images.Count > 20 ? 20 : _bus[b].images.Count;
+                var num = _bus[b].images.Count > 5 ? 5 : _bus[b].images.Count;
 
                 for (int u = 0; u < num; u++) {
                     bool flag; // флаг для проверки успешности

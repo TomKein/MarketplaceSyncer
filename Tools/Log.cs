@@ -30,7 +30,7 @@ namespace Selen.Tools {
             } }
         //добавить в лог
         public static void Add(string s)     {
-            _db.ToLog(s);
+            _db.ToLog(s); //TODO await 
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {

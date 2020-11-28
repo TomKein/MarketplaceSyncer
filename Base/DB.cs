@@ -6,6 +6,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+//using System.Threading;
 using System.Threading.Tasks;
 
 namespace Selen.Base {
@@ -94,7 +95,8 @@ namespace Selen.Base {
                         result = command.ExecuteNonQuery();
                         break;
                     } catch (Exception x) {
-                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message);
+                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message); //TODO добавить аргумент в метод Add, не писать в базу
+                        //Thread.Sleep(30000);
                     }
                     if (i == 100) {
                         Log.Add("mysql: ошибка! - превышено количество попыток обращений!");
