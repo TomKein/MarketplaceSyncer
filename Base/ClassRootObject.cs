@@ -243,6 +243,7 @@ namespace Selen
                 .Replace("\n", " ").Replace("\r", " ")
                 .Replace(".", " ").Replace(",", " ")
                 .Replace("(", " ").Replace(")", " ")
+                .Replace(":", " ").Replace(")", " ")
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim());
             var man = manufactures.Where(w => n.Contains(w));

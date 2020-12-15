@@ -93,6 +93,9 @@ namespace Selen.Sites {
             File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
             Log.Add("euroauto.ru: пропущено " + e + " товаров");
             File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
+
+            //отправка прайса по почте
+            SmtpMailClient.SendAsync();
         }
     }
 }

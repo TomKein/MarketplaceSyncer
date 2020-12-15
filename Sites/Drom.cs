@@ -122,7 +122,7 @@ namespace Selen.Sites {
         }
 
         void Delete() {
-            _dr.ButtonClick("//a[@class='doDelete']");
+            _dr.ButtonClick("//a[contains(@class,'doDelete')]");
             PressServiseSubmitButton();
         }
 

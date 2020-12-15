@@ -299,7 +299,7 @@ namespace Selen.Sites {
                     _dr.WriteToSelector(selector, _bus[b].GetDiameterOfHoles() + OpenQA.Selenium.Keys.Enter);
                     //вылет
                     selector = "//option[text()='-98']/..";
-                    _dr.WriteToSelector(selector, "0" + OpenQA.Selenium.Keys.Enter);  //редко указан в объявлении, ставим 0 по дефолту
+                    _dr.WriteToSelector(selector, "0" + OpenQA.Selenium.Keys.Enter);  //TODO возможно стоит указать 30, или парсить.. редко указан в объявлении, ставим 0 по дефолту
                 }
                 //РЕЗИНА
                 //if (bn.Contains("резина")) {

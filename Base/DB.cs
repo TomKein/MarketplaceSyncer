@@ -6,6 +6,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 //using System.Threading;
 using System.Threading.Tasks;
 
@@ -76,10 +77,11 @@ namespace Selen.Base {
                         break;
                     }
                 } catch (Exception x) {
-                    Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message);
+                    Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message, writeDb: false);
+                    Thread.Sleep(3000);
                 }
-                if (i == 100) {
-                    Log.Add("mysql: ошибка! - превышено количество попыток обращений!");
+                if (i >= 100) {
+                    Log.Add("mysql: ошибка обращения к базе данных! - превышено количество попыток обращений!", writeDb: false);
                     break;
                 }
             }
@@ -95,11 +97,11 @@ namespace Selen.Base {
                         result = command.ExecuteNonQuery();
                         break;
                     } catch (Exception x) {
-                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message); //TODO добавить аргумент в метод Add, не писать в базу
-                        //Thread.Sleep(30000);
+                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message, writeDb:false);
+                        Thread.Sleep(3000);
                     }
-                    if (i == 100) {
-                        Log.Add("mysql: ошибка! - превышено количество попыток обращений!");
+                    if (i >= 100) {
+                        Log.Add("mysql: ошибка обращения к базе данных! - превышено количество попыток обращений!", writeDb: false);
                         break;
                     }
                 }
@@ -176,14 +178,16 @@ namespace Selen.Base {
             return DateTime.MinValue;
         }
         //получаем параметры
-        public DataTable GetParams(string filter = null) {
-            //строка запроса
-            string query = "SELECT * FROM settings";
-            //если параметр не нулевой - добавляем в запрос
-            if (!string.IsNullOrEmpty(filter))
-                query += " WHERE name LIKE '%" + filter + "%' OR value LIKE '%" + filter + "%' ";
-            //возвращаю результат запроса таблицей
-            return SqlQuery(query);
+        public async Task<DataTable> GetParamsAsync(string filter = null) {
+            return await Task.Factory.StartNew(() => {
+                //строка запроса
+                string query = "SELECT * FROM settings";
+                //если параметр не нулевой - добавляем в запрос
+                if (!string.IsNullOrEmpty(filter))
+                    query += " WHERE name LIKE '%" + filter + "%' OR value LIKE '%" + filter + "%' ";
+                //возвращаю результат запроса таблицей
+                return SqlQuery(query);
+            });
         }
         //возвращает первый элемент из таблицы как строку
         private string First(DataTable dataTable) {
@@ -194,18 +198,20 @@ namespace Selen.Base {
             return null;
         }
         //метод для записи логов в базу
-        public void ToLog(string message, string site = "") {
-            //запрос для записи в лог
-            var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
-                        "VALUES (NOW(), @site, @message);";            
-            //создаю команду
-            MySqlCommand command = new MySqlCommand(query, connection);
-            command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
-            command.Parameters.Add("@message", MySqlDbType.Text).Value = message;
-            //выполняю запрос
-            ExecuteCommandNonQuery(command);
-            //чистка лога
-            if (DateTime.Now.Millisecond <= 5) TruncLog();
+        public void ToLogAsync(string message, string site = "") {
+            Task.Factory.StartNew(()=>{
+                //запрос для записи в лог
+                var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
+                            "VALUES (NOW(), @site, @message);";            
+                //создаю команду
+                MySqlCommand command = new MySqlCommand(query, connection);
+                command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
+                command.Parameters.Add("@message", MySqlDbType.Text).Value = message;
+                //выполняю запрос
+                ExecuteCommandNonQuery(command);
+                //чистка лога
+                if (DateTime.Now.Millisecond <= 5) TruncLog();
+            });
         }
         //удаляю из лога записи старше 30 дней
         private void TruncLog() {

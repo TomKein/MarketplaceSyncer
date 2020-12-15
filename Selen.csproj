@@ -259,7 +259,7 @@
   <ItemGroup>
     <Compile Include="Base\Class365API.cs" />
     <Compile Include="Base\DB.cs" />
-    <Compile Include="Base\SftpClient.cs" />
+    <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -297,6 +297,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\Selenium.cs" />
+    <Compile Include="Tools\SmtpMailClient.cs" />
     <EmbeddedResource Include="FormMain.resx">
       <DependentUpon>FormMain.cs</DependentUpon>
     </EmbeddedResource>

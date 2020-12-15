@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Selen.Base;
 using Selen.Tools;
@@ -16,9 +17,9 @@ namespace Selen {
             InitializeComponent();
         }
         //метод заполнения таблицы значениями параметров из таблицы settings бд
-        void GridFill() {
+        async Task GridFillAsync() {
             //получаю таблицу параметров, в качестве параметра передаю значение поля для поиска
-            var dt = _db.GetParams(textBox_Search.Text);
+            var dt = await _db.GetParamsAsync(textBox_Search.Text);
             //даю таблицу датагриду
             dataGridView_Settings.DataSource = dt;
             //первый столбец (ключи) ставлю только для чтения
@@ -28,7 +29,7 @@ namespace Selen {
         }
         //метод обработки события загрузки формы
         private void FormSettings_Load(object sender, EventArgs e) {
-            GridFill();
+            GridFillAsync();
         }
         //метод обработки события начала режима редактирования
         private void dataGridView_Settings_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e) {
@@ -62,7 +63,7 @@ namespace Selen {
         }
 
         private void textBox_Search_TextChanged(object sender, EventArgs e) {
-            GridFill();
+            GridFillAsync();
         }
     }
 }

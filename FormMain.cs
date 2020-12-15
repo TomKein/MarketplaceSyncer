@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.44.2";
+        string _version = "1.46.1";
         
         DB _db = new DB();
 
@@ -172,58 +172,46 @@ namespace Selen {
 
         //=== полный скан базы бизнес.ру ==//
         private async void BaseGet(object sender, EventArgs e) {
-            button_base_get.BackColor = Color.Yellow;
-            button_base_get.Enabled = false;
+            ChangeStatus(sender, ButtonStates.NoActive);
+            Log.Add("business.ru: старт полного цикла синхронизации");
             base_rescan_need = true;
             base_can_rescan = false;
             //сбрасываем флаг ошибки редактирования
             wasErrors = false;
             sync_start = DateTime.Now;
-            if (checkBox_sync.Checked) {
-                button_avito_get.PerformClick();
-                await Task.Delay(30000);
-                button_drom_get.PerformClick();
-                await Task.Delay(30000);
-                button_cdek.PerformClick();
-                await Task.Delay(30000);
-                button_AutoRuStart.PerformClick();
-                await Task.Delay(30000);
-                buttonKupiprodai.PerformClick();
-                await Task.Delay(30000);
-                button_GdeGet.PerformClick();
-                await Task.Delay(30000);
-                button_tiu_sync.PerformClick();
-                await Task.Delay(30000);
-                button_avto_pro.PerformClick();
-                await Task.Delay(30000);
-                button_vk_sync.PerformClick();
-            }
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
-
-            await AddPartNumsAsync();//добавление артикулов из описания
-
             var tlog = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
-            Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog);
-            Log.Add("из них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
+            Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog+"\nиз них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
             label_bus.Text = tlog;
-
+            await AddPartNumsAsync();
             await SaveBus();
-
             base_rescan_need = false;
+            //запуск браузеров
+            button_tiu_sync.PerformClick();
+            await Task.Delay(60000);
+            button_avto_pro.PerformClick();
+            await Task.Delay(60000);
+            buttonKupiprodai.PerformClick();
+            await Task.Delay(60000);
+            button_GdeGet.PerformClick();
+            await Task.Delay(60000);
+            button_cdek.PerformClick();
+            await Task.Delay(60000);
+            button_AutoRuStart.PerformClick();
+            await Task.Delay(60000);
+            button_vk_sync.PerformClick();
+            await Task.Delay(60000);
+            button_avito_get.PerformClick();
+            await Task.Delay(60000);
+            button_drom_get.PerformClick();
+            await Task.Delay(60000);
+            button_EuroAuto.PerformClick();
+            await WaitButtonsActiveAsync();
+            Log.Add("business.ru: полный цикл синхронизации завершен");
+            dateTimePicker1.Value = sync_start;
             base_can_rescan = true;
-
-            while (!IsButtonsActive()) {
-                await Task.Delay(60000);
-            }
-            button_base_get.BackColor = Color.GreenYellow;
-
-            //если авто синхронизация включена
-            if (checkBox_sync.Checked) {
-                button_EuroAuto.PerformClick();
-                await Task.Delay(30000);
-                button_tiu_sync.PerformClick();
-            }
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //запрашиваю группы товаров
         public async Task GetBusGroupsAsync() {
@@ -279,12 +267,12 @@ namespace Selen {
                         await Task.Delay(2000);
                     }
                 } catch (Exception x) {
-                    Log.Add("business.ru: ошибка при запросе карточек товаров из базы!!! - " + x.Message);
+                    Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
                     await Task.Delay(60000);
                 }
                 dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
             } while (bus.Count == 0 || Math.Abs(lastScan - bus.Count) > 400);
-            Log.Add("business.ru: получено карточек товаров " + bus.Count);
+            Log.Add("business.ru: получено товаров " + bus.Count);
             dSet.WriteXml(fSet);
         }
 
@@ -417,9 +405,9 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 while (base_rescan_need || bus.Count == 0) {await Task.Delay(60000);}
-                await TiuUploadAsync();
                 await TiuHide();
                 await AddPhotosToBaseAsync();
+                await TiuUploadAsync();
                 await AddSupplyAsync();
                 await TiuSyncAsync2();
                 ChangeStatus(sender, ButtonStates.Active); 
@@ -725,12 +713,12 @@ namespace Selen {
                 await ts;
                 //галочка выделить все элементы
                 tiu.FindElement(By.CssSelector("input[data-qaid='select_all_chbx']")).Click();
-                Thread.Sleep(2000);
+                Thread.Sleep(3000);
                 //жмем кнопку выбора действия
                 tiu.FindElement(By.CssSelector("span[data-qaid='selector_button']")).Click();
-                Thread.Sleep(2000);
+                Thread.Sleep(5000);
                 //жмем изменить видимость
-                var c = tiu.FindElements(By.XPath("//div[text()='Изменить видимость']")).First();
+                var c = tiu.FindElements(By.XPath("//div/span[text()='Изменить видимость']/..")).First();
                 Actions a = new Actions(tiu);
                 a.MoveToElement(c).Perform();
                 Thread.Sleep(1000);
@@ -1152,7 +1140,7 @@ namespace Selen {
                 if (newTiuGoods.Count > 0) {
                     Log.Add("business.ru: обнаружено " + newTiuGoods.Count + " новых товаров на тиу.ру:\n"
                         + newTiuGoods.Select(s => s.name).Aggregate((a, b) => a + "\n" + b));
-                    for (int i = 0; newTiuGoods.Count > 0; i++) {
+                    for (int i = 0; i < newTiuGoods.Count; i++) {
                         //подгружаем цену, количество и ед имз. для каждого товара
                         try {
                             tiu.Navigate().GoToUrl(newTiuGoods[i].tiu);
@@ -1218,7 +1206,7 @@ namespace Selen {
                 }
 
                 if (newTiuGoods.Count > 0) {
-                    var number = DateTime.Now.ToString().Replace(".","");
+                    var number = DateTime.Now.ToString().Replace(".", "").Replace(":", "").Replace(" ", "");
                     //сделаем новое поступление
                     var remain = JsonConvert.DeserializeObject<PostSuccessAnswer>(
                         await Class365API.RequestAsync("post", "remains", new Dictionary<string, string>() {
@@ -1435,15 +1423,7 @@ namespace Selen {
                     if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
                         await AddPartNumsAsync();//добавление артикулов из описания
                         await Task.Delay(30000);
-                        button_avito_get.PerformClick();
-                        await Task.Delay(60000);
-                        button_drom_get.PerformClick();
-                        await Task.Delay(60000);
                         button_tiu_sync.PerformClick();
-                        await Task.Delay(60000);
-                        button_AutoRuStart.PerformClick();
-                        await Task.Delay(60000);
-                        buttonSatom.PerformClick();
                         await Task.Delay(60000);
                         buttonKupiprodai.PerformClick();
                         await Task.Delay(60000);
@@ -1455,11 +1435,17 @@ namespace Selen {
                         await Task.Delay(60000);
                         button_avto_pro.PerformClick();
                         await Task.Delay(60000);
+                        button_avito_get.PerformClick();
+                        await Task.Delay(60000);
+                        button_drom_get.PerformClick();
+                        await Task.Delay(60000);
+                        button_AutoRuStart.PerformClick();
+                        await Task.Delay(60000);
+                        buttonSatom.PerformClick();
+                        await Task.Delay(60000);
                         button_EuroAuto.PerformClick();
                         //нужно подождать конца обновлений объявлений
-                        while (!IsButtonsActive()) {
-                            await Task.Delay(60000);
-                        }
+                        await WaitButtonsActiveAsync();
                         //проверка задвоенности наименований карточек товаров
                         await CheckDublesAsync();//проверка дублей
                         await CheckMultipleApostropheAsync();//проверка лишних аппострофов
@@ -1490,10 +1476,9 @@ namespace Selen {
             }
             ChangeStatus(button_base_get, ButtonStates.Active);
         }
-
-        bool IsButtonsActive() {
-            return
-                button_tiu_sync.Enabled &&
+        //пока не активируются все кнопки ожидаем 20 сек
+        async Task WaitButtonsActiveAsync() {
+            while (!(button_tiu_sync.Enabled &&
                 button_EuroAuto.Enabled &&
                 button_drom_get.Enabled &&
                 button_vk_sync.Enabled &&
@@ -1502,7 +1487,8 @@ namespace Selen {
                 button_AutoRuStart.Enabled &&
                 button_GdeGet.Enabled &&
                 button_cdek.Enabled &&
-                button_avto_pro.Enabled;
+                button_avto_pro.Enabled)
+            ) await Task.Delay(20000);
         }
 
         private async Task CheckMultipleApostropheAsync() {
@@ -2533,18 +2519,20 @@ namespace Selen {
         }
         //=== синхронизация EUROAUTO.RU ===
         private async void button_EuroAuto_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (base_rescan_need || !button_base_get.Enabled) {
-                Log.Add("euroauto.ru: ожидаю загрузку базы... ");
-                await Task.Delay(60000);
-            }
-            try {
-                await _euroAuto.SyncAsync(bus);
-                Log.Add("euroauto.ru: выгрузка ок!");
-                ChangeStatus(sender, ButtonStates.Active);
-            } catch (Exception x) {
-                Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message+x.InnerException.Message);
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            if (DateTime.Now.Hour > 5 && DateTime.Now.Hour % 2 == 0) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need || !button_base_get.Enabled) {
+                    Log.Add("euroauto.ru: ожидаю загрузку базы... ");
+                    await Task.Delay(60000);
+                }
+                try {
+                    await _euroAuto.SyncAsync(bus);
+                    Log.Add("euroauto.ru: выгрузка ок!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                }
             }
         }
         //загрузка куки
@@ -2569,7 +2557,7 @@ namespace Selen {
         }
         private void LoadCookies(IWebDriver dr, string name) {
             try {
-                var json = File.ReadAllText(name);
+                var json = File.ReadAllText(name).Replace("Expiry\":\"2020","Expiry\":\"2022");
                 var cookies = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(json);
                 OpenQA.Selenium.Cookie ck;
                 foreach (var c in cookies) {
@@ -2694,6 +2682,8 @@ namespace Selen {
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
+
+                Log.Add(DateTime.Now.ToString().Replace(".", ""));
                 //await SftpUploadAsync();
                 //var json = JsonConvert.SerializeObject(bus[0]);
 

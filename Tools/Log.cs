@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Selen.Base;
 
 namespace Selen.Tools {
@@ -29,8 +30,10 @@ namespace Selen.Tools {
                 return _log.Aggregate((a, b) => a + "\n" + b);
             } }
         //добавить в лог
-        public static void Add(string s)     {
-            _db.ToLog(s); //TODO await 
+        //s - строка, которая должна быть записана
+        //writeDb - писать лог в базу данных
+        public static void Add(string s, bool writeDb = true) {
+            if (writeDb) _db.ToLogAsync(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
