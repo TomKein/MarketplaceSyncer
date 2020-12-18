@@ -261,7 +261,7 @@ namespace Selen.Sites {
         }
         void Up() {
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
-                _dr.ButtonClick("//a[@class='doProlong']");
+                _dr.ButtonClick("//a[contains(@class,'doProlong')]");
                 _dr.ButtonClick("//a[@data-applier='recoverBulletin']");
                 PressServiseSubmitButton();
                 _dr.ButtonClick("//a[@data-applier='prolongBulletin']");
