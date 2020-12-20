@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.46.2";
+        string _version = "1.46.3";
         
         DB _db = new DB();
 
@@ -1219,12 +1219,13 @@ namespace Selen {
                             {"employee_id", "76221"},//-рогачев 76197-радченко
                             {"currency_id", "1"},
                             {"date", DateTime.Now.ToShortDateString()},
-                            {"comment", "Создано автоматически, цена закупки 50% от реализации"}
+                            {"comment", "Создано автоматически, цена закупки 80% от реализации"}
                     }));
                     Log.Add("business.ru: СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ № "+ number);
                     Thread.Sleep(1000);
                     //делаем привязку к поступлению каждого товара
                     foreach (var good in newTiuGoods) {
+                        var price = (int) (good.price * 0.8);
                         var res = JsonConvert.DeserializeObject<PostSuccessAnswer>(
                             await Class365API.RequestAsync("post", "remaingoods", new Dictionary<string, string>()
                         {
@@ -1232,8 +1233,8 @@ namespace Selen {
                             {"good_id", good.id},
                             {"amount", good.amount.ToString()},
                             {"measure_id", good.measure_id},
-                            {"price", Convert.ToString(good.price/2)},
-                            {"sum", Convert.ToString(good.amount*good.price/2)}
+                            {"price", Convert.ToString(price)},
+                            {"sum", Convert.ToString(good.amount*price)}
                         }));
                         Log.Add("business.ru: ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
                         Thread.Sleep(1000);
