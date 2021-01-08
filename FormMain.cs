@@ -23,7 +23,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.46.3";
+        string _version = "1.47.2";
         
         DB _db = new DB();
 
@@ -142,9 +142,8 @@ namespace Selen {
             try {
                 dSet.ReadXml(fSet);
                 dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
-            } catch (Exception) {
-                MessageBox.Show("ошибка чтения set.xml");
-                Thread.Sleep(5000);
+            } catch (Exception x) {
+                MessageBox.Show("ошибка чтения set.xml - "+ x.Message);
             }
         }
         //закрываем форму, сохраняем настройки
@@ -267,7 +266,7 @@ namespace Selen {
                             bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
                             label_bus.Text = bus.Count.ToString();
                         } else break;
-                        await Task.Delay(2000);
+                        //await Task.Delay(2000);
                     }
                 } catch (Exception x) {
                     Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
@@ -409,6 +408,7 @@ namespace Selen {
             try {
                 while (base_rescan_need || bus.Count == 0) {await Task.Delay(60000);}
                 await TiuHide();
+                await TiuMovePricelessToDrafts();
                 await AddPhotosToBaseAsync();
                 await TiuUploadAsync();
                 await AddSupplyAsync();
@@ -417,6 +417,37 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem); 
+            }
+        }
+        //перемещаем товары без цен с витрины в черновики
+        private async Task TiuMovePricelessToDrafts() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    //запрашиваю опубликованные товары без цены
+                    tiu.Navigate().GoToUrl("https://my.tiu.ru/cms/product?search_term=&page=1&per_page=20&status=0&price=without_price");
+                    Thread.Sleep(1000);
+                    //ставлю галочку выделить все элементы
+                    tiu.FindElement(By.CssSelector("input[data-qaid='select_all_chbx']")).Click();
+                    Thread.Sleep(2000);
+                    //жму Выбор действия
+                    tiu.FindElement(By.CssSelector("span[data-qaid='selector_button']")).Click();
+                    Thread.Sleep(3000);
+                    //жму Изменить видимость
+                    var c = tiu.FindElements(By.XPath("//div/span[text()='Изменить видимость']/..")).First();
+                    Actions a = new Actions(tiu);
+                    a.MoveToElement(c).Perform();
+                    Thread.Sleep(1000);
+                    a.Click().Perform();
+                    Thread.Sleep(1000);
+                    //жму Черновики
+                    c = tiu.FindElements(By.XPath("//div[text()='Черновики']")).First();
+                    a.MoveToElement(c).Perform();
+                    Thread.Sleep(1000);
+                    c.Click();
+                    Thread.Sleep(2000);
+                });
+            } catch (Exception x) {
+                Log.Add("tiu.ru: ошибка при перемещении товаров без цен в черновики - "+ x.Message);
             }
         }
 
@@ -435,7 +466,7 @@ namespace Selen {
                     loadSuccess = false;
                     Log.Add("tiu.ru: ошибка запроса XML!");
                 }
-                if (loadSuccess /*&& sync_start.Hour % 4 == 0 && sync_start.Minute > 55*/) { //TODO добавить в settings время последней отправки файла
+                if (loadSuccess && DateTime.Now.Hour < 8) { //TODO добавить в settings время последней отправки файла
                     //проверяем количество полученных товарных позиций
                     tiuCount = ds.Tables["offer"].Rows.Count;
                     label_tiu.Text = tiuCount.ToString();
@@ -2682,12 +2713,63 @@ namespace Selen {
             fs.ShowDialog();
             fs.Dispose();
         }
+        //массовое изменение цен закупки на товары введенных на остатки
+        async Task ChangeRemainsPrices(int procent=80) {
+            //цикл для пагинации запросов
+            for (int i = 1; ; i++) {
+                //запрашиваю товары из документов "ввод на остатки"
+                var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
+                        {"limit", pageLimitBase.ToString()},
+                        {"page", i.ToString()},
+                    });
+                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
+                if (s.Length <= 4) break;
+                //десериализую json в список товаров
+                var remainGoods = JsonConvert.DeserializeObject<List<RemainGoods>>(s);
+                //перебираю товары из списка
+                foreach (var rg in remainGoods) {
+                    //индекс карточки товара
+                    var indBus = bus.FindIndex(f => f.id == rg.good_id);
+                    //если индекс и остаток положительный
+                    if (indBus > -1 && bus[indBus].amount > 0) { 
+                        //цена ввода на остатки (цена закупки)
+                        var priceIn = rg.FloatPrice;
+                        //цена отдачи (розничная)
+                        var priceOut = bus[indBus].price;
+                        //процент цены закупки от цены отдачи
+                        var procentCurrent = 100 * priceIn / priceOut;
+                        //если процент различается более чем на 3%
+                        if (Math.Abs(procentCurrent - procent) > 3) {
+                            //новая цена закупки
+                            var newPrice = priceOut * procent * 0.01;
+                            //- меняем цену закупки
+                            s = await Class365API.RequestAsync("put", "remaingoods", new Dictionary<string, string> {
+                                { "id", rg.id },
+                                { "remain_id",rg.remain_id },
+                                { "good_id", rg.good_id},
+                                { "price", newPrice.ToString("#.##")},
+                            });
+                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
+                                Log.Add("business.ru: "+bus[indBus].name+" - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                            await Task.Delay(50);
+                        }
+                    }
+                }
+            }
+        }
         //=========================//
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
 
-                Log.Add(DateTime.Now.ToString().Replace(".", ""));
+                //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
+
+                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
+
+                await ChangeRemainsPrices(80);
+
+                Thread.Sleep(10);
+                //Log.Add(DateTime.Now.ToString().Replace(".", ""));
                 //await SftpUploadAsync();
                 //var json = JsonConvert.SerializeObject(bus[0]);
 

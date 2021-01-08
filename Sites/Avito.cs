@@ -363,15 +363,23 @@ namespace Selen.Sites {
             var inactive = int.Parse(txt[0]);
             var active = int.Parse(txt[1]);
             var old = int.Parse(txt[2]);
-            //проверяю случайную страницу активных объявлений
-            await ParsePage("/active", GetRandomPageNum(active));
-            await ParsePage("/old", GetRandomPageNum(old));
+            //процент страниц для проверки
+            var checkPagesProcent = _db.GetParamInt("avito.checkPagesProcent");
+            //перебираю номера страниц
+            for (int i = 0; i < active/50; i++) {
+                //пропуск страниц
+                if (rnd.Next(100) > checkPagesProcent) continue;
+                //проверить данную страницу
+                await ParsePage("/active", i+1);
+                //проверить также страницу снятых, если номер в пределах
+                if (i<old/50) await ParsePage("/old", i+1);
+            }
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
             for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i+1); }
             for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i+1); }
         }
         //случайный номер страницы
-        private int GetRandomPageNum(int count) {
+        private int GetRandomPageNum() {
             return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 50);
         }
         //проверка объявлений на странице

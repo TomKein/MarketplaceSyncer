@@ -34,6 +34,31 @@ namespace Selen
         public Amount amount { get; set; }
     }
 
+    public class RemainGoods {
+        public string id { get; set; }
+        public string remain_id { get; set; }
+        public string good_id { get; set; }
+        public string amount { get; set; }
+        public string measure_id { get; set; }
+        public string price { get; set; }
+        public string sum { get; set; }
+        public string default_order { get; set; }
+        public string updated { get; set; }
+
+        public float FloatAmount {
+            get {
+                return string.IsNullOrEmpty(amount) ? 0 
+                    : float.Parse(amount.Replace(".", ","));
+            }
+        }
+        public float FloatPrice {
+            get {
+                return string.IsNullOrEmpty(price) ? 0
+                    : float.Parse(price.Replace(".", ","));
+            }
+        }
+    }
+
     public class Image{
         public string name { get; set; }
         public string url { get; set; }

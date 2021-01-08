@@ -22,6 +22,7 @@ namespace Selen {
         public object result { get; set; }
         public string token { get; set; }
         public string app_psw { get; set; }
+        public int request_count { get; set; }
     }
 
     static class Class365API {
@@ -122,6 +123,7 @@ namespace Selen {
                     if (action.ToUpper() == "GET") {
                         httpResponseMessage = await hc.GetAsync(url + "?" + qstr);
                     } else if (action.ToUpper() == "PUT") {
+                        //HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/json");
                         HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/json");
                         httpResponseMessage = await hc.PutAsync(url, content);
                     } else if (action.ToUpper() == "POST") {
@@ -131,7 +133,7 @@ namespace Selen {
                     if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
                         var js = await httpResponseMessage.Content.ReadAsStringAsync();
                         rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                        Thread.Sleep(100);
+                        Thread.Sleep(rr.request_count*10);
                         flag = false;
                         return JsonConvert.SerializeObject(rr.result);
                     }
