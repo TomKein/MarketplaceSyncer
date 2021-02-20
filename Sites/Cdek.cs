@@ -228,9 +228,7 @@ namespace Selen.Sites {
         }
 
         void SetDesc(int b) {
-            _dr.SwitchToFrame("iframe[title*='product_full_desc']");
-            _dr.WriteToSelector(".cke_editable", sl: _bus[b].DescriptionList(2999,_addDesc));
-            _dr.SwitchToMainFrame();
+            _dr.WriteToSelector("//*[@input='product_full_descr_content']", sl: _bus[b].DescriptionList(2999,_addDesc));
         }
 
         private void SetPrice(int b) {
@@ -264,10 +262,10 @@ namespace Selen.Sites {
             } catch (Exception x) {
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
-                    x.Message.Contains("chrome not reachable")) throw; //сайт не отвечает - кидаю исключение дальше и завершаю текущий цикл
-                if (x.Message.Contains("invalid session")) { //перезапуск браузера до победного
+                    x.Message.Contains("chrome not reachable")|| 
+                    x.Message.Contains("invalid session")) { 
                     Quit();
-                    Thread.Sleep(180000);
+                    await Task.Delay(180000);
                     await Autorize_async();
                 }
             }

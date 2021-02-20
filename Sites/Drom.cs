@@ -153,9 +153,10 @@ namespace Selen.Sites {
                     try {
                         await t;
                         await SaveUrlAsync(b);
+                        Log.Add("drom.ru: добавлено объявление - " + _bus[b].name);
                         count--;
                     } catch (Exception x) {
-                        Debug.WriteLine("drom.ru: ошибка добавления! - " + _bus[b].name + " - " + x.Message);
+                        Log.Add("drom.ru: ошибка добавления! - " + _bus[b].name + " - " + x.Message);
                         break;
                     }
                 }

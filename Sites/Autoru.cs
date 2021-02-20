@@ -260,7 +260,10 @@ namespace Selen.Sites {
                 try {
                     _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "file.jpg");
                     //удаляю дубли - глюк авто.ру
-                    while (_dr.GetElementsCount("//li/*[contains(@class,'IconSvg_close')]") > u + 1) {
+                    while (_dr.GetElementsCount(
+                        ".FormField_name_images .IconSvg_close"
+                        //"//li/*[contains(@class,'IconSvg_close')]"
+                        ) > u + 1) {
                         _dr.ButtonClick("(//li/*[contains(@class,'IconSvg_close')])[last()]");
                     }
                 } catch(Exception x) {

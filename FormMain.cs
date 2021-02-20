@@ -15,7 +15,6 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using Application = System.Windows.Forms.Application;
 using System.Text.RegularExpressions;
-using BlueSimilarity;
 using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
@@ -23,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.47.2";
+        string _version = "1.47.4";
         
         DB _db = new DB();
 
@@ -1457,6 +1456,7 @@ namespace Selen {
 
                     if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
                         await AddPartNumsAsync();//добавление артикулов из описания
+                        await CheckArhiveStatusAsync();//проверка архивного статуса
                         await Task.Delay(30000);
                         button_tiu_sync.PerformClick();
                         await Task.Delay(60000);
@@ -1511,6 +1511,24 @@ namespace Selen {
             }
             ChangeStatus(button_base_get, ButtonStates.Active);
         }
+
+        async Task CheckArhiveStatusAsync() {
+            try {
+                foreach (var item in bus.Where(w => w.amount > 0 && w.archive)) {
+                    Log.Add("business.ru: ОШИБКА! КАРТОЧКА С ПОЛОЖИТЕЛЬНЫМ ОСТАТКОМ В АРХИВЕ! - " + item.name);
+                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", item.id},
+                                {"name", item.name},
+                                {"archive", "0"}
+                        });
+                        Log.Add("business.ru: архивный статус отменен! - " + item.name);
+                        Thread.Sleep(1000);
+                }
+            } catch (Exception x) {
+                Log.Add("business.ru: ОШИБКА ПРИ ИЗМЕНЕНИИ АРХИВНОГО СТАТУСА! - " + x.Message);
+            }
+        }
+
         //пока не активируются все кнопки ожидаем 20 сек
         async Task WaitButtonsActiveAsync() {
             while (!(button_tiu_sync.Enabled &&
@@ -1526,7 +1544,7 @@ namespace Selen {
             ) await Task.Delay(20000);
         }
 
-        private async Task CheckMultipleApostropheAsync() {
+        async Task CheckMultipleApostropheAsync() {
             try {
                 foreach (var item in bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.amount > 0)) {
                     Log.Add("ОБНАРУЖЕНО НАЗВАНИЕ С МНОЖЕСТВОМ АПОСТРОФОВ\n" + item.name);
@@ -1546,7 +1564,7 @@ namespace Selen {
             }
         }
 
-        private async Task AddPartNumsAsync() {
+        async Task AddPartNumsAsync() {
             try {
                 var i = 0;
                 foreach (var item in bus.Where(w => (!string.IsNullOrEmpty(w.description) && w.description.Contains("№") && string.IsNullOrEmpty(w.part)))) {

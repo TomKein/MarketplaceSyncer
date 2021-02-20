@@ -80,12 +80,12 @@ namespace Selen.Tools {
 
         public void WriteToSelector(string sel, string s = null, List<string> sl = null) {
             try {
-                if (s != null || sl != null) {
+                if (!(string.IsNullOrEmpty(s) && sl == null)) {
                     var el = FindElements(sel);
                     if (el.Count > 0) WriteToIWebElement(el.First(), s, sl);
                 }
             } catch (Exception x){
-                Debug.WriteLine(x.Message);
+                Log.Add(x.Message);
             }
         }
 
@@ -135,7 +135,7 @@ namespace Selen.Tools {
                     a.Click();
                     Thread.Sleep(500);
                 } catch (Exception x) {
-                    Debug.WriteLine(x.Message);
+                    Log.Add(x.Message);
                 }
             }
         }

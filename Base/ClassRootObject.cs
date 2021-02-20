@@ -229,20 +229,24 @@ namespace Selen
 
         public string GetNumber() {
             if (!String.IsNullOrEmpty(description) && description.Contains("№")) {
-                return description
-                                .Split('№').Last()
-                                .Replace("\u00A0", " ")
-                                .Replace("\u2009", " ")
-                                .Replace("&nbsp;", " ")
-                                .Replace("&thinsp;", " ")
-                                .Replace("<", " ")
-                                .Replace("(", " ")
-                                .Replace("[", " ")
-                                .Replace("/", " ")
-                                .Replace(",", " ")
-                                .Replace("\n", " ")
-                                .Split(' ').First()
-                                .Trim(',');
+                var pattern = @"№\s*([а-яa-z0-9]+)\s*";
+                var number = Regex.Match(description, pattern).Groups[1].Value;
+                if (string.IsNullOrEmpty(number)) number = "";
+                return number;
+                //return description
+                //                .Split('№').Last()
+                //                .Replace("\u00A0", " ")
+                //                .Replace("\u2009", " ")
+                //                .Replace("&nbsp;", " ")
+                //                .Replace("&thinsp;", " ")
+                //                .Replace("<", " ")
+                //                .Replace("(", " ")
+                //                .Replace("[", " ")
+                //                .Replace("/", " ")
+                //                .Replace(",", " ")
+                //                .Replace("\n", " ")
+                //                .Split(' ').First()
+                //                .Trim(',');
             }
             return "";
         }

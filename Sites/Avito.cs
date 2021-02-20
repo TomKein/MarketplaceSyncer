@@ -80,6 +80,7 @@ namespace Selen.Sites {
             await EditAllAsync();
             await AddAsync();
             await AvitoUpAsync();
+            CheckUrls();
             Log.Add("avito.ru: выгрузка завершена");
         }
         //удаление черновиков
@@ -177,6 +178,8 @@ namespace Selen.Sites {
                 if (isAlive) {
                     await Task.Factory.StartNew(() => {
                         SetStatus(b);
+                        SetPartNumber(b);
+                        SetManufacture(b);
                         SetTitle(b);
                         SetPrice(b);
                         SetDesc(b);
@@ -187,6 +190,24 @@ namespace Selen.Sites {
                 }
             }
         }
+
+        private void SetManufacture(int b) {
+            var elem = _dr.FindElements("//span[text()='Производитель']/../../..//input");
+            if (elem.Count < 0)//TODO !!don't forget!!
+                try {
+                    _dr.WriteToIWebElement(elem.Last(), _bus[b].GetManufacture() +
+                        OpenQA.Selenium.Keys.ArrowDown + OpenQA.Selenium.Keys.Enter);
+                } catch { };
+        }
+
+        private void SetPartNumber(int b) {
+            var elem = _dr.FindElements("//span[text()='Номер запчасти']/../../..//input");
+            if (elem.Count > 0)
+                try {
+                    _dr.WriteToIWebElement(elem.First(), _bus[b].part);
+                } catch { }
+        }
+
         //проверка активно ли объявление
         private async Task<bool> CheckIsOfferAlive(int b) {
             var count = 0;
@@ -233,6 +254,8 @@ namespace Selen.Sites {
                         SetImages(b);
                         SetPrice(b);
                         SetDesc(b);
+                        SetPartNumber(b);
+                        SetManufacture(b);
                         SetAddress();
                         SetPhone();
                         PressOk();
@@ -508,6 +531,12 @@ namespace Selen.Sites {
         }
         //проверить ссылку
         public void CheckUrls() {
+            var reg = "http.+([0-9]+)$";
+            foreach (var item in _bus.Where(w=>w.avito.Contains("avito"))) {
+                if (!Regex.IsMatch(item.avito, reg))
+                    Log.Add("avito.ru: ошибка! неверная ссылка! - " + item.name + " - " + item.avito);
+            }
+
             //TODO авито реализовать скользящую проверку ссылок из базы
 
             //кусок старого кода, может пригодится
