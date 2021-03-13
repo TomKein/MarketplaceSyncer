@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.47.4";
+        string _version = "1.48.1";
         
         DB _db = new DB();
 
@@ -621,8 +621,8 @@ namespace Selen {
         private void TiuOfferUpdate(int b) {
             tiu.Navigate().GoToUrl(bus[b].tiu);
             TiuCheckPopup();
-            WriteToIWebElement(tiu, tiu.FindElement(By.CssSelector("input[data-qaid='product_name_input']")), bus[b].name);
-            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//*[@id='cke_1_contents']/iframe")), sl: GetTiuDesc(b));
+            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//div[@data-qaid='product_name_input']//input")), bus[b].name);
+            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//*[@id='cke_product']//iframe")), sl: GetTiuDesc(b));
 
             var status = tiu.FindElement(By.CssSelector(".b-product-edit__partition .b-product-edit__partition div.js-toggle"));
             var curStatus = status.FindElement(By.CssSelector("span span")).Text;
@@ -691,8 +691,8 @@ namespace Selen {
                                 Log.Add("НЕТ ИЗОБРАЖЕНИЙ... ПОДГРУЖЕНЫ ИЗ ТИУ!\n" + bus[b].name + "\n" + s);
                                 Thread.Sleep(3000);
                             }
-                        } catch {
-                            Log.Add("Ошибка загрузки фотографий с тиу в базу\n" + bus[b].name);
+                        } catch (Exception x){
+                            Log.Add("tiu.ru: ОШИБКА ЗАГРУЗКИ ФОТОГРАФИЙ С ТИУ В БАЗУ! - " + bus[b].name + x.Message);
                         }
                     }
                 }
@@ -721,6 +721,10 @@ namespace Selen {
                 tiu.Navigate().GoToUrl("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
                 Thread.Sleep(3000);
                 try {
+                    tiu.FindElement(By.XPath("//ul/li/b[text()='Продавец']")).Click();
+                    Thread.Sleep(3000);
+                    tiu.FindElement(By.XPath("//a/b[text()='Войти как продавец']")).Click();
+                    Thread.Sleep(3000);
                     tiu.FindElement(By.Id("phone_email")).SendKeys("9106027626@mail.ru");
                     Thread.Sleep(3000);
                     tiu.FindElement(By.XPath("//button[@id='phoneEmailConfirmButton']")).Click();
@@ -1195,6 +1199,12 @@ namespace Selen {
                                 newTiuGoods.RemoveAt(i--);
                                 continue;
                             }
+                            if (tiu.FindElements(By.CssSelector(".b-uploader-extend__image-holder-img")).Count == 0) {
+                                Log.Add("business.ru: ошибка в количестве фотографий, позиция пропущена '"
+                                    + newTiuGoods[i].name + "'");
+                                newTiuGoods.RemoveAt(i--);
+                                continue;
+                            }
                         } catch (Exception x) {
                             Log.Add("business.ru: ошибка при получении цены и остатков, пропущена позиция '" 
                                 + newTiuGoods[i].name + "' - " + x.Message);
@@ -1602,7 +1612,7 @@ namespace Selen {
         private void dateTimePicker1_ValueChanged(object sender, EventArgs e) {
             try {
                 scanTime = dateTimePicker1.Value;
-                _db.SetParam("lastScanTime", scanTime.ToString());
+                _db.SetParamAsync("lastScanTime", scanTime.ToString());
                 dSet.Tables["controls"].Rows[0]["liteScanTime"] = scanTime;
                 RootObject.ScanTime = scanTime;
                 dSet.WriteXml(fSet);

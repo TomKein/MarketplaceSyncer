@@ -202,7 +202,7 @@ namespace Selen.Sites {
         }
         //описание объявления
         private void SetDesc(int b) {
-            _dr.WriteToSelector("div[class='TextArea__box'] textarea", sl: _bus[b].DescriptionList(dop: _dopDesc));
+            _dr.WriteToSelector("div[class='TextArea__box'] textarea", sl: _bus[b].DescriptionList(b:1000, dop: _dopDesc));
         }
         //устанавливаю номер запчасти
         private void SetPart(int b = 0, string number = null) {
@@ -264,7 +264,7 @@ namespace Selen.Sites {
                         ".FormField_name_images .IconSvg_close"
                         //"//li/*[contains(@class,'IconSvg_close')]"
                         ) > u + 1) {
-                        _dr.ButtonClick("(//li/*[contains(@class,'IconSvg_close')])[last()]");
+                        _dr.ButtonClick("(//*[contains(@class,'FormField_name_images')]//*[contains(@class,'IconSvg_close')])[last()]");
                     }
                 } catch(Exception x) {
                     throw new Exception("не удается прикрепить фото к объявлению! - " + x.Message);

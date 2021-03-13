@@ -110,7 +110,7 @@ namespace Selen.Sites {
             SetDesc(b);
             SetPrice(b);
             SetPart(b);
-            SetWeight(b);
+            //SetWeight(b);
             PressOkButton();
             Thread.Sleep(2000);
             if (b.amount <= 0) Delete();
@@ -147,7 +147,7 @@ namespace Selen.Sites {
                         SetOptions(_bus[b]);
                         SetDiam(_bus[b]);
                         SetAudioSize(_bus[b]);
-                        SetWeight(_bus[b]);
+                        //SetWeight(_bus[b]);
                         PressPublicFreeButton();
                     });
                     try {

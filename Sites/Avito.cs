@@ -383,8 +383,8 @@ namespace Selen.Sites {
             }
             var el = await _dr.FindElementsAsync("//li/span[contains(@class,'css')][2]");
             var txt = el.Select(s => s.Text.Replace("\u00A0", "").Replace(" ", "")).ToList();
-            var inactive = int.Parse(txt[0]);
-            var active = int.Parse(txt[1]);
+            var inactive = int.Parse(txt[1]);
+            var active = int.Parse(txt[0]);
             var old = int.Parse(txt[2]);
             //процент страниц для проверки
             var checkPagesProcent = _db.GetParamInt("avito.checkPagesProcent");
@@ -443,6 +443,7 @@ namespace Selen.Sites {
                         _bus[b].amount > 0 &&
                         (location == "/old" || location == "/inactive")) {
                         await UpOfferAsync(b);
+                        await EditAsync(b);
                     }
                 }
             }

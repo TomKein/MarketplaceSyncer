@@ -237,7 +237,7 @@ namespace Selen.Sites {
                     _dr.ButtonClick("//div[text()='Поиск']");
                     _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
                     for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
-                        if (i >= 100) throw new Exception("timed out - не удается дождаться поиска "+ _part);
+                        if (i >= 50) throw new Exception("timed out - не удается дождаться поиска "+ _part);
                         Log.Add("avto.pro: ожидаю загрузку страницы (" + i + ")");
                         Thread.Sleep(1000);
                     }
