@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.48.1";
+        string _version = "1.48.2";
         
         DB _db = new DB();
 
@@ -2031,48 +2031,10 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
-        private async void button_kp_check_Click(object sender, EventArgs e) {
+        private async void button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            var lastScan = Convert.ToInt32(dSet.Tables["controls"].Rows[0]["controlKP"]);
-            lastScan = lastScan + 1 >= bus.Count ? 0 : lastScan;//опрокидываем счетчик
-            for (int b = lastScan; b < bus.Count; b++) {
-                if (base_rescan_need) { break; }
-                if (bus[b].kp == null) continue;
-                if (bus[b].kp.Contains("http")) {
-                    var nameParse = "";
-                    var ch = Task.Factory.StartNew(() => {
-                        kp.Navigate().GoToUrl(bus[b].kp);
-                        Thread.Sleep(1000);
-                        nameParse = kp.FindElement(By.CssSelector("input[name='bbs_title']")).GetAttribute("value");
-                    });
-                    try {
-                        await ch;
-                        //если нет такого
-                        if (bus[b].name != nameParse) {
-
-                            //await api.RequestAsync("put", "goods", new Dictionary<string, string>
-                            //{
-                            //    {"id", bus[b].id},
-                            //    {"name", bus[b].name},
-                            //    {"313971", bus[b].auto},
-                            //});
-                            Log.Add("!!!!!!!!!!!!!!!!!!!!!! KP БИТАЯ ССЫЛКА В БАЗЕ!!!!!!!!!!!!!!!!\n" + "в базе:" + bus[b].name + "\nна kp:" + nameParse + "\n!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                        } else {
-                            labelKP.Text = b.ToString() + " (" + b * 100 / bus.Count + "%)";
-                            Log.Add("kp... " + b);
-                            dSet.Tables["controls"].Rows[0]["controlKP"] = b + 1;
-                            try {
-                                dSet.WriteXml(fSet);
-                            } catch (Exception x) {
-                                Log.Add("ошибка записи файла настроек!\n" + x.Message);
-                            }
-                        }
-                    } catch (Exception ex) {
-                        Log.Add("button_autoCheck_Click: " + ex.Message);
-                        break;
-                    }
-                }
-            }
+            await ChangePostingsPrices();
+            await ChangeRemainsPrices();
             ChangeStatus(sender, ButtonStates.Active);
         }
 
@@ -2766,8 +2728,8 @@ namespace Selen {
                         var priceOut = bus[indBus].price;
                         //процент цены закупки от цены отдачи
                         var procentCurrent = 100 * priceIn / priceOut;
-                        //если процент различается более чем на 3%
-                        if (Math.Abs(procentCurrent - procent) > 3) {
+                        //если процент различается более чем на 5%
+                        if (Math.Abs(procentCurrent - procent) > 5) {
                             //новая цена закупки
                             var newPrice = priceOut * procent * 0.01;
                             //- меняем цену закупки
@@ -2785,18 +2747,65 @@ namespace Selen {
                 }
             }
         }
+        //массовое изменение цен закупки в оприходованиях
+        async Task ChangePostingsPrices(int procent = 80) {
+            //цикл для пагинации запросов
+            for (int i = 1; ; i++) {
+                //запрашиваю товары из документов "Оприходования"
+                var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
+                        {"limit", pageLimitBase.ToString()},
+                        {"page", i.ToString()},
+                    });
+                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
+                if (s.Length <= 4) break;
+                //десериализую json в список товаров
+                var postingGoods = JsonConvert.DeserializeObject<List<PostingGoods>>(s);
+                //перебираю товары из списка
+                foreach (var pg in postingGoods) {
+                    //индекс карточки товара
+                    var indBus = bus.FindIndex(f => f.id == pg.good_id);
+                    //если индекс и остаток положительный
+                    if (indBus > -1 && bus[indBus].amount > 0 && bus[indBus].price > 0) {
+                        //цена ввода на остатки (цена закупки)
+                        var priceIn = pg.FloatPrice;
+                        //цена отдачи (розничная)
+                        var priceOut = bus[indBus].price;
+                        //процент цены закупки от цены отдачи
+                        var procentCurrent = 100 * priceIn / priceOut;
+                        //если процент различается более чем на 5%
+                        if (Math.Abs(procentCurrent - procent) > 5) {
+                            //новая цена закупки
+                            var newPrice = priceOut * procent * 0.01;
+                            //- меняем цену закупки
+                            s = await Class365API.RequestAsync("put", "postinggoods", new Dictionary<string, string> {
+                                { "id", pg.id },
+                                { "posting_id",pg.posting_id },
+                                { "good_id", pg.good_id},
+                                { "price", newPrice.ToString("#.##")},
+                            });
+                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
+                                Log.Add("business.ru: " + bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                            await Task.Delay(50);
+                        }
+                    }
+                }
+            }
+        }
         //=========================//
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
             try {
 
                 //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
+                //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
+                ChangeStatus(sender, ButtonStates.NoActive);
 
-                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
+                await ChangePostingsPrices();
 
-                await ChangeRemainsPrices(80);
+                await ChangeRemainsPrices();
 
-                Thread.Sleep(10);
+                ChangeStatus(sender, ButtonStates.Active);
+
                 //Log.Add(DateTime.Now.ToString().Replace(".", ""));
                 //await SftpUploadAsync();
                 //var json = JsonConvert.SerializeObject(bus[0]);

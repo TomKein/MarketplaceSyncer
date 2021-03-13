@@ -75,7 +75,7 @@ namespace Selen
             this.buttonKupiprodaiAdd = new System.Windows.Forms.Button();
             this.numericUpDownKupiprodaiAdd = new System.Windows.Forms.NumericUpDown();
             this.labelKP = new System.Windows.Forms.Label();
-            this.button_kp_check = new System.Windows.Forms.Button();
+            this.button_PricesCheck = new System.Windows.Forms.Button();
             this.button_GdeGet = new System.Windows.Forms.Button();
             this.button_GdeAdd = new System.Windows.Forms.Button();
             this.labelGde = new System.Windows.Forms.Label();
@@ -165,9 +165,9 @@ namespace Selen
             // 
             // buttonTest
             // 
-            this.buttonTest.Location = new System.Drawing.Point(710, 61);
+            this.buttonTest.Location = new System.Drawing.Point(801, 61);
             this.buttonTest.Name = "buttonTest";
-            this.buttonTest.Size = new System.Drawing.Size(61, 23);
+            this.buttonTest.Size = new System.Drawing.Size(51, 23);
             this.buttonTest.TabIndex = 20;
             this.buttonTest.Text = "Test";
             this.buttonTest.UseVisualStyleBackColor = true;
@@ -577,15 +577,15 @@ namespace Selen
             this.labelKP.Size = new System.Drawing.Size(0, 13);
             this.labelKP.TabIndex = 114;
             // 
-            // button_kp_check
+            // button_PricesCheck
             // 
-            this.button_kp_check.Location = new System.Drawing.Point(534, 61);
-            this.button_kp_check.Name = "button_kp_check";
-            this.button_kp_check.Size = new System.Drawing.Size(164, 23);
-            this.button_kp_check.TabIndex = 115;
-            this.button_kp_check.Text = "kp check";
-            this.button_kp_check.UseVisualStyleBackColor = true;
-            this.button_kp_check.Click += new System.EventHandler(this.button_kp_check_Click);
+            this.button_PricesCheck.Location = new System.Drawing.Point(534, 61);
+            this.button_PricesCheck.Name = "button_PricesCheck";
+            this.button_PricesCheck.Size = new System.Drawing.Size(164, 23);
+            this.button_PricesCheck.TabIndex = 115;
+            this.button_PricesCheck.Text = "Корекция цен закупки";
+            this.button_PricesCheck.UseVisualStyleBackColor = true;
+            this.button_PricesCheck.Click += new System.EventHandler(this.button_PricesCheck_Click);
             // 
             // button_GdeGet
             // 
@@ -650,9 +650,9 @@ namespace Selen
             // 
             // button_SaveCookie
             // 
-            this.button_SaveCookie.Location = new System.Drawing.Point(777, 61);
+            this.button_SaveCookie.Location = new System.Drawing.Point(710, 61);
             this.button_SaveCookie.Name = "button_SaveCookie";
-            this.button_SaveCookie.Size = new System.Drawing.Size(75, 23);
+            this.button_SaveCookie.Size = new System.Drawing.Size(85, 23);
             this.button_SaveCookie.TabIndex = 123;
             this.button_SaveCookie.Text = "Сохр. Куки";
             this.button_SaveCookie.UseVisualStyleBackColor = true;
@@ -898,7 +898,7 @@ namespace Selen
             this.panel2.Controls.Add(this.button_SettingsFormOpen);
             this.panel2.Controls.Add(this.button_SaveCookie);
             this.panel2.Controls.Add(this.buttonTestPartners);
-            this.panel2.Controls.Add(this.button_kp_check);
+            this.panel2.Controls.Add(this.button_PricesCheck);
             this.panel2.Controls.Add(this.label_Mem_Usage);
             this.panel2.Controls.Add(this.checkBox_photo_clear);
             this.panel2.Controls.Add(this.numericUpDown_LOG);
@@ -1039,7 +1039,7 @@ namespace Selen
         private System.Windows.Forms.Button buttonKupiprodaiAdd;
         private System.Windows.Forms.NumericUpDown numericUpDownKupiprodaiAdd;
         private System.Windows.Forms.Label labelKP;
-        private System.Windows.Forms.Button button_kp_check;
+        private System.Windows.Forms.Button button_PricesCheck;
         private System.Windows.Forms.Button button_GdeGet;
         private System.Windows.Forms.Button button_GdeAdd;
         private System.Windows.Forms.Label labelGde;
