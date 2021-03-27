@@ -225,15 +225,36 @@ namespace Selen.Sites {
         }
         //удалить объявление
         private void Delete(int b) {
-            _dr.Navigate(_bus[b].avito);
-            ChechAuthAsync();
-            if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0) Thread.Sleep(5000);
-            if (_dr.GetElementsCount("//*[text()='Снять с публикации']") > 0) {
+            for (int i = 0; ; i++) {
+                //загружаю страницу объявления
+                _dr.Navigate(_bus[b].avito);
+                //проверка авторизации
+                ChechAuthAsync();
+                //кнопки действия найдены - выход из цикла
+                if (_dr.GetElementsCount("//*[contains(@class,'app-container')]") > 0) break;
+                //есть кнопка опубликовать - объявление уже неактивно
+                if (_dr.GetElementsCount("//button/*[text()='Опубликовать']") > 0) return;
+                //есть кнопка восстановить - объявление уже удалено
+                if (_dr.GetElementsCount("//button[text()='Восстановить']") > 0) return;
+                //объявление удалено окончательно
+                if (_dr.GetElementsCount("//div[@class='item-view-warning-content']/p[contains(text(),'навсегда')]") > 0) return;
+                //если не можем найти 10 раз - ошибка!
+                if (i > 10) throw new Exception("ошибка при снятии объявления - кнопки действия на странице не найдены!");
+            }
+            //пробую снять
+            for(int i =0; ; i++) {
+                Log.Add("avito.ru: " + _bus[b].name + " - снимаю объявление");
+                _dr.ButtonClick("//span[text()='Хорошо']/..");
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
                 _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
                 _dr.ButtonClick("//button[@data-marker='save-reason']");
+                Thread.Sleep(3000);
+                if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0) {
+                    Log.Add("avito.ru: " + _bus[b].name + " - объявление снято");
+                    break;
+                };
+                if (i > 10) throw new Exception("ошибка при снятии объявления - кнопки действия на странике не срабатывают!");
             }
-            Log.Add("avito.ru: " + _bus[b].name + " - объявление снято с публикакии");
         }
         //добавить объявление асинхронно
         public async Task AddAsync() {
@@ -442,15 +463,17 @@ namespace Selen.Sites {
                         _bus[b].price >= _priceLevel &&
                         _bus[b].amount > 0 &&
                         (location == "/old" || location == "/inactive")) {
-                        await UpOfferAsync(b);
-                        await EditAsync(b);
+                        if (await UpOfferAsync(b)) {
+                            await Task.Delay(30000);
+                            await EditAsync(b);
+                        }
                     }
                 }
             }
-            await Task.Delay(30000);
         }
         //активация объявления
-        private async Task UpOfferAsync(int b) {
+        private async Task<bool> UpOfferAsync(int b) {
+            var succ = false;
             await Task.Factory.StartNew(()=> {
                 var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
                 var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
@@ -465,9 +488,12 @@ namespace Selen.Sites {
                 if (butOpub.Count > 0) {
                     butOpub.First().Click();
                     Log.Add("avito.ru: " + _bus[b].name + " - объявление " + CountToUp-- + " активировано");
+                    succ = true;
                     Thread.Sleep(30000);
                 }
             });
+            if (succ) return true;
+            return false;
         }
         //выбор статуса
         private void SetStatus(int b) {

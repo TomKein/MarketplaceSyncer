@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.48.2";
+        string _version = "1.49.1";
         
         DB _db = new DB();
 
@@ -725,11 +725,13 @@ namespace Selen {
                     Thread.Sleep(3000);
                     tiu.FindElement(By.XPath("//a/b[text()='Войти как продавец']")).Click();
                     Thread.Sleep(3000);
-                    tiu.FindElement(By.Id("phone_email")).SendKeys("9106027626@mail.ru");
+                    //tiu.FindElement(By.Id("phone_email")).SendKeys("9106027626@mail.ru");
+                    tiu.FindElement(By.Id("phone_email")).SendKeys("rogachev.aleksey@gmail.com");
                     Thread.Sleep(3000);
                     tiu.FindElement(By.XPath("//button[@id='phoneEmailConfirmButton']")).Click();
                     Thread.Sleep(3000);
-                    tiu.FindElement(By.Id("enterPassword")).SendKeys("RAD00239000");
+                    //tiu.FindElement(By.Id("enterPassword")).SendKeys("RAD00239000");
+                    tiu.FindElement(By.Id("enterPassword")).SendKeys("$Drumbotanik122122");
                     Thread.Sleep(3000);
                     tiu.FindElement(By.Id("enterPasswordConfirmButton")).Click();
                     Thread.Sleep(3000);
@@ -1145,9 +1147,11 @@ namespace Selen {
 
                         string categoryId = ds.Tables["offer"].Rows[ti]["categoryId"].ToString();
                         var rows = ds.Tables["category"].Select("id = '" + categoryId + "'");
-                        string category_Text = rows[0]["category_Text"].ToString();
-
-                        var offer_id = ds.Tables["offer"].Rows[ti]["offer_id"];
+                        string category_Text = "";
+                        try {
+                            category_Text = rows[0]["category_Text"].ToString();
+                            var offer_id = ds.Tables["offer"].Rows[ti]["offer_id"];
+                        } catch { continue; }
 
                         //проверим, нет ли повторений наименования
                         string[] bus_dubles;
@@ -2800,9 +2804,13 @@ namespace Selen {
                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
                 ChangeStatus(sender, ButtonStates.NoActive);
 
-                await ChangePostingsPrices();
+                var priceLevelsStr = _db.GetParamStr("priceLevelsForRemainsReport");
+                var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
 
-                await ChangeRemainsPrices();
+                foreach (var price in priceLevels) {
+                    var x = bus.Count(w => w.tiu.Contains("http") && w.price >= price && w.amount > 0);
+                    Log.Add("позиций с положительным остатком и ценой "+price+"+ : " + x);
+                }
 
                 ChangeStatus(sender, ButtonStates.Active);
 
