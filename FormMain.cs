@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.49.1";
+        string _version = "1.51.1";
         
         DB _db = new DB();
 
@@ -186,7 +186,7 @@ namespace Selen {
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog+"\nиз них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
             label_bus.Text = tlog;
             await AddPartNumsAsync();
-            await SaveBus();
+            await SaveBusAsync();
             base_rescan_need = false;
             //запуск браузеров
             button_tiu_sync.PerformClick();
@@ -326,16 +326,16 @@ namespace Selen {
             return lro;
         }
 
-        async Task SaveBus() {
-            if (checkBox_BusSave.Checked) {
-                try {
-                    await Task.Factory.StartNew(() => {
+        async Task SaveBusAsync() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    if (_db.GetParamBool("saveDataBaseLocal")) {
                         File.WriteAllText("bus.json", JsonConvert.SerializeObject(bus));
-                    });
-                } catch (Exception x) {
-                    Log.Add("Ошибка сохранения bus.json");
-                }
-                Log.Add("bus.json - сохранение успешно");
+                        Log.Add("bus.json - сохранение успешно");
+                    }
+                });
+            } catch (Exception x) {
+                Log.Add("Ошибка сохранения локальной базы данных bus.json - "+x.Message);
             }
         }
 
@@ -621,12 +621,8 @@ namespace Selen {
         private void TiuOfferUpdate(int b) {
             tiu.Navigate().GoToUrl(bus[b].tiu);
             TiuCheckPopup();
-            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//div[@data-qaid='product_name_input']//input")), bus[b].name);
-            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//*[@id='cke_product']//iframe")), sl: GetTiuDesc(b));
-
             var status = tiu.FindElement(By.CssSelector(".b-product-edit__partition .b-product-edit__partition div.js-toggle"));
             var curStatus = status.FindElement(By.CssSelector("span span")).Text;
-
             if (bus[b].amount > 0) {
                 var displayStatus = tiu.FindElement(By.XPath("//div[@data-qaid='visibility_block']/div[1]//input"));//радио батн опубликован
                 displayStatus.Click();
@@ -654,17 +650,20 @@ namespace Selen {
             //если нулевое количество 0 не пишем, просто удаляем что там указано
             var cnt = Math.Round(bus[b].amount, 0) > 0 ? Math.Round(bus[b].amount, 0).ToString() : OpenQA.Selenium.Keys.Backspace;
             WriteToIWebElement(tiu, tiu.FindElement(By.CssSelector("input[data-qaid='stock_input']")), cnt);
+            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//div[@data-qaid='product_name_input']//input")), bus[b].name);
+            WriteToIWebElement(tiu, tiu.FindElement(By.XPath("//*[@id='cke_product']//iframe")), sl: GetTiuDesc(b));
             var but = tiu.FindElement(By.XPath("//button[@data-qaid='save_return_to_list']"));
             but.Click();
             Thread.Sleep(21000);
         }
         //добавляем фото с тиу в карточки товаров
         private async Task AddPhotosToBaseAsync() {
-            if (checkBox_busPhotosUpload.Checked) {
+            if (_db.GetParamBool("loadPhotosFromTiuToBusiness")) {
                 for (int b = 0; b < bus.Count; b++) {
                     if (bus[b].tiu.Contains("http") && bus[b].images.Count == 0 && bus[b].amount > 0) {
                         var imgUrls = new List<string>();
                         var t = Task.Factory.StartNew(() => {
+                            Log.Add("tiu.ru: Нет фотографий в карточке товара! - " + bus[b].name);
                             tiu.Navigate().GoToUrl(bus[b].tiu);
                             Thread.Sleep(2000);
                             imgUrls.AddRange(tiu.FindElements(By.CssSelector(".b-uploader-extend__image-holder-img"))
@@ -688,11 +687,11 @@ namespace Selen {
                                         {"name", bus[b].name},
                                         {"images", JsonConvert.SerializeObject(bus[b].images.ToArray())}
                                 });
-                                Log.Add("НЕТ ИЗОБРАЖЕНИЙ... ПОДГРУЖЕНЫ ИЗ ТИУ!\n" + bus[b].name + "\n" + s);
                                 Thread.Sleep(3000);
                             }
+                            Log.Add("tiu.ru: Пропущено - у товара нет фотографий!!");
                         } catch (Exception x){
-                            Log.Add("tiu.ru: ОШИБКА ЗАГРУЗКИ ФОТОГРАФИЙ С ТИУ В БАЗУ! - " + bus[b].name + x.Message);
+                            Log.Add("tiu.ru: Ошибка загрузки фотографий с в карточку товара! - " + bus[b].name + x.Message);
                         }
                     }
                 }
@@ -1510,7 +1509,7 @@ namespace Selen {
                         }
                         //сбрасываем флаг ошибки для следующего раза
                         wasErrors = false;
-                        await SaveBus();
+                        await SaveBusAsync();
                     }
                     Log.Add("lite sync complete.");
                     base_can_rescan = true;
@@ -2047,26 +2046,28 @@ namespace Selen {
         // gde.ru //
         //========//
         public async void button_GdeGet_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            try {
-                await GdeAutorize();
-                while (base_rescan_need) {
-                    Log.Add("Gde.ru ожидает загрузку базы... ");
-                    await Task.Delay(60000);
+            if (checkBox_GdeRu.Enabled) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    await GdeAutorize();
+                    while (base_rescan_need) {
+                        Log.Add("Gde.ru ожидает загрузку базы... ");
+                        await Task.Delay(60000);
+                    }
+                    labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+                    //проверяем изменения
+                    await GdeEditAsync();
+                    //выкладываем объявления
+                    await GdeAddAsync();
+                    //продливаем объявления
+                    await Task.Delay(10);// GdeUpAsync(); //пока не нужно
+                    //удаляем ненужные
+                    await GdeDelAsync();
+                } catch (Exception x) {
+                    Log.Add("Gde.ru Ошибка при обработке\n" + x.Message);
                 }
-                labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
-                //проверяем изменения
-                await GdeEditAsync();
-                //выкладываем объявления
-                await GdeAddAsync();
-                //продливаем объявления
-                await Task.Delay(10);// GdeUpAsync(); //пока не нужно
-                //удаляем ненужные
-                await GdeDelAsync();
-            } catch (Exception x) {
-                Log.Add("Gde.ru Ошибка при обработке\n" + x.Message);
+                ChangeStatus(sender, ButtonStates.Active);
             }
-            ChangeStatus(sender, ButtonStates.Active);
         }
 
         async Task GdeDelAsync() {
@@ -2088,13 +2089,6 @@ namespace Selen {
                 }
             }
         }
-
-        public async void button_GdeAdd_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            await GdeAddAsync();
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-
 
         private async Task GdeAutorize() {
             if (gde == null) {
@@ -2486,7 +2480,10 @@ namespace Selen {
                     Log.Add("avto.pro: выгрузка завершена!");
 
                     var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
-                    if(DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24) && DateTime.Now.Hour < 5) { //достаточно проверять один раз в сутки, и только ночью
+                    //достаточно проверять один раз в недекю, и только ночью
+                    if (DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24)
+                            && DateTime.Now.Hour < 3
+                            && DateTime.Today.DayOfWeek == DayOfWeek.Sunday) {
                         Log.Add("avto.pro: парсинг сайта...");
                         await _avtoPro.CheckAsync();
                         dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
@@ -2519,32 +2516,33 @@ namespace Selen {
         
         //=== синхронизация CDEK ===
         private async void button_cdek_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (base_rescan_need || !button_base_get.Enabled) {
-                Log.Add("cdek.market: ожидаю загрузку базы... ");
-                await Task.Delay(60000);
-            }
             if (checkBoxCdekSyncActive.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need || !button_base_get.Enabled) {
+                    Log.Add("cdek.market: ожидаю загрузку базы... ");
+                    await Task.Delay(120000);
+                }
                 try {
                     await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
                     label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
-                    ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("cdek.market: ошибка синхронизации! - " + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    return;
+                }
+                if (numericUpDown_СdekCheckUrls.Value > 0) {
+                    try {
+                        var num = int.Parse(dSet.Tables["controls"].Rows[0]["controlCdek"].ToString());
+                        num = await _cdek.CheckUrlsAsync(num, (int)numericUpDown_СdekCheckUrls.Value);
+                        dSet.Tables["controls"].Rows[0]["controlCdek"] = num;
+                        dSet.WriteXml(fSet);
+                        await _cdek.ParseSiteAsync();
+                    } catch (Exception x) {
+                        Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
+                    }
                 }
             }
-            if (numericUpDown_СdekCheckUrls.Value > 0) {
-                try {
-                    var num = int.Parse(dSet.Tables["controls"].Rows[0]["controlCdek"].ToString());
-                    num = await _cdek.CheckUrlsAsync(num, (int)numericUpDown_СdekCheckUrls.Value);
-                    dSet.Tables["controls"].Rows[0]["controlCdek"] = num;
-                    dSet.WriteXml(fSet);
-                    await _cdek.ParseSiteAsync();
-                } catch (Exception x) {
-                    Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
-                }
-            }
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //=== синхронизация EUROAUTO.RU ===
         private async void button_EuroAuto_Click(object sender, EventArgs e) {
@@ -2846,6 +2844,10 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
+        }
+
+        private void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
+
         }
     }
 }

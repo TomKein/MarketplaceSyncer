@@ -19,29 +19,31 @@ namespace Selen.Sites {
     class Avito {
         Selenium _dr;
         DB _db;
-        string _url;
         List<RootObject> _bus = null;
-        int _priceLevel;
         Random rnd = new Random();
+        string _url;
+        int _delay;
+        int _priceLevel;
+        bool _editAfterUp;
+
         public int CountToUp { get; set; }
         public int AddCount { get; set; }
 
         string[] _addDesc;
-
         string[] _addDesc2;
+
         //конструктор
         public Avito() {
             //сохраняю ссылку для работы с базой данных
             _db = DB._db;
         }
-
         //загрузить куки
         public void LoadCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://avito.ru/404");
                 var c = _db.GetParamStr("avito.cookies");
                 _dr.LoadCookies(c);
-                Thread.Sleep(1000);
+                Thread.Sleep(_delay/10);
             }
         }
         //сохранить куки
@@ -59,22 +61,8 @@ namespace Selen.Sites {
         }
         //главный цикл синхронизации
         public async Task AvitoStartAsync(List<RootObject> bus) {
-            _bus = bus;
-            //устанавливаю цену отсечки для подъема/подачи
-            _priceLevel = _db.GetParamInt("avito.priceLevel");
-            //получаю номер ссылки в карточке
-            _url = _db.GetParamStr("avito.url");
-            //дополнительное описание
-            _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription"));
-            _addDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription2"));
-            //проверяю время, нужно ли поднимать объявления
-            if (DateTime.Now.Hour >= _db.GetParamInt("avito.upFromHour") && 
-                DateTime.Now.Hour < _db.GetParamInt("avito.upToHour"))
-                CountToUp = _db.GetParamInt("avito.countToUp");
-            else CountToUp = 0;
-            //сколько новых объявлений подавать каждый час
-            AddCount = _db.GetParamInt("avito.countToAdd");
             Log.Add("avito.ru: начало выгрузки...");
+            GetParams(bus);
             await AuthAsync();
             await RemoveDraftAsync();
             await EditAllAsync();
@@ -83,6 +71,32 @@ namespace Selen.Sites {
             CheckUrls();
             Log.Add("avito.ru: выгрузка завершена");
         }
+        //загружаю параметры
+        private void GetParams(List<RootObject> bus) {
+            _bus = bus;
+            //устанавливаю цену отсечки для подъема/подачи
+            _priceLevel = _db.GetParamInt("avito.priceLevel");
+            //получаю номер ссылки в карточке
+            _url = _db.GetParamStr("avito.url");
+            //базовая задержка в милисекундах
+            _delay = _db.GetParamInt("avito.delaySeconds") * 1000;
+            //редактирование объявлений после активирования
+            _editAfterUp = _db.GetParamBool("avito.editAfterUp");
+            //дополнительное описание
+            _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription"));
+            _addDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("avito.addDescription2"));
+            //проверяю время, нужно ли поднимать объявления
+            if (DateTime.Now.Hour >= _db.GetParamInt("avito.upFromHour") &&
+                DateTime.Now.Hour < _db.GetParamInt("avito.upToHour"))
+                CountToUp = _db.GetParamInt("avito.countToUp");
+            else CountToUp = 0;
+            //сколько новых объявлений подавать каждый час
+            if (DateTime.Now.Hour >= _db.GetParamInt("avito.addFromHour") &&
+                DateTime.Now.Hour < _db.GetParamInt("avito.addToHour"))
+                AddCount = _db.GetParamInt("avito.countToAdd");
+            else AddCount = 0;
+        }
+
         //удаление черновиков
         private async Task RemoveDraftAsync() {
             try {
@@ -121,7 +135,7 @@ namespace Selen.Sites {
                     _dr.ButtonClick("//button[@type='submit']");
                 }
                 while (_dr.GetElementsCount(".profile-tabs") == 0) {
-                    Thread.Sleep(10000);
+                    Thread.Sleep(_delay * 5);
                     _dr.ButtonClick("//a[contains(@href,'reload')]");
                     _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
                     if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
@@ -154,7 +168,7 @@ namespace Selen.Sites {
                     _dr.Refresh();
                 else {
                     Quit();
-                    await Task.Delay(30000);
+                    await Task.Delay(_delay * 5);
                     await AuthAsync();
                 }
             }
@@ -248,7 +262,7 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//*[text()='Снять с публикации']/..");
                 _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
                 _dr.ButtonClick("//button[@data-marker='save-reason']");
-                Thread.Sleep(3000);
+                Thread.Sleep(_delay);
                 if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0) {
                     Log.Add("avito.ru: " + _bus[b].name + " - объявление снято");
                     break;
@@ -298,7 +312,7 @@ namespace Selen.Sites {
             if (deleteUrl) {
                 _bus[b].avito = "";
             } else {
-                await Task.Delay(15000); //ждем, потому что объявление не всегда сразу готово
+                await Task.Delay(_delay); //ждем, потому что объявление не всегда сразу готово
                 var id = _dr.GetUrl().Split('[')[1].Split(']')[0];
                 var url = "https://www.avito.ru/items/" + id;
                 for (int i = 0; ; i++) { 
@@ -317,7 +331,7 @@ namespace Selen.Sites {
                     });
                 }
             }
-            await Task.Delay(10000);
+            await Task.Delay(_delay);
         }
         //параметры колесных дисков
         private void SetDiskParams(int b) {
@@ -464,8 +478,8 @@ namespace Selen.Sites {
                         _bus[b].amount > 0 &&
                         (location == "/old" || location == "/inactive")) {
                         if (await UpOfferAsync(b)) {
-                            await Task.Delay(30000);
-                            await EditAsync(b);
+                            await Task.Delay(_delay);
+                            if (_editAfterUp) await EditAsync(b);
                         }
                     }
                 }
@@ -489,7 +503,7 @@ namespace Selen.Sites {
                     butOpub.First().Click();
                     Log.Add("avito.ru: " + _bus[b].name + " - объявление " + CountToUp-- + " активировано");
                     succ = true;
-                    Thread.Sleep(30000);
+                    Thread.Sleep(_delay);
                 }
             });
             if (succ) return true;
@@ -525,12 +539,16 @@ namespace Selen.Sites {
             cl.Encoding = Encoding.UTF8;
             var num = _bus[b].images.Count > 10 ? 10 : _bus[b].images.Count;
             for (int u = 0; u < num; u++) {
-                byte[] bts = cl.DownloadData(_bus[b].images[u].url);
-                File.WriteAllBytes("avito_" + u + ".jpg", bts);
-                Thread.Sleep(1000);
-                _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
-                if (_dr.GetElementsCount("//div[contains(@class,'alert-content')]/../*[@role='button']") >0)
-                    throw new Exception("ошибка загрузки фото!");
+                for (int t = 0; ; t++) {
+                    byte[] bts = cl.DownloadData(_bus[b].images[u].url);
+                    File.WriteAllBytes("avito_" + u + ".jpg", bts);
+                    Thread.Sleep(_delay / 5);
+                    _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
+                    if (_dr.GetElementsCount("//div[contains(@class,'alert-content')]/../*[@role='button']") > 0)
+                        _dr.ButtonClick("//div[contains(@class,'alert-content')]/../*[@role='button']");
+                    else break;
+                    if (t > 10) throw new Exception("ошибка загрузки фото!");
+                }
             }
             cl.Dispose();
         }

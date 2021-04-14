@@ -172,6 +172,10 @@ namespace Selen.Base {
                     return false;
             }
         }
+        //получаю настройку как булево значение асинхронно
+        public async Task<bool> GetParamBoolAsync(string key) => await Task.Factory.StartNew(() => {
+            return GetParamBool(key);
+        });
         //получаем параметр как дату-время
         public DateTime GetParamDateTime(string key) {
             //перевызываем метод получения строки
