@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.51.1";
+        string _version = "1.51.2";
         
         DB _db = new DB();
 
@@ -943,12 +943,6 @@ namespace Selen {
             }
         }
 
-        //использование памяти
-        private void timer2_Tick(object sender, EventArgs e) {
-            label_Mem_Usage.Text = Convert.ToString(GC.GetTotalMemory(true) / 1024) + " kB  wasErrors:" + wasErrors;
-            button_base_get.Enabled = true;
-        }
-
         private async Task ArtCheckAsync() {
             for (int b = 0; b < bus.Count; b++) {
                 try {
@@ -1497,7 +1491,7 @@ namespace Selen {
                         //проверка задвоенности наименований карточек товаров
                         await CheckDublesAsync();//проверка дублей
                         await CheckMultipleApostropheAsync();//проверка лишних аппострофов
-                        if (checkBox_art_clear.Checked) await ArtCheckAsync();//чистка артикулов от лишних символов
+                        if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
                         if (checkBox_photo_clear.Checked) await PhotoClearAsync();//очистка ненужных фото
                         await GroupsMoveAsync();//проверка групп
                         await TiuCheckAsync();//исправляем ссылки на тиу
@@ -2638,7 +2632,7 @@ namespace Selen {
             //подписываю обработчик на событие
             Log.LogUpdate += LogUpdate;
             //устанавливаю глубину логирования
-            Log.Level = (int)numericUpDown_LOG.Value;
+            Log.Level = (int)numericUpDown_LogSize.Value;
             //меняю заголовок окна
             this.Text += _version;
             //подгружаю базу
@@ -2677,17 +2671,20 @@ namespace Selen {
             }
         }
 
-        //Вывод лога на форму
-        public void ToLog(string s) {
-            try {
-                if (logBox.InvokeRequired)
-                    logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
-                else
-                    logBox.Text += s + "\n";
-            } catch (Exception x) {
-                Console.WriteLine(x.Message);
-                Console.ReadLine();
-            }
+        //===========================
+        // Вывод лога на форму     //
+        //===========================
+        public void ToLogBox(string s) {
+            if(textBox_LogFilter.Text.Length == 0 || s.Contains(textBox_LogFilter.Text))
+                try {
+                    if (logBox.InvokeRequired)
+                        logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
+                    else
+                        logBox.Text += s + "\n";
+                } catch (Exception x) {
+                    Console.WriteLine(x.Message);
+                    Console.ReadLine();
+                }
         }
         //прокрутка лога
         private void richTextBox1_TextChanged(object sender, EventArgs e) {
@@ -2696,9 +2693,23 @@ namespace Selen {
         }
         //обработка события на добавление записи
         public void LogUpdate() {
-            ToLog(Log.LogLastAdded);
+            ToLogBox(Log.LogLastAdded);
         }
-        //настройки
+        //обработчик изменений значений фильтра лога
+        private void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
+            FillLogAsync();
+        }
+        //загружаю лог асинхронно
+        private async void FillLogAsync() {
+            DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, (int) numericUpDown_LogSize.Value);
+            logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a);
+        }
+        //очистка фильтра
+        private void button_LogFilterClear_Click(object sender, EventArgs e) {
+            textBox_LogFilter.Text = "";
+        }
+
+        //вызок окна Настройки
         private void button_SettingsFormOpen_Click(object sender, EventArgs e) {
             FormSettings fs = new FormSettings();
             fs.Owner = this;
@@ -2844,10 +2855,6 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
-        }
-
-        private void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
-
         }
     }
 }

@@ -208,7 +208,7 @@ namespace Selen.Base {
             return null;
         }
         //метод для записи логов в базу
-        public void ToLogAsync(string message, string site = "") {
+        public void AddLogAsync(string message, string site = "") {
             Task.Factory.StartNew(()=>{
                 //запрос для записи в лог
                 var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
@@ -230,7 +230,20 @@ namespace Selen.Base {
             MySqlCommand command = new MySqlCommand(query, connection);
             ExecuteCommandNonQuery(command); 
         }
-
+        //метод для запроса логов из базы
+        public async Task<DataTable> GetLogAsync(string filter, int limit=100) {
+            return await Task.Factory.StartNew(() => {
+                var query = "SELECT * FROM logs ";
+                //если параметр не нулевой - добавляем в запрос
+                if (!string.IsNullOrEmpty(filter))
+                    query += " WHERE text LIKE '%" + filter + "%' OR datetime LIKE '%" + filter + "%' ";
+                //ограничение списка
+                query += "ORDER BY id DESC " +
+                         "LIMIT " + limit;
+                //возвращаю результат запроса таблицей
+                return SqlQuery(query);
+            });
+        }
         //запрос карточки товара из базы данных
         public string GetGood(string arg, string text) {
             //формируем строку запроса sql

@@ -33,7 +33,7 @@ namespace Selen.Tools {
         //s - строка, которая должна быть записана
         //writeDb - писать лог в базу данных
         public static void Add(string s, bool writeDb = true) {
-            if (writeDb) _db.ToLogAsync(s);
+            if (writeDb) _db.AddLogAsync(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
