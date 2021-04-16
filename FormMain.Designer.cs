@@ -758,10 +758,10 @@ namespace Selen
             // textBox_LogFilter
             // 
             this.textBox_LogFilter.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_LogFilter.Font = new System.Drawing.Font("Lucida Console", 8.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.textBox_LogFilter.Font = new System.Drawing.Font("Lucida Console", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBox_LogFilter.Location = new System.Drawing.Point(2, 2);
             this.textBox_LogFilter.Name = "textBox_LogFilter";
-            this.textBox_LogFilter.Size = new System.Drawing.Size(562, 19);
+            this.textBox_LogFilter.Size = new System.Drawing.Size(562, 21);
             this.textBox_LogFilter.TabIndex = 0;
             this.textBox_LogFilter.TextChanged += new System.EventHandler(this.textBox_LogFilter_TextChanged);
             // 

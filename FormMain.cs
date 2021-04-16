@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.51.2";
+        string _version = "1.51.3";
         
         DB _db = new DB();
 
@@ -689,7 +689,7 @@ namespace Selen {
                                 });
                                 Thread.Sleep(3000);
                             }
-                            Log.Add("tiu.ru: Пропущено - у товара нет фотографий!!");
+                            else Log.Add("tiu.ru: Пропущено - у товара нет фотографий!!");
                         } catch (Exception x){
                             Log.Add("tiu.ru: Ошибка загрузки фотографий с в карточку товара! - " + bus[b].name + x.Message);
                         }
@@ -2035,19 +2035,15 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
-        //TODO вынести в отдельный класс
         //========//
         // gde.ru //
         //========//
-        public async void button_GdeGet_Click(object sender, EventArgs e) {
+        public async void button_GdeGet_Click(object sender, EventArgs e) {        //TODO вынести в отдельный класс
             if (checkBox_GdeRu.Enabled) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     await GdeAutorize();
-                    while (base_rescan_need) {
-                        Log.Add("Gde.ru ожидает загрузку базы... ");
-                        await Task.Delay(60000);
-                    }
+                    while (base_rescan_need) await Task.Delay(60000);
                     labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                     //проверяем изменения
                     await GdeEditAsync();
@@ -2512,10 +2508,7 @@ namespace Selen {
         private async void button_cdek_Click(object sender, EventArgs e) {
             if (checkBoxCdekSyncActive.Checked) {
                 ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need || !button_base_get.Enabled) {
-                    Log.Add("cdek.market: ожидаю загрузку базы... ");
-                    await Task.Delay(120000);
-                }
+                while (base_rescan_need) await Task.Delay(60000);                
                 try {
                     await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
                     label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
@@ -2540,12 +2533,9 @@ namespace Selen {
         }
         //=== синхронизация EUROAUTO.RU ===
         private async void button_EuroAuto_Click(object sender, EventArgs e) {
-            if (DateTime.Now.Hour > 5 && DateTime.Now.Hour % 2 == 0) {
+            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need || !button_base_get.Enabled) {
-                    Log.Add("euroauto.ru: ожидаю загрузку базы... ");
-                    await Task.Delay(60000);
-                }
+                while (base_rescan_need) await Task.Delay(60000);
                 try {
                     await _euroAuto.SyncAsync(bus);
                     Log.Add("euroauto.ru: выгрузка ок!");
@@ -2632,7 +2622,7 @@ namespace Selen {
             //подписываю обработчик на событие
             Log.LogUpdate += LogUpdate;
             //устанавливаю глубину логирования
-            Log.Level = (int)numericUpDown_LogSize.Value;
+            Log.Level = await _db.GetParamIntAsync("logSize");
             //меняю заголовок окна
             this.Text += _version;
             //подгружаю базу
@@ -2701,8 +2691,14 @@ namespace Selen {
         }
         //загружаю лог асинхронно
         private async void FillLogAsync() {
-            DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, (int) numericUpDown_LogSize.Value);
-            logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a);
+            try {
+                DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, Log.Level);
+                if (table.Rows.Count > 0)
+                    logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a);
+                else logBox.Text = "по заданному фильтру ничего не найдено!";
+            } catch (Exception x) {
+                Log.Add(x.Message);
+            }
         }
         //очистка фильтра
         private void button_LogFilterClear_Click(object sender, EventArgs e) {
@@ -2804,6 +2800,35 @@ namespace Selen {
                 }
             }
         }
+
+
+
+        private async Task PhotoClearAsync2() {
+            for (int b = 0; b < bus.Count; b++) {
+                if (bus[b].amount > 0 && 
+                    bus[b].price >= 550 &&
+                    bus[b].images.Count == 1 &&
+                    bus[b].tiu.Contains("http") &&
+                    !bus[b].avito.Contains("http")){
+                    try {
+                        bus[b].images.Clear();
+                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", bus[b].id},
+                                    {"name", bus[b].name},
+                                    {"images", "[]"}
+                                });
+                        Log.Add("удалены фото из карточки! " + bus[b].name);
+                        await Task.Delay(1000);
+                    } catch (Exception x) {
+                        Log.Add("ошибка при удалении фото из базы!\n" + bus[b].name + "\n" + x.Message);
+                    }
+                }
+            }
+        }
+
+
+
+
         //=========================//
         //метод для тестирования
         private async void ButtonTest(object sender, EventArgs e) {
@@ -2820,6 +2845,14 @@ namespace Selen {
                     var x = bus.Count(w => w.tiu.Contains("http") && w.price >= price && w.amount > 0);
                     Log.Add("позиций с положительным остатком и ценой "+price+"+ : " + x);
                 }
+
+
+                //удаление фотографий
+
+                await PhotoClearAsync2();
+
+
+
 
                 ChangeStatus(sender, ButtonStates.Active);
 

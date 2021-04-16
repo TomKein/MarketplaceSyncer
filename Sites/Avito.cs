@@ -296,10 +296,9 @@ namespace Selen.Sites {
                         PressOk();
                     });
                     try {
-                        AddCount--;
                         await t;
                         await SaveUrlAsync(b);
-                        Log.Add("avito.ru: " + _bus[b].name + " - объявление добавлено");
+                        Log.Add("avito.ru: " + _bus[b].name + " - объявление добавлено, осталось " + --AddCount);
                     } catch (Exception x) {
                         Log.Add("avito.ru: " + _bus[b].name + " - ошибка добавления! " + x.Message);
                         break;
@@ -436,10 +435,6 @@ namespace Selen.Sites {
             for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i+1); }
             for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i+1); }
         }
-        //случайный номер страницы
-        private int GetRandomPageNum() {
-            return 1 + (rnd.Next(1, 1000) / rnd.Next(1, (int)Math.Pow(1000, 0.5)) / 50);
-        }
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
             //перехожу в раздел
@@ -501,7 +496,7 @@ namespace Selen.Sites {
                 var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
                 if (butOpub.Count > 0) {
                     butOpub.First().Click();
-                    Log.Add("avito.ru: " + _bus[b].name + " - объявление " + CountToUp-- + " активировано");
+                    Log.Add("avito.ru: " + _bus[b].name + " - объявление  активировано, осталось " + --CountToUp);
                     succ = true;
                     Thread.Sleep(_delay);
                 }

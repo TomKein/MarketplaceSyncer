@@ -159,6 +159,11 @@ namespace Selen.Base {
                 return i;
             return -1;
         }
+        //получаю число асинхронно
+        public async Task<int> GetParamIntAsync(string key) => await Task.Factory.StartNew(() => {
+            return GetParamInt(key);
+        });
+
         //получаем настройки как булевое значение
         public bool GetParamBool(string key) {
             //перевызываем метод получения строки
