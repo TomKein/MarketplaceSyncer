@@ -25,12 +25,18 @@ namespace Selen.Tools {
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
         }
 
-        public void Navigate(string url) {
-            _drv.Navigate().GoToUrl(url);
-            ConfirmAlert();
+        public void Navigate(string url, string check=null, int tryCount=10) {
+            for (int i = 0; i < tryCount; i++) {
+                _drv.Navigate().GoToUrl(url);
+                ConfirmAlert();
+                if (String.IsNullOrEmpty(check) ||
+                    GetElementsCount(check) > 0) return;
+                Thread.Sleep(10000);
+            }
+            throw new Exception("selenium: ошибка! не удается загрузить страницу " + url + " - не найден элемент " + check);
         }
 
-        public async Task NavigateAsync(string url) {
+        public async Task NavigateAsync(string url, string check = null, int tryCount = 10) {
             await Task.Factory.StartNew(() => {
                 Navigate(url);
             });
@@ -48,9 +54,9 @@ namespace Selen.Tools {
                 Actions a = new Actions(_drv);
                 try {
                     a.MoveToElement(el.First()).Perform();
-                    Thread.Sleep(500);
+                    Thread.Sleep(300);
                     el.First().Click();
-                    Thread.Sleep(3000);
+                    Thread.Sleep(2000);
                 } catch { }
                 ConfirmAlert();
             }

@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.51.3";
+        string _version = "1.51.4";
         
         DB _db = new DB();
 
@@ -786,7 +786,7 @@ namespace Selen {
         private async void DromGetAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (base_rescan_need) { await Task.Delay(20000); }
+                while (base_rescan_need)  await Task.Delay(30000);
                 await _drom.DromStartAsync(bus);
                 label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount>0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
@@ -797,7 +797,7 @@ namespace Selen {
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
                     _drom.Quit();
-                    await Task.Delay(30000);
+                    await Task.Delay(60000);
                     DromGetAsync(sender,e);
                 }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -1462,30 +1462,29 @@ namespace Selen {
                     ///только вызываем методы обработки изменений и подъема упавших
 
                     if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
+                        button_avito_get.PerformClick();
                         await AddPartNumsAsync();//добавление артикулов из описания
                         await CheckArhiveStatusAsync();//проверка архивного статуса
-                        await Task.Delay(30000);
+                        await Task.Delay(60000);
+                        button_drom_get.PerformClick();
+                        await Task.Delay(60000);
                         button_tiu_sync.PerformClick();
                         await Task.Delay(60000);
                         buttonKupiprodai.PerformClick();
                         await Task.Delay(60000);
                         button_GdeGet.PerformClick();
                         await Task.Delay(60000);
-                        button_cdek.PerformClick();
-                        await Task.Delay(60000);
-                        button_vk_sync.PerformClick();
-                        await Task.Delay(60000);
                         button_avto_pro.PerformClick();
-                        await Task.Delay(60000);
-                        button_avito_get.PerformClick();
-                        await Task.Delay(60000);
-                        button_drom_get.PerformClick();
                         await Task.Delay(60000);
                         button_AutoRuStart.PerformClick();
                         await Task.Delay(60000);
                         buttonSatom.PerformClick();
                         await Task.Delay(60000);
                         button_EuroAuto.PerformClick();
+                        await Task.Delay(60000);
+                        button_vk_sync.PerformClick();
+                        await Task.Delay(60000);
+                        button_cdek.PerformClick();
                         //нужно подождать конца обновлений объявлений
                         await WaitButtonsActiveAsync();
                         //проверка задвоенности наименований карточек товаров
@@ -2806,7 +2805,7 @@ namespace Selen {
         private async Task PhotoClearAsync2() {
             for (int b = 0; b < bus.Count; b++) {
                 if (bus[b].amount > 0 && 
-                    bus[b].price >= 550 &&
+                    bus[b].price >= 500 &&
                     bus[b].images.Count == 1 &&
                     bus[b].tiu.Contains("http") &&
                     !bus[b].avito.Contains("http")){
