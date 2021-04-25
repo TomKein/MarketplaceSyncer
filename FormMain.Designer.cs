@@ -187,6 +187,8 @@ namespace Selen
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
+            this.checkBox_sync.Checked = true;
+            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_sync.Location = new System.Drawing.Point(684, 12);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
@@ -290,11 +292,18 @@ namespace Selen
             this.numericUpDown_AutoRuAddCount.Size = new System.Drawing.Size(45, 21);
             this.numericUpDown_AutoRuAddCount.TabIndex = 69;
             this.numericUpDown_AutoRuAddCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.numericUpDown_AutoRuAddCount.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
             this.numericUpDown_AutoRuAddCount.ValueChanged += new System.EventHandler(this.numericUpDown_auto_ValueChanged);
             // 
             // checkBox_AutoRuSyncEnable
             // 
             this.checkBox_AutoRuSyncEnable.AutoSize = true;
+            this.checkBox_AutoRuSyncEnable.Checked = true;
+            this.checkBox_AutoRuSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_AutoRuSyncEnable.Location = new System.Drawing.Point(14, 300);
             this.checkBox_AutoRuSyncEnable.Name = "checkBox_AutoRuSyncEnable";
             this.checkBox_AutoRuSyncEnable.Size = new System.Drawing.Size(44, 17);
@@ -596,6 +605,8 @@ namespace Selen
             // checkBox_AvtoProSyncEnable
             // 
             this.checkBox_AvtoProSyncEnable.AutoSize = true;
+            this.checkBox_AvtoProSyncEnable.Checked = true;
+            this.checkBox_AvtoProSyncEnable.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_AvtoProSyncEnable.Location = new System.Drawing.Point(14, 233);
             this.checkBox_AvtoProSyncEnable.Name = "checkBox_AvtoProSyncEnable";
             this.checkBox_AvtoProSyncEnable.Size = new System.Drawing.Size(44, 17);
@@ -716,6 +727,8 @@ namespace Selen
             // checkBox_GdeRu
             // 
             this.checkBox_GdeRu.AutoSize = true;
+            this.checkBox_GdeRu.Checked = true;
+            this.checkBox_GdeRu.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_GdeRu.Location = new System.Drawing.Point(13, 341);
             this.checkBox_GdeRu.Name = "checkBox_GdeRu";
             this.checkBox_GdeRu.Size = new System.Drawing.Size(44, 17);
@@ -800,7 +813,7 @@ namespace Selen
             this.Name = "FormMain";
             this.Text = "Синхронизация бизнес.ру ";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.Load += new System.EventHandler(this.FormMain_Load);
             ((System.ComponentModel.ISupportInitialize)(this.ds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).EndInit();

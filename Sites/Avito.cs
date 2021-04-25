@@ -127,7 +127,6 @@ namespace Selen.Sites {
                 if (_bus[b].IsTimeUpDated() &&
                     _bus[b].avito != null &&
                     _bus[b].avito.Contains("http")) {
-                    await Task.Delay(5);
                     if (_bus[b].amount <= 0) {
                         await DeleteAsync(b);
                     } else
@@ -137,28 +136,30 @@ namespace Selen.Sites {
         }
         //проверка авторизации
         private async Task ChechAuthAsync() {
-            //TODO убрать из главного потока!
-            //закрываю рекламу
-            _dr.ButtonClick("//button[contains(@class,'popup-close')]");
-            while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
-                _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
-            while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
-                if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
-                    _dr.Refresh();
-                else {
-                    Quit();
-                    await Task.Delay(_delay * 5);
-                    await AuthAsync();
+            await Task.Factory.StartNew(() => {
+                //закрываю рекламу
+                _dr.ButtonClick("//button[contains(@class,'popup-close')]");
+                while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
+                    _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
+                //проверяю элемент Мои объявления
+                while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
+                    if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
+                        _dr.Refresh();
+                    else {
+                        throw new Exception("ошибка загрузки сайта!");
+                    }
                 }
-            }
+            });
         }
         //редактирование объявления
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
                 _dr.Navigate(_bus[b].avito);
-                if (_bus[b].amount > 0 && _dr.GetElementsCount("//button[text()='Восстановить']") > 0)
+                //есть на остатках, но страница открывается без номера объявления - нужно восстановить
+                if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0)
                     _dr.ButtonClick("//button[text()='Восстановить']");
-                if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) {
+                //нет номера объявления и есть строка вы удалили это объявление навсегда - удаляю ссылку из карточки
+                if (_dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0 && _dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) {
                     SaveUrlAsync(b, deleteUrl: true);
                     return;
                 }
@@ -222,7 +223,7 @@ namespace Selen.Sites {
         private void Delete(int b) {
             for (int i = 0; i < 20; i++) {
                 _dr.Navigate(_bus[b].avito);
-                ChechAuthAsync();
+                //ChechAuthAsync();
                 //если кнопки действия есть на странице - пробую снять
                 if (_dr.GetElementsCount("//*[contains(@class,'app-container')]") > 0) {
                     Log.Add("avito.ru: " + _bus[b].name + " - снимаю объявление");
@@ -258,18 +259,19 @@ namespace Selen.Sites {
                     _bus[b].price >= _priceLevel &&
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
-                        _dr.Navigate("https://avito.ru/additem", "//span[text()='Категория']");                        
+                        _dr.Navigate("https://avito.ru/additem", "//span[text()='Категория']");
                         SetCategory(b);
+                        SetAddress();
+                        SetImages(b);
                         SetTitle(b);
                         SetOfferType();
                         SetStatus(b);
                         SetDiskParams(b);
-                        SetImages(b);
                         SetPrice(b);
-                        SetDesc(b, minDesc:true);
+                        SetDesc(b);
+                        //SetDesc(b, minDesc:true);
                         //SetPartNumber(b);
                         SetManufacture(b);
-                        SetAddress();
                         SetPhone();
                         PressOk();
                     });
@@ -524,11 +526,12 @@ namespace Selen.Sites {
                 for (int t = 0; ; t++) {
                     byte[] bts = cl.DownloadData(_bus[b].images[u].url);
                     File.WriteAllBytes("avito_" + u + ".jpg", bts);
-                    Thread.Sleep(_delay / 5);
+                    Thread.Sleep(_delay / 10);
                     _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
                     if (_dr.GetElementsCount("//div[contains(@class,'alert-content')]/../*[@role='button']") > 0)
                         _dr.ButtonClick("//div[contains(@class,'alert-content')]/../*[@role='button']");
-                    else break;
+                    else
+                        break;
                     if (t > 10) throw new Exception("ошибка загрузки фото!");
                 }
             }
@@ -569,7 +572,9 @@ namespace Selen.Sites {
                 var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
                 if (checkUrlsCount > 0) Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
                 for (int i = 0; checkUrlsCount > 0; i++) {
+                    //выбираю случайный индекс
                     var b = _rnd.Next(_bus.Count);
+                    //если нет ссылки на авито или нет на остатках - пропускаю
                     if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0) continue;
                     _dr.Navigate(_bus[b].avito);
                     //не найден заголовок объявления на странице - возможно проблема с интернетом, пока пропускаем
@@ -577,6 +582,8 @@ namespace Selen.Sites {
                         Log.Add("avito.ru: ошибка загрузки страницы для проверки ссылки " + _bus[b].name + "  --  " + _bus[b].avito);
                         continue;
                     }
+                    //если удалено - восстанавливаю, т.к. есть положительный остаток
+                    _dr.ButtonClick("//button[@name='restore']");
                     //если найден элемент "удалено навсегда" - удаляю ссылку из карточки товара (асинхронно без ожидания)
                     if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) SaveUrlAsync(b, deleteUrl: true);
                     checkUrlsCount--;

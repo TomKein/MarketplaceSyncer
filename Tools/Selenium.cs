@@ -54,9 +54,9 @@ namespace Selen.Tools {
                 Actions a = new Actions(_drv);
                 try {
                     a.MoveToElement(el.First()).Perform();
-                    Thread.Sleep(300);
+                    Thread.Sleep(200);
                     el.First().Click();
-                    Thread.Sleep(2000);
+                    Thread.Sleep(1000);
                 } catch { }
                 ConfirmAlert();
             }
@@ -99,11 +99,11 @@ namespace Selen.Tools {
             if (sl != null) {
                 Actions a = new Actions(_drv);
                 a.MoveToElement(we).Click().Perform();
-                Thread.Sleep(1000);
+                Thread.Sleep(400);
                 a.KeyDown(Keys.Control).SendKeys("a").KeyUp(Keys.Control).Perform();
-                Thread.Sleep(500);
+                Thread.Sleep(400);
                 a.SendKeys(Keys.Backspace).Perform();
-                Thread.Sleep(500);
+                Thread.Sleep(400);
                 foreach (var sub in sl) {
                     if (sub.Length > 0) {
                         a.SendKeys(sub);
@@ -114,14 +114,14 @@ namespace Selen.Tools {
             }
             if (!string.IsNullOrEmpty(s)) {
                 we.SendKeys(" ");
-                Thread.Sleep(500);
+                Thread.Sleep(400);
                 we.SendKeys(Keys.Control + "a");
-                Thread.Sleep(500);
+                Thread.Sleep(400);
                 we.SendKeys(Keys.Backspace);
-                Thread.Sleep(500);
+                Thread.Sleep(400);
                 we.SendKeys(s);
             }
-            Thread.Sleep(2000);
+            Thread.Sleep(600);
         }
 
         public void SendKeysToSelector(string s, string k) {
