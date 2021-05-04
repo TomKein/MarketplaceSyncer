@@ -91,6 +91,7 @@ namespace Selen
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.button_izap24 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).BeginInit();
@@ -145,7 +146,7 @@ namespace Selen
             this.logBox.Location = new System.Drawing.Point(185, 0);
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(679, 452);
+            this.logBox.Size = new System.Drawing.Size(679, 552);
             this.logBox.TabIndex = 16;
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
@@ -379,7 +380,7 @@ namespace Selen
             // buttonSatom
             // 
             this.buttonSatom.Enabled = false;
-            this.buttonSatom.Location = new System.Drawing.Point(12, 440);
+            this.buttonSatom.Location = new System.Drawing.Point(12, 470);
             this.buttonSatom.Name = "buttonSatom";
             this.buttonSatom.Size = new System.Drawing.Size(108, 23);
             this.buttonSatom.TabIndex = 10;
@@ -391,7 +392,7 @@ namespace Selen
             // 
             this.labelKS.AutoSize = true;
             this.labelKS.Enabled = false;
-            this.labelKS.Location = new System.Drawing.Point(123, 445);
+            this.labelKS.Location = new System.Drawing.Point(123, 475);
             this.labelKS.Name = "labelKS";
             this.labelKS.Size = new System.Drawing.Size(44, 13);
             this.labelKS.TabIndex = 104;
@@ -493,7 +494,7 @@ namespace Selen
             // 
             // button_cdek
             // 
-            this.button_cdek.Location = new System.Drawing.Point(12, 385);
+            this.button_cdek.Location = new System.Drawing.Point(12, 415);
             this.button_cdek.Name = "button_cdek";
             this.button_cdek.Size = new System.Drawing.Size(107, 23);
             this.button_cdek.TabIndex = 8;
@@ -543,7 +544,7 @@ namespace Selen
             // checkBoxCdekSyncActive
             // 
             this.checkBoxCdekSyncActive.AutoSize = true;
-            this.checkBoxCdekSyncActive.Location = new System.Drawing.Point(14, 412);
+            this.checkBoxCdekSyncActive.Location = new System.Drawing.Point(14, 442);
             this.checkBoxCdekSyncActive.Name = "checkBoxCdekSyncActive";
             this.checkBoxCdekSyncActive.Size = new System.Drawing.Size(44, 17);
             this.checkBoxCdekSyncActive.TabIndex = 125;
@@ -553,7 +554,7 @@ namespace Selen
             // numericUpDown_СdekCheckUrls
             // 
             this.numericUpDown_СdekCheckUrls.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_СdekCheckUrls.Location = new System.Drawing.Point(123, 409);
+            this.numericUpDown_СdekCheckUrls.Location = new System.Drawing.Point(123, 439);
             this.numericUpDown_СdekCheckUrls.Maximum = new decimal(new int[] {
             200,
             0,
@@ -572,7 +573,7 @@ namespace Selen
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(75, 413);
+            this.label6.Location = new System.Drawing.Point(75, 443);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(44, 13);
             this.label6.TabIndex = 132;
@@ -581,7 +582,7 @@ namespace Selen
             // numericUpDown_CdekAddNewCount
             // 
             this.numericUpDown_CdekAddNewCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_CdekAddNewCount.Location = new System.Drawing.Point(123, 386);
+            this.numericUpDown_CdekAddNewCount.Location = new System.Drawing.Point(123, 416);
             this.numericUpDown_CdekAddNewCount.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -680,6 +681,7 @@ namespace Selen
             // 
             this.panel1.AutoSize = true;
             this.panel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel1.Controls.Add(this.button_izap24);
             this.panel1.Controls.Add(this.checkBox_GdeRu);
             this.panel1.Controls.Add(this.dateTimePicker1);
             this.panel1.Controls.Add(this.button_EuroAuto);
@@ -721,7 +723,7 @@ namespace Selen
             this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(185, 477);
+            this.panel1.Size = new System.Drawing.Size(185, 577);
             this.panel1.TabIndex = 146;
             // 
             // checkBox_GdeRu
@@ -752,7 +754,7 @@ namespace Selen
             this.panel2.Controls.Add(this.checkBox_liteSync);
             this.panel2.Controls.Add(this.checkBox_WriteLog);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(0, 477);
+            this.panel2.Location = new System.Drawing.Point(0, 577);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(864, 64);
             this.panel2.TabIndex = 147;
@@ -762,7 +764,7 @@ namespace Selen
             this.panel3.Controls.Add(this.textBox_LogFilter);
             this.panel3.Controls.Add(this.button_LogFilterClear);
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel3.Location = new System.Drawing.Point(185, 452);
+            this.panel3.Location = new System.Drawing.Point(185, 552);
             this.panel3.Name = "panel3";
             this.panel3.Padding = new System.Windows.Forms.Padding(2);
             this.panel3.Size = new System.Drawing.Size(679, 25);
@@ -798,15 +800,25 @@ namespace Selen
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(864, 477);
+            this.panel4.Size = new System.Drawing.Size(864, 577);
             this.panel4.TabIndex = 149;
+            // 
+            // button_izap24
+            // 
+            this.button_izap24.Location = new System.Drawing.Point(11, 386);
+            this.button_izap24.Name = "button_izap24";
+            this.button_izap24.Size = new System.Drawing.Size(108, 23);
+            this.button_izap24.TabIndex = 147;
+            this.button_izap24.Text = "IZap24.ru";
+            this.button_izap24.UseVisualStyleBackColor = true;
+            this.button_izap24.Click += new System.EventHandler(this.button_izap24_Click);
             // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Gray;
-            this.ClientSize = new System.Drawing.Size(864, 541);
+            this.ClientSize = new System.Drawing.Size(864, 641);
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel2);
             this.MaximizeBox = false;
@@ -899,6 +911,7 @@ namespace Selen
         private System.Windows.Forms.Button button_LogFilterClear;
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.CheckBox checkBox_GdeRu;
+        private System.Windows.Forms.Button button_izap24;
     }
 }
 

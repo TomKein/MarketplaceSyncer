@@ -163,8 +163,9 @@ namespace Selen.Sites {
                     _bus[b].GroupName() != "Инструменты") {
                     try {
                         //определяем авто, если не удалось - пропускаем
-                        var m = await SelectAutoAsync(b);
-                        if (m == null) continue;
+                        var s = await _bus[b].GetNameMarkModelAsync();
+                        if (s == null) continue;
+                        var m = " для " + s[1] + " " + s[2];
                         await Task.Factory.StartNew(() => {
                             _dr.Navigate("https://auto.ru/parts/user-offer?rgid=6");
                             SelectCategory(b,m);
@@ -276,26 +277,6 @@ namespace Selen.Sites {
         private void SetOffice() {
             _dr.ButtonClick("//span[text()='Точки продаж']/../..");
             _dr.ButtonClick("//div[contains(@class,'MenuItem_size_m')]");
-        }
-        //указываем марку автомобиля
-        public async Task<string> SelectAutoAsync(int b) {
-            var desc = _bus[b].name.ToLowerInvariant() + " " + _bus[b].description.ToLowerInvariant();
-            var auto = File.ReadAllLines(Application.StartupPath + "\\auto.txt");
-            var dict = new Dictionary<string, int>();
-            for (int i = 0; i < auto.Length; i++) {
-                dict.Add(auto[i], 0);
-                foreach (var word in auto[i].Split(';')) {
-                    if (desc.Contains(word))
-                        dict[auto[i]]++;
-                }
-            }//== dict.Values.Max()
-            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();
-            if (best.Count > 0) {
-                var s = best[0].Split(';');
-                return " для " + s[0] + " " + s[1] + " " + s[2];
-            }
-            File.AppendAllText(Application.StartupPath + "\\auto.txt", "\n" + desc.Replace("есть и другие", "|").Split('|').First());
-            return null;
         }
         //выбор элемента для селектора категорий
         public void SelectElement(string s) {

@@ -154,15 +154,22 @@ namespace Selen.Sites {
         //редактирование объявления
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
-                _dr.Navigate(_bus[b].avito);
-                //есть на остатках, но страница открывается без номера объявления - нужно восстановить
-                if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0)
-                    _dr.ButtonClick("//button[text()='Восстановить']");
-                //нет номера объявления и есть строка вы удалили это объявление навсегда - удаляю ссылку из карточки
-                if (_dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0 && _dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) {
-                    SaveUrlAsync(b, deleteUrl: true);
-                    return;
-                }
+
+                var isDeleted = await Task.Factory.StartNew(() => {
+                    _dr.Navigate(_bus[b].avito);
+                    //есть на остатках, но страница без номера объявления - значит нужно восстановить
+                    if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0)
+                        _dr.ButtonClick("//button[text()='Восстановить']");
+                    //нет номера объявления и есть строка вы удалили это объявление навсегда - удаляю ссылку из карточки
+                    if (_dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0 && 
+                        _dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) {
+                        SaveUrlAsync(b, deleteUrl: true);
+                        Thread.Sleep(1000);
+                        return true;
+                    }
+                    return false;
+                });
+                if (isDeleted) return;
                 var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
                 bool isAlive = true;
                 for(int i=0; ; i++) {

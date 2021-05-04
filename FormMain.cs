@@ -22,7 +22,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.52.1";
+        string _version = "1.53.1";
         
         DB _db = new DB();
 
@@ -38,6 +38,7 @@ namespace Selen {
         Avito _avito = new Avito();
         AutoRu _autoRu = new AutoRu();
         EuroAuto _euroAuto = new EuroAuto();
+        Izap24 _izap24 = new Izap24();
 
         public IWebDriver tiu;
         public IWebDriver kp;
@@ -203,6 +204,8 @@ namespace Selen {
             await Task.Delay(60000);
             button_EuroAuto.PerformClick();
             await Task.Delay(60000);
+            button_izap24.PerformClick();
+            await Task.Delay(60000);
             button_cdek.PerformClick();
             await WaitButtonsActiveAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
@@ -353,7 +356,7 @@ namespace Selen {
         //=== авито ===
         public async void AvitoGetAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            if (_db.GetParamBool("avito.syncEnable")) {
+            if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     await _avito.AvitoStartAsync(bus);
@@ -448,16 +451,23 @@ namespace Selen {
 
         async Task TiuUploadAsync() {
             try {
-                newTiuGoods.Clear();
-                try {
-                    await Task.Factory.StartNew(() => {
-                        tiuCount = 0;
-                        ds.Clear();
-                        ds.ReadXml(tiuXmlUrl);
-                    });
-                } catch {
-                    Log.Add("tiu.ru: ошибка запроса XML!");
-                    return;
+                for (int i = 0; ; i++) {
+                    try {
+                        newTiuGoods.Clear();
+                        await Task.Factory.StartNew(() => {
+                            tiuCount = 0;
+                            ds.Clear();
+                            Log.Add("tiu.ru: запрашиваю каталог xml...");
+                            ds.ReadXml(tiuXmlUrl);
+                            Log.Add("tiu.ru: каталог получен");
+                        });
+                        break;
+                    } catch (Exception x) {
+                        if (i > 9) {
+                            Log.Add("tiu.ru: ошибка запроса XML! - "+x.Message);
+                            return;
+                        }
+                    }
                 }
                 if (DateTime.Now.Hour < 8) { //TODO tiu.ru - добавить в settings время последней отправки файла и время когда отправлять
                     tiuCount = ds.Tables["offer"].Rows.Count;
@@ -1469,6 +1479,8 @@ namespace Selen {
                         buttonSatom.PerformClick();
                         await Task.Delay(60000);
                         button_EuroAuto.PerformClick();
+                        await Task.Delay(60000);
+                        button_izap24.PerformClick();
                         await Task.Delay(60000);
                         button_vk_sync.PerformClick();
                         await Task.Delay(60000);
@@ -2530,6 +2542,25 @@ namespace Selen {
                 }
             }
         }
+        //=== выгрузка на izap24 ===
+        private async void button_izap24_Click(object sender, EventArgs e) {
+            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need || 
+                    (ds == null || ds.Tables.Count==0))
+                    await Task.Delay(60000);
+                try {
+                    Log.Add("izap24.ru: начинаю выгрузку...");
+                    await _izap24.SyncAsync(bus, ds);
+                    Log.Add("izap24.ru: выгрузка ок!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    Log.Add("izap24.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                }
+            }
+        }
+
         //загрузка куки
         private void button_SaveCookie_Click(object sender, EventArgs e) {
             SaveCookies(tiu, "tiu.json");
@@ -2881,5 +2912,6 @@ namespace Selen {
                 Log.Add(x.Message);
             }
         }
+
     }
 }

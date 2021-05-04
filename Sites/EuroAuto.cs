@@ -95,7 +95,7 @@ namespace Selen.Sites {
             File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
 
             //отправка прайса по почте
-            SmtpMailClient.SendAsync();
+            SmtpMailClient.SendAsync("ea_export.csv", "prices@euroauto.ru");
         }
     }
 }

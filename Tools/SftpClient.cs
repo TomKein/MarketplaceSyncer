@@ -19,15 +19,13 @@ namespace Selen.Base {
                     HostName = "35.185.57.11",
                     UserName = "bitnami",
                     SshHostKeyFingerprint = "ssh-rsa 2048 5LaZLFR2u+1xdE9SWnc3KzPksfjDNL2FEFcDM8jztKo=",
-                    SshPrivateKeyPath = "google_sftp.ppk",
-                    //SshPrivateKeyPath = Application.StartupPath + "\\" + "google_sftp.ppk",
+                    SshPrivateKeyPath = "google_sftp.ppk",                          //SshPrivateKeyPath = Application.StartupPath + "\\" + "google_sftp.ppk",
                 };
                 using (Session session = new Session()) {
                     session.Open(sessionOptions);
                     if (session.Opened) {
                         var res = session.PutFileToDirectory(
-                            fname, "/opt/bitnami/apps/wordpress/htdocs");
-                            //Application.StartupPath + "\\" + fname, "/opt/bitnami/apps/wordpress/htdocs");
+                            fname, "/opt/bitnami/apps/wordpress/htdocs");           //Application.StartupPath + "\\" + fname, "/opt/bitnami/apps/wordpress/htdocs");
                         Log.Add("SftpClient: " + fname + " - успешно отправлен!");
                     }
                 }

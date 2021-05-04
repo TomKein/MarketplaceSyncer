@@ -2,11 +2,13 @@
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using System.Windows.Forms;
 
 namespace Selen
 {
@@ -178,13 +180,17 @@ namespace Selen
             return t;
         }
 
-        public string HtmlDecodedDescription(int b = 3000, string[] dop = null) {
-            var s2 = HttpUtility.HtmlDecode(description);
-            if (IsGroupValid()) {
-                s2 += dop.Aggregate((a, c) => a + "\n" + c);
-            }
-            return s2;
-        }
+        public string HtmlDecodedDescription() =>
+            Regex.Replace(
+                HttpUtility.HtmlDecode(description)
+                           .Replace("Есть и другие", "|")
+                           .Split('|')[0]
+                           .Replace("\n", "|")
+                           .Replace("<br />", "|")
+                           .Replace("<br>", "|")
+                           .Replace("</p>", "|")
+                           .Replace("|", " "),
+                           "<[^>]+>", string.Empty).Trim();
 
         public List<string> DescriptionList(int b = 3000, string[] dop = null) {
             var s = Regex.Replace(description
@@ -237,7 +243,7 @@ namespace Selen
         }
 
         public bool IsNew() {
-            var low = (name+":"+description).ToLowerInvariant();
+            var low = (name + ":" + description).ToLowerInvariant();
             return !Regex.IsMatch(low, @"(б[\/\\.]у)");
         }
 
@@ -308,10 +314,50 @@ namespace Selen
             if (man.Any()) return man.First();
             return "";
         }
+        //определяю название запчасти, марку и модель из описания
+        private static string[] _autos;
+        public async Task<string[]> GetNameMarkModelAsync() => await Task.Factory.StartNew(() => {
+            //склеиваю название и описание
+            var desc = (name + " " + HtmlDecodedDescription()).ToLowerInvariant();
+            //новый словарь для учета совпадений
+            var dict = new Dictionary<string, int>();
+            //проверяю похожесть на каждый элемент списка
+            for (int i = 0; i < _autos.Length; i++) {
+                dict.Add(_autos[i], 0);
+                foreach (var word in _autos[i].Split(';'))
+                    if (desc.Contains(word)) dict[_autos[i]]++;
+            }//== dict.Values.Max()
+            //определяю лучшие совпадения
+            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();
+            //если они есть
+            if (best.Count > 0) {
+                //определяю запчасть
+                var n = new StringBuilder();
+                foreach (var part in name.Split(' ')) {
+                    //если слово не содержится в марке и не является номером запчасти, то берем его
+                    if (!best[0].Contains(part.ToLowerInvariant()) && part!=this.part) n.Append(part).Append(" ");
+                    //иначе завершаем проверку
+                    else break;
+                }
+                //проверяю длину названия, если она больше 0, то ок
+                if (n.Length > 0) {
+                    //разбираю строку с маркой
+                    var s = best[0].Split(';');
+                    //возвращаю результат: 1-название запчасти, 2-марка, 3-модель
+                    return new string[] { n.ToString().Trim(), s[0], s[1] + " " + s[2] };
+                }
+            }
+            Log.Add("business.ru: " + name + " пропущен - не удалось определить марку или модель");
+            //обнуляю список моделей для загрузки исправленного в новом проходе
+            return null;
+        });
+        //перечитать марки и модели
+        public static void ResetAutos() {
+            _autos = File.ReadAllLines(@"..\auto.txt");
+        }
         //перечитать из таблицы настроек
         public static void ResetManufactures() {
             manufactures = DB._db.GetParamStr("manufactures").Split(',');
         }
-
     }
 }
