@@ -179,7 +179,7 @@ namespace Selen
             this.button_tiu_sync.TabIndex = 2;
             this.button_tiu_sync.Text = "Tiu.ru старт";
             this.button_tiu_sync.UseVisualStyleBackColor = true;
-            this.button_tiu_sync.Click += new System.EventHandler(this.TiuSyncAsync);
+            this.button_tiu_sync.Click += new System.EventHandler(this.TiuSync);
             // 
             // ds
             // 

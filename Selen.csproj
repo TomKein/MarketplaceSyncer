@@ -260,6 +260,7 @@
     <Compile Include="Base\Class365API.cs" />
     <Compile Include="Base\DB.cs" />
     <Compile Include="Sites\izap24.cs" />
+    <Compile Include="Sites\Tiu.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>

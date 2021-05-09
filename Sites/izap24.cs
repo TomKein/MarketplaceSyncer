@@ -95,6 +95,19 @@ namespace Selen.Sites {
                 s.Append(desc).Append(";");                     //desc
                 //получаю ссылки на фотографии товаров из каталога tiu.ru
                 var urls = new StringBuilder();
+                GetPhtotoUrls(offer, urls);
+                s.AppendLine(urls.ToString());                  //photos
+                n++;
+                if (n % 500 == 0) Log.Add("izap24.ru: выгружено " + n + " товаров");
+            }
+            Log.Add("izap24.ru: всего выгружено " + n + " товаров");
+            File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
+            Log.Add("izap24.ru: пропущено " + e + " товаров");
+            File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
+        }
+
+        private void GetPhtotoUrls(RootObject offer, StringBuilder urls) {
+            try {
                 var tiuId = offer.tiu.Split('/').Last();        //ищу id товара в каталоге tiu
                 if (tiuId.Length > 0) {
                     //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
@@ -109,14 +122,9 @@ namespace Selen.Sites {
                         }
                     }
                 }
-                s.AppendLine(urls.ToString());                  //photos
-                n++;
-                if (n % 500 == 0) Log.Add("izap24.ru: выгружено " + n + " товаров");
+            } catch (Exception x) {
+                Log.Add("izap24: ошибка поиска фотографий в каталоге тиу! - " + x.Message);
             }
-            Log.Add("izap24.ru: всего выгружено " + n + " товаров");
-            File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
-            Log.Add("izap24.ru: пропущено " + e + " товаров");
-            File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
         }
     }
 }
