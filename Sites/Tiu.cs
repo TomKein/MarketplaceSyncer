@@ -1,15 +1,29 @@
-﻿using Selen.Tools;
+﻿using Selen.Base;
+using Selen.Tools;
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using ExcelLibrary.SpreadSheet;
+using System.Text.RegularExpressions;
+using OpenQA.Selenium;
+using Newtonsoft.Json;
 
 namespace Selen.Sites {
     class Tiu {
         Selenium _dr;
-        string tiuXmlUrl = "http://xn--80aejmkqfc6ab8a1b.xn--p1ai/yandex_market.xml?html_description=1&hash_tag=3f22d0f72761b35f77efeaffe7f4bcbe&yandex_cpa=0&group_ids=&exclude_fields=&sales_notes=&product_ids=";
+        int _tiuCount = 0;
+        List<RootObject> _newOffers = new List<RootObject>();
+        DataSet _ds;
+        DB _db;
+        string _fexp = "ex3.xls";
+        string _ftemp = "tmpl.xls";
+        List<RootObject> _bus = null;
 
         string dopDescTiu = "Дополнительные фотографии по запросу<br />" +
                             "Есть и другие запчасти на данный автомобиль!<br />" +
@@ -30,7 +44,11 @@ namespace Selen.Sites {
         };
 
         //главный метод
-        public async Task TiuSyncAsync() {
+        public async Task TiuSyncAsync(List<RootObject> bus, DataSet ds) {
+            _bus = bus;
+            _ds = ds;
+            _db = DB._db;
+            await AuthAsync();
             await TiuHide();
             await TiuMovePricelessToDrafts();
             await AddPhotosToBaseAsync();
@@ -38,35 +56,49 @@ namespace Selen.Sites {
             await AddSupplyAsync();
             await TiuSyncAsync2();
         }
+        //авторизация
+        private async Task AuthAsync() {
+            await Task.Factory.StartNew(() => {
+                if (_dr == null) {
+                    _dr = new Selenium();
+                }
+                LoadCookies();
+                _dr.Navigate("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
+                if (_dr.GetUrl().Contains("sign-in")) {
+                    _dr.ButtonClick("//ul/li/b[text()='Продавец']");
+                    _dr.ButtonClick("//a/b[text()='Войти как продавец']");
+                    _dr.WriteToSelector("//*[@id='phone_email']", _db.GetParamStr("tiu.login")); //rogachev.aleksey@gmail.com, 9106027626@mail.ru
+                    _dr.ButtonClick("//button[@id='phoneEmailConfirmButton']");
+                    _dr.WriteToSelector("//*[@id='enterPassword']", _db.GetParamStr("tiu.password"));  // $Drumbotanik122122, RAD00239000
+                    _dr.ButtonClick("//*[@id='enterPasswordConfirmButton']");
+                }
+                while (_dr.GetUrl().Contains("sign-in")) {
+                    Log.Add("tiu.ru: ошибка авторизации! ожидаю вход в кабинет...");
+                    Thread.Sleep(60000);
+                }
+                Log.Add("tiu.ru: продолжаю работу...");
+                SaveCookies();
+                //закрываю окно объявления
+                _dr.ButtonClick("//button/span[contains(text(),'Хорошо')]/..");
+            });
+        }
         //перемещаю товары без цен с витрины в черновики
         private async Task TiuMovePricelessToDrafts() {
             try {
                 await Task.Factory.StartNew(() => {
                     //запрашиваю опубликованные товары без цены
-                    _dr.Navigate().GoToUrl("https://my.tiu.ru/cms/product?search_term=&page=1&per_page=20&status=0&price=without_price");
-                    Thread.Sleep(1000);
+                    _dr.Navigate("https://my.tiu.ru/cms/product?search_term=&page=1&per_page=20&status=0&price=without_price");
                     //ставлю галочку выделить все элементы
-                    _dr.FindElement(By.CssSelector("input[data-qaid='select_all_chbx']")).Click();
-                    Thread.Sleep(2000);
+                    _dr.ButtonClick("input[data-qaid='select_all_chbx']");
                     //жму Выбор действия
-                    _dr.FindElement(By.CssSelector("span[data-qaid='selector_button']")).Click();
-                    Thread.Sleep(3000);
+                    _dr.ButtonClick("span[data-qaid='selector_button']");
                     //жму Изменить видимость
-                    var c = _dr.FindElements(By.XPath("//div/span[text()='Изменить видимость']/..")).First();
-                    Actions a = new Actions(_dr);
-                    a.MoveToElement(c).Perform();
-                    Thread.Sleep(1000);
-                    a.Click().Perform();
-                    Thread.Sleep(1000);
+                    _dr.ButtonClick("//div/span[text()='Изменить видимость']/..");
                     //жму Черновики
-                    c = _dr.FindElements(By.XPath("//div[text()='Черновики']")).First();
-                    a.MoveToElement(c).Perform();
-                    Thread.Sleep(1000);
-                    c.Click();
-                    Thread.Sleep(2000);
+                    _dr.ButtonClick("//div[text()='Черновики']");
                 });
             } catch (Exception x) {
-                //Log.Add("tiu.ru: ошибка при перемещении товаров без цен в черновики - "+ x.Message);
+                Log.Add("tiu.ru: ошибка при перемещении товаров без цен в черновики - "+ x.Message);
             }
         }
         //выгрузка на тиу
@@ -74,12 +106,12 @@ namespace Selen.Sites {
             try {
                 for (int i = 0; ; i++) {
                     try {
-                        newTiuGoods.Clear();
+                        _newOffers.Clear();
                         await Task.Factory.StartNew(() => {
-                            tiuCount = 0;
-                            ds.Clear();
+                            _tiuCount = 0;
+                            _ds.Clear();
                             Log.Add("tiu.ru: запрашиваю каталог xml...");
-                            ds.ReadXml(tiuXmlUrl);
+                            _ds.ReadXml(_db.GetParamStr("tiu.xmlUrl"));
                             Log.Add("tiu.ru: каталог получен");
                         });
                         break;
@@ -91,9 +123,8 @@ namespace Selen.Sites {
                     }
                 }
                 if (DateTime.Now.Hour < 8) { //TODO tiu.ru - добавить в settings время последней отправки файла и время когда отправлять
-                    tiuCount = ds.Tables["offer"].Rows.Count;
-                    label_tiu.Text = tiuCount.ToString();
-                    Log.Add("tiu.ru: получено объявлений " + tiuCount.ToString());
+                    _tiuCount = _ds.Tables["offer"].Rows.Count;
+                    Log.Add("tiu.ru: получено объявлений " + _tiuCount.ToString());
                     Log.Add("tiu.ru: готовлю файл выгрузки...");
                     do {
                         try {
@@ -109,52 +140,50 @@ namespace Selen.Sites {
                     //текущий индекс строки для записи в таблицу
                     int iRow = 0;
                     //для каждого товара из базы товаров
-                    for (int i = 0; i < bus.Count; i++) {
+                    for (int i = 0; i < _bus.Count; i++) {
                         //есть привязка к тиу и есть цена, значит выгружаем на тиу
-                        if (bus[i].tiu.Contains("tiu.ru")) {
+                        if (_bus[i].tiu.Contains("tiu.ru")) {
                             //получаем id товара тиу из ссылки
-                            string idTiu = bus[i].tiu.Replace("/edit/", "|").Split('|')[1];
+                            string idTiu = _bus[i].tiu.Replace("/edit/", "|").Split('|')[1];
                             //ищем строку с таким товаром
-                            var tRow = ds.Tables["offer"].Select("id = '" + idTiu + "'");
+                            var tRow = _ds.Tables["offer"].Select("id = '" + idTiu + "'");
                             //пишем строку в экспорт если
                             if (tRow.Length > 0
-                                 || (bus[i].amount > 0 && bus[i].price > 0)
+                                 || (_bus[i].amount > 0 && _bus[i].price > 0)
                             ) {
                                 iRow++;
                                 //запишем в экспорт новую строку
-                                string s = bus[i].description.Replace("&nbsp;", " ")
+                                string s = _bus[i].description.Replace("&nbsp;", " ")
                                     .Replace("&quot;", "")
                                     .Replace(" &gt", "")
                                     .Replace("Есть и другие", "|")
                                     .Split('|')[0];
-                                if (bus[i].IsGroupValid()) {
+                                if (_bus[i].IsGroupValid()) {
                                     s += dopDescTiu;
                                 }
-                                string m = bus[i].measure_id == "11"
+                                string m = _bus[i].measure_id == "11"
                                     ? "пара"
-                                    : bus[i].measure_id == "13"
+                                    : _bus[i].measure_id == "13"
                                         ? "комплект"
-                                        : bus[i].measure_id == "9"
+                                        : _bus[i].measure_id == "9"
                                             ? "упаковка"
                                             : "шт.";
-                                string a = bus[i].amount > 0 ? "+" : "-";
-                                if (!string.IsNullOrEmpty(bus[i].part)) ws.Cells[iRow, 0] = new Cell(bus[i].part);
-                                ws.Cells[iRow, 1] = new Cell(bus[i].name);
+                                string a = _bus[i].amount > 0 ? "+" : "-";
+                                if (!string.IsNullOrEmpty(_bus[i].part)) ws.Cells[iRow, 0] = new Cell(_bus[i].part);
+                                ws.Cells[iRow, 1] = new Cell(_bus[i].name);
                                 ws.Cells[iRow, 3] = new Cell(s);
-                                ws.Cells[iRow, 5] = new Cell(bus[i].price > 0 ? bus[i].price : 100);
+                                ws.Cells[iRow, 5] = new Cell(_bus[i].price > 0 ? _bus[i].price : 100);
                                 ws.Cells[iRow, 6] = new Cell("RUB");
                                 ws.Cells[iRow, 7] = new Cell(m);
                                 ws.Cells[iRow, 12] = new Cell(a);
-                                ws.Cells[iRow, 13] = new Cell(bus[i].amount > 0 ? (int)bus[i].amount : 0);
+                                ws.Cells[iRow, 13] = new Cell(_bus[i].amount > 0 ? (int)_bus[i].amount : 0);
                                 ws.Cells[iRow, 20] = new Cell(idTiu);
                             } else {
-                                if (bus[i].amount > 0)
-                                    Log.Add("tiu.ru: ошибка! - tiu_ID = " + idTiu + " из ссылки карточки не найден в выгрузке XML - " + bus[i].name);
+                                if (_bus[i].amount > 0)
+                                    Log.Add("tiu.ru: ошибка! - tiu_ID = " + idTiu + " из ссылки карточки не найден в выгрузке XML - " + _bus[i].name);
                             }
                         }
                     }
-                    label_tiu.Text = iRow.ToString();
-
                     CheckTiuUrlsInBus();
                     //сохраняем изменения
                     wb.Save(Application.StartupPath + "\\" + _fexp);
@@ -166,7 +195,7 @@ namespace Selen.Sites {
         }
         //проверяю, есть ли в базе карточки без ссылки на тиу
         private void CheckTiuUrlsInBus() {
-            var goods = bus.Where(w => w.images.Count > 0 && w.amount > 0 && !w.tiu.Contains("tiu.ru"))
+            var goods = _bus.Where(w => w.images.Count > 0 && w.amount > 0 && !w.tiu.Contains("tiu.ru"))
                 .Select(s => s.name)
                 .ToList();
             foreach (var good in goods) {
@@ -175,30 +204,22 @@ namespace Selen.Sites {
         }
         //редактируем объявления
         private async Task TiuSyncAsync2() {
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].tiu != null && bus[b].tiu.Contains("http") &&
-                    bus[b].IsTimeUpDated() && bus[b].price > 0) {
+            for (int b = 0; b < _bus.Count; b++) {
+                if (_bus[b].tiu != null && _bus[b].tiu.Contains("http") &&
+                    _bus[b].IsTimeUpDated() && _bus[b].price > 0) {
                     try {
                         await Task.Factory.StartNew(() => {
                             TiuOfferUpdate(b);
                         });
                     } catch (Exception x) {
-                        if (x.Message.Contains("timed out") ||
-                            x.Message.Contains("already closed") ||
-                            x.Message.Contains("invalid session id") ||
-                            x.Message.Contains("chrome not reachable")) {
-                            _dr.Quit();
-                            _dr = null;
-                            Log.Add("tiu.ru: ошибка браузера, перезапуск - " + x.Message);
-                        } else
-                            Log.Add("tiu.ru: ошибка! - " + x.Message);
+                        Log.Add("tiu.ru: ошибка обновления позиции! "+ _bus[b].name + " - " + x.Message);
                     }
                 }
             }
         }
         //готовим описание для tiu.ru
         private List<string> GetTiuDesc(int b) {
-            var s = Regex.Replace(bus[b].description
+            var s = Regex.Replace(_bus[b].description
                         .Replace("Есть и другие", "|")
                         .Split('|')[0]
                         .Replace("\n", "|")
@@ -215,7 +236,7 @@ namespace Selen.Sites {
                 .Where(tb => tb.Length > 1)
                 .ToList();
 
-            if (bus[b].IsGroupValid()) {
+            if (_bus[b].IsGroupValid()) {
                 s.AddRange(dopDescTiu2);
             }
             //контролируем длину описания
@@ -230,62 +251,46 @@ namespace Selen.Sites {
             }
             return s;
         }
-        //проверка окна с рекламой
-        private void TiuCheckPopup() {
-            var el = _dr.FindElements(By.XPath("//div[contains(@class,'sliding-panel__close-btn')]"));
-            if (el.Count > 0)
-                el.First().Click();
-        }
         //редактирование позиции
         private void TiuOfferUpdate(int b) {
-            _dr.Navigate().GoToUrl(bus[b].tiu);
-            TiuCheckPopup();
-            var status = _dr.FindElement(By.CssSelector(".b-product-edit__partition .b-product-edit__partition div.js-toggle"));
-            var curStatus = status.FindElement(By.CssSelector("span span")).Text;
-            if (bus[b].amount > 0) {
-                var displayStatus = _dr.FindElement(By.XPath("//div[@data-qaid='visibility_block']/div[1]//input"));//радио батн опубликован
-                displayStatus.Click();
-                if (curStatus != "В наличии") {
-                    status.Click();
-                    Thread.Sleep(3000);
-                    var newStatus = _dr.FindElements(By.CssSelector("div[data-qaid='presence_stock_block'] .b-drop-down__list-item"))
-                                       .Where(w => w.Text == "В наличии").First();
-                    newStatus.Click();
+            _dr.Navigate(_bus[b].tiu);
+            //закрываю окно с рекламой
+            _dr.ButtonClick("//div[contains(@class,'sliding-panel__close-btn')]");
+            //проверяю статус объявления
+            var status = _dr.GetElementText("//div[@data-qaid='presence_stock_block']//span/span");
+            if (_bus[b].amount > 0) {
+                _dr.ButtonClick("//div[@data-qaid='visibility_block']/div[1]//input");//радио батн опубликован
+                if (status != "В наличии") {
+                    _dr.ButtonClick("//div[@data-qaid='presence_stock_block']//div[contains(@class,'drop-down')]");
+                    _dr.ButtonClick("//div[contains(@class,'drop-down')]//li[text()='В наличии']");
                 }
             }
-            if (bus[b].amount <= 0) {
-                var displayStatus = _dr.FindElement(By.XPath("//div[@data-qaid='visibility_block']/div[3]//input"));//радио батн скрытый
-                displayStatus.Click();
-                if (curStatus != "Нет в наличии") {
-                    status.Click();
-                    Thread.Sleep(3000);
-                    var newStatus = _dr.FindElements(By.CssSelector("div[data-qaid='presence_stock_block'] .b-drop-down__list-item"))
-                                       .Where(w => w.Text == "Нет в наличии").First();
-                    newStatus.Click();
+            if (_bus[b].amount <= 0) {
+                _dr.ButtonClick("//div[@data-qaid='visibility_block']/div[3]//input");//радио батн скрытый
+                if (status != "Нет в наличии") {
+                    _dr.ButtonClick("//div[@data-qaid='presence_stock_block']//div[contains(@class,'drop-down')]");
+                    _dr.ButtonClick("//div[contains(@class,'drop-down')]//li[text()='Нет в наличии']");
                 }
             }
-            Thread.Sleep(1000);
-            WriteToIWebElement(_dr, _dr.FindElement(By.CssSelector("input[data-qaid='product_price_input']")), bus[b].price.ToString());
+            _dr.WriteToSelector("input[data-qaid='product_price_input']", _bus[b].price.ToString());
             //если нулевое количество 0 не пишем, просто удаляем что там указано
-            var cnt = Math.Round(bus[b].amount, 0) > 0 ? Math.Round(bus[b].amount, 0).ToString() : OpenQA.Selenium.Keys.Backspace;
-            WriteToIWebElement(_dr, _dr.FindElement(By.CssSelector("input[data-qaid='stock_input']")), cnt);
-            WriteToIWebElement(_dr, _dr.FindElement(By.XPath("//div[@data-qaid='product_name_input']//input")), bus[b].name);
-            WriteToIWebElement(_dr, _dr.FindElement(By.XPath("//*[@id='cke_product']//iframe")), sl: GetTiuDesc(b));
-            var but = _dr.FindElement(By.XPath("//button[@data-qaid='save_return_to_list']"));
-            but.Click();
+            var cnt = Math.Round(_bus[b].amount, 0) > 0 ? Math.Round(_bus[b].amount, 0).ToString() : OpenQA.Selenium.Keys.Backspace;
+            _dr.WriteToSelector("input[data-qaid='stock_input']", cnt);
+            _dr.WriteToSelector("//div[@data-qaid='product_name_input']//input", _bus[b].name);
+            _dr.WriteToSelector("//*[@id='cke_product']//iframe", sl: GetTiuDesc(b));
+            _dr.ButtonClick("//button[@data-qaid='save_return_to_list']");
             Thread.Sleep(21000);
         }
         //добавляем фото с тиу в карточки товаров
         private async Task AddPhotosToBaseAsync() {
             if (_db.GetParamBool("loadPhotosFromTiuToBusiness")) {
-                for (int b = 0; b < bus.Count; b++) {
-                    if (bus[b].tiu.Contains("http") && bus[b].images.Count == 0 && bus[b].amount > 0) {
+                for (int b = 0; b < _bus.Count; b++) {
+                    if (_bus[b].tiu.Contains("http") && _bus[b].images.Count == 0 && _bus[b].amount > 0) {
                         var imgUrls = new List<string>();
                         var t = Task.Factory.StartNew(() => {
-                            Log.Add("tiu.ru: Нет фотографий в карточке товара! - " + bus[b].name);
-                            _dr.Navigate().GoToUrl(bus[b].tiu);
-                            Thread.Sleep(2000);
-                            imgUrls.AddRange(_dr.FindElements(By.CssSelector(".b-uploader-extend__image-holder-img"))
+                            Log.Add("tiu.ru: Нет фотографий в карточке товара! - " + _bus[b].name);
+                            _dr.Navigate(_bus[b].tiu);
+                            imgUrls.AddRange(_dr._drv.FindElements(By.CssSelector(".b-uploader-extend__image-holder-img"))
                                                .Select(s => s.GetAttribute("src")
                                                .Split('?')
                                                .First()
@@ -295,202 +300,142 @@ namespace Selen.Sites {
                             await t;
                             if (imgUrls.Count > 0) {
                                 for (int i = 0; i < imgUrls.Count; i++) {
-                                    bus[b].images.Add(new Image() {
+                                    _bus[b].images.Add(new Image() {
                                         name = imgUrls[i].Split('/').Last(),
                                         url = imgUrls[i]
                                     });
                                 }
                                 var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
-                                        {"id", bus[b].id},
-                                        {"name", bus[b].name},
-                                        {"images", JsonConvert.SerializeObject(bus[b].images.ToArray())}
+                                        {"id", _bus[b].id},
+                                        {"name", _bus[b].name},
+                                        {"images", JsonConvert.SerializeObject(_bus[b].images.ToArray())}
                                 });
                                 Thread.Sleep(3000);
-                                Log.Add("tiu.ru: " + bus[b].name + " - успешно загружено " + imgUrls.Count + " фото");
+                                Log.Add("tiu.ru: " + _bus[b].name + " - успешно загружено " + imgUrls.Count + " фото");
                             } else Log.Add("tiu.ru: Пропущено - у товара нет фотографий!!");
                         } catch (Exception x) {
-                            Log.Add("tiu.ru: Ошибка загрузки фотографий с в карточку товара! - " + bus[b].name + x.Message);
+                            Log.Add("tiu.ru: Ошибка загрузки фотографий с в карточку товара! - " + _bus[b].name + x.Message);
                         }
                     }
                 }
             }
         }
         public async Task WaitTiuAsync() {
-            while (tiuCount == 0) {
+            while (_tiuCount == 0) {
                 Log.Add("ожидаем загрузку tiu...");
                 await Task.Factory.StartNew(() => { Thread.Sleep(10000); });
             }
         }
         //скрываем на тиу объявления, которых нет в наличии
         private async Task TiuHide() {
-            if (_dr == null) {
-                await Task.Factory.StartNew(() => {
-                    ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
-                    chromeservice.HideCommandPromptWindow = true;
-                    _dr = new ChromeDriver(chromeservice);
-                    _dr.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-                    Thread.Sleep(2000);
-                    _dr.Navigate().GoToUrl("https://my.tiu.ru/cms");
-                    LoadCookies(_dr, "tiu.json");
-                });
-            }
-            Task ts = Task.Factory.StartNew(() => {
-                _dr.Navigate().GoToUrl("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
-                Thread.Sleep(3000);
-                try {
-                    _dr.FindElement(By.XPath("//ul/li/b[text()='Продавец']")).Click();
-                    Thread.Sleep(3000);
-                    _dr.FindElement(By.XPath("//a/b[text()='Войти как продавец']")).Click();
-                    Thread.Sleep(3000);
-                    //tiu.FindElement(By.Id("phone_email")).SendKeys("9106027626@mail.ru");
-                    _dr.FindElement(By.Id("phone_email")).SendKeys("rogachev.aleksey@gmail.com");
-                    Thread.Sleep(3000);
-                    _dr.FindElement(By.XPath("//button[@id='phoneEmailConfirmButton']")).Click();
-                    Thread.Sleep(3000);
-                    //tiu.FindElement(By.Id("enterPassword")).SendKeys("RAD00239000");
-                    _dr.FindElement(By.Id("enterPassword")).SendKeys("$Drumbotanik122122");
-                    Thread.Sleep(3000);
-                    _dr.FindElement(By.Id("enterPasswordConfirmButton")).Click();
-                    Thread.Sleep(3000);
-                    while (_dr.Url.Contains("sign-in")) {
-                        Log.Add("tiu.ru: ошибка авторизации! ожидаю вход в кабинет...");
-                        Thread.Sleep(60000);
-                    }
-                    Log.Add("tiu.ru: продолжаю работу...");
-                } catch { }
-                SaveCookies(_dr, "tiu.json");
-                _dr.Navigate().Refresh();
-                Thread.Sleep(3000);
-                //закрываю окно объявления
-                var bat = _dr.FindElements(By.XPath("//button/span[contains(text(),'Хорошо')]/.."));
-                if (bat.Count > 0) bat.First().Click();
+            await Task.Factory.StartNew(() => {
+                _dr.Navigate("https://my.tiu.ru/cms/product?filterSetId=21433693&search_term=&page=1&status=0&presence=not_avail");
+                //выделяю элементы
+                _dr.ButtonClick("input[data-qaid='select_all_chbx']");
+                //жму кнопку выбора действия
+                _dr.ButtonClick("span[data-qaid='selector_button']");
+                //жму изменить видимость
+                _dr.ButtonClick("//div/span[text()='Изменить видимость']/..");
+                //жму скрытые
+                _dr.ButtonClick("//div[text()='Скрытые']");
             });
-            try {
-                await ts;
-                //галочка выделить все элементы
-                _dr.FindElement(By.CssSelector("input[data-qaid='select_all_chbx']")).Click();
-                Thread.Sleep(3000);
-                //жмем кнопку выбора действия
-                _dr.FindElement(By.CssSelector("span[data-qaid='selector_button']")).Click();
-                Thread.Sleep(5000);
-                //жмем изменить видимость
-                var c = _dr.FindElements(By.XPath("//div/span[text()='Изменить видимость']/..")).First();
-                Actions a = new Actions(_dr);
-                a.MoveToElement(c).Perform();
-                Thread.Sleep(1000);
-                a.Click().Perform();
-                Thread.Sleep(1000);
-                //жмем скрытые
-                c = _dr.FindElements(By.XPath("//div[text()='Скрытые']")).First();
-                a.MoveToElement(c).Perform();
-                Thread.Sleep(1000);
-                c.Click();
-                Thread.Sleep(2000);
-            } catch (Exception x) {
-                if (x.Message.Contains("timed out") ||
-                x.Message.Contains("already closed") ||
-                x.Message.Contains("invalid session id") ||
-                x.Message.Contains("chrome not reachable")) {
-                    _dr.Quit();
-                    _dr = null;
-                }
-                //Log.Add("tiu.ru: ошибка - " + x.Message);
-            }
         }
         //поступление товаров с тиу - создаю карточки, остатки и цены
         public async Task AddSupplyAsync() {
             try {
                 //проверяем, для каких товаров нужно сделать новые карточки и поступление
-                tiuCount = ds.Tables.Count > 0 ? ds.Tables["offer"].Rows.Count : 0;
+                _tiuCount = _ds.Tables.Count > 0 ? _ds.Tables["offer"].Rows.Count : 0;
 
-                for (int ti = 0; ti < tiuCount; ti++) {
-                    string tiuName = ds.Tables["offer"].Rows[ti]["name"].ToString();
-                    string tiuId = ds.Tables["offer"].Rows[ti]["id"].ToString();
-                    int indBus = bus.FindIndex(f => !String.IsNullOrEmpty(f.tiu) && f.tiu.Contains(tiuId));
-                    if (indBus == -1) {
-                        string desc = Regex.Replace(ds.Tables["offer"].Rows[ti]["description"].ToString()
-                                    .Replace("Есть и другие", "|").Split('|')[0]
-                                    .Replace("&nbsp;", " ")
-                                    .Replace("&", " ")
-                                    .Replace("<br />", "|")
-                                    .Replace("</p>", "|"),
-                                "<[^>]+>", string.Empty)
-                            .Replace("|", "<br />")
-                            .Replace("\n", "")
-                            .Replace("Есть и другие", "|").Split('|')[0];
+                await Task.Factory.StartNew(() => {
+                    for (int ti = 0; ti < _tiuCount; ti++) {
+                        string tiuName = _ds.Tables["offer"].Rows[ti]["name"].ToString();
+                        string tiuId = _ds.Tables["offer"].Rows[ti]["id"].ToString();
+                        int indBus = _bus.FindIndex(f => !String.IsNullOrEmpty(f.tiu) && f.tiu.Contains(tiuId));
+                        if (indBus == -1) {
+                            string desc = Regex.Replace(_ds.Tables["offer"].Rows[ti]["description"].ToString()
+                                        .Replace("Есть и другие", "|").Split('|')[0]
+                                        .Replace("&nbsp;", " ")
+                                        .Replace("&", " ")
+                                        .Replace("<br />", "|")
+                                        .Replace("</p>", "|"),
+                                    "<[^>]+>", string.Empty)
+                                .Replace("|", "<br />")
+                                .Replace("\n", "")
+                                .Replace("Есть и другие", "|").Split('|')[0];
 
-                        string categoryId = ds.Tables["offer"].Rows[ti]["categoryId"].ToString();
-                        var rows = ds.Tables["category"].Select("id = '" + categoryId + "'");
-                        string category_Text = "";
-                        try {
-                            category_Text = rows[0]["category_Text"].ToString();
-                            var offer_id = ds.Tables["offer"].Rows[ti]["offer_id"];
-                        } catch { continue; }
+                            string categoryId = _ds.Tables["offer"].Rows[ti]["categoryId"].ToString();
+                            var rows = _ds.Tables["category"].Select("id = '" + categoryId + "'");
+                            string category_Text = "";
+                            try {
+                                category_Text = rows[0]["category_Text"].ToString();
+                                var offer_id = _ds.Tables["offer"].Rows[ti]["offer_id"];
+                            } catch { continue; }
 
-                        //проверим, нет ли повторений наименования
-                        string[] bus_dubles;
-                        do {
-                            bus_dubles = bus.Select(tn => tn.name.ToUpper()).Where(f => f == tiuName.ToUpper()).ToArray();
-                            if (bus_dubles.Length > 0) {
-                                tiuName += tiuName.EndsWith("`") ? "`" : " `";
-                                Log.Add("business.ru: исправлен дубль названия в создаваемой карточке \n" + tiuName);
+                            //проверим, нет ли повторений наименования
+                            string[] bus_dubles;
+                            do {
+                                bus_dubles = _bus.Select(tn => tn.name.ToUpper()).Where(f => f == tiuName.ToUpper()).ToArray();
+                                if (bus_dubles.Length > 0) {
+                                    tiuName += tiuName.EndsWith("`") ? "`" : " `";
+                                    Log.Add("business.ru: исправлен дубль названия в создаваемой карточке \n" + tiuName);
+                                }
+                            } while (bus_dubles.Length > 0);
+
+                            //добавим в список товаров, на которые нужно сделать поступление и цены
+                            string group_id = null;
+                            try {
+                                group_id = RootObject.Groups.Find(f => f.name.Contains(category_Text.Trim())).id ?? "169326";
+                            } catch(Exception x) {
+                                Log.Add("ошибка сопоставления групп! (AddSupplyAsync)");
+                                group_id = "169326";
                             }
-                        } while (bus_dubles.Length > 0);
-                        //добавим в список товаров, на которые нужно сделать поступление и цены
-                        string group_id;
-                        try {
-                            group_id = busGroups.Find(f => f.name.Contains(category_Text.Trim())).id;
-                        } catch {
-                            group_id = "169326";
-                        }
 
-                        newTiuGoods.Add(new RootObject() {
-                            name = tiuName,
-                            tiu = "https://my.tiu.ru/cms/product/edit/" + tiuId,
-                            description = desc,
-                            group_id = group_id
-                        });
+                            _newOffers.Add(new RootObject() {
+                                name = tiuName,
+                                tiu = "https://my.tiu.ru/cms/product/edit/" + tiuId,
+                                description = desc,
+                                group_id = group_id
+                            });
+                        }
                     }
-                }
-                if (newTiuGoods.Count > 0) {
-                    Log.Add("business.ru: обнаружено " + newTiuGoods.Count + " новых товаров на тиу.ру:\n"
-                        + newTiuGoods.Select(s => s.name).Aggregate((a, b) => a + "\n" + b));
-                    for (int i = 0; i < newTiuGoods.Count; i++) {
+                });
+                if (_newOffers.Count > 0) {
+                    Log.Add("business.ru: обнаружено " + _newOffers.Count + " новых товаров на тиу.ру:\n"
+                        + _newOffers.Select(s => s.name).Aggregate((a, b) => a + "\n" + b));
+                    for (int i = 0; i < _newOffers.Count; i++) {
                         //подгружаем цену, количество и ед имз. для каждого товара
                         try {
-                            tiu.Navigate().GoToUrl(newTiuGoods[i].tiu);
-                            newTiuGoods[i].price = int.Parse(
-                                tiu.FindElement(By.CssSelector("input[data-qaid='product_price_input']"))
-                                .GetAttribute("value"));
-                            if (newTiuGoods[i].price == 0) {
+                            await _dr.NavigateAsync(_newOffers[i].tiu);
+                            _newOffers[i].price = int.Parse(
+                                _dr.GetElementAttribute("input[data-qaid='product_price_input']","value"));
+                            if (_newOffers[i].price == 0) {
                                 Log.Add("business.ru: ошибка при получении цены товара, пропущена позиция '"
-                                    + newTiuGoods[i].name + "'");
-                                newTiuGoods.RemoveAt(i--);
+                                    + _newOffers[i].name + "'");
+                                _newOffers.RemoveAt(i--);
                                 continue;
                             }
-                            newTiuGoods[i].amount = int.Parse(
-                                tiu.FindElement(By.CssSelector("input[data-qaid='stock_input']"))
-                                .GetAttribute("value"));
-                            if (newTiuGoods[i].amount == 0) {
+                            _newOffers[i].amount = int.Parse(
+                                _dr.GetElementAttribute("input[data-qaid='stock_input']","value"));
+                            if (_newOffers[i].amount == 0) {
                                 Log.Add("business.ru: ошибка при получении количества товара, пропущена позиция '"
-                                    + newTiuGoods[i].name + "'");
-                                newTiuGoods.RemoveAt(i--);
+                                    + _newOffers[i].name + "'");
+                                _newOffers.RemoveAt(i--);
                                 continue;
                             }
-                            if (tiu.FindElements(By.CssSelector(".b-uploader-extend__image-holder-img")).Count == 0) {
+                            if (_dr.GetElementsCount(".b-uploader-extend__image-holder-img") == 0) {
                                 Log.Add("business.ru: ошибка в количестве фотографий, позиция пропущена '"
-                                    + newTiuGoods[i].name + "'");
-                                newTiuGoods.RemoveAt(i--);
+                                    + _newOffers[i].name + "'");
+                                _newOffers.RemoveAt(i--);
                                 continue;
                             }
                         } catch (Exception x) {
                             Log.Add("business.ru: ошибка при получении цены и остатков, пропущена позиция '"
-                                + newTiuGoods[i].name + "' - " + x.Message);
-                            newTiuGoods.RemoveAt(i--);
+                                + _newOffers[i].name + "' - " + x.Message);
+                            _newOffers.RemoveAt(i--);
                             continue;
                         }
-                        var measureTiu = tiu.FindElement(By.CssSelector("div[data-qaid='unit_dd'] span")).Text;
-                        newTiuGoods[i].measure_id = measureTiu == "пара"
+                        var measureTiu = _dr.GetElementText("div[data-qaid='unit_dd'] span");
+                        _newOffers[i].measure_id = measureTiu == "пара"
                             ? "11"
                             : measureTiu == "комплект"
                                 ? "13"
@@ -498,51 +443,47 @@ namespace Selen.Sites {
                                     ? "9"
                                     : "1";
                         //создаем карточку товара
-                        newTiuGoods[i].id = JsonConvert.DeserializeObject<PostSuccessAnswer>(
-                            await Class365API.RequestAsync("post", "goods", new Dictionary<string, string>()
-                            {
-                            {"name", newTiuGoods[i].name},
-                            {"group_id", newTiuGoods[i].group_id},
-                            {"description", newTiuGoods[i].description},
-                            {"209325", newTiuGoods[i].tiu}
+                        _newOffers[i].id = JsonConvert.DeserializeObject<PostSuccessAnswer>(
+                            await Class365API.RequestAsync("post", "goods", new Dictionary<string, string>(){
+                                {"name", _newOffers[i].name},
+                                {"group_id", _newOffers[i].group_id},
+                                {"description", _newOffers[i].description},
+                                {"209325", _newOffers[i].tiu }
                             })).id;
                         //если единицы измерения не шт, то необходимо поменять привязку ед. изм. в карточке
-                        if (newTiuGoods[i].measure_id != "1") {
+                        if (_newOffers[i].measure_id != "1") {
                             //находим привязку единиц измерения
                             var gm = JsonConvert.DeserializeObject<GoodsMeasures[]>(
-                                await Class365API.RequestAsync("get", "goodsmeasures", new Dictionary<string, string>()
-                                {
-                                {"good_id", newTiuGoods[i].id}
+                                await Class365API.RequestAsync("get", "goodsmeasures", new Dictionary<string, string>() {
+                                    {"good_id", _newOffers[i].id}
                                 }));
                             //меняем значение кода единицы изм
-                            var s = await Class365API.RequestAsync("put", "goodsmeasures", new Dictionary<string, string>()
-                            {
-                            {"id", gm[0].id},
-                            {"measure_id", newTiuGoods[i].measure_id}
-                        });
+                            var s = await Class365API.RequestAsync("put", "goodsmeasures", new Dictionary<string, string>(){
+                                {"id", gm[0].id},
+                                {"measure_id", _newOffers[i].measure_id}
+                            });
                         }
-                        Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + newTiuGoods[i].name + ",  ост. " + newTiuGoods[i].amount + ", цена " + newTiuGoods[i].price);
+                        Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + _newOffers[i].name + ",  ост. " + _newOffers[i].amount + ", цена " + _newOffers[i].price);
                         Thread.Sleep(1000);
                     }
                 }
-
-                if (newTiuGoods.Count > 0) {
+                //сделаем новое поступление
+                if (_newOffers.Count > 0) {
                     var number = DateTime.Now.ToString().Replace(".", "").Replace(":", "").Replace(" ", "");
-                    //сделаем новое поступление
                     var remain = JsonConvert.DeserializeObject<PostSuccessAnswer>(
-                        await Class365API.RequestAsync("post", "remains", new Dictionary<string, string>() {
-                            { "organization_id", "75519"},//радченко
-                            {"store_id", "1204484"},//склад
-                            {"number", number},//номер документа
-                            {"employee_id", "76221"},//-рогачев 76197-радченко
-                            {"currency_id", "1"},
-                            {"date", DateTime.Now.ToShortDateString()},
-                            {"comment", "Создано автоматически, цена закупки 80% от реализации"}
+                    await Class365API.RequestAsync("post", "remains", new Dictionary<string, string>() {
+                        { "organization_id", "75519"},//радченко
+                        {"store_id", "1204484"},//склад
+                        {"number", number},//номер документа
+                        {"employee_id", "76221"},//-рогачев 76197-радченко
+                        {"currency_id", "1"},
+                        {"date", DateTime.Now.ToShortDateString()},
+                        {"comment", "Создано автоматически, цена закупки 80% от реализации"}
                     }));
                     Log.Add("business.ru: СОЗДАНЫ ОСТАТКИ ПО СКЛАДУ № " + number);
                     Thread.Sleep(1000);
                     //делаем привязку к поступлению каждого товара
-                    foreach (var good in newTiuGoods) {
+                    foreach (var good in _newOffers) {
                         var price = (int)(good.price * 0.8);
                         var res = JsonConvert.DeserializeObject<PostSuccessAnswer>(
                             await Class365API.RequestAsync("post", "remaingoods", new Dictionary<string, string>()
@@ -557,7 +498,6 @@ namespace Selen.Sites {
                         Log.Add("business.ru: ПРИВЯЗАНА КАРТОЧКА К ОТСТАКАМ\n" + good.name);
                         Thread.Sleep(1000);
                     }
-
                     //создаём новый прайс лист
                     var spl = JsonConvert.DeserializeObject<PostSuccessAnswer>(
                         await Class365API.RequestAsync("post", "salepricelists", new Dictionary<string, string>()
@@ -576,9 +516,8 @@ namespace Selen.Sites {
                     }));
                     Log.Add("business.ru: ПРИВЯЗАН ТИП ЦЕН К ПРАЙСУ 75524 (розничная)");
                     Thread.Sleep(1000);
-
                     //для каждого товара сделаем привязку у прайс листу
-                    foreach (var good in newTiuGoods) {
+                    foreach (var good in _newOffers) {
                         var splg = JsonConvert.DeserializeObject<PostSuccessAnswer>(
                             await Class365API.RequestAsync("post", "salepricelistgoods", new Dictionary<string, string>()
                             {
@@ -598,31 +537,29 @@ namespace Selen.Sites {
                         Log.Add("business.ru: НАЗНАЧЕНА ЦЕНА К ПРИВЯЗКЕ ПРАЙС ЛИСТА " + good.price);
                         Thread.Sleep(1000);
                     }
-                    Log.Add("business.ru: ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ НА " + newTiuGoods.Count + " ТОВАРОВ!");
+                    Log.Add("business.ru: ПОСТУПЛЕНИЕ И ЦЕНЫ УСПЕШНО СОЗДАНЫ НА " + _newOffers.Count + " ТОВАРОВ!");
                 }
 
             } catch (Exception x) {
                 Log.Add("business.ru: ошибка при создании поступления в AddSupplyAsync - " + x.Message);
             }
-            newTiuGoods.Clear();
+            _newOffers.Clear();
         }
-
-
         //загрузить куки
         public void LoadCookies() {
             if (_dr != null) {
-                _dr.Navigate("https://avito.ru/404");
-                var c = _db.GetParamStr("avito.cookies");
+                _dr.Navigate("https://my.tiu.ru/cms/product");
+                var c = _db.GetParamStr("tiu.cookies");
                 _dr.LoadCookies(c);
-                Thread.Sleep(_delay / 10);
+                Thread.Sleep(2000);
             }
         }
         //сохранить куки
         public void SaveCookies() {
             if (_dr != null) {
-                _dr.Navigate("https://avito.ru/profile");
+                _dr.Navigate("https://my.tiu.ru/cms/product");
                 var c = _dr.SaveCookies();
-                _db.SetParam("avito.cookies", c);
+                _db.SetParam("tiu.cookies", c);
             }
         }
         //закрыть браузер

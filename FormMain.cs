@@ -22,13 +22,12 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.54.1";
+        string _version = "1.56.1";
         
         DB _db = new DB();
 
         public List<RootGroupsObject> busGroups = new List<RootGroupsObject>();
         public List<RootObject> bus = new List<RootObject>();
-        private List<RootObject> newTiuGoods = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
 
         VK _vk = new VK();
@@ -61,34 +60,20 @@ namespace Selen {
 
         //настройки и контрольные значения
         string fSet = "set.xml";
-        //имена файлов для выгрузки тиу
-        string _fexp = "ex3.xls";
-        string _ftemp = "tmpl.xls";
-
         //для возврата из форм
         public List<string> lForm3 = new List<string>();
-
         public string nForm3 = "";
-
         public string BindedName = "";
-
         //глобальный индекс для формы
         public int _i;
-
         //флаг - нужен рескан базы
         bool base_rescan_need = true;
-
         //флаг - можно запускать новый цикл синхронизации
         bool base_can_rescan = true;
-
-        int tiuCount = 0;
-
         //время запуска очередной синхронизации
         DateTime sync_start;
         DateTime scanTime;
-
         private Object thisLock = new Object();
-
         //конструктор формы
         public FormMain() {
             InitializeComponent();
@@ -115,7 +100,6 @@ namespace Selen {
                 }
             }
         }
-
         //загрузка файла настроек
         private void dsOptions_Initialized(object sender, EventArgs e) {
             try {
@@ -144,13 +128,11 @@ namespace Selen {
             _autoRu?.SaveCookies();
             _autoRu?.Quit();
         }
-
         void ClearTempFiles() {
             foreach (var file in Directory.EnumerateFiles(Application.StartupPath, "*.jpg")) {
                 File.Delete(file);
             }
         }
-
         //=== полный скан базы бизнес.ру ==//
         private async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -367,7 +349,6 @@ namespace Selen {
             try {
                 Log.Add("вк начало выгрузки");
                 while (base_rescan_need) await Task.Delay(20000);
-                _vk.AddCount = (int) numericUpDown_vkAdd.Value;
                 await _vk.VkSyncAsync(bus);
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
@@ -376,34 +357,29 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
-        private void numericUpDown_vkAdd_ValueChanged(object sender, EventArgs e) {
-            try {
-                _vk.AddCount = (int)numericUpDown_vkAdd.Value;
-            } catch (Exception x) {
-                Log.Add("ВК: ошибка установки количества добавляемых объявлений");
-            }
-        }
         //==============
         //=== TIU.RU ===
         //==============
         private async void TiuSync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            try {
-                while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
-                await _tiu.TiuSyncAsync();
-                ChangeStatus(sender, ButtonStates.Active); 
-            } catch (Exception x) {
-                Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
-                if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                    Log.Add("tiu.ru: ошибка браузера, перезапуск через 1 минуту...");
-                    await Task.Delay(60000);
-                    _tiu.Quit();
-                    TiuSync(sender, e);
-                } else ChangeStatus(sender, ButtonStates.ActiveWithProblem); 
+            for(int i=0; i<10;i++) {
+                try {
+                    while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
+                    await _tiu.TiuSyncAsync(bus, ds);
+                    break;
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.NonActiveWithProblem);
+                    Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("invalid session id") ||
+                            x.Message.Contains("chrome not reachable")) {
+                        _tiu.Quit();
+                        await Task.Delay(60000);
+                    }
+                }
             }
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //===============
         //=== DROM.RU ===
@@ -428,8 +404,39 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
+        //===============
+        //=== AUTO.RU ===
+        //===============
+        private async void button_AutoRuStart_Click(object sender, EventArgs e) {
+            if (checkBox_AutoRuSyncEnable.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    Log.Add("auto.ru: начало выгрузки...");
+                    while (base_rescan_need) await Task.Delay(30000);
+                    _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+                    await _autoRu.AutoRuStartAsync(bus);
+                    Log.Add("auto.ru: выгрузка завершена!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    Log.Add("auto.ru: ошибка выгрузки! - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _autoRu?.Quit();
+                        await Task.Delay(180000);
+                        _autoRu = new AutoRu();
+                        button_AutoRuStart_Click(sender, e);
+                    }
+                }
+            }
+        }
+        //метод обработчик изменений количества добавляемых объявлений
+        private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
+            _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+        }
 
-        //========================================
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
             List<string> bus_dubl = new List<string>();
@@ -460,7 +467,6 @@ namespace Selen {
             } while (bus_dubl.Count() > 0);
             Thread.Sleep(10);
         }
-
         //редактирование описаний, добавленние синонимов
         private async void button_put_desc_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -708,36 +714,6 @@ namespace Selen {
                     await Task.Delay(1000);
                 }
             }
-        }
-        //=== AUTO.RU ===
-        private async void button_AutoRuStart_Click(object sender, EventArgs e) {
-            if (checkBox_AutoRuSyncEnable.Checked) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                try {
-                    Log.Add("auto.ru: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);
-                    _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
-                    await _autoRu.AutoRuStartAsync(bus);
-                    Log.Add("auto.ru: выгрузка завершена!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    Log.Add("auto.ru: ошибка выгрузки! - " + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _autoRu?.Quit();
-                        await Task.Delay(180000);
-                        _autoRu = new AutoRu();
-                        button_AutoRuStart_Click(sender, e);
-                    }
-                }
-            }
-        }
-        //метод обработчик изменений количества добавляемых объявлений
-        private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
-            _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
         }
 
  
@@ -2076,6 +2052,10 @@ namespace Selen {
                         break;
                     case ButtonStates.ActiveWithProblem:
                         but.Enabled = true;
+                        but.BackColor = Color.Red;
+                        break;
+                    case ButtonStates.NonActiveWithProblem:
+                        but.Enabled = false;
                         but.BackColor = Color.Red;
                         break;
                     default:

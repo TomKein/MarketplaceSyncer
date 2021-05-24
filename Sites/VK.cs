@@ -13,48 +13,51 @@ using Application = System.Windows.Forms.Application;
 using VkNet.Model.RequestParams.Market;
 using VkNet.Enums.Filters;
 using Selen.Tools;
+using Selen.Base;
+using Newtonsoft.Json;
 
 namespace Selen.Sites {
     class VK {
+        DB _db;
         public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
         public List<Market> vkMark = new List<Market>();
         VkApi _vk = new VkApi();
-        long marketId = 23570129;
-        int pageLimitVk = 200;
-        public int AddCount { get; set; }
+        long _marketId;
+        int _pageLimitVk;
+        string _url;
+        string[] _dopDesc;
+        string[] _dopDesc2;
+        int _addCount;
         List<RootObject> _bus = null;
 
-        string dopDescVk = "Дополнительные фотографии по запросу\n" +
-                   "Есть и другие запчасти на данный автомобиль!\n" +
-                   "Вы можете установить данную деталь на нашем АвтоСервисе с доп.гарантией и со скидкой!\n" +
-                   "Перед выездом обязательно уточняйте наличие запчастей по телефону - товар на складе!\n" +
-                   "Время на проверку и установку - 2 недели!\n" +
-                   "Отправляем наложенным платежом ТК СДЭК, ПОЧТА, BOXBERRY (только негабаритные посылки)\n"+
-                   "Наложенный платёж ТК ПЭК (габаритные и тяжёлые детали)\n"+
-                   "Бесплатная доставка до транспортной компании!\n";
-
-        string dopDescVk2 = "АДРЕС: г.Калуга, ул. Московская, д. 331\n" +
-                            "ТЕЛ: 8-920-899-45-45, 8-910-602-76-26, Viber/WhatsApp 8-962-178-79-15\n" +
-                            "Звонить строго с 9-00 до 19-00 (воскресенье-выходной)";
 
         public async Task VkSyncAsync(List<RootObject> bus) {
             _bus = bus;
+            await GetParamsAsync();
             await IsVKAuthorizatedAsync();
             await GetAlbumsVKAsync();
             Log.Add("vk.com: получено " + vkAlb.Count + " альбомов");
             if (vkAlb.Count > 0) {
-                //3. получим товары из вк
                 await GetVKAsync();
-                Log.Add("vk.com: получено " + vkMark.Count + " товаров");
-                //4. удаляем объявления, которых нет в базе товаров, или они обновлены
-                await DeleteVKAsync();
-                //5. выкладываем товары вк из тех, которые имеют фото, есть ссылка тиу, цена и кол-во
+                await EditVKAsync();
                 await AddVKAsync();
             }
         }
 
+        async Task GetParamsAsync() {
+            await Task.Factory.StartNew(() => {
+                _db = DB._db;
+                _marketId = _db.GetParamLong("vk.marketId");
+                _pageLimitVk = _db.GetParamInt("vk.pageLimit");
+                _url = _db.GetParamStr("vk.url");
+                _dopDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc"));
+                _dopDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc2"));
+                _addCount = _db.GetParamInt("vk.addCount");
+            });
+        }
+
         private async Task AddVKAsync() {
-            for (int i = 0; i < _bus.Count && AddCount > 0; i++) {
+            for (int i = 0; i < _bus.Count && _addCount > 0; i++) {
                 if (_bus[i].images.Count > 0 && _bus[i].tiu.Contains("http")
                     && _bus[i].price > 0 && _bus[i].amount > 0) {
                     int indVk = 0;
@@ -74,24 +77,26 @@ namespace Selen.Sites {
                             WebClient cl = new WebClient();
                             cl.Encoding = Encoding.UTF8;
                             for (int u = 0; u < numPhotos; u++) {
-                                for (int x = 0; x < 3; x++) {
+                                for (int x = 0; ; x++) {
                                     try {
                                         byte[] bts = cl.DownloadData(_bus[i].images[u].url);
                                         File.WriteAllBytes("vk_" + u + ".jpg", bts);
+                                        Thread.Sleep(100);
                                         break;
                                     } catch (Exception ex) {
+                                        Log.Add("vk.com: ошибка при загрузке фото! - " + ex.Message);
                                         if (x == 3) throw;
                                         Thread.Sleep(30000);
                                     }
                                 }
                                 try {
                                     //запросим адрес сервера для загрузки фото
-                                    var uplSever = _vk.Photo.GetMarketUploadServer(marketId, true, 0, 0);
+                                    var uplSever = _vk.Photo.GetMarketUploadServer(_marketId, true, 0, 0);
                                     //аплодим файл асинхронно
                                     var respImg = Encoding.ASCII.GetString(
                                             cl.UploadFile(uplSever.UploadUrl, Application.StartupPath + "\\" + "vk_" + u + ".jpg"));
                                     //сохраняем фото в маркете
-                                    var photo = _vk.Photo.SaveMarketPhoto(marketId, respImg);
+                                    var photo = _vk.Photo.SaveMarketPhoto(_marketId, respImg);
                                     //проверим, главное ли фото, или дополнительное
                                     if (u == 0) //first photo
                                     {
@@ -99,31 +104,17 @@ namespace Selen.Sites {
                                     } else {
                                         dopPhotos.Add(photo.FirstOrDefault().Id.Value);
                                     }
-                                } catch {
-                                    //throw;
+                                } catch (Exception ex) {
+                                    Log.Add("vk.com: ошибка при загрузке фото! - " + ex.Message);
                                 }
                             }
                             //меняем доп описание
-                            string desc = _bus[i].description.Replace("&nbsp;", " ")
-                                        .Replace("&quot;", "")
-                                        .Replace("</p>", "\n")
-                                        .Replace("<p>", "")
-                                        .Replace("<br>", "\n")
-                                        .Replace("<br />", "\n")
-                                        .Replace("<strong>", "")
-                                        .Replace("</strong>", "")
-                                        .Replace(" &gt", "")
-                                        .Replace("Есть", "|")
-                                        .Split('|')[0];
-                            //если группа не автохимия и не колеса, добавляем описсание есть и другие запчасти на данный автомобиль...
-                            if (_bus[i].IsGroupValid()) {
-                                desc += dopDescVk;
-                            }
-                            desc += dopDescVk2;
+                            string desc = _bus[i].DescriptionList(dop:_dopDesc).Aggregate((a,b)=>a+"/n"+b);
+                            desc += _dopDesc2;
                             //выкладываем товар вк!
                             //создаем товар
                             long itemId = _vk.Markets.Add(new MarketProductParams {
-                                OwnerId = -marketId,
+                                OwnerId = -_marketId,
                                 Name = _bus[i].name,
                                 Description = desc,
                                 CategoryId = 404,
@@ -136,19 +127,19 @@ namespace Selen.Sites {
                             if (vkAlbInd > -1) {
                                 List<long> sList = new List<long>();
                                 sList.Add((long)vkAlb[vkAlbInd].Id);
-                                _vk.Markets.AddToAlbum(-marketId, itemId, sList);
+                                _vk.Markets.AddToAlbum(-_marketId, itemId, sList);
                             }
                             _bus[i].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
                             //_bus[i].updated = DateTime.Now.AddMinutes(-224).ToString();
 
                         });
                         try {
-                            AddCount--;
+                            _addCount--;
                             await task;
                             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                                     {"id", _bus[i].id},
                                                     {"name", _bus[i].name},
-                                                    {"209360", _bus[i].vk}
+                                                    {_url, _bus[i].vk}
                                         });
                             Log.Add("vk.com: "+ _bus[i].name + " - добавлено");
                         } catch (Exception ex) {
@@ -165,41 +156,56 @@ namespace Selen.Sites {
                 for (int v = 0; ; v++) {
                     int num = vkMark.Count;
                     try {
-                        vkMark.AddRange(_vk.Markets.Get(-marketId, count: pageLimitVk, offset: v * pageLimitVk));
-                        Thread.Sleep(1000);
+                        vkMark.AddRange(_vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended:true));
                         if (num == vkMark.Count) break;
+                        Log.Add("vk.com: получено " + vkMark.Count + " товаров");
                     } catch (Exception ex) {
                         Log.Add("vk.com: ошибка при запросе товаров! " + ex.Message);
                         Thread.Sleep(10000);
                         v--;
                     }
                 }
+                Log.Add("vk.com: получено " + vkMark.Count + " товаров");
             });
         }
-
-        private async Task DeleteVKAsync() {
+        private async Task EditVKAsync() {
             await Task.Factory.StartNew(() => {
                 for (int i = 0; i < vkMark.Count; i++) {
                     //для каждого товара поищем индекс в базе карточек товаров
-                    int iBus = _bus.FindIndex(t => t.vk.Split('_').Last()== vkMark[i].Id.ToString());
-                    //если не найден - значит удаляю объявление
-                    if (iBus == -1 ||
-                        _bus[iBus].price != vkMark[i].Price.Amount / 100 ||
-                        _bus[iBus].amount <= 0 ||
-                        _bus[iBus].name != vkMark[i].Title ||
-                        DateTime.Parse(_bus[iBus].updated).AddMinutes(-223).CompareTo(vkMark[i].Date) > 0
-                        //поиск дублей
-                        || vkMark.Count(c => c.Title == vkMark[i].Title) > 1 
-                        //|| vkMark[i].Description.Contains("70-70-97")
-                        ) {
+                    int b = _bus.FindIndex(t => t.vk.Split('_').Last()== vkMark[i].Id.ToString());
+                    //если не найден индекс или нет на остатках, количество фото не совпадает или есть дубли - удаляю объявление
+                    if (b == -1 ||
+                        _bus[b].amount <= 0 ||
+                        vkMark[i].Photos.Count != (_bus[b].images.Count > 5?5: _bus[b].images.Count) ||
+                        vkMark.Count(c => c.Title == vkMark[i].Title) > 1) {
                         try {
-                            _vk.Markets.Delete(-marketId, (long)vkMark[i].Id);
-                            Thread.Sleep(330);
-                            vkMark.Remove(vkMark[i]);
+                            _vk.Markets.Delete(-_marketId, (long)vkMark[i].Id);
                             Log.Add("vk.com: "+ vkMark[i].Title + " - удалено!");
+                            vkMark.Remove(vkMark[i]);
                             i--;
-                        } catch {
-                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка при удалении!");
+                        } catch (Exception x) {
+                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - "+x.Message);
+                        }
+                    //если изменилась цена, наименование или карточка товара - редактирую
+                    } else if (_bus[b].price != vkMark[i].Price.Amount / 100 ||
+                        _bus[b].name != vkMark[i].Title ||
+                        _bus[b].IsTimeUpDated()) {
+                        try {
+                            var param = new MarketProductParams();
+                            param.Name = _bus[b].name;
+                            var desc = _bus[b].DescriptionList(dop: _dopDesc);
+                            desc.AddRange(_dopDesc2);
+                            param.Description = desc.Aggregate((a1,a2)=>a1+"\n"+a2);
+                            param.CategoryId = (long)vkMark[i].Category.Id;
+                            param.ItemId = vkMark[i].Id;
+                            param.OwnerId = (long)vkMark[i].OwnerId;
+                            param.MainPhotoId = (long)vkMark[i].Photos[0].Id;
+                            param.PhotoIds = vkMark[i].Photos.Skip(1).Select(s=>(long)s.Id);
+                            param.Price = (decimal) _bus[b].price;
+                            _vk.Markets.Edit(param);
+                            Log.Add("vk.com: " + vkMark[i].Title + " - обновлено");
+                        } catch (Exception x) {
+                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка редактирования! - " + x.Message);
                         }
                     }
                 }
@@ -213,7 +219,7 @@ namespace Selen.Sites {
                 do {
                     vkAlb.Clear();
                     try {
-                        vkAlb.AddRange(_vk.Markets.GetAlbums(-marketId));
+                        vkAlb.AddRange(_vk.Markets.GetAlbums(-_marketId));
                     } catch (Exception ex) {
                         throw ex;
                     }
@@ -228,8 +234,7 @@ namespace Selen.Sites {
                             if (ind == -1) {
                                 //добавляем группу товаров вк
                                 try {
-                                    _vk.Markets.AddAlbum(-marketId, group);
-                                    Thread.Sleep(1000);
+                                    _vk.Markets.AddAlbum(-_marketId, group);
                                     f = true;
                                 } catch (Exception ex) {
                                     throw ex;
@@ -242,18 +247,24 @@ namespace Selen.Sites {
         }
 
         private async Task IsVKAuthorizatedAsync() {
-            // https://vk.com/market-23570129?w=product-23570129_552662
-            // 23570129 - id группы
-            // 552662 - id товара
+            //получить новый ключ авторизации по ссылке
+            //https://oauth.vk.com/authorize?client_id=5820993&display=page&scope=offline%2Cphotos%2Cmarket&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v=5.131
+            //v = версия протокола
+            //client_id = ApplicationId
             await Task.Factory.StartNew(() => {
                 _vk.Authorize(new ApiAuthParams {
-                    ApplicationId = 5820993,
-                    Login = "rogachev.aleksey@gmail.com",
-                    Password = "$drum122",
+                    ApplicationId = ulong.Parse(_db.GetParamStr("vk.applicationId")),
+                    Login = _db.GetParamStr("vk.login"),
+                    Password = _db.GetParamStr("vk.password"),
                     Settings = Settings.All,
-                    AccessToken = "ba600fc83b526e417526749b992277da60ac125353644a2dd32f4eceb1527e130a75ce872ec706555a6dc"
+                    AccessToken = _db.GetParamStr("vk.accessToken")
                 });
             });
         }
     }
 }
+
+
+// https://vk.com/market-23570129?w=product-23570129_552662
+// 23570129 - id группы
+// 552662 - id товара

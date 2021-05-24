@@ -21,9 +21,9 @@ namespace Selen.Sites {
         private readonly string _url = "1437133"; //поле ссылки в карточке бизнес.ру 
         readonly string[] _addDesc = new[]
         {
-            "Отправляем наложенным платежом ТК СДЭК, ПОЧТА, BOXBERRY (только негабаритные посылки)",
-            "Наложенный платёж ТК ПЭК (габаритные и тяжёлые детали)",
-            "Бесплатная доставка до ТК!"
+            "Отправляем наложенным платежом ТК СДЭК, ПОЧТА, BOXBERRY только негабаритные посылки",
+            "Наложенный платёж ТК ПЭК габаритные и тяжёлые детали",
+            "Бесплатная доставка до ТК"
         };
         Selenium _dr;
 
@@ -112,7 +112,7 @@ namespace Selen.Sites {
 
         void SetManufacturer(RootObject b) {
             var desc = b.name.ToLowerInvariant() + " " + b.description.ToLowerInvariant();
-            var auto = File.ReadAllLines(Application.StartupPath + "\\auto.txt")
+            var auto = File.ReadAllLines("..\\auto.txt")
                            .Where(w => w.Length > 0 && w.Contains(";")).ToList();
             var dict = new Dictionary<string, int>();
             for (int i = 0; i < auto.Count; i++) {
@@ -324,7 +324,7 @@ namespace Selen.Sites {
         }
 
         void SetDesc(RootObject b) {
-            _dr.WriteToSelector("//textarea[@name='Info']", sl: b.DescriptionList(999, _addDesc));
+            _dr.WriteToSelector("//textarea[@name='Info']", sl: b.DescriptionList(255, _addDesc, removeSpec: true));
         }
 
         void SetPrice(RootObject b) {

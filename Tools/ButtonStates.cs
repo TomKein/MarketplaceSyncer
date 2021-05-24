@@ -8,6 +8,7 @@ namespace Selen.Tools {
     enum ButtonStates {
         Active,
         NoActive,
-        ActiveWithProblem
+        ActiveWithProblem,
+        NonActiveWithProblem
     }
 }

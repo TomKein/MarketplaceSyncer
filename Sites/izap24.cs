@@ -62,48 +62,52 @@ namespace Selen.Sites {
         }
         //формирую файл выгрузки
         private async Task CreateCsvAsync() {
-            //получаю список товаров
-            var offers = _bus.Where(w =>
-                w.tiu.Contains("http") &&                       //есть ссылка на tiu
-                w.amount > 0 &&                                 //с положительным остатком
-                w.price > 0 &&                                  //с положительной ценой
-                !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
-                !w.archive &&                                   //товар не в архиве
-                !w.IsNew())                                     //и товар НЕ новый
-                .OrderByDescending(o=>int.Parse(o.id));         //сортировка от новых к старым товарам
-            var n = 0;                                          //счетчик позиций
-            var e = 0;                                          //счетчик ошибок
-            StringBuilder s = new StringBuilder();              //строка для выгрузки
-            StringBuilder err = new StringBuilder();            //строка для ошибок
-            RootObject.ResetAutos();                            //перечитываю список моделей
-            File.Delete(_ferr);                                 //затираю файл ошибок
-            s.AppendLine("ID_EXT;Name;Mark;Model;Price;OriginalNumber;Description;PhotoUrls"); //первая строка выгрузки
-            foreach (var offer in offers) {
-                var m = await offer.GetNameMarkModelAsync();    //определяю марку и модель авто
-                if (m==null) {
-                    err.Append(offer.name).AppendLine(";не определена марка или модель");
-                    e++; continue;
+            try {
+                //получаю список товаров
+                var offers = _bus.Where(w =>
+                    w.tiu.Contains("http") &&                       //есть ссылка на tiu
+                    w.amount > 0 &&                                 //с положительным остатком
+                    w.price > 0 &&                                  //с положительной ценой
+                    !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
+                    !w.archive &&                                   //товар не в архиве
+                    !w.IsNew())                                     //и товар НЕ новый
+                    .OrderByDescending(o=>int.Parse(o.id));         //сортировка от новых к старым товарам
+                var n = 0;                                          //счетчик позиций
+                var e = 0;                                          //счетчик ошибок
+                StringBuilder s = new StringBuilder();              //строка для выгрузки
+                StringBuilder err = new StringBuilder();            //строка для ошибок
+                RootObject.ResetAutos();                            //перечитываю список моделей
+                File.Delete(_ferr);                                 //затираю файл ошибок
+                s.AppendLine("ID_EXT;Name;Mark;Model;Price;OriginalNumber;Description;PhotoUrls"); //первая строка выгрузки
+                foreach (var offer in offers) {
+                    var m = await offer.GetNameMarkModelAsync();    //определяю марку и модель авто
+                    if (m==null) {
+                        err.Append(offer.name).AppendLine(";не определена марка или модель");
+                        e++; continue;
+                    }
+                    s.Append(offer.id).Append(";");                 //ID_EXT
+                    s.Append(m[0]).Append(";");                     //name
+                    s.Append(m[1]).Append(";");                     //mark
+                    s.Append(m[2]).Append(";");                     //model
+                    s.Append(offer.price.ToString("0")).Append(";");//price
+                    s.Append(offer.part).Append(";");               //part
+                    var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
+                                    .Groups[1].Value;
+                    s.Append(desc).Append(";");                     //desc
+                    //получаю ссылки на фотографии товаров из каталога tiu.ru
+                    var urls = new StringBuilder();
+                    GetPhtotoUrls(offer, urls);
+                    s.AppendLine(urls.ToString());                  //photos
+                    n++;
+                    if (n % 500 == 0) Log.Add("izap24.ru: выгружено " + n + " товаров");
                 }
-                s.Append(offer.id).Append(";");                 //ID_EXT
-                s.Append(m[0]).Append(";");                     //name
-                s.Append(m[1]).Append(";");                     //mark
-                s.Append(m[2]).Append(";");                     //model
-                s.Append(offer.price.ToString("0")).Append(";");//price
-                s.Append(offer.part).Append(";");               //part
-                var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
-                                .Groups[1].Value;
-                s.Append(desc).Append(";");                     //desc
-                //получаю ссылки на фотографии товаров из каталога tiu.ru
-                var urls = new StringBuilder();
-                GetPhtotoUrls(offer, urls);
-                s.AppendLine(urls.ToString());                  //photos
-                n++;
-                if (n % 500 == 0) Log.Add("izap24.ru: выгружено " + n + " товаров");
+                Log.Add("izap24.ru: всего выгружено " + n + " товаров");
+                File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
+                Log.Add("izap24.ru: пропущено " + e + " товаров");
+                File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
+            } catch (Exception x) {
+                Log.Add("izap24: ошибка формирование выгрузки" + x.Message);
             }
-            Log.Add("izap24.ru: всего выгружено " + n + " товаров");
-            File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
-            Log.Add("izap24.ru: пропущено " + e + " товаров");
-            File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
         }
 
         private void GetPhtotoUrls(RootObject offer, StringBuilder urls) {

@@ -186,14 +186,21 @@ namespace Selen
                            .Replace("Есть и другие", "|")
                            .Split('|')[0]
                            .Replace("\n", "|")
-                           .Replace("<br />", "|")
-                           .Replace("<br>", "|")
-                           .Replace("</p>", "|")
                            .Replace("|", " "),
                            "<[^>]+>", string.Empty).Trim();
 
-        public List<string> DescriptionList(int b = 3000, string[] dop = null) {
-            var s = Regex.Replace(description
+        public List<string> DescriptionList(int b = 3000, string[] dop = null,bool removeSpec=false) {
+            string d = description;
+            if (removeSpec) d = d
+                                    .Replace("/", "")
+                                    .Replace("\\", "")
+                                    .Replace("(", "")
+                                    .Replace(")", "")
+                                    .Replace("!", "")
+                                    .Replace("#", "")
+                                    .Replace("*", "");
+
+            var s = Regex.Replace(d
                                     .Replace("Есть и другие", "|")
                                     .Split('|')[0]
                                     .Replace("\n", "|")

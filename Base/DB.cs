@@ -159,6 +159,16 @@ namespace Selen.Base {
                 return i;
             return -1;
         }
+        //получаем настройки как число long
+        public long GetParamLong(string key) {
+            //перевызываем метод получения строки
+            var result = GetParamStr(key);
+            //приводим к числовому типу
+            long i;
+            if (long.TryParse(result, out i))
+                return i;
+            return -1;
+        }
         //получаю число асинхронно
         public async Task<int> GetParamIntAsync(string key) => await Task.Factory.StartNew(() => {
             return GetParamInt(key);

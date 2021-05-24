@@ -72,7 +72,6 @@ namespace Selen
             this.button_cdek = new System.Windows.Forms.Button();
             this.label_cdek = new System.Windows.Forms.Label();
             this.button_SaveCookie = new System.Windows.Forms.Button();
-            this.numericUpDown_vkAdd = new System.Windows.Forms.NumericUpDown();
             this.checkBoxCdekSyncActive = new System.Windows.Forms.CheckBox();
             this.numericUpDown_СdekCheckUrls = new System.Windows.Forms.NumericUpDown();
             this.label6 = new System.Windows.Forms.Label();
@@ -85,19 +84,18 @@ namespace Selen
             this.button_SettingsFormOpen = new System.Windows.Forms.Button();
             this.button_EuroAuto = new System.Windows.Forms.Button();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.button_izap24 = new System.Windows.Forms.Button();
             this.checkBox_GdeRu = new System.Windows.Forms.CheckBox();
             this.panel2 = new System.Windows.Forms.Panel();
             this.panel3 = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_izap24 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_vkAdd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvtoProAddCount)).BeginInit();
@@ -521,26 +519,6 @@ namespace Selen
             this.button_SaveCookie.UseVisualStyleBackColor = true;
             this.button_SaveCookie.Click += new System.EventHandler(this.button_SaveCookie_Click);
             // 
-            // numericUpDown_vkAdd
-            // 
-            this.numericUpDown_vkAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDown_vkAdd.Location = new System.Drawing.Point(123, 252);
-            this.numericUpDown_vkAdd.Maximum = new decimal(new int[] {
-            10000,
-            0,
-            0,
-            0});
-            this.numericUpDown_vkAdd.Name = "numericUpDown_vkAdd";
-            this.numericUpDown_vkAdd.Size = new System.Drawing.Size(45, 21);
-            this.numericUpDown_vkAdd.TabIndex = 124;
-            this.numericUpDown_vkAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.numericUpDown_vkAdd.Value = new decimal(new int[] {
-            3,
-            0,
-            0,
-            0});
-            this.numericUpDown_vkAdd.ValueChanged += new System.EventHandler(this.numericUpDown_vkAdd_ValueChanged);
-            // 
             // checkBoxCdekSyncActive
             // 
             this.checkBoxCdekSyncActive.AutoSize = true;
@@ -703,7 +681,6 @@ namespace Selen
             this.panel1.Controls.Add(this.button_AutoRuStart);
             this.panel1.Controls.Add(this.checkBoxCdekSyncActive);
             this.panel1.Controls.Add(this.label_auto);
-            this.panel1.Controls.Add(this.numericUpDown_vkAdd);
             this.panel1.Controls.Add(this.numericUpDown_AutoRuAddCount);
             this.panel1.Controls.Add(this.checkBox_AutoRuSyncEnable);
             this.panel1.Controls.Add(this.label_cdek);
@@ -725,6 +702,16 @@ namespace Selen
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(185, 577);
             this.panel1.TabIndex = 146;
+            // 
+            // button_izap24
+            // 
+            this.button_izap24.Location = new System.Drawing.Point(11, 386);
+            this.button_izap24.Name = "button_izap24";
+            this.button_izap24.Size = new System.Drawing.Size(108, 23);
+            this.button_izap24.TabIndex = 147;
+            this.button_izap24.Text = "IZap24.ru";
+            this.button_izap24.UseVisualStyleBackColor = true;
+            this.button_izap24.Click += new System.EventHandler(this.button_izap24_Click);
             // 
             // checkBox_GdeRu
             // 
@@ -803,16 +790,6 @@ namespace Selen
             this.panel4.Size = new System.Drawing.Size(864, 577);
             this.panel4.TabIndex = 149;
             // 
-            // button_izap24
-            // 
-            this.button_izap24.Location = new System.Drawing.Point(11, 386);
-            this.button_izap24.Name = "button_izap24";
-            this.button_izap24.Size = new System.Drawing.Size(108, 23);
-            this.button_izap24.TabIndex = 147;
-            this.button_izap24.Text = "IZap24.ru";
-            this.button_izap24.UseVisualStyleBackColor = true;
-            this.button_izap24.Click += new System.EventHandler(this.button_izap24_Click);
-            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -831,7 +808,6 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_vkAdd)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AvtoProAddCount)).EndInit();
@@ -892,7 +868,6 @@ namespace Selen
         private System.Windows.Forms.Button button_cdek;
         private System.Windows.Forms.Label label_cdek;
         private System.Windows.Forms.Button button_SaveCookie;
-        private System.Windows.Forms.NumericUpDown numericUpDown_vkAdd;
         private System.Windows.Forms.CheckBox checkBoxCdekSyncActive;
         private System.Windows.Forms.NumericUpDown numericUpDown_СdekCheckUrls;
         private System.Windows.Forms.Label label6;

@@ -188,7 +188,7 @@ namespace Selen.Tools {
             try {
                 var ck = _drv.Manage().Cookies.AllCookies;
                 json = JsonConvert.SerializeObject(ck);
-                if (name != null) File.WriteAllText(name, json);
+                if (name != null && json.Length > 20) File.WriteAllText(name, json);
             } catch (Exception x) {
                 Log.Add("selenium: ошибка сохранения куки - " + x.Message);
             }
