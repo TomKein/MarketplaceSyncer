@@ -196,9 +196,12 @@ namespace Selen
                                     .Replace("\\", "")
                                     .Replace("(", "")
                                     .Replace(")", "")
+                                    .Replace("[", "")
+                                    .Replace("]", "")
                                     .Replace("!", "")
                                     .Replace("#", "")
-                                    .Replace("*", "");
+                                    .Replace("*", "")
+                                    .Replace("+", "");
 
             var s = Regex.Replace(d
                                     .Replace("Есть и другие", "|")

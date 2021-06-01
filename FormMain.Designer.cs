@@ -414,7 +414,7 @@ namespace Selen
             this.buttonKupiprodai.TabIndex = 5;
             this.buttonKupiprodai.Text = "Купипродай старт";
             this.buttonKupiprodai.UseVisualStyleBackColor = true;
-            this.buttonKupiprodai.Click += new System.EventHandler(this.buttonKupiprodai_Click);
+            this.buttonKupiprodai.Click += new System.EventHandler(this.KupiprodaiClickAsync);
             // 
             // buttonKupiprodaiAdd
             // 

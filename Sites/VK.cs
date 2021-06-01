@@ -81,7 +81,7 @@ namespace Selen.Sites {
                                     try {
                                         byte[] bts = cl.DownloadData(_bus[i].images[u].url);
                                         File.WriteAllBytes("vk_" + u + ".jpg", bts);
-                                        Thread.Sleep(100);
+                                        Thread.Sleep(200);
                                         break;
                                     } catch (Exception ex) {
                                         Log.Add("vk.com: ошибка при загрузке фото! - " + ex.Message);
@@ -109,8 +109,8 @@ namespace Selen.Sites {
                                 }
                             }
                             //меняем доп описание
-                            string desc = _bus[i].DescriptionList(dop:_dopDesc).Aggregate((a,b)=>a+"/n"+b);
-                            desc += _dopDesc2;
+                            string desc = _bus[i].DescriptionList(dop: _dopDesc).Aggregate((a,b)=>a+"\n"+b)+"\n";
+                            desc += _dopDesc2.Aggregate((a, b) => a + "\n" + b);
                             //выкладываем товар вк!
                             //создаем товар
                             long itemId = _vk.Markets.Add(new MarketProductParams {
@@ -130,8 +130,6 @@ namespace Selen.Sites {
                                 _vk.Markets.AddToAlbum(-_marketId, itemId, sList);
                             }
                             _bus[i].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
-                            //_bus[i].updated = DateTime.Now.AddMinutes(-224).ToString();
-
                         });
                         try {
                             _addCount--;
@@ -182,6 +180,7 @@ namespace Selen.Sites {
                             _vk.Markets.Delete(-_marketId, (long)vkMark[i].Id);
                             Log.Add("vk.com: "+ vkMark[i].Title + " - удалено!");
                             vkMark.Remove(vkMark[i]);
+                            Thread.Sleep(1000);
                             i--;
                         } catch (Exception x) {
                             Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - "+x.Message);
@@ -204,6 +203,7 @@ namespace Selen.Sites {
                             param.Price = (decimal) _bus[b].price;
                             _vk.Markets.Edit(param);
                             Log.Add("vk.com: " + vkMark[i].Title + " - обновлено");
+                            Thread.Sleep(1000);
                         } catch (Exception x) {
                             Log.Add("vk.com: " + vkMark[i].Title + " - ошибка редактирования! - " + x.Message);
                         }

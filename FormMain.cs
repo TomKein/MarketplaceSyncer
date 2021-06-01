@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using ExcelLibrary.SpreadSheet;
 using Newtonsoft.Json;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
@@ -22,7 +21,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.56.1";
+        string _version = "1.57.2";
         
         DB _db = new DB();
 
@@ -39,24 +38,11 @@ namespace Selen {
         AutoRu _autoRu = new AutoRu();
         EuroAuto _euroAuto = new EuroAuto();
         Izap24 _izap24 = new Izap24();
+        Kupiprodai _kupiprodai = new Kupiprodai();
 
-        public IWebDriver tiu;
-        public IWebDriver kp;
         public IWebDriver gde;
 
         int pageLimitBase = 250;
-
-        string[] dopDescKP = {
-            "Дополнительные фотографии по запросу",
-            "Есть и другие запчасти на данный автомобиль!",
-            "Вы можете установить данную деталь в нашем АвтоСервисе с доп.гарантией и со скидкой!",
-            "Перед выездом уточняйте наличие по телефону - товар на складе!",
-            "Звонить строго с 9:00 до 19:00 (воскресенье - выходной)",
-            "Отправляем наложенным платежом ТК СДЭК, ПОЧТА, BOXBERRY (только негабаритные посылки)",
-            "Наложенный платёж ТК ПЭК (габаритные и тяжёлые детали)",
-            "Бесплатная доставка до транспортной компании!",
-            "Осуществляем бесплатную доставку своим транспортом до следующих городов: Малоярославец, Обнинск, Тула (посёлок Иншинский)"
-        };
 
         //настройки и контрольные значения
         string fSet = "set.xml";
@@ -73,7 +59,6 @@ namespace Selen {
         //время запуска очередной синхронизации
         DateTime sync_start;
         DateTime scanTime;
-        private Object thisLock = new Object();
         //конструктор формы
         public FormMain() {
             InitializeComponent();
@@ -114,8 +99,10 @@ namespace Selen {
             this.Visible = false;
             dSet.WriteXml(fSet);
             ClearTempFiles();
-            tiu?.Quit();
-            kp?.Quit();
+            _tiu?.SaveCookies();
+            _tiu?.Quit();
+            _kupiprodai?.SaveCookies();
+            _kupiprodai?.Quit();
             gde?.Quit();
             _avito?.SaveCookies();
             _avito?.Quit();
@@ -381,6 +368,23 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
+        //TODO вынести в класс tiu.cs
+        async Task TiuCheckAsync() {
+            int i = 0;
+            for (int b = 0; b < bus.Count; b++) {
+                if (bus[b].tiu.Contains("product2")) {
+                    bus[b].tiu = "https://my.tiu.ru/cms/product" + bus[b].tiu.Replace("product2", "|").Split('|').Last();
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
+                        {"id", bus[b].id },
+                        {"name", bus[b].name },
+                        {"209325",bus[b].tiu}
+                    });
+                    i++;
+                    Log.Add("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
+                    if (i >= 10) break;
+                }
+            }
+        }
         //===============
         //=== DROM.RU ===
         //===============
@@ -432,6 +436,44 @@ namespace Selen {
                 }
             }
         }
+        //=====================
+        //=== kupiprodai.ru ===
+        //=====================
+        async void KupiprodaiClickAsync(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            for(int i = 0; ; i++) {
+                try {
+                    while (base_rescan_need) await Task.Delay(30000);
+                    await _kupiprodai.StartAsync(bus);
+                    labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+                    ChangeStatus(sender, ButtonStates.Active);
+                    break;
+                } catch (Exception x) {
+                    Log.Add("kupiprodai.ru: ошибка синхронизации! - " + x.Message + " - " + x.InnerException.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _kupiprodai.Quit();
+                        await Task.Delay(60000);
+                    }
+                    if (i > 5) {
+                        Log.Add("kupiprodai.ru: ошибка! превышено количество попыток!");
+                        ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                        break;
+                    }
+                }
+            }
+        }
+        //выкладывать объявления
+        private async void buttonKupiprodaiAdd_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need) await Task.Delay(30000);
+            await _kupiprodai.AddAsync();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //==============================
+
         //метод обработчик изменений количества добавляемых объявлений
         private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
             _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
@@ -715,7 +757,6 @@ namespace Selen {
                 }
             }
         }
-
  
         //оптимизация синхронизации - чтобы не запрашивать всю базу каждый час - запросим только изменения
         private async Task GoLiteSync() {
@@ -1052,370 +1093,6 @@ namespace Selen {
             }
         }
 
-        async Task TiuCheckAsync() {
-            int i = 0;
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].tiu.Contains("product2")) {
-                    bus[b].tiu = "https://my.tiu.ru/cms/product" + bus[b].tiu.Replace("product2", "|").Split('|').Last();
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
-                        {"id", bus[b].id },
-                        {"name", bus[b].name },
-                        {"209325",bus[b].tiu}
-                    });
-                    i++;
-                    Log.Add("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
-                    if (i >= 10) break;
-                }
-            }
-        }
-
-        /// 
-        /// купи-продай
-        /// 
-        async void buttonKupiprodai_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            try {
-                await KupiProdaiAuth();
-                while (base_rescan_need) {
-                    Log.Add("купипродай ожидает загрузку базы... ");
-                    await Task.Delay(60000);
-                }
-                labelKP.Text = bus.Count(c => c.kp != null && c.kp.Contains("http")).ToString();
-                await KupiProdaiEditAsync();
-                await KupiProdaiAddAsync();
-                await KupiProdaiUpAsync();
-                await KupiProdaiDelAsync();
-                ChangeStatus(sender, ButtonStates.Active);
-            } catch (Exception x) {
-                Log.Add("Купипродай Ошибка при обработке\n" + x.Message);
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-            }
-        }
-
-        private async Task KupiProdaiDelAsync() {
-            var t = Task.Factory.StartNew(() => {
-                kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/noactive/");
-                Thread.Sleep(3000);
-                var el = kp.FindElements(By.CssSelector("input[name='chek[]']"));
-                //удалим те, что нет на остатаках
-                for (int i = 0; i < el.Count; i++) {
-                    var id = el[i].GetAttribute("value");
-                    var b = bus.FindIndex(f => f.kp != null && f.kp.Contains(id));
-                    if (b == -1 || bus[b].amount <= 0) {
-                        el[i].Click();
-                        Thread.Sleep(1000);
-                    }
-                }
-                var ch = kp.FindElements(By.CssSelector("input[class='delete']"));
-                if (ch.Count > 0) ch[0].Click();
-                Thread.Sleep(3000);
-            });
-            try {
-                await t;
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка при поднятии!\n" + x.Message);
-            }
-        }
-
-        private async Task KupiProdaiUpAsync() {
-            var t = Task.Factory.StartNew(() => {
-                kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/noactive/");
-                Thread.Sleep(3000);
-                var el = kp.FindElements(By.CssSelector("input[name='chek[]']"));
-                //сперва продлим те, что упали
-                for (int i = 0; i < el.Count; i++) {
-                    var id = el[i].GetAttribute("value");
-                    var b = bus.FindIndex(f => f.kp != null && f.kp.Contains(id));
-                    if (b > -1 && bus[b].amount > 0) {
-                        el[i].Click();
-                        Thread.Sleep(1000);
-                    }
-                }
-                var ch = kp.FindElements(By.CssSelector("input[class='activate']"));
-                if (ch.Count > 0) ch[0].Click();
-                Thread.Sleep(3000);
-            });
-            try {
-                await t;
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка при поднятии!\n" + x.Message);
-            }
-        }
-
-        async Task KupiProdaiAddAsync() {
-            var saveNum = (int)numericUpDownKupiprodaiAdd.Value;
-            for (int b = bus.Count - 1; b > -1; b--) {
-                if (numericUpDownKupiprodaiAdd.Value <= 0 || !buttonKupiprodai.Enabled) break;
-                if ((bus[b].kp == null || !bus[b].kp.Contains("http")) &&
-                    bus[b].tiu.Contains("http") &&
-                    bus[b].amount > 0 &&
-                    bus[b].price >= 0 &&
-                    bus[b].images.Count > 0) {
-                    var t = Task.Factory.StartNew(() => {
-                        kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/add/");
-                        SetKPTitle(b);
-                        SetKPCategory(b);
-                        SetKPDesc(b);
-                        SetKPPrice(b);
-                        SetKPImages(b);
-                        KPPressOkButton();
-                    });
-                    try {
-                        await t;
-                        //сохраняем ссылку
-                        var name = bus[b].name;
-                        while (name.EndsWith("'") || name.EndsWith("`")) {
-                            name = name.TrimEnd('\'').TrimEnd('`').TrimEnd(' ');
-                        }
-                        var url2 = kp.FindElements(By.XPath("//a[contains(text(),'" + name + "')]/../a[contains(@href,'delmsg')]"));
-                        if (url2.Count > 0) {
-
-                            var url = url2.First().GetAttribute("href").Replace("delmsg", "editmsg").TrimEnd('/');
-                            //kp.FindElements(By.CssSelector(".grd_first .grd_first_info .price .i_blue"))[0]
-                            //      .GetAttribute("href").TrimEnd('/');
-                            if (url.Contains("editmsg")) {
-                                bus[b].kp = url;
-                                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
-                                {
-                                {"id", bus[b].id},
-                                {"name", bus[b].name},
-                                {"833179", bus[b].kp}
-                            });
-
-                                Log.Add("купипродай выложено и привязано объявление " + b + "\n" + bus[b].name);
-                                numericUpDownKupiprodaiAdd.Value--;
-
-                                //labelKP.Text = bus.Count(c => c.kp.Contains("http")).ToString();
-                                labelKP.Text = bus.Count(c => c.kp != null && c.kp.Contains("http")).ToString();
-                            }
-                            Thread.Sleep(200);
-                        } else {
-                            throw new Exception("не найдено объявление для привязки");
-                        }
-                    } catch (Exception e) {
-                        Log.Add("купипродай ошибка добавления!\n" + bus[b].name + "\n" + e.Message);
-                    }
-                }
-            }
-            //numericUpDownKupiprodaiAdd.Value = saveNum;
-        }
-
-        private void SetKPCategory(int b) {
-            var name = bus[b].name.ToLowerInvariant();
-            var desc = bus[b].description.ToLowerInvariant();
-            //рубрика - попробуем сразу ткнуть в нужную опцию (на сайте авито прокатывает)
-            kp.FindElement(By.CssSelector("option[value='7_6']")).Click();
-            Thread.Sleep(500);
-            //подгруппы
-            var group = busGroups.Find(f => f.id == bus[b].group_id).name;
-            switch (group) {
-                case "Автохимия":
-                    kp.FindElement(By.CssSelector("option[value='622']")).Click();
-                    break;
-                case "Аудио-видеотехника":
-                    kp.FindElement(By.CssSelector("option[value='623']")).Click();
-                    break;
-                case "Шины, диски, колеса":
-                    kp.FindElement(By.CssSelector("option[value='629']")).Click();
-                    break;
-                default:
-                    kp.FindElement(By.CssSelector("option[value='619']")).Click();
-                    Thread.Sleep(500);
-                    kp.FindElement(By.CssSelector("option[value='632']")).Click();
-                    break;
-            }
-            Thread.Sleep(500);
-        }
-
-        private async Task KupiProdaiAuth() {
-            Task t = Task.Factory.StartNew(() => {
-                if (kp == null) {
-                    ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
-                    chromeservice.HideCommandPromptWindow = true;
-                    kp = new ChromeDriver(chromeservice);
-                    kp.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-                    Thread.Sleep(2000);
-                    kp.Navigate().GoToUrl("https://vip.kupiprodai.ru/");
-                    LoadCookies(kp, "kupiprodai.json");
-                }
-                kp.Navigate().GoToUrl("https://kupiprodai.ru/login");
-                if (kp.FindElements(By.XPath("//span[@id='nickname']")).Count == 0) {
-                    var email = kp.FindElement(By.XPath("//input[@name='login']"));
-                    WriteToIWebElement(kp, email, "9106027626@mail.ru");
-                    Thread.Sleep(2000);
-                    var password = kp.FindElement(By.XPath("//input[@name='pass']"));
-                    WriteToIWebElement(kp, password, "rad00239000");
-                    Thread.Sleep(2000);
-                    var but = kp.FindElement(By.XPath("//input[@value='Войти']"));
-                    but.Click();
-                    //если в кабинет не попали - ждем ручной вход
-                    while(kp.FindElements(By.XPath("//span[@id='nickname']")).Count == 0) Thread.Sleep(10000);
-                    SaveCookies(kp, "kupiprodai.json");
-                }
-            });
-            try {
-                await t;
-            } catch (Exception x) {
-                kp = null;
-                Thread.Sleep(300000);
-                await KupiProdaiAuth();
-            }
-        }
-
-        async Task KupiProdaiEditAsync() {
-            //перебираем те карточки, у которых есть привязка в базе
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].kp != null && bus[b].kp.Contains("http")) {
-                    //удаляем те, которых нет на остатках
-                    if (bus[b].amount <= 0) {
-                        var t = Task.Factory.StartNew(() => {
-                            var url = bus[b].kp.Replace("editmsg", "delmsg");
-                            kp.Navigate().GoToUrl(url);
-                            Thread.Sleep(5000);
-                        });
-                        try {
-                            await t;
-                        } catch (Exception x) {
-                            Log.Add("купипродай ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
-                        }
-                        //убиваем ссылку из базы в любом случае, потому что удалим физически, проверив отстатки после парсинга и подъема неактивных
-                        bus[b].kp = " ";
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                            {"id", bus[b].id},
-                            {"name", bus[b].name},
-                            {"833179", bus[b].kp}
-                        });
-                        Log.Add("купипродай - удалена ссылка из карточки\n" + bus[b].name);
-                        await Task.Delay(5000);
-                    } else if (bus[b].kp != null && bus[b].price > 0 && bus[b].IsTimeUpDated()) {// редактируем
-                        var t = Task.Factory.StartNew(() => {
-                            kp.Navigate().GoToUrl(bus[b].kp);
-                            SetKPTitle(b);
-                            SetKPPrice(b);
-                            SetKPDesc(b);
-                            KPPressOkButton();
-                        });
-                        try {
-                            await t;
-                        } catch (Exception x) {
-                            Log.Add("KupiProdaiEditAsync: " + bus[b].name + "\n" + x.Message);
-                        }
-                    }
-                }
-            }
-        }
-
-        private void SetKPTitle(int b) {
-            try {
-                var name = bus[b].name;
-                while (name.Length > 80) {
-                    name = name.Remove(name.LastIndexOf(' '));
-                }
-                var title = kp.FindElement(By.CssSelector("input[name*='title']"));
-                WriteToIWebElement(kp, title, name);
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
-            }
-        }
-
-        private void SetKPPrice(int b) {
-            try {
-                var pr = kp.FindElement(By.CssSelector("input[name*='price']"));
-                WriteToIWebElement(kp, pr, bus[b].price.ToString());
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
-            }
-        }
-
-        private void SetKPDesc(int b) {
-            //готовим описание
-            var s = Regex.Replace(bus[b].description
-                        .Replace("Есть и другие", "|")
-                        .Split('|')[0]
-                        .Replace("\n", "|")
-                        .Replace("<br />", "|")
-                        .Replace("<br>", "|")
-                        .Replace("</p>", "|")
-                        .Replace("&nbsp;", " ")
-                        .Replace("&quot;", "")
-                        .Replace("&gt;", "")
-                        .Replace(" &gt", ""),
-                    "<[^>]+>", string.Empty)
-                .Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(ta => ta.Trim())
-                .Where(tb => tb.Length > 1)
-                .ToList();
-            if (bus[b].IsGroupValid()) {
-                s.AddRange(dopDescKP);
-            }
-            //контролируем длину описания
-            var newSLength = 0;
-            for (int u = 0; u < s.Count; u++) {
-                if (s[u].Length + newSLength > 2900) {
-                    s.Remove(s[u]);
-                    u = u - 1;
-                } else {
-                    newSLength = newSLength + s[u].Length;
-                }
-            }
-            //заполняем
-            WriteToIWebElement(kp, kp.FindElement(By.CssSelector(".form_content_long2 textarea")), sl: s);
-        }
-
-        void SetKPImages(int b) {
-            try {
-                WebClient cl = new WebClient();
-                cl.Encoding = Encoding.UTF8;
-                var num = bus[b].images.Count > 10 ? 10 : bus[b].images.Count;
-                for (int u = 0; u < num; u++) {
-                    bool flag; // флаг для проверки успешности
-                    int tryNum = 0;
-                    do {
-                        tryNum++;
-                        try {
-                            byte[] bts = cl.DownloadData(bus[b].images[u].url);
-                            File.WriteAllBytes("kp_" + u + ".jpg", bts);
-                            flag = true;
-                        } catch (Exception ex) {
-                            Log.Add("SetKPImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
-                            flag = false;
-                        }
-                        Thread.Sleep(100);
-                    } while (!flag && tryNum < 3);
-
-                    if (flag) kp.FindElement(By.CssSelector("input[type='file']"))
-                                .SendKeys(Application.StartupPath + "\\" + "kp_" + u + ".jpg ");
-                }
-            } catch (Exception e) {
-                Log.Add("SetKPImages: " + e.Message);
-            }
-            Thread.Sleep(500);
-        }
-
-        private void KPPressOkButton() {
-            try {
-                do {
-                    var captInput = kp.FindElements(By.CssSelector("input[name='captcha']"));
-                    if (captInput.Count > 0) {
-                        captInput[0].Click();
-                        while (true) {
-                            if (captInput[0].GetAttribute("value").Length == 6) break;
-                            Thread.Sleep(1000);
-                        }
-                    }
-                    kp.FindElement(By.CssSelector("input[type='submit']")).Click();
-                } while (kp.FindElements(By.CssSelector("input[name='captcha']")).Count > 0);
-            } catch (Exception x) {
-                Log.Add("KPPressOkButton: " + x.Message);
-            }
-        }
-
-
-        private async void buttonKupiprodaiAdd_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            await KupiProdaiAddAsync();
-            ChangeStatus(sender, ButtonStates.Active);
-        }
 
         private async void button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -1610,25 +1287,8 @@ namespace Selen {
         }
         private void SetGdeDesc(int b) {
             //готовим описание
-            var s = Regex.Replace(bus[b].description
-                        .Replace("Есть и другие", "|")
-                        .Split('|')[0]
-                        .Replace("\n", "|")
-                        .Replace("<br />", "|")
-                        .Replace("<br>", "|")
-                        .Replace("</p>", "|")
-                        .Replace("&nbsp;", " ")
-                        .Replace("&quot;", "")
-                        .Replace("&gt;", "")
-                        .Replace(" &gt", ""),
-                    "<[^>]+>", string.Empty)
-                .Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(ta => ta.Trim())
-                .Where(tb => tb.Length > 1)
-                .ToList();
-            if (bus[b].IsGroupValid()) {
-                s.AddRange(dopDescKP);
-            }
+            var s = bus[b].DescriptionList(dop:JsonConvert.DeserializeObject<string[]>(
+                _db.GetParamStr("kupiprodai.addDescription")));            
             //контролируем длину описания
             var newSLength = 0;
             for (int u = 0; u < s.Count; u++) {
@@ -1956,14 +1616,13 @@ namespace Selen {
 
         //загрузка куки
         private void button_SaveCookie_Click(object sender, EventArgs e) {
-            SaveCookies(tiu, "tiu.json");
+            _tiu.SaveCookies();
+            _kupiprodai.SaveCookies();
             _avtoPro.SaveCookies();
             _drom.SaveCookies();
             _avito.SaveCookies();
             _autoRu.SaveCookies();
-            //SaveCookie(kp);
             //SaveCookie(gde);
-            //SaveCookie(cd);
         }
         private void SaveCookies(IWebDriver dr, string name) {
             try {

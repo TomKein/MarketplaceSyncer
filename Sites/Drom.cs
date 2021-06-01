@@ -47,7 +47,8 @@ namespace Selen.Sites {
             if (_dr != null) {
                 _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
                 var c = _dr.SaveCookies();
-                _db.SetParam("drom.cookies", c);
+                if (c.Length > 20)
+                    _db.SetParam("drom.cookies", c);
             }
         }
 
@@ -70,7 +71,7 @@ namespace Selen.Sites {
             await CheckAsync();
             Log.Add("drom.ru: выгрузка завершена");
         }
-        public async Task AuthAsync() {
+        async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
                 if (_needRestart) Quit();
                 if (_dr == null) {
@@ -88,7 +89,7 @@ namespace Selen.Sites {
                 SaveCookies();
             });
         }
-        public async Task EditAsync() {
+        async Task EditAsync() {
             await Task.Factory.StartNew(() => {
                 for (int b = 0; b < _bus.Count; b++) {
                     if (_bus[b].IsTimeUpDated() &&
