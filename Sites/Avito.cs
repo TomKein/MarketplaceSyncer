@@ -438,44 +438,48 @@ namespace Selen.Sites {
         }
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
-            //перехожу в раздел
-            var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
-            await _dr.NavigateAsync(url, ".profile-tabs");
-            //парсинг объявлений на странице
-            var items = await _dr.FindElementsAsync("//div[contains(@class,'text-t')]//a");
-            var urls = items.Select(s => s.GetAttribute("href")).ToList();
-            var ids = urls.Select(s => s.Split('_').Last()).ToList();
-            var names = items.Select(s => s.Text).ToList();
-            var el = await _dr.FindElementsAsync("//div[contains(@class,'price-root')]/span");
-            var prices = el.Select(s => s.Text.Replace(" ", "").TrimEnd('\u20BD')).ToList();
-            //проверка результатов парсинга
-            if (items.Count == 0) throw new Exception("ошибка парсинга: не найдны ссылки на товары");
-            if (items.Count != names.Count || names.Count != prices.Count) throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
-            //перебираю найденное
-            for (int i = 0; i < urls.Count(); i++) {
-                //ищу индекс карточки в базе
-                var b = _bus.FindIndex(f => f.avito.Contains(ids[i]));
-                if (b >= 0) {
-                    //проверяю, нужно ли его снять
-                    //if (location == "/active" && _bus[b].amount <= 0) Delete(b);
-                    if (_bus[b].amount <= 0 && location != "/archived") await DeleteAsync(b);
-                    //если объявление в разделе "архив" или "неопубликованные", но есть на остатках и цена больше пороговой - поднимаю
-                    if (CountToUp > 0 &&
-                        _bus[b].price >= _priceLevel &&
-                        _bus[b].amount > 0 &&
-                        (location != "/active")){
-                        //если удалено - восстанавливаю, без этого не активируется
-                        if (location == "/archived") {
-                            await _dr.NavigateAsync(_bus[b].avito, ".title-info-title");
-                            _dr.ButtonClick("//button[@name='restore']");
-                        }
-                        //теперь активирую
-                        if (await UpOfferAsync(b)) {
-                            await Task.Delay(_delay);
-                            if (_editAfterUp) await EditAsync(b);
+            try {
+                //перехожу в раздел
+                var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
+                await _dr.NavigateAsync(url, ".profile-tabs");
+                //парсинг объявлений на странице
+                var items = await _dr.FindElementsAsync("//div[contains(@class,'text-t')]//a");
+                var urls = items.Select(s => s.GetAttribute("href")).ToList();
+                var ids = urls.Select(s => s.Split('_').Last()).ToList();
+                var names = items.Select(s => s.Text).ToList();
+                var el = await _dr.FindElementsAsync("//div[contains(@class,'price-root')]/span");
+                var prices = el.Select(s => s.Text.Replace(" ", "").TrimEnd('\u20BD')).ToList();
+                //проверка результатов парсинга
+                if (items.Count == 0) throw new Exception("ошибка парсинга: не найдны ссылки на товары");
+                if (items.Count != names.Count || names.Count != prices.Count) throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
+                //перебираю найденное
+                for (int i = 0; i < urls.Count(); i++) {
+                    //ищу индекс карточки в базе
+                    var b = _bus.FindIndex(f => f.avito.Contains(ids[i]));
+                    if (b >= 0) {
+                        //проверяю, нужно ли его снять
+                        //if (location == "/active" && _bus[b].amount <= 0) Delete(b);
+                        if (_bus[b].amount <= 0 && location != "/archived") await DeleteAsync(b);
+                        //если объявление в разделе "архив" или "неопубликованные", но есть на остатках и цена больше пороговой - поднимаю
+                        if (CountToUp > 0 &&
+                            _bus[b].price >= _priceLevel &&
+                            _bus[b].amount > 0 &&
+                            (location != "/active")){
+                            //если удалено - восстанавливаю, без этого не активируется
+                            if (location == "/archived") {
+                                await _dr.NavigateAsync(_bus[b].avito, ".title-info-title");
+                                _dr.ButtonClick("//button[@name='restore']");
+                            }
+                            //теперь активирую
+                            if (await UpOfferAsync(b)) {
+                                await Task.Delay(_delay);
+                                if (_editAfterUp) await EditAsync(b);
+                            }
                         }
                     }
                 }
+            } catch (Exception x) {
+                Log.Add("avito.ru: ошибка парсинга страницы! - " + x.Message);
             }
         }
         //активация объявления

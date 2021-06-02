@@ -63,7 +63,6 @@ namespace Selen
             this.checkBox_photo_clear = new System.Windows.Forms.CheckBox();
             this.buttonKupiprodai = new System.Windows.Forms.Button();
             this.buttonKupiprodaiAdd = new System.Windows.Forms.Button();
-            this.numericUpDownKupiprodaiAdd = new System.Windows.Forms.NumericUpDown();
             this.labelKP = new System.Windows.Forms.Label();
             this.button_PricesCheck = new System.Windows.Forms.Button();
             this.button_GdeGet = new System.Windows.Forms.Button();
@@ -94,7 +93,6 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
@@ -426,20 +424,6 @@ namespace Selen
             this.buttonKupiprodaiAdd.UseVisualStyleBackColor = true;
             this.buttonKupiprodaiAdd.Click += new System.EventHandler(this.buttonKupiprodaiAdd_Click);
             // 
-            // numericUpDownKupiprodaiAdd
-            // 
-            this.numericUpDownKupiprodaiAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.numericUpDownKupiprodaiAdd.Location = new System.Drawing.Point(123, 181);
-            this.numericUpDownKupiprodaiAdd.Name = "numericUpDownKupiprodaiAdd";
-            this.numericUpDownKupiprodaiAdd.Size = new System.Drawing.Size(45, 21);
-            this.numericUpDownKupiprodaiAdd.TabIndex = 113;
-            this.numericUpDownKupiprodaiAdd.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.numericUpDownKupiprodaiAdd.Value = new decimal(new int[] {
-            100,
-            0,
-            0,
-            0});
-            // 
             // labelKP
             // 
             this.labelKP.AutoSize = true;
@@ -693,7 +677,6 @@ namespace Selen
             this.panel1.Controls.Add(this.label2);
             this.panel1.Controls.Add(this.labelKP);
             this.panel1.Controls.Add(this.buttonSatom);
-            this.panel1.Controls.Add(this.numericUpDownKupiprodaiAdd);
             this.panel1.Controls.Add(this.labelKS);
             this.panel1.Controls.Add(this.buttonKupiprodaiAdd);
             this.panel1.Controls.Add(this.buttonKupiprodai);
@@ -806,7 +789,6 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.ds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dSet)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_AutoRuAddCount)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownKupiprodaiAdd)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownGde)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
@@ -859,7 +841,6 @@ namespace Selen
         private System.Windows.Forms.CheckBox checkBox_photo_clear;
         private System.Windows.Forms.Button buttonKupiprodai;
         private System.Windows.Forms.Button buttonKupiprodaiAdd;
-        private System.Windows.Forms.NumericUpDown numericUpDownKupiprodaiAdd;
         private System.Windows.Forms.Label labelKP;
         private System.Windows.Forms.Button button_PricesCheck;
         private System.Windows.Forms.Button button_GdeGet;

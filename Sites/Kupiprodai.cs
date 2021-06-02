@@ -172,6 +172,7 @@ namespace Selen.Sites {
                         //сохраняем ссылку
                         await SaveUrlAsync(b);
                         count--;
+                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - объявление добавлено, осталось "+count);
                     } catch (Exception e) {
                         Log.Add("kupiprodai.ru: ошибка добавления! - " + _bus[b].name + " - " + e.Message);
                         break;
@@ -195,7 +196,6 @@ namespace Selen.Sites {
                                 {"name",_bus[b].name},
                                 {_url, _bus[b].kp}
                             });
-                Log.Add("kupiprodai.ru: " + _bus[b].name + " - объявление добавлено, осталось ");
             } else throw new Exception("ссылка на объявление не найдена");
         }
         //очистка названия от апостофов
@@ -208,23 +208,27 @@ namespace Selen.Sites {
         }
         //выбор категории объявления
         void SetCategory(int b) {
-            var name = _bus[b].name.ToLowerInvariant();
-            var desc = _bus[b].description.ToLowerInvariant();
-            _dr.ButtonClick("option[value='7_6']");
-            switch (_bus[b].GroupName()) {
-                case "Автохимия":
-                    _dr.ButtonClick("option[value='622']");
-                    break;
-                case "Аудио-видеотехника":
-                    _dr.ButtonClick("option[value='623']");
-                    break;
-                case "Шины, диски, колеса":
-                    _dr.ButtonClick("option[value='629']");
-                    break;
-                default:
-                    _dr.ButtonClick("option[value='619']");
-                    _dr.ButtonClick("option[value='632']");
-                    break;
+            try {
+                var name = _bus[b].name.ToLowerInvariant();
+                var desc = _bus[b].description.ToLowerInvariant();
+                _dr.FindElements("option[value='7_6']").First().Click();
+                switch (_bus[b].GroupName()) {
+                    case "Автохимия":
+                        _dr.FindElements("option[value='622']").First().Click();
+                        break;
+                    case "Аудио-видеотехника":
+                        _dr.FindElements("option[value='623']").First().Click();
+                        break;
+                    case "Шины, диски, колеса":
+                        _dr.FindElements("option[value='629']").First().Click();
+                        break;
+                    default:
+                        _dr.FindElements("option[value='619']").First().Click();
+                        _dr.FindElements("option[value='632']").First().Click();
+                        break;
+                }
+            } catch (Exception x) {
+                Log.Add("kupiprodai: ошибка выбора категории - " + x.Message);
             }
         }
         //загрузка фотографий

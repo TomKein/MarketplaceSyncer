@@ -13,7 +13,6 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Interactions;
 using Application = System.Windows.Forms.Application;
-using System.Text.RegularExpressions;
 using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
@@ -21,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.57.2";
+        string _version = "1.57.4";
         
         DB _db = new DB();
 
@@ -437,7 +436,7 @@ namespace Selen {
             }
         }
         //=====================
-        //=== kupiprodai.ru ===
+        //=== KUPIPRODAI.RU ===
         //=====================
         async void KupiprodaiClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -470,6 +469,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need) await Task.Delay(30000);
             await _kupiprodai.AddAsync();
+            labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //==============================
