@@ -126,6 +126,16 @@ namespace Selen.Sites {
             SetTitle(b);
             SetPrice(b);
             SetDesc(b);
+            //проверка фото
+            var photos = _dr.FindElements("//div[@id='images']/div/span");
+            if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+                Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
+                foreach (var photo in photos) {
+                    photo.Click();
+                    Thread.Sleep(1000);
+                }
+                SetImages(b);
+            }
             PressOkButton();
         }
         //пишу название
@@ -318,25 +328,14 @@ namespace Selen.Sites {
                     //проверка названия и цены
                     var name = _dr.GetElementAttribute("//input[@name='bbs_title']", "value");
                     var price = int.Parse(_dr.GetElementAttribute("//input[@name='bbs_price']", "value"));
+                    var photos = _dr.FindElements("//div[@id='images']/div/span");
                     if (name.Length <= 5 ||
                         !_bus[b].name.Contains(name) ||
-                        _bus[b].price != price) {
-                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю описание и цену");
-                        SetTitle(b);
-                        SetPrice(b);
-                        SetDesc(b);
+                        _bus[b].price != price ||
+                        photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю объявление");
+                        EditOffer(b);
                     }
-                    //проверка фото
-                    var photos = _dr.FindElements("//div[@id='images']/div/span");
-                    if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
-                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
-                        foreach (var photo in photos) {
-                            photo.Click();
-                            Thread.Sleep(1000);
-                        }
-                        SetImages(b);
-                    }
-                    PressOkButton();
                     i++;
                 }
             });
