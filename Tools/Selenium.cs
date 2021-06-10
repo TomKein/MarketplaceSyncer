@@ -38,7 +38,7 @@ namespace Selen.Tools {
 
         public async Task NavigateAsync(string url, string check = null, int tryCount = 10) {
             await Task.Factory.StartNew(() => {
-                Navigate(url);
+                Navigate(url,check,tryCount);
             });
         }
 

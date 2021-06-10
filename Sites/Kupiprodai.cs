@@ -289,56 +289,64 @@ namespace Selen.Sites {
         }
         //парсинг отдельной страницы
         async Task ParsePage(int p) {
-            await Task.Factory.StartNew(() => {
-                _dr.Navigate("https://vip.kupiprodai.ru/active/page" + p);
-                var items = _dr.FindElements("//div[@class='grd_act']/a[1]");
-                var names = items.Select(s => s.Text).ToList();
-                var urls = items.Select(s => s.GetAttribute("href")).ToList();
-                var ids = urls.Select(s => s.Split('_').Last()).ToList();
-                var prices = _dr.FindElements("//div[@class='price']").Select(s => s.Text).ToList();
-                if (items.Count != names.Count() ||
-                    items.Count != ids.Count() ||
-                    items.Count != urls.Count() ||
-                    items.Count != prices.Count())
-                    throw new Exception("kupiprodai.ru: ошибка парсинга! - количество элементов не совпадает!");
-                for (int i = 0; i < items.Count; i++) {
-                    var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
-                    if (b == -1) {
-                        _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
-                    } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ","") ||
-                              !_bus[b].name.Contains(names[i])) {
-                        EditOffer(b);
+            try {
+                await Task.Factory.StartNew(() => {
+                    _dr.Navigate("https://vip.kupiprodai.ru/active/page" + p);
+                    var items = _dr.FindElements("//div[@class='grd_act']/a[1]");
+                    var names = items.Select(s => s.Text).ToList();
+                    var urls = items.Select(s => s.GetAttribute("href")).ToList();
+                    var ids = urls.Select(s => s.Split('_').Last()).ToList();
+                    var prices = _dr.FindElements("//div[@class='price']").Select(s => s.Text).ToList();
+                    if (items.Count != names.Count() ||
+                        items.Count != ids.Count() ||
+                        items.Count != urls.Count() ||
+                        items.Count != prices.Count())
+                        throw new Exception("kupiprodai.ru: ошибка парсинга! - количество элементов не совпадает!");
+                    for (int i = 0; i < items.Count; i++) {
+                        var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
+                        if (b == -1) {
+                            _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
+                        } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "") ||
+                                  !_bus[b].name.Contains(names[i])) {
+                            EditOffer(b);
+                        }
                     }
-                }
-            });
+                });
+            } catch (Exception x) {
+                Log.Add("kupiprodai.ru: ошибка парсинга страницы - " + x.Message);
+            }
         }
         //проверка случайных ссылок
         async Task CheckUrls() {
-            await Task.Factory.StartNew(() => {
-                var n = _db.GetParamInt("kupiprodai.checkUrlCount");
-                for (int i = 0; i < n; ) {
-                    var b = _rnd.Next(_bus.Count);
-                    if (string.IsNullOrEmpty(_bus[b].kp)) continue;
-                    _dr.Navigate(_bus[b].kp);
-                    //проверка загрузки страницы
-                    if (_dr.GetElementsCount("//input[@name='bbs_title']") == 0) {
-                        Log.Add("kupiprodai.ru: ошибка загрузки объявления! - " + _bus[b].name);
-                        continue;
+            try {
+                await Task.Factory.StartNew(() => {
+                    var n = _db.GetParamInt("kupiprodai.checkUrlCount");
+                    for (int i = 0; i < n; ) {
+                        var b = _rnd.Next(_bus.Count);
+                        if (string.IsNullOrEmpty(_bus[b].kp)) continue;
+                        _dr.Navigate(_bus[b].kp);
+                        //проверка загрузки страницы
+                        if (_dr.GetElementsCount("//input[@name='bbs_title']") == 0) {
+                            Log.Add("kupiprodai.ru: ошибка загрузки объявления! - " + _bus[b].name);
+                            continue;
+                        }
+                        //проверка названия и цены
+                        var name = _dr.GetElementAttribute("//input[@name='bbs_title']", "value");
+                        var price = int.Parse(_dr.GetElementAttribute("//input[@name='bbs_price']", "value"));
+                        var photos = _dr.FindElements("//div[@id='images']/div/span");
+                        if (name.Length <= 5 ||
+                            !_bus[b].name.Contains(name) ||
+                            _bus[b].price != price ||
+                            photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+                            Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю объявление");
+                            EditOffer(b);
+                        }
+                        i++;
                     }
-                    //проверка названия и цены
-                    var name = _dr.GetElementAttribute("//input[@name='bbs_title']", "value");
-                    var price = int.Parse(_dr.GetElementAttribute("//input[@name='bbs_price']", "value"));
-                    var photos = _dr.FindElements("//div[@id='images']/div/span");
-                    if (name.Length <= 5 ||
-                        !_bus[b].name.Contains(name) ||
-                        _bus[b].price != price ||
-                        photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
-                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю объявление");
-                        EditOffer(b);
-                    }
-                    i++;
-                }
-            });
+                });
+            } catch (Exception x) {
+                Log.Add("kupiprodai.ru: ошибка при проверке ссылок - "+x.Message);
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.57.6";
+        string _version = "1.58.1";
         
         DB _db = new DB();
 

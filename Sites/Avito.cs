@@ -174,7 +174,7 @@ namespace Selen.Sites {
                 bool isAlive = true;
                 for(int i=0; ; i++) {
                     await ChechAuthAsync();
-                    await _dr.NavigateAsync(url);
+                    await _dr.NavigateAsync(url, "//button[contains(@data-marker,'button-next')]");
                     if (_dr.GetElementsCount("//a[@href='/profile']") > 0 && _dr.GetElementsCount("//div[@data-marker='category']")>0) break;
                     isAlive = await CheckIsOfferAlive(b);
                     if (!isAlive) break;
