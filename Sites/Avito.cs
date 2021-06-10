@@ -38,7 +38,7 @@ namespace Selen.Sites {
             _db = DB._db;
         }
         //главный цикл синхронизации
-        public async Task AvitoStartAsync(List<RootObject> bus) {
+        public async Task StartAsync(List<RootObject> bus) {
             Log.Add("avito.ru: начало выгрузки...");
             GetParams(bus);
             await AuthAsync();

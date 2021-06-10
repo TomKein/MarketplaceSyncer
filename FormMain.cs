@@ -20,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.58.1";
+        string _version = "1.58.2";
         
         DB _db = new DB();
 
@@ -38,8 +38,7 @@ namespace Selen {
         EuroAuto _euroAuto = new EuroAuto();
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
-
-        public IWebDriver gde;
+        GdeRu _gde = new GdeRu();
 
         int pageLimitBase = 250;
 
@@ -102,7 +101,8 @@ namespace Selen {
             _tiu?.Quit();
             _kupiprodai?.SaveCookies();
             _kupiprodai?.Quit();
-            gde?.Quit();
+            _gde?.SaveCookies();
+            _gde?.Quit();
             _avito?.SaveCookies();
             _avito?.Quit();
             _cdek?.SaveCookies();
@@ -119,7 +119,7 @@ namespace Selen {
                 File.Delete(file);
             }
         }
-        //=== полный скан базы бизнес.ру ==//
+        //полный скан базы бизнес.ру
         private async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             Log.Add("business.ru: старт полного цикла синхронизации");
@@ -310,7 +310,7 @@ namespace Selen {
             if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                    await _avito.AvitoStartAsync(bus);
+                    await _avito.StartAsync(bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
