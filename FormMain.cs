@@ -20,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.58.2";
+        string _version = "1.58.3";
         
         DB _db = new DB();
 
@@ -32,9 +32,9 @@ namespace Selen {
         Cdek _cdek = new Cdek();
         Drom _drom = new Drom();
         Tiu _tiu = new Tiu();
-        AvtoPro _avtoPro = new AvtoPro();
+        AvtoPro _avto = new AvtoPro();
         Avito _avito = new Avito();
-        AutoRu _autoRu = new AutoRu();
+        AutoRu _auto = new AutoRu();
         EuroAuto _euroAuto = new EuroAuto();
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
@@ -61,15 +61,305 @@ namespace Selen {
         public FormMain() {
             InitializeComponent();
         }
+        //========================
+        //=== РАБОТА С САЙТАМИ ===
+        //========================
+        //AVITO.RU
+        async void AvitoRu_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            if (await _db.GetParamBoolAsync("avito.syncEnable")) {
+                try {
+                    while (base_rescan_need) await Task.Delay(30000);
+                    await _avito.StartAsync(bus);
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        Log.Add("avito.ru: ошибка браузера, перезапуск через 1 минуту...");
+                        await Task.Delay(60000);
+                        _avito.Quit();
+                        AvitoRu_Click(sender, e);
+                    } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
 
-        //===================================
-        //основной цикл (частота 1 раз в мин)
-        //===================================
+                }
+            }
+        }
+        //VK.COM
+        async void VkCom_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            try {
+                Log.Add("вк начало выгрузки");
+                while (base_rescan_need) await Task.Delay(20000);
+                await _vk.VkSyncAsync(bus);
+                Log.Add("вк выгрузка завершена");
+                ChangeStatus(sender, ButtonStates.Active);
+            } catch (Exception x) {
+                Log.Add("ошибка синхронизации вк: " + x.Message);
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            }
+        }
+        //TIU.RU
+        async void TiuRu_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            for(int i=0; i<10;i++) {
+                try {
+                    while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
+                    await _tiu.TiuSyncAsync(bus, ds);
+                    break;
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.NonActiveWithProblem);
+                    Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("invalid session id") ||
+                            x.Message.Contains("chrome not reachable")) {
+                        _tiu.Quit();
+                        await Task.Delay(60000);
+                    }
+                }
+            }
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        async Task TiuCheckAsync() {        //TODO вынести в класс tiu.cs
+            int i = 0;
+            for (int b = 0; b < bus.Count; b++) {
+                if (bus[b].tiu.Contains("product2")) {
+                    bus[b].tiu = "https://my.tiu.ru/cms/product" + bus[b].tiu.Replace("product2", "|").Split('|').Last();
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
+                        {"id", bus[b].id },
+                        {"name", bus[b].name },
+                        {"209325",bus[b].tiu}
+                    });
+                    i++;
+                    Log.Add("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
+                    if (i >= 10) break;
+                }
+            }
+        }
+        //DROM.RU
+        async void DromRu_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            try {
+                while (base_rescan_need)  await Task.Delay(30000);
+                await _drom.DromStartAsync(bus);
+                label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount>0).ToString();
+                ChangeStatus(sender, ButtonStates.Active);
+            } catch (Exception x) {
+                Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
+                if (x.Message.Contains("timed out") ||
+                    x.Message.Contains("already closed") ||
+                    x.Message.Contains("invalid session id") ||
+                    x.Message.Contains("chrome not reachable")) {
+                    _drom.Quit();
+                    await Task.Delay(60000);
+                    DromRu_Click(sender,e);
+                }
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            }
+        }
+        //AUTO.RU
+        async void AutoRu_Click(object sender, EventArgs e) {
+            if (checkBox_AutoRuSyncEnable.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    Log.Add("auto.ru: начало выгрузки...");
+                    while (base_rescan_need) await Task.Delay(30000);
+                    _auto.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+                    await _auto.AutoRuStartAsync(bus);
+                    Log.Add("auto.ru: выгрузка завершена!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    Log.Add("auto.ru: ошибка выгрузки! - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _auto?.Quit();
+                        await Task.Delay(180000);
+                        _auto = new AutoRu();
+                        AutoRu_Click(sender, e);
+                    }
+                }
+            }
+        }
+        void numericUpDown_AutoRu_ValueChanged(object sender, EventArgs e) {
+            _auto.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+        }
+        //KUPIPRODAI.RU
+        async void KupiprodaiRu_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            for(int i = 0; ; i++) {
+                try {
+                    while (base_rescan_need) await Task.Delay(30000);
+                    await _kupiprodai.StartAsync(bus);
+                    labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+                    ChangeStatus(sender, ButtonStates.Active);
+                    break;
+                } catch (Exception x) {
+                    Log.Add("kupiprodai.ru: ошибка синхронизации! - " + x.Message + " - " + x.InnerException.Message);
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _kupiprodai.Quit();
+                        await Task.Delay(60000);
+                    }
+                    if (i > 5) {
+                        Log.Add("kupiprodai.ru: ошибка! превышено количество попыток!");
+                        ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                        break;
+                    }
+                }
+            }
+        }
+        async void KupiprodaiRuAdd_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need) await Task.Delay(30000);
+            await _kupiprodai.AddAsync();
+            labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //GDE.RU
+        public async void GdeRu_Click(object sender, EventArgs e) {
+            if (await _db.GetParamBoolAsync("gde.syncEnable")) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
+                        await _gde.StartAsync(bus);
+                        labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+                        break;
+                    } catch (Exception x) {
+                        ChangeStatus(sender, ButtonStates.NonActiveWithProblem);
+                        Log.Add("gde.ru: ошибка синхронизации! - " + x.Message);
+                        if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("invalid session id") ||
+                            x.Message.Contains("chrome not reachable")) {
+                            _gde.Quit();
+                            await Task.Delay(60000);
+                        } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    }
+                }
+            }
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //AVTO.PRO
+        private async void AvtoPro_Click(object sender, EventArgs e) {
+            if (checkBox_AvtoProSyncEnable.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                try {
+                    Log.Add("avto.pro: начало выгрузки...");
+                    while (base_rescan_need) await Task.Delay(30000);
+                    _avto.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
+                    await _avto.AvtoProStartAsync(bus);
+                    Log.Add("avto.pro: выгрузка завершена!");
+
+                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
+                    //достаточно проверять один раз в недекю, и только ночью
+                    if (DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24)
+                            && DateTime.Now.Hour < 3
+                            && DateTime.Today.DayOfWeek == DayOfWeek.Sunday) {
+                        Log.Add("avto.pro: парсинг сайта...");
+                        await _avto.CheckAsync();
+                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
+                        dSet.WriteXml(fSet);
+                        Log.Add("avto.pro: парсинг завершен");
+                    }
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    Log.Add("avto.pro: ошибка выгрузки! - " + x.Message);//TODO изменить регистр сообщения 
+                    if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                        _avto?.Quit();
+                        await Task.Delay(180000);
+                        _avto = new AvtoPro();
+                        AvtoPro_Click(sender, e);
+                    }
+                }
+            }
+        }
+        private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
+            try {
+                _avto.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
+            } catch (Exception x) {
+                Log.Add("avto.pro: ошибка установки количества добавляемых объявлений");
+            }
+        }        
+        //CDEK.MARKET
+        private async void Cdek_Click(object sender, EventArgs e) {
+            if (checkBoxCdekSyncActive.Checked) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need) await Task.Delay(60000);                
+                try {
+                    await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
+                    label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
+                } catch (Exception x) {
+                    Log.Add("cdek.market: ошибка синхронизации! - " + x.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                    return;
+                }
+                if (numericUpDown_СdekCheckUrls.Value > 0) {
+                    try {
+                        var num = int.Parse(dSet.Tables["controls"].Rows[0]["controlCdek"].ToString());
+                        num = await _cdek.CheckUrlsAsync(num, (int)numericUpDown_СdekCheckUrls.Value);
+                        dSet.Tables["controls"].Rows[0]["controlCdek"] = num;
+                        dSet.WriteXml(fSet);
+                        await _cdek.ParseSiteAsync();
+                    } catch (Exception x) {
+                        Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
+                    }
+                }
+            }
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //EUROAUTO.RU
+        private async void EuroAuto_Click(object sender, EventArgs e) {
+            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need) await Task.Delay(60000);
+                try {
+                    await _euroAuto.SyncAsync(bus);
+                    Log.Add("euroauto.ru: выгрузка ок!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                }
+            }
+        }
+        //IZAP24.RU
+        private async void Izap24_Click(object sender, EventArgs e) {
+            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
+                ChangeStatus(sender, ButtonStates.NoActive);
+                while (base_rescan_need || 
+                    (ds == null || ds.Tables.Count==0))
+                    await Task.Delay(60000);
+                try {
+                    Log.Add("izap24.ru: начинаю выгрузку...");
+                    await _izap24.SyncAsync(bus, ds);
+                    Log.Add("izap24.ru: выгрузка ок!");
+                    ChangeStatus(sender, ButtonStates.Active);
+                } catch (Exception x) {
+                    Log.Add("izap24.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
+                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+                }
+            }
+        }
+
+        //===========================================
+        //=== основной цикл (частота 1 раз в мин) ===
+        //===========================================
         private async void timer_sync_Tick(object sender, EventArgs e) {
-            if (base_can_rescan)//тру, если завершен предыдуший цикл
-            {
-                //если синхронизация включена
-                if (checkBox_sync.Checked){
+            if (base_can_rescan){//тру, если завершен предыдуший цикл
+                if (checkBox_sync.Checked) {//если синхронизация включена
                     if (checkBox_liteSync.Checked && //галочка liteSync
                         bus.Count > 0 &&   //список товаров содержит товары
                         !base_rescan_need && //и его не нужно перезапрашивать
@@ -83,44 +373,204 @@ namespace Selen {
                 }
             }
         }
-        //загрузка файла настроек
-        private void dsOptions_Initialized(object sender, EventArgs e) {
+        //оптимизация синхронизации - чтобы не запрашивать всю базу каждый час - запросим только изменения
+        private async Task GoLiteSync() {
+            ChangeStatus(button_base_get, ButtonStates.NoActive);
+            var stage = "";
             try {
-                dSet.ReadXml(fSet);
-                dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
-            } catch (Exception x) {
-                MessageBox.Show("ошибка чтения set.xml - "+ x.Message);
+                if (base_can_rescan) {
+                    base_can_rescan = false;
+
+                    sync_start = DateTime.Now;
+
+                    Log.Add("lite sync started...");
+                    stage = "запрашиваем время последней синхронизации...";
+                    var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
+                    stage = "запрашиваем карточки из базы...";
+                    //запросим новые/измененные карточки товаров
+                    string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
+                            {"archive", "0"},
+                            {"type", "1"},
+                            //{"limit", pageLimitBase.ToString()},
+                            //{"page", i.ToString()},
+                            {"with_additional_fields", "1"},
+                            {"with_remains", "1"},
+                            {"with_prices", "1"},
+                            {"type_price_ids[0]","75524" },
+                            { "updated[from]", lastTime}
+                    });
+                    stage = "меняем номера групп на названия...";
+                    s = s.Replace("\"209325\":", "\"tiu\":")
+                        .Replace("\"209326\":", "\"avito\":")
+                        .Replace("\"209334\":", "\"drom\":")
+                        .Replace("\"209360\":", "\"vk\":")
+                        .Replace("\"313971\":", "\"auto\":")
+                        .Replace("\"402489\":", "\"youla\":")
+                        .Replace("\"657256\":", "\"ks\":")
+                        .Replace("\"833179\":", "\"kp\":")
+                        .Replace("\"854872\":", "\"gde\":")
+                        .Replace("\"1437133\":", "\"avtopro\":")
+                        .Replace("\"854874\":", "\"cdek\":");
+                    stage = "добавляем к списку...";
+                    lightSyncGoods.Clear();
+                    if (s.Length > 3) {
+                        lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
+                    }
+
+                    stage = "текущие остатки...";
+                    var ids = JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
+                        {"updated[from]", lastTime}
+                    }));
+
+                    stage = "текущие цены...";
+                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
+                        {"updated[from]", lastTime},
+                        {"price_type_id","75524" } //интересуют только отпускные цены
+                    })));
+
+                    stage = "запросим реализации...";
+                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
+                        {"updated[from]", lastTime}
+                    })));
+
+                    //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
+                    ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id=_.id }));
+
+                    stage = "подгружаем карточки ...";
+
+                    if (ids.Count > 0) {
+                        var distinctIds = new List<string>();
+                        foreach (var id in ids) {
+                            if (lightSyncGoods.FindIndex(f => f.id == id.good_id) == -1 && !distinctIds.Contains(id.good_id)) {
+                                distinctIds.Add(id.good_id);
+                            }
+                        }
+                        if (distinctIds.Count > 0)
+                            lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
+                    }
+                    //если изменений слишком много - нужен полный рескан базы
+                    if (lightSyncGoods.Count > 200) {
+                        Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + 
+                                " -- будет произведен запрос полной базы товаров...");
+                        base_rescan_need = true;
+                        return;
+                    }
+                    Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
+                    stage = "...";
+
+                    //переносим обновления в загруженную базу
+                    foreach (var lg in lightSyncGoods) {
+                        var ind = bus.FindIndex(f => f.id == lg.id);
+                        //индекс карточки найден
+                        if (ind != -1) {
+                            //если чекбокс "игнорировать ссылки" активен
+                            if (checkBox_IgnoreUrls.Checked) {
+                                if (bus[ind].amount != lg.amount ||             //если изменилось количество или
+                                    bus[ind].price != lg.price ||               //если изменилась цена или
+                                    bus[ind].archive != lg.archive ||           //статус архивный или
+                                    bus[ind].name != lg.name ||                 //изменилось наименование или
+                                    bus[ind].description != lg.description ||   //изменилось описание или
+                                    bus[ind].part != lg.part ||                 //изменился артикул
+                                    bus[ind].weight != lg.weight                //изменился вес
+                                    ) {
+                                    //переносим все данные
+                                    bus[ind] = lg;
+                                    //время обновления карточки сдвигаю на время начала цикла синхронизации
+                                    bus[ind].updated = sync_start.ToString();
+                                } else {
+                                    //сохраняю в новых данных старую дату обновления
+                                    lg.updated = bus[ind].updated;
+                                    //переношу все новые данные
+                                    bus[ind] = lg;
+                                }
+                            }
+                        } else { //если индекс карточки не найден - добавляем в коллекцию
+                            lg.updated = sync_start.ToString();
+                            bus.Add(lg);
+                        }
+                    }
+
+                    //база теперь должна быть в актуальном состоянии
+                    //сохраняем время, на которое база актуальна (только liteScanTime! 
+                    //lastScanTime сохраним когда перенесем изменения в объявления!!)
+                    //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
+
+                    label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
+                    dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
+                    dSet.Tables["controls"].Rows[0]["liteScanTime"] = sync_start.AddMinutes(-1);
+                    dSet.WriteXml(fSet);
+
+
+                    ///вызываем событие
+                    ///в котором сообщаем о том, что в базе есть изменения... на будущее
+                    ///если будем использовать событийную модель
+
+
+
+                    ///но пока события не реализованы в проекте
+                    ///поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
+                    ///которые изменились с момента последнего запроса
+                    ///и дальше сдвинем контрольное время актуальности базы
+                    ///а дальше всё как обычно, только сайты больше не парсим,
+                    ///только вызываем методы обработки изменений и подъема упавших
+
+                    if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
+                        button_avito_get.PerformClick();
+                        await AddPartNumsAsync();//добавление артикулов из описания
+                        await CheckArhiveStatusAsync();//проверка архивного статуса
+                        await Task.Delay(60000);
+                        button_drom_get.PerformClick();
+                        await Task.Delay(60000);
+                        button_tiu_sync.PerformClick();
+                        await Task.Delay(60000);
+                        buttonKupiprodai.PerformClick();
+                        await Task.Delay(60000);
+                        button_GdeGet.PerformClick();
+                        await Task.Delay(60000);
+                        button_avto_pro.PerformClick();
+                        await Task.Delay(60000);
+                        button_AutoRuStart.PerformClick();
+                        await Task.Delay(60000);
+                        buttonSatom.PerformClick();
+                        await Task.Delay(60000);
+                        button_EuroAuto.PerformClick();
+                        await Task.Delay(60000);
+                        button_izap24.PerformClick();
+                        await Task.Delay(60000);
+                        button_vk_sync.PerformClick();
+                        await Task.Delay(60000);
+                        button_cdek.PerformClick();
+                        //нужно подождать конца обновлений объявлений
+                        await WaitButtonsActiveAsync();
+                        //проверка задвоенности наименований карточек товаров
+                        await CheckDublesAsync();//проверка дублей
+                        await CheckMultipleApostropheAsync();//проверка лишних аппострофов
+                        if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
+                        if (checkBox_photo_clear.Checked) await PhotoClearAsync();//очистка ненужных фото
+                        await GroupsMoveAsync();//проверка групп
+                        await TiuCheckAsync();//исправляем ссылки на тиу
+                        dSet.Tables["controls"].Rows[0]["lastScanTime"] = sync_start;
+                        RootObject.ScanTime = sync_start;
+                        dateTimePicker1.Value = sync_start;
+                        dSet.WriteXml(fSet);
+
+                        await SaveBusAsync();
+                    }
+                    Log.Add("lite sync complete.");
+                    base_can_rescan = true;
+                }
+            } catch (Exception ex) {
+                Log.Add("ошибка lite sync: " + ex.Message + "\n"
+                    + ex.Source + "\n"
+                    + ex.InnerException + "\n"
+                    + stage);
+                base_can_rescan = true;
+                base_rescan_need = true;
             }
-        }
-        //закрываем форму, сохраняем настройки
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-            this.Visible = false;
-            dSet.WriteXml(fSet);
-            ClearTempFiles();
-            _tiu?.SaveCookies();
-            _tiu?.Quit();
-            _kupiprodai?.SaveCookies();
-            _kupiprodai?.Quit();
-            _gde?.SaveCookies();
-            _gde?.Quit();
-            _avito?.SaveCookies();
-            _avito?.Quit();
-            _cdek?.SaveCookies();
-            _cdek?.Quit();
-            _drom?.SaveCookies();
-            _drom?.Quit();
-            _avtoPro?.SaveCookies();
-            _avtoPro?.Quit();
-            _autoRu?.SaveCookies();
-            _autoRu?.Quit();
-        }
-        void ClearTempFiles() {
-            foreach (var file in Directory.EnumerateFiles(Application.StartupPath, "*.jpg")) {
-                File.Delete(file);
-            }
+            ChangeStatus(button_base_get, ButtonStates.Active);
         }
         //полный скан базы бизнес.ру
-        private async void BaseGet(object sender, EventArgs e) {
+        async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             Log.Add("business.ru: старт полного цикла синхронизации");
             base_rescan_need = true;
@@ -163,7 +613,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //запрашиваю группы товаров
-        public async Task GetBusGroupsAsync() {
+        async Task GetBusGroupsAsync() {
             Log.Add("business.ru: получаю список групп...");
             do {
                 busGroups.Clear();
@@ -182,7 +632,7 @@ namespace Selen {
             RootObject.Groups = busGroups;
         }
         //получаю карточки товаров
-        public async Task GetBusGoodsAsync2() {
+        async Task GetBusGoodsAsync2() {
             int lastScan;
             do {
                 lastScan = Convert.ToInt32(dSet.Tables["controls"].Rows[0]["controlBus"]);
@@ -226,7 +676,7 @@ namespace Selen {
             dSet.WriteXml(fSet);
         }
 
-        public async Task<List<RootObject>> GetBusGoodsAsync(List<string> ids) {
+        async Task<List<RootObject>> GetBusGoodsAsync(List<string> ids) {
             int uMax = 200;
             var iMax = ids.Count % uMax > 0 ? ids.Count / uMax + 1 : ids.Count / uMax;
             List<RootObject> lro = new List<RootObject>();
@@ -302,183 +752,6 @@ namespace Selen {
                 base_rescan_need = false;
             }
         }
-        //================
-        //=== AVITO.RU ===
-        //================
-        public async void AvitoGetAsync(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            if (await _db.GetParamBoolAsync("avito.syncEnable")) {
-                try {
-                    while (base_rescan_need) await Task.Delay(30000);
-                    await _avito.StartAsync(bus);
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        Log.Add("avito.ru: ошибка браузера, перезапуск через 1 минуту...");
-                        await Task.Delay(60000);
-                        _avito.Quit();
-                        AvitoGetAsync(sender, e);
-                    } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-
-                }
-            }
-        }
-        //==============
-        //=== VK.COM ===
-        //==============
-        private async void VkSyncAsync(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            try {
-                Log.Add("вк начало выгрузки");
-                while (base_rescan_need) await Task.Delay(20000);
-                await _vk.VkSyncAsync(bus);
-                Log.Add("вк выгрузка завершена");
-                ChangeStatus(sender, ButtonStates.Active);
-            } catch (Exception x) {
-                Log.Add("ошибка синхронизации вк: " + x.Message);
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-            }
-        }
-        //==============
-        //=== TIU.RU ===
-        //==============
-        private async void TiuSync(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            for(int i=0; i<10;i++) {
-                try {
-                    while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
-                    await _tiu.TiuSyncAsync(bus, ds);
-                    break;
-                } catch (Exception x) {
-                    ChangeStatus(sender, ButtonStates.NonActiveWithProblem);
-                    Log.Add("tiu.ru: ошибка синхронизации - " + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                            x.Message.Contains("already closed") ||
-                            x.Message.Contains("invalid session id") ||
-                            x.Message.Contains("chrome not reachable")) {
-                        _tiu.Quit();
-                        await Task.Delay(60000);
-                    }
-                }
-            }
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-        //TODO вынести в класс tiu.cs
-        async Task TiuCheckAsync() {
-            int i = 0;
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].tiu.Contains("product2")) {
-                    bus[b].tiu = "https://my.tiu.ru/cms/product" + bus[b].tiu.Replace("product2", "|").Split('|').Last();
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
-                        {"id", bus[b].id },
-                        {"name", bus[b].name },
-                        {"209325",bus[b].tiu}
-                    });
-                    i++;
-                    Log.Add("исправлена ссылка тиу " + b + ":\n" + bus[b].name + "\n" + bus[b].tiu + "\n");
-                    if (i >= 10) break;
-                }
-            }
-        }
-        //===============
-        //=== DROM.RU ===
-        //===============
-        private async void DromGetAsync(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            try {
-                while (base_rescan_need)  await Task.Delay(30000);
-                await _drom.DromStartAsync(bus);
-                label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount>0).ToString();
-                ChangeStatus(sender, ButtonStates.Active);
-            } catch (Exception x) {
-                Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
-                if (x.Message.Contains("timed out") ||
-                    x.Message.Contains("already closed") ||
-                    x.Message.Contains("invalid session id") ||
-                    x.Message.Contains("chrome not reachable")) {
-                    _drom.Quit();
-                    await Task.Delay(60000);
-                    DromGetAsync(sender,e);
-                }
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-            }
-        }
-        //===============
-        //=== AUTO.RU ===
-        //===============
-        private async void button_AutoRuStart_Click(object sender, EventArgs e) {
-            if (checkBox_AutoRuSyncEnable.Checked) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                try {
-                    Log.Add("auto.ru: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);
-                    _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
-                    await _autoRu.AutoRuStartAsync(bus);
-                    Log.Add("auto.ru: выгрузка завершена!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    Log.Add("auto.ru: ошибка выгрузки! - " + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _autoRu?.Quit();
-                        await Task.Delay(180000);
-                        _autoRu = new AutoRu();
-                        button_AutoRuStart_Click(sender, e);
-                    }
-                }
-            }
-        }
-        //=====================
-        //=== KUPIPRODAI.RU ===
-        //=====================
-        async void KupiprodaiClickAsync(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            for(int i = 0; ; i++) {
-                try {
-                    while (base_rescan_need) await Task.Delay(30000);
-                    await _kupiprodai.StartAsync(bus);
-                    labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
-                    ChangeStatus(sender, ButtonStates.Active);
-                    break;
-                } catch (Exception x) {
-                    Log.Add("kupiprodai.ru: ошибка синхронизации! - " + x.Message + " - " + x.InnerException.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _kupiprodai.Quit();
-                        await Task.Delay(60000);
-                    }
-                    if (i > 5) {
-                        Log.Add("kupiprodai.ru: ошибка! превышено количество попыток!");
-                        ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                        break;
-                    }
-                }
-            }
-        }
-        //выкладывать объявления
-        private async void buttonKupiprodaiAdd_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (base_rescan_need) await Task.Delay(30000);
-            await _kupiprodai.AddAsync();
-            labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-        //==============================
-
-        //метод обработчик изменений количества добавляемых объявлений
-        private void numericUpDown_auto_ValueChanged(object sender, EventArgs e) {
-            _autoRu.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
-        }
-
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
             List<string> bus_dubl = new List<string>();
@@ -569,7 +842,6 @@ namespace Selen {
             rus.Clear();
             ChangeStatus(sender, ButtonStates.Active);
         }
-
         //тест задвоения карточек контрагентов
         private async void ButtonTestPartnersClick(object sender, EventArgs e) {
             List<PartnerContactinfoClass> pc = new List<PartnerContactinfoClass>();
@@ -615,7 +887,7 @@ namespace Selen {
                 Log.Add("НАЙДЕНЫ ДУБЛИ: " + d.contact_info);
             }
         }
-
+        //проверка артикулов
         private async Task ArtCheckAsync() {
             for (int b = 0; b < bus.Count; b++) {
                 try {
@@ -732,7 +1004,6 @@ namespace Selen {
                 }
             }
         }
-
         //найти словоформу
         string GetNameForm(string desc, string side) {
             return desc.Replace("\n", " ").Replace("\r", " ")
@@ -741,7 +1012,7 @@ namespace Selen {
                         .Split('<').First().ToString()
                         .Trim('!');
         }
-
+        //изменение групп
         private async Task GroupsMoveAsync() {        //перемещение в группу Заказы всех карточек, непривязанных к группам
             for (int b = 0; b < bus.Count; b++) {
                 if (bus[b].group_id == "1") {
@@ -756,197 +1027,6 @@ namespace Selen {
                     await Task.Delay(1000);
                 }
             }
-        }
- 
-        //оптимизация синхронизации - чтобы не запрашивать всю базу каждый час - запросим только изменения
-        private async Task GoLiteSync() {
-            ChangeStatus(button_base_get, ButtonStates.NoActive);
-            var stage = "";
-            try {
-                if (base_can_rescan) {
-                    base_can_rescan = false;
-
-                    sync_start = DateTime.Now;
-
-                    Log.Add("lite sync started...");
-                    stage = "запрашиваем время последней синхронизации...";
-                    var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
-                    stage = "запрашиваем карточки из базы...";
-                    //запросим новые/измененные карточки товаров
-                    string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
-                            {"archive", "0"},
-                            {"type", "1"},
-                            //{"limit", pageLimitBase.ToString()},
-                            //{"page", i.ToString()},
-                            {"with_additional_fields", "1"},
-                            {"with_remains", "1"},
-                            {"with_prices", "1"},
-                            {"type_price_ids[0]","75524" },
-                            { "updated[from]", lastTime}
-                    });
-                    stage = "меняем номера групп на названия...";
-                    s = s.Replace("\"209325\":", "\"tiu\":")
-                        .Replace("\"209326\":", "\"avito\":")
-                        .Replace("\"209334\":", "\"drom\":")
-                        .Replace("\"209360\":", "\"vk\":")
-                        .Replace("\"313971\":", "\"auto\":")
-                        .Replace("\"402489\":", "\"youla\":")
-                        .Replace("\"657256\":", "\"ks\":")
-                        .Replace("\"833179\":", "\"kp\":")
-                        .Replace("\"854872\":", "\"gde\":")
-                        .Replace("\"1437133\":", "\"avtopro\":")
-                        .Replace("\"854874\":", "\"cdek\":");
-                    stage = "добавляем к списку...";
-                    lightSyncGoods.Clear();
-                    if (s.Length > 3) {
-                        lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
-                    }
-
-                    stage = "текущие остатки...";
-                    var ids = JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime}
-                    }));
-
-                    stage = "текущие цены...";
-                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime},
-                        {"price_type_id","75524" } //интересуют только отпускные цены
-                    })));
-
-                    stage = "запросим реализации...";
-                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime}
-                    })));
-
-                    //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
-                    ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id=_.id }));
-
-                    stage = "подгружаем карточки ...";
-
-                    if (ids.Count > 0) {
-                        var distinctIds = new List<string>();
-                        foreach (var id in ids) {
-                            if (lightSyncGoods.FindIndex(f => f.id == id.good_id) == -1 && !distinctIds.Contains(id.good_id)) {
-                                distinctIds.Add(id.good_id);
-                            }
-                        }
-                        if (distinctIds.Count > 0)
-                            lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
-                    }
-
-                    Log.Add("Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
-                    stage = "...";
-
-                    //переносим обновления в загруженную базу
-                    foreach (var lg in lightSyncGoods) {
-                        var ind = bus.FindIndex(f => f.id == lg.id);
-                        //индекс карточки найден
-                        if (ind != -1) {
-                            //если чекбокс "игнорировать ссылки" активен
-                            if (checkBox_IgnoreUrls.Checked) {
-                                if (bus[ind].amount != lg.amount ||             //если изменилось количество или
-                                    bus[ind].price != lg.price ||               //если изменилась цена или
-                                    bus[ind].archive != lg.archive ||           //статус архивный или
-                                    bus[ind].name != lg.name ||                 //изменилось наименование или
-                                    bus[ind].description != lg.description ||   //изменилось описание или
-                                    bus[ind].part != lg.part ||                 //изменился артикул
-                                    bus[ind].weight != lg.weight                //изменился вес
-                                    ) {
-                                    //переносим все данные
-                                    bus[ind] = lg;
-                                    //время обновления карточки сдвигаю на время начала цикла синхронизации
-                                    bus[ind].updated = sync_start.ToString();
-                                } else {
-                                    //сохраняю в новых данных старую дату обновления
-                                    lg.updated = bus[ind].updated;
-                                    //переношу все новые данные
-                                    bus[ind] = lg;
-                                }
-                            }
-                        } else { //если индекс карточки не найден - добавляем в коллекцию
-                            lg.updated = sync_start.ToString();
-                            bus.Add(lg);
-                        }
-                    }
-
-                    //база теперь должна быть в актуальном состоянии
-                    //сохраняем время, на которое база актуальна (только liteScanTime! 
-                    //lastScanTime сохраним когда перенесем изменения в объявления!!)
-                    //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
-
-                    label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
-                    dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
-                    dSet.Tables["controls"].Rows[0]["liteScanTime"] = sync_start.AddMinutes(-1);
-                    dSet.WriteXml(fSet);
-
-
-                    ///вызываем событие
-                    ///в котором сообщаем о том, что в базе есть изменения... на будущее
-                    ///если будем использовать событийную модель
-
-
-
-                    ///но пока события не реализованы в проекте
-                    ///поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
-                    ///которые изменились с момента последнего запроса
-                    ///и дальше сдвинем контрольное время актуальности базы
-                    ///а дальше всё как обычно, только сайты больше не парсим,
-                    ///только вызываем методы обработки изменений и подъема упавших
-
-                    if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
-                        button_avito_get.PerformClick();
-                        await AddPartNumsAsync();//добавление артикулов из описания
-                        await CheckArhiveStatusAsync();//проверка архивного статуса
-                        await Task.Delay(60000);
-                        button_drom_get.PerformClick();
-                        await Task.Delay(60000);
-                        button_tiu_sync.PerformClick();
-                        await Task.Delay(60000);
-                        buttonKupiprodai.PerformClick();
-                        await Task.Delay(60000);
-                        button_GdeGet.PerformClick();
-                        await Task.Delay(60000);
-                        button_avto_pro.PerformClick();
-                        await Task.Delay(60000);
-                        button_AutoRuStart.PerformClick();
-                        await Task.Delay(60000);
-                        buttonSatom.PerformClick();
-                        await Task.Delay(60000);
-                        button_EuroAuto.PerformClick();
-                        await Task.Delay(60000);
-                        button_izap24.PerformClick();
-                        await Task.Delay(60000);
-                        button_vk_sync.PerformClick();
-                        await Task.Delay(60000);
-                        button_cdek.PerformClick();
-                        //нужно подождать конца обновлений объявлений
-                        await WaitButtonsActiveAsync();
-                        //проверка задвоенности наименований карточек товаров
-                        await CheckDublesAsync();//проверка дублей
-                        await CheckMultipleApostropheAsync();//проверка лишних аппострофов
-                        if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
-                        if (checkBox_photo_clear.Checked) await PhotoClearAsync();//очистка ненужных фото
-                        await GroupsMoveAsync();//проверка групп
-                        await TiuCheckAsync();//исправляем ссылки на тиу
-                        dSet.Tables["controls"].Rows[0]["lastScanTime"] = sync_start;
-                        RootObject.ScanTime = sync_start;
-                        dateTimePicker1.Value = sync_start;
-                        dSet.WriteXml(fSet);
-
-                        await SaveBusAsync();
-                    }
-                    Log.Add("lite sync complete.");
-                    base_can_rescan = true;
-                }
-            } catch (Exception ex) {
-                Log.Add("ошибка lite sync: " + ex.Message + "\n"
-                    + ex.Source + "\n"
-                    + ex.InnerException + "\n"
-                    + stage);
-                base_can_rescan = true;
-                base_rescan_need = true;
-            }
-            ChangeStatus(button_base_get, ButtonStates.Active);
         }
 
         async Task CheckArhiveStatusAsync() {
@@ -965,7 +1045,6 @@ namespace Selen {
                 Log.Add("business.ru: ОШИБКА ПРИ ИЗМЕНЕНИИ АРХИВНОГО СТАТУСА! - " + x.Message);
             }
         }
-
         //пока не активируются все кнопки ожидаем 20 сек
         async Task WaitButtonsActiveAsync() {
             while (!(button_tiu_sync.Enabled &&
@@ -1093,7 +1172,6 @@ namespace Selen {
             }
         }
 
-
         private async void button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await ChangePostingsPrices();
@@ -1101,556 +1179,16 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
-        //========//
-        // gde.ru //
-        //========//
-        public async void button_GdeGet_Click(object sender, EventArgs e) {        //TODO вынести в отдельный класс
-            if (checkBox_GdeRu.Enabled) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                try {
-                    await GdeAutorize();
-                    while (base_rescan_need) await Task.Delay(60000);
-                    labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
-                    //проверяем изменения
-                    await GdeEditAsync();
-                    //выкладываем объявления
-                    await GdeAddAsync();
-                    //продливаем объявления
-                    await Task.Delay(10);// GdeUpAsync(); //пока не нужно
-                    //удаляем ненужные
-                    await GdeDelAsync();
-                } catch (Exception x) {
-                    Log.Add("Gde.ru Ошибка при обработке\n" + x.Message);
-                }
-                ChangeStatus(sender, ButtonStates.Active);
-            }
-        }
-
-        async Task GdeDelAsync() {
-            var t = Task.Factory.StartNew(() => {
-                foreach (var b in bus.Where(w => w.tiu.Contains("http") &&
-                                               w.gde.Contains("http") &&
-                                               w.amount <= 0)) {
-                    gde.Navigate().GoToUrl(b.gde.Replace("/update", "/delete"));
-                    Thread.Sleep(3000);
-                }
-            });
-            try {
-                await t;
-            } catch (Exception x) {
-                Log.Add("gde.ru ошибка удаления!\n" + x.Message);
-                if (x.Message.Contains("Unexpected error") || x.Message.Contains("timed out")) {
-                    gde.Quit();
-                    gde = null;
-                }
-            }
-        }
-
-        private async Task GdeAutorize() {
-            if (gde == null) {
-                ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
-                chromeservice.HideCommandPromptWindow = true;
-                gde = new ChromeDriver(chromeservice);
-                gde.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-            }
-            Task t = Task.Factory.StartNew(() => {
-                gde.Navigate().GoToUrl("https://kaluga.gde.ru/user/login");
-                if (!gde.FindElement(By.CssSelector("#LoginForm_email")).Text.Contains("9106027626@mail.ru")) {
-                    var email = gde.FindElement(By.CssSelector("#LoginForm_email"));
-                    WriteToIWebElement(gde, email, "9106027626@mail.ru");
-                    Thread.Sleep(2000);
-
-                    var password = gde.FindElement(By.CssSelector("#LoginForm_password"));
-                    WriteToIWebElement(gde, password, "rad00239000");
-                    Thread.Sleep(2000);
-
-                    var but = gde.FindElement(By.CssSelector("#login-form input[type='submit']"));
-                    but.Click();
-                    Thread.Sleep(2000);
-                }
-            });
-            try {
-                await t;
-            } catch (Exception x) {
-                //Log.Add(x.Message);
-            }
-        }
-
-
-        private async Task GdeEditAsync() {
-            //перебираем те карточки, у которых есть привязка в базе
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].gde != null && bus[b].gde.Contains("http")) {
-                    //удаляем те, которых нет на остатках
-                    if (bus[b].amount <= 0) {
-                        var t = Task.Factory.StartNew(() => {
-
-                            //https://kaluga.gde.ru/cabinet/item/update?id=36460379
-                            //https://kaluga.gde.ru/cabinet/ads/complete/id/36460379
-
-                            var url = bus[b].gde.Replace("item/update", "item/delete");
-                            gde.Navigate().GoToUrl(url);
-                            Thread.Sleep(3000);
-                        });
-                        try {
-                            await t;
-                        } catch (Exception x) {
-                            Log.Add("gde.ru ошибка удаления!\n" + bus[b].name + "\n" + x.Message);
-                        }
-                        //убиваем ссылку из базы в любом случае, потому что удалим физически, проверив отстатки после парсинга и подъема неактивных
-                        bus[b].gde = " ";
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                            {"id", bus[b].id},
-                            {"name", bus[b].name},
-                            {"854872", bus[b].gde}
-                        });
-                        Log.Add("gde.ru - удалена ссылка из карточки\n" + bus[b].name);
-                        await Task.Delay(3000);
-                    } else if (bus[b].gde != null && bus[b].price > 0 && bus[b].IsTimeUpDated()) {// редактируем
-                        var t = Task.Factory.StartNew(() => {
-                            gde.Navigate().GoToUrl(bus[b].gde);
-                            SetGdeTitle(b);
-                            SetGdePrice(b);
-                            SetGdeDesc(b);
-                            //SetGdeAddr();
-                            GdePressOkButton();
-                        });
-                        try {
-                            await t;
-                            //var newUrl = kp.Url.Replace("/edited", "") + "/edit";
-                            //if (newUrl != bus[b].kp) {
-                            //    bus[b].kp = newUrl;
-                            //    await api.RequestAsync("put", "goods", new Dictionary<string, string>
-                            //    {
-                            //        {"id", bus[b].id},
-                            //        {"name", bus[b].name},
-                            //        {"657256", bus[b].kp}
-                            //    });
-                            //}
-                        } catch (Exception x) {
-                            Log.Add("gde.ru: ошибка! - " + bus[b].name + " - " + x.Message);
-                            if (x.Message.Contains("Unexpected error")||
-                                x.Message.Contains("timed out") ||
-                                x.Message.Contains("already closed") ||
-                                x.Message.Contains("invalid session id") ||
-                                x.Message.Contains("chrome not reachable")) {
-                                Log.Add("gde.ru: перезапуск модуля...");
-                                gde.Quit();
-                                gde = null;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private void SetGdeAddr() {
-            try {
-                var addr = gde.FindElement(By.CssSelector("#AInfoForm_address"));
-                WriteToIWebElement(gde, addr, "ул. Московская, д. 331");
-            } catch (Exception x) {
-                Log.Add("gde.ru: ошибка добавления адреса в объявление\n" + x.Message);
-            }
-        }
-
-        private void SetGdeTitle(int b) {
-            try {
-                var name = bus[b].name;
-                while (name.Length > 80) {
-                    name = name.Remove(name.LastIndexOf(' '));
-                }
-                var title = gde.FindElement(By.CssSelector("#AInfoForm_title"));
-                WriteToIWebElement(gde, title, name);
-            } catch (Exception x) {
-                Log.Add("gde.ru: ошибка добавления названия объявления\n" + bus[b].name + "\n" + x.Message);
-            }
-        }
-
-
-        private void SetGdePrice(int b) {
-            try {
-                var priceInput = gde.FindElement(By.CssSelector("#AInfoForm_price"));
-                WriteToIWebElement(gde, priceInput, bus[b].price.ToString());
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка добавления цены объявления\n" + bus[b].name + "\n" + x.Message);
-            }
-        }
-
-        private void SetGdePhone() {
-            try {
-                var phInput = gde.FindElement(By.CssSelector("#AInfoForm_phone"));
-                WriteToIWebElement(gde, phInput, "9621787915");
-            } catch (Exception x) {
-                Log.Add("купипродай: ошибка добавления номера телефона\n" + x.Message);
-            }
-        }
-        private void SetGdeDesc(int b) {
-            //готовим описание
-            var s = bus[b].DescriptionList(dop:JsonConvert.DeserializeObject<string[]>(
-                _db.GetParamStr("kupiprodai.addDescription")));            
-            //контролируем длину описания
-            var newSLength = 0;
-            for (int u = 0; u < s.Count; u++) {
-                if (s[u].Length + newSLength > 2900) {
-                    s.Remove(s[u]);
-                    u = u - 1;
-                } else {
-                    newSLength = newSLength + s[u].Length;
-                }
-            }
-            //заполняем
-            WriteToIWebElement(gde, gde.FindElement(By.CssSelector("#AInfoForm_content")), sl: s);
-        }
-
-        private void GdePressOkButton() {
-            try {
-                Thread.Sleep(15000);
-                gde.FindElement(By.CssSelector("#post-item")).Click();
-                Thread.Sleep(3000);
-            } catch (Exception x) {
-                Log.Add("GdePressOkButton: " + x.Message);
-            }
-        }
-
-        private void GdeCheckFreeOfCharge() {
-            try {
-                gde.FindElement(By.CssSelector("label[for='radio-0']")).Click();
-            } catch (Exception x) {
-                Log.Add("GdeCheckFreeOfCharge: " + x.Message);
-            }
-        }
-
-        bool IsNonActive(int b) {
-            gde.Navigate().GoToUrl("https://kaluga.gde.ru/cabinet/ads/index/status/notactive");
-            foreach (var name in gde.FindElements(By.CssSelector(".title a")).Select(s => s.Text)) {
-                if (name == bus[b].name)
-                    return true;
-            }
-            return false;
-
-        }
-
-        public async Task GdeAddAsync() {
-            var saveNum = (int)numericUpDownGde.Value;
-            for (int b = bus.Count - 1; b > -1; b--) {
-                if (numericUpDownGde.Value <= 0 /*|| !button_GdeGet.Enabled*/) break;
-                if ((bus[b].gde == null || !bus[b].gde.Contains("http")) &&
-                    bus[b].tiu.Contains("http") &&
-                    bus[b].amount > 0 &&
-                    bus[b].price >= 0 &&
-                    bus[b].images.Count > 0) {
-
-                    numericUpDownGde.Value--;
-                    var t = Task.Factory.StartNew(() => {
-                        if (!IsNonActive(b)) {
-                            gde.Navigate().GoToUrl("https://kaluga.gde.ru/post");
-                            Thread.Sleep(2000);
-                            SetGdeTitle(b);
-                            SetGdePhone();
-                            SetGdeCategory(b);
-                            SetGdeDesc(b);
-                            SetGdePrice(b);
-                            SetGdeAddr();
-                            SetGdeImages(b);
-                            GdeCheckFreeOfCharge();
-                            GdePressOkButton();
-                        }
-                    });
-                    try {
-                        await t;
-                        //сохраняем ссылку
-                        var url = @"https://kaluga.gde.ru/cabinet/item/update?id=" + gde.Url.Split('/').Last();
-                        if (gde.Url.Contains("postLast")) {
-                            bus[b].gde = url;
-                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
-                            {
-                                {"id", bus[b].id},
-                                {"name", bus[b].name},
-                                {"854872", bus[b].gde}
-                            });
-                            Log.Add("Gde.ru выложено и привязано объявление " + b + "\n" + bus[b].name);
-                            labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
-                        }
-                    } catch (Exception e) {
-                        Log.Add("GDE.RU ОШИБКА ДОБАВЛЕНИЯ!\n" + bus[b].name + "\n");
-                    }
-                }
-            }
-            numericUpDownGde.Value = saveNum;
-        }
-
-        private void SetGdeCategory(int b) {
-            var name = bus[b].name.ToLowerInvariant();
-            var desc = bus[b].description.ToLowerInvariant();
-            Thread.Sleep(500);
-            //выбираем Автомобили и мотоциклы
-            gde.FindElement(By.XPath("//li[text()='Автомобили и мотоциклы']")).Click();
-            Thread.Sleep(2000);
-            //подгруппы
-            switch (bus[b].GroupName()) {
-                case "Шины, диски, колеса":
-                    gde.FindElement(By.XPath("//li[contains(text(),'Шины и диски')]")).Click();
-                    break;
-                default:
-                    gde.FindElement(By.XPath("//li[contains(text(),'Запчасти и аксессуары')]")).Click();//запчасти и аксессуары
-                    break;
-            }
-            //далее подгруппы
-            Thread.Sleep(2000);
-            switch (bus[b].GroupName()) {
-                case "Аудио-видеотехника":
-                    gde.FindElement(By.XPath("//li[contains(text(),'Тюнинг и автозвук')]")).Click();
-                    break;
-                case "Автохимия":
-                    gde.FindElement(By.XPath("//li[contains(text(),'Средства для ухода за авто')]")).Click();
-                    break;
-                case "Шины, диски, колеса":
-                    if (name.Contains("диск"))
-                        gde.FindElement(By.XPath("//li[text()='Диски']")).Click();
-                    else if (name.Contains("шины") || name.Contains("шина"))
-                        gde.FindElement(By.XPath("//li[text()='Шины']")).Click();
-                    else
-                        gde.FindElement(By.XPath("//li[text()='Колеса']")).Click();
-                    Thread.Sleep(1000);
-                    //gde.FindElement(By.XPath("//span[contains(text(),'Выберите подкатегорию')]/..")).Click();
-                    Thread.Sleep(1000);
-                    if (name.Contains("лит"))
-                        gde.FindElement(By.XPath("//li[text()='Литые']")).Click();
-                    else if (name.Contains("кован"))
-                        gde.FindElement(By.XPath("//li[text()='Кованные']")).Click();
-                    else
-                        try {
-                            gde.FindElement(By.XPath("//li[text()='Штампованные']")).Click();
-                        } catch {
-                            gde.FindElement(By.XPath("//li[text()='Всесезонные']")).Click();
-                        }
-                    //размер диска
-                    //gde.FindElement(By.XPath("//body")).SendKeys(OpenQA.Selenium.Keys.PageDown);
-                    var size = bus[b].GetDiskSize();
-                    gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                    Thread.Sleep(1000);
-                    gde.FindElement(By.XPath("//div[contains(@class,'selectmenu-open')]//li[text()='" + size + "']")).Click();
-                    Thread.Sleep(500);
-
-                    //ширина обода
-                    gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                    Thread.Sleep(1000);
-                    gde.FindElement(By.XPath("//div[contains(@class,'selectmenu-open')]//li[text()='10']")).Click();
-                    Thread.Sleep(500);
-
-                    //количество отверстий
-                    gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                    Thread.Sleep(1000);
-                    gde.FindElement(By.XPath("//div[contains(@class,'selectmenu-open')]//li[text()='4']")).Click();
-                    Thread.Sleep(500);
-
-                    //диам отверстий
-                    gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                    Thread.Sleep(1000);
-                    gde.FindElement(By.XPath("//div[contains(@class,'selectmenu-open')]//li[text()='100']")).Click();
-                    Thread.Sleep(500);
-
-                    //вылет
-                    WriteToIWebElement(gde, gde.FindElement(By.XPath("//label[text()='Вылет (ЕТ)']/..//input")), "10");
-                    Thread.Sleep(500);
-
-                    //модель
-                    gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                    Thread.Sleep(1000);
-                    var stamp = name.Contains("лит") || name.Contains("кован") ? "Прочие" : "Штампованные";
-                    try {
-                        gde.FindElement(By.XPath("//div[contains(@class,'menu-open')]//li[text()='" + stamp + "']")).Click();
-                    } catch {
-                        gde.FindElement(By.XPath("//div[contains(@class,'menu-open')]//li[text()='155']")).Click();
-                        Thread.Sleep(500);
-                        gde.FindElement(By.XPath("//span[contains(text(),'Выберите вариант')]/..")).Click();
-                        Thread.Sleep(500);
-                        gde.FindElement(By.XPath("//div[contains(@class,'menu-open')]//li[text()='50']")).Click();
-                    }
-                    break;
-                default:
-                    gde.FindElement(By.XPath("//li[text()='Запчасти']")).Click();
-                    break;
-            }
-            Thread.Sleep(6000);
-        }
-
-        void SetGdeImages(int b) {
-            try {
-                WebClient cl = new WebClient();
-                cl.Encoding = Encoding.UTF8;
-                var num = bus[b].images.Count > 12 ? 12 : bus[b].images.Count;
-
-                for (int u = 0; u < num; u++) {
-                    bool flag; // флаг для проверки успешности
-                    int tryNum = 0;
-                    do {
-                        tryNum++;
-                        try {
-                            byte[] bts = cl.DownloadData(bus[b].images[u].url);
-                            File.WriteAllBytes("gde_" + u + ".jpg", bts);
-                            flag = true;
-                        } catch (Exception ex) {
-                            Log.Add("SetGdeImages: " + ex.ToString() + "\nошибка загрузки фото " + bus[b].images[u].url);
-                            flag = false;
-                        }
-                        Thread.Sleep(1000);
-                    } while (!flag && tryNum < 3);
-
-                    if (flag) gde.FindElement(By.CssSelector("input[name=file]"))
-                                .SendKeys(Application.StartupPath + "\\" + "gde_" + u + ".jpg ");
-                }
-            } catch (Exception e) {
-                Log.Add("SetGdeImages: " + e.Message);
-            }
-            Thread.Sleep(5000);
-        }
-
-        //=== выгрузка avto.pro === 
-        private async void button_avto_pro_Click(object sender, EventArgs e) {
-            if (checkBox_AvtoProSyncEnable.Checked) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                try {
-                    Log.Add("avto.pro: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);
-                    _avtoPro.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
-                    await _avtoPro.AvtoProStartAsync(bus);
-                    Log.Add("avto.pro: выгрузка завершена!");
-
-                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
-                    //достаточно проверять один раз в недекю, и только ночью
-                    if (DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24)
-                            && DateTime.Now.Hour < 3
-                            && DateTime.Today.DayOfWeek == DayOfWeek.Sunday) {
-                        Log.Add("avto.pro: парсинг сайта...");
-                        await _avtoPro.CheckAsync();
-                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
-                        dSet.WriteXml(fSet);
-                        Log.Add("avto.pro: парсинг завершен");
-                    }
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    Log.Add("avto.pro: ошибка выгрузки! - " + x.Message);//TODO изменить регистр сообщения 
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _avtoPro?.Quit();
-                        await Task.Delay(180000);
-                        _avtoPro = new AvtoPro();
-                        button_avto_pro_Click(sender, e);
-                    }
-                }
-            }
-        }
-        private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
-            try {
-                _avtoPro.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
-            } catch (Exception x) {
-                Log.Add("avto.pro: ошибка установки количества добавляемых объявлений");
-            }
-        }        
-        
-        //=== синхронизация CDEK ===
-        private async void button_cdek_Click(object sender, EventArgs e) {
-            if (checkBoxCdekSyncActive.Checked) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need) await Task.Delay(60000);                
-                try {
-                    await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
-                    label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
-                } catch (Exception x) {
-                    Log.Add("cdek.market: ошибка синхронизации! - " + x.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    return;
-                }
-                if (numericUpDown_СdekCheckUrls.Value > 0) {
-                    try {
-                        var num = int.Parse(dSet.Tables["controls"].Rows[0]["controlCdek"].ToString());
-                        num = await _cdek.CheckUrlsAsync(num, (int)numericUpDown_СdekCheckUrls.Value);
-                        dSet.Tables["controls"].Rows[0]["controlCdek"] = num;
-                        dSet.WriteXml(fSet);
-                        await _cdek.ParseSiteAsync();
-                    } catch (Exception x) {
-                        Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
-                    }
-                }
-            }
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-        //=== синхронизация EUROAUTO.RU ===
-        private async void button_EuroAuto_Click(object sender, EventArgs e) {
-            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need) await Task.Delay(60000);
-                try {
-                    await _euroAuto.SyncAsync(bus);
-                    Log.Add("euroauto.ru: выгрузка ок!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                }
-            }
-        }
-        //=== выгрузка на izap24 ===
-        private async void button_izap24_Click(object sender, EventArgs e) {
-            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need || 
-                    (ds == null || ds.Tables.Count==0))
-                    await Task.Delay(60000);
-                try {
-                    Log.Add("izap24.ru: начинаю выгрузку...");
-                    await _izap24.SyncAsync(bus, ds);
-                    Log.Add("izap24.ru: выгрузка ок!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    Log.Add("izap24.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                }
-            }
-        }
-
-        //загрузка куки
+        //сохранить куки
         private void button_SaveCookie_Click(object sender, EventArgs e) {
             _tiu.SaveCookies();
             _kupiprodai.SaveCookies();
-            _avtoPro.SaveCookies();
+            _avto.SaveCookies();
             _drom.SaveCookies();
             _avito.SaveCookies();
-            _autoRu.SaveCookies();
-            //SaveCookie(gde);
+            _auto.SaveCookies();
+            _gde.SaveCookies();
         }
-        private void SaveCookies(IWebDriver dr, string name) {
-            try {
-                var ck = dr.Manage().Cookies.AllCookies;
-                var json = JsonConvert.SerializeObject(ck);
-                File.WriteAllText(name, json);
-            } catch (Exception x) {
-                Log.Add("ошибка сохранения куки " + name + "\n" + x.Message);
-            }
-        }
-        private void LoadCookies(IWebDriver dr, string name) {
-            try {
-                var json = File.ReadAllText(name).Replace("Expiry\":\"2020","Expiry\":\"2022");
-                var cookies = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(json);
-                OpenQA.Selenium.Cookie ck;
-                foreach (var c in cookies) {
-                    DateTime? dt = null;
-                    if (!string.IsNullOrEmpty(c["Expiry"])) {
-                        dt = DateTime.Parse(c["Expiry"]);
-                    }
-                    ck = new OpenQA.Selenium.Cookie(c["Name"], c["Value"], c["Domain"], c["Path"], dt);
-                    dr.Manage().Cookies.AddCookie(ck);
-                }
-            } catch (Exception x) {
-                Log.Add("Ошибка загузки куки " + name + "\n" + x.Message);
-            }
-        }
-
         // запись в элемент
         public void WriteToIWebElement(IWebDriver d, IWebElement we, string s = null, List<string> sl = null) {
             Actions a = new Actions(d);
@@ -1756,11 +1294,11 @@ namespace Selen {
             ToLogBox(Log.LogLastAdded);
         }
         //обработчик изменений значений фильтра лога
-        private void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
+        void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
             FillLogAsync();
         }
         //загружаю лог асинхронно
-        private async void FillLogAsync() {
+        async void FillLogAsync() {
             try {
                 DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, Log.Level);
                 if (table.Rows.Count > 0)
@@ -1771,13 +1309,51 @@ namespace Selen {
             }
         }
         //очистка фильтра
-        private void button_LogFilterClear_Click(object sender, EventArgs e) {
+        void button_LogFilterClear_Click(object sender, EventArgs e) {
             textBox_LogFilter.Text = "";
         }
         //=================
         //=== НАСТРОЙКИ ===
         //=================
-        private void button_SettingsFormOpen_Click(object sender, EventArgs e) {
+        //загрузка файла настроек
+        void dsOptions_Initialized(object sender, EventArgs e) {
+            try {
+                dSet.ReadXml(fSet);
+                dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
+            } catch (Exception x) {
+                MessageBox.Show("ошибка чтения set.xml - "+ x.Message);
+            }
+        }
+        //закрываем форму, сохраняем настройки
+        void Form1_FormClosing(object sender, FormClosingEventArgs e) {
+            this.Visible = false;
+            dSet.WriteXml(fSet);
+            ClearTempFiles();
+            _tiu?.SaveCookies();
+            _tiu?.Quit();
+            _kupiprodai?.SaveCookies();
+            _kupiprodai?.Quit();
+            _gde?.SaveCookies();
+            _gde?.Quit();
+            _avito?.SaveCookies();
+            _avito?.Quit();
+            _cdek?.SaveCookies();
+            _cdek?.Quit();
+            _drom?.SaveCookies();
+            _drom?.Quit();
+            _avto?.SaveCookies();
+            _avto?.Quit();
+            _auto?.SaveCookies();
+            _auto?.Quit();
+        }
+        //удаление временных файлов
+        void ClearTempFiles() {
+            foreach (var file in Directory.EnumerateFiles(Application.StartupPath, "*.jpg")) {
+                File.Delete(file);
+            }
+        }
+        //загрузка окна настроек
+        void button_SettingsFormOpen_Click(object sender, EventArgs e) {
             FormSettings fs = new FormSettings();
             fs.Owner = this;
             fs.ShowDialog();
@@ -1872,7 +1448,7 @@ namespace Selen {
             }
         }
         //удаление фото из карточек
-        private async Task PhotoClearAsync2() {
+        async Task PhotoClearAsync2() {
             for (int b = 0; b < bus.Count; b++) {
                 if (bus[b].amount > 0 && 
                     bus[b].price >= 500 &&

@@ -111,7 +111,7 @@ namespace Selen
             this.button_drom_get.TabIndex = 4;
             this.button_drom_get.Text = "Drom.ru старт";
             this.button_drom_get.UseVisualStyleBackColor = true;
-            this.button_drom_get.Click += new System.EventHandler(this.DromGetAsync);
+            this.button_drom_get.Click += new System.EventHandler(this.DromRu_Click);
             // 
             // button_base_get
             // 
@@ -131,7 +131,7 @@ namespace Selen
             this.button_avito_get.TabIndex = 3;
             this.button_avito_get.Text = "Avito.ru старт";
             this.button_avito_get.UseVisualStyleBackColor = true;
-            this.button_avito_get.Click += new System.EventHandler(this.AvitoGetAsync);
+            this.button_avito_get.Click += new System.EventHandler(this.AvitoRu_Click);
             // 
             // logBox
             // 
@@ -165,7 +165,7 @@ namespace Selen
             this.button_vk_sync.TabIndex = 7;
             this.button_vk_sync.Text = "Vk.com старт";
             this.button_vk_sync.UseVisualStyleBackColor = true;
-            this.button_vk_sync.Click += new System.EventHandler(this.VkSyncAsync);
+            this.button_vk_sync.Click += new System.EventHandler(this.VkCom_Click);
             // 
             // button_tiu_sync
             // 
@@ -175,7 +175,7 @@ namespace Selen
             this.button_tiu_sync.TabIndex = 2;
             this.button_tiu_sync.Text = "Tiu.ru старт";
             this.button_tiu_sync.UseVisualStyleBackColor = true;
-            this.button_tiu_sync.Click += new System.EventHandler(this.TiuSync);
+            this.button_tiu_sync.Click += new System.EventHandler(this.TiuRu_Click);
             // 
             // ds
             // 
@@ -266,7 +266,7 @@ namespace Selen
             this.button_AutoRuStart.TabIndex = 6;
             this.button_AutoRuStart.Text = "Auto.ru старт";
             this.button_AutoRuStart.UseVisualStyleBackColor = true;
-            this.button_AutoRuStart.Click += new System.EventHandler(this.button_AutoRuStart_Click);
+            this.button_AutoRuStart.Click += new System.EventHandler(this.AutoRu_Click);
             // 
             // label_auto
             // 
@@ -294,7 +294,7 @@ namespace Selen
             0,
             0,
             0});
-            this.numericUpDown_AutoRuAddCount.ValueChanged += new System.EventHandler(this.numericUpDown_auto_ValueChanged);
+            this.numericUpDown_AutoRuAddCount.ValueChanged += new System.EventHandler(this.numericUpDown_AutoRu_ValueChanged);
             // 
             // checkBox_AutoRuSyncEnable
             // 
@@ -412,7 +412,7 @@ namespace Selen
             this.buttonKupiprodai.TabIndex = 5;
             this.buttonKupiprodai.Text = "Купипродай старт";
             this.buttonKupiprodai.UseVisualStyleBackColor = true;
-            this.buttonKupiprodai.Click += new System.EventHandler(this.KupiprodaiClickAsync);
+            this.buttonKupiprodai.Click += new System.EventHandler(this.KupiprodaiRu_Click);
             // 
             // buttonKupiprodaiAdd
             // 
@@ -422,7 +422,7 @@ namespace Selen
             this.buttonKupiprodaiAdd.TabIndex = 112;
             this.buttonKupiprodaiAdd.Text = "Выложить";
             this.buttonKupiprodaiAdd.UseVisualStyleBackColor = true;
-            this.buttonKupiprodaiAdd.Click += new System.EventHandler(this.buttonKupiprodaiAdd_Click);
+            this.buttonKupiprodaiAdd.Click += new System.EventHandler(this.KupiprodaiRuAdd_Click);
             // 
             // labelKP
             // 
@@ -450,7 +450,7 @@ namespace Selen
             this.button_GdeGet.TabIndex = 9;
             this.button_GdeGet.Text = "Gde.ru старт";
             this.button_GdeGet.UseVisualStyleBackColor = true;
-            this.button_GdeGet.Click += new System.EventHandler(this.button_GdeGet_Click);
+            this.button_GdeGet.Click += new System.EventHandler(this.GdeRu_Click);
             // 
             // labelGde
             // 
@@ -482,7 +482,7 @@ namespace Selen
             this.button_cdek.TabIndex = 8;
             this.button_cdek.Text = "Cdek.market старт";
             this.button_cdek.UseVisualStyleBackColor = true;
-            this.button_cdek.Click += new System.EventHandler(this.button_cdek_Click);
+            this.button_cdek.Click += new System.EventHandler(this.Cdek_Click);
             // 
             // label_cdek
             // 
@@ -585,7 +585,7 @@ namespace Selen
             this.button_avto_pro.TabIndex = 139;
             this.button_avto_pro.Text = "Avto.pro старт";
             this.button_avto_pro.UseVisualStyleBackColor = true;
-            this.button_avto_pro.Click += new System.EventHandler(this.button_avto_pro_Click);
+            this.button_avto_pro.Click += new System.EventHandler(this.AvtoPro_Click);
             // 
             // numericUpDown_AvtoProAddCount
             // 
@@ -637,7 +637,7 @@ namespace Selen
             this.button_EuroAuto.TabIndex = 145;
             this.button_EuroAuto.Text = "EuroAuto.ru";
             this.button_EuroAuto.UseVisualStyleBackColor = true;
-            this.button_EuroAuto.Click += new System.EventHandler(this.button_EuroAuto_Click);
+            this.button_EuroAuto.Click += new System.EventHandler(this.EuroAuto_Click);
             // 
             // panel1
             // 
@@ -694,7 +694,7 @@ namespace Selen
             this.button_izap24.TabIndex = 147;
             this.button_izap24.Text = "IZap24.ru";
             this.button_izap24.UseVisualStyleBackColor = true;
-            this.button_izap24.Click += new System.EventHandler(this.button_izap24_Click);
+            this.button_izap24.Click += new System.EventHandler(this.Izap24_Click);
             // 
             // checkBox_GdeRu
             // 

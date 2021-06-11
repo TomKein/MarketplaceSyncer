@@ -108,7 +108,7 @@ namespace Selen.Sites {
                     _bus[b].kp = " ";
                     Thread.Sleep(3000);
                     //TODO добавить проверку удаления
-                    Log.Add("kupiprodai.ru: " + _bus[b].name + " - объавление удалено");
+                    Log.Add("kupiprodai.ru: " + _bus[b].name + " - объявление удалено");
                 });
             } catch (Exception x) {
                 Log.Add("kupiprodai.ru: ошибка удаления! - " + _bus[b].name + " - " + x.Message);
