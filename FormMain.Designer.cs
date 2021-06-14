@@ -54,7 +54,6 @@ namespace Selen
             this.checkBox_AutoRuSyncEnable = new System.Windows.Forms.CheckBox();
             this.label_drom_toup = new System.Windows.Forms.Label();
             this.label_youla = new System.Windows.Forms.Label();
-            this.checkBox_WriteLog = new System.Windows.Forms.CheckBox();
             this.checkBox_liteSync = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
@@ -324,18 +323,6 @@ namespace Selen
             this.label_youla.Name = "label_youla";
             this.label_youla.Size = new System.Drawing.Size(0, 13);
             this.label_youla.TabIndex = 85;
-            // 
-            // checkBox_WriteLog
-            // 
-            this.checkBox_WriteLog.AutoSize = true;
-            this.checkBox_WriteLog.Checked = true;
-            this.checkBox_WriteLog.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_WriteLog.Location = new System.Drawing.Point(187, 12);
-            this.checkBox_WriteLog.Name = "checkBox_WriteLog";
-            this.checkBox_WriteLog.Size = new System.Drawing.Size(81, 17);
-            this.checkBox_WriteLog.TabIndex = 94;
-            this.checkBox_WriteLog.Text = "писать лог";
-            this.checkBox_WriteLog.UseVisualStyleBackColor = true;
             // 
             // checkBox_liteSync
             // 
@@ -722,7 +709,6 @@ namespace Selen
             this.panel2.Controls.Add(this.button_PricesCheck);
             this.panel2.Controls.Add(this.checkBox_photo_clear);
             this.panel2.Controls.Add(this.checkBox_liteSync);
-            this.panel2.Controls.Add(this.checkBox_WriteLog);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel2.Location = new System.Drawing.Point(0, 577);
             this.panel2.Name = "panel2";
@@ -832,7 +818,6 @@ namespace Selen
         private System.Windows.Forms.CheckBox checkBox_AutoRuSyncEnable;
         private System.Windows.Forms.Label label_drom_toup;
         private System.Windows.Forms.Label label_youla;
-        private System.Windows.Forms.CheckBox checkBox_WriteLog;
         private System.Windows.Forms.CheckBox checkBox_liteSync;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
