@@ -51,9 +51,6 @@ namespace Selen.Sites {
         public async Task StartAsync(List<RootObject> bus) {
             Log.Add("gde.ru: начало выгрузки...");
             _bus = bus;
-            _url = _db.GetParamStr("gde.url");
-            _addDesc = JsonConvert.DeserializeObject<string[]>(
-                _db.GetParamStr("gde.addDescription"));
             await AuthAsync();
             await EditAsync();
             await AddAsync();
@@ -65,6 +62,9 @@ namespace Selen.Sites {
         //авторизация
         async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
+                _url = _db.GetParamStr("gde.url");
+                _addDesc = JsonConvert.DeserializeObject<string[]>(
+                    _db.GetParamStr("gde.addDescription"));
                 if (_dr == null) {
                     _dr = new Selenium();
                     LoadCookies();
@@ -176,6 +176,7 @@ namespace Selen.Sites {
                     Thread.Sleep(1000);
                 }
             }
+            Thread.Sleep(5000);
             cl.Dispose();
         }
         //жму кнопку ок
@@ -192,7 +193,7 @@ namespace Selen.Sites {
         }
         //галочка "бесплатно"
         private void CheckFreeOfCharge() {
-            _dr.ButtonClick("label[for='radio-0']");
+            _dr.ButtonClick("//span[contains(text(),'Бесплатно')]");
         }
         //проверка наличия объявления в заблокированных
         bool IsNonActive(int b) {
@@ -322,6 +323,7 @@ namespace Selen.Sites {
         //парсинг объявлений
         async Task ParseAsync() {
             //парсинг случайных страниц
+            _dr.Navigate("https://kaluga.gde.ru/cabinet/ads/index");
             var ElementString = _dr.GetElementText("//ul[@class='tabs-list']/li[@class='active']");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;

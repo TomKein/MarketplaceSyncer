@@ -169,7 +169,7 @@ namespace Selen.Sites {
                                             ? "упаковка"
                                             : "шт.";
                                 string a = _bus[i].amount > 0 ? "+" : "-";
-                                if (!string.IsNullOrEmpty(_bus[i].part)) ws.Cells[iRow, 0] = new Cell(_bus[i].part);
+                                if (!string.IsNullOrEmpty(_bus[i].part)) ws.Cells[iRow, 0] = new Cell(_bus[i].part.Split(',').First());
                                 ws.Cells[iRow, 1] = new Cell(_bus[i].name);
                                 ws.Cells[iRow, 3] = new Cell(s);
                                 ws.Cells[iRow, 5] = new Cell(_bus[i].price > 0 ? _bus[i].price : 100);
@@ -448,6 +448,7 @@ namespace Selen.Sites {
                                 {"name", _newOffers[i].name},
                                 {"group_id", _newOffers[i].group_id},
                                 {"description", _newOffers[i].description},
+                                {"measure_id", _newOffers[i].measure_id},//единицы измерений
                                 {"209325", _newOffers[i].tiu }
                             })).id;
                         //если единицы измерения не шт, то необходимо поменять привязку ед. изм. в карточке
@@ -463,7 +464,7 @@ namespace Selen.Sites {
                                 {"measure_id", _newOffers[i].measure_id}
                             });
                         }
-                        Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + _newOffers[i].name + ",  ост. " + _newOffers[i].amount + ", цена " + _newOffers[i].price);
+                        Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + _newOffers[i].name + ",  ост. " + _newOffers[i].amount +" ("+ _newOffers[i].measure_id + "), цена " + _newOffers[i].price);
                         Thread.Sleep(1000);
                     }
                 }

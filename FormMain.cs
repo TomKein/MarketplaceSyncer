@@ -20,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.58.4";
+        string _version = "1.59.1";
 
         DB _db = new DB();
 
@@ -51,9 +51,9 @@ namespace Selen {
         //глобальный индекс для формы
         public int _i;
         //флаг - нужен рескан базы
-        bool base_rescan_need = true;
+        bool base_rescan_need = false;
         //флаг - можно запускать новый цикл синхронизации
-        bool base_can_rescan = true;
+        bool base_can_rescan = false;
         //время запуска очередной синхронизации
         DateTime sync_start;
         DateTime scanTime;
@@ -364,8 +364,10 @@ namespace Selen {
         //=== основной цикл (частота 1 раз в мин) ===
         //===========================================
         private async void timer_sync_Tick(object sender, EventArgs e) {
-            if (checkBox_sync.Checked && base_can_rescan) {               //если синхронизация включена и завершен предыдуший цикл
-                if (checkBox_liteSync.Checked && //галочка liteSync
+            //если синхронизация включена и завершен предыдуший цикл
+            if (checkBox_sync.Checked && base_can_rescan) {
+                //галочка liteSync
+                if (checkBox_liteSync.Checked && 
                     bus.Count > 0 &&   //список товаров содержит товары
                    !base_rescan_need) { //и его не нужно перезапрашивать
                     await GoLiteSync();
@@ -379,17 +381,16 @@ namespace Selen {
             ChangeStatus(button_base_get, ButtonStates.NoActive);
             var stage = "";
             try {
-                if (base_can_rescan) {
-                    base_can_rescan = false;
+                base_can_rescan = false;
 
-                    sync_start = DateTime.Now;
+                sync_start = DateTime.Now;
 
-                    Log.Add("lite sync started...");
-                    stage = "запрашиваем время последней синхронизации...";
-                    var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
-                    stage = "запрашиваем карточки из базы...";
-                    //запросим новые/измененные карточки товаров
-                    string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
+                Log.Add("lite sync started...");
+                stage = "запрашиваем время последней синхронизации...";
+                var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
+                stage = "запрашиваем карточки из базы...";
+                //запросим новые/измененные карточки товаров
+                string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
                             {"archive", "0"},
                             {"type", "1"},
                             //{"limit", pageLimitBase.ToString()},
@@ -400,166 +401,166 @@ namespace Selen {
                             {"type_price_ids[0]","75524" },
                             { "updated[from]", lastTime}
                     });
-                    stage = "меняем номера групп на названия...";
-                    s = s.Replace("\"209325\":", "\"tiu\":")
-                        .Replace("\"209326\":", "\"avito\":")
-                        .Replace("\"209334\":", "\"drom\":")
-                        .Replace("\"209360\":", "\"vk\":")
-                        .Replace("\"313971\":", "\"auto\":")
-                        .Replace("\"402489\":", "\"youla\":")
-                        .Replace("\"657256\":", "\"ks\":")
-                        .Replace("\"833179\":", "\"kp\":")
-                        .Replace("\"854872\":", "\"gde\":")
-                        .Replace("\"1437133\":", "\"avtopro\":")
-                        .Replace("\"854874\":", "\"cdek\":");
-                    stage = "добавляем к списку...";
-                    lightSyncGoods.Clear();
-                    if (s.Length > 3) {
-                        lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
-                    }
+                stage = "меняем номера групп на названия...";
+                s = s.Replace("\"209325\":", "\"tiu\":")
+                    .Replace("\"209326\":", "\"avito\":")
+                    .Replace("\"209334\":", "\"drom\":")
+                    .Replace("\"209360\":", "\"vk\":")
+                    .Replace("\"313971\":", "\"auto\":")
+                    .Replace("\"402489\":", "\"youla\":")
+                    .Replace("\"657256\":", "\"ks\":")
+                    .Replace("\"833179\":", "\"kp\":")
+                    .Replace("\"854872\":", "\"gde\":")
+                    .Replace("\"1437133\":", "\"avtopro\":")
+                    .Replace("\"854874\":", "\"cdek\":");
+                stage = "добавляем к списку...";
+                lightSyncGoods.Clear();
+                if (s.Length > 3) {
+                    lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
+                }
 
-                    stage = "текущие остатки...";
-                    var ids = JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
+                stage = "текущие остатки...";
+                var ids = JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime}
                     }));
 
-                    stage = "текущие цены...";
-                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
+                stage = "текущие цены...";
+                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime},
                         {"price_type_id","75524" } //интересуют только отпускные цены
                     })));
 
-                    stage = "запросим реализации...";
-                    ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
+                stage = "запросим реализации...";
+                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime}
                     })));
 
-                    //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
-                    ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id = _.id }));
+                //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
+                ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id = _.id }));
 
-                    stage = "подгружаем карточки ...";
+                stage = "подгружаем карточки ...";
 
-                    if (ids.Count > 0) {
-                        var distinctIds = new List<string>();
-                        foreach (var id in ids) {
-                            if (lightSyncGoods.FindIndex(f => f.id == id.good_id) == -1 && !distinctIds.Contains(id.good_id)) {
-                                distinctIds.Add(id.good_id);
-                            }
-                        }
-                        if (distinctIds.Count > 0)
-                            lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
-                    }
-                    //если изменений слишком много - нужен полный рескан базы
-                    if (lightSyncGoods.Count > 200) {
-                        Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count +
-                                " -- будет произведен запрос полной базы товаров...");
-                        base_rescan_need = true;
-                        return;
-                    }
-                    Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
-                    stage = "...";
-
-                    //переносим обновления в загруженную базу
-                    foreach (var lg in lightSyncGoods) {
-                        var ind = bus.FindIndex(f => f.id == lg.id);
-                        //индекс карточки найден
-                        if (ind != -1) {
-                            //если чекбокс "игнорировать ссылки" активен
-                            if (checkBox_IgnoreUrls.Checked) {
-                                if (bus[ind].amount != lg.amount ||             //если изменилось количество или
-                                    bus[ind].price != lg.price ||               //если изменилась цена или
-                                    bus[ind].archive != lg.archive ||           //статус архивный или
-                                    bus[ind].name != lg.name ||                 //изменилось наименование или
-                                    bus[ind].description != lg.description ||   //изменилось описание или
-                                    bus[ind].part != lg.part ||                 //изменился артикул
-                                    bus[ind].weight != lg.weight                //изменился вес
-                                    ) {
-                                    //переносим все данные
-                                    bus[ind] = lg;
-                                    //время обновления карточки сдвигаю на время начала цикла синхронизации
-                                    bus[ind].updated = sync_start.ToString();
-                                } else {
-                                    //сохраняю в новых данных старую дату обновления
-                                    lg.updated = bus[ind].updated;
-                                    //переношу все новые данные
-                                    bus[ind] = lg;
-                                }
-                            }
-                        } else { //если индекс карточки не найден - добавляем в коллекцию
-                            lg.updated = sync_start.ToString();
-                            bus.Add(lg);
+                if (ids.Count > 0) {
+                    var distinctIds = new List<string>();
+                    foreach (var id in ids) {
+                        if (lightSyncGoods.FindIndex(f => f.id == id.good_id) == -1 && !distinctIds.Contains(id.good_id)) {
+                            distinctIds.Add(id.good_id);
                         }
                     }
+                    if (distinctIds.Count > 0)
+                        lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
+                }
+                //если изменений слишком много - нужен полный рескан базы
+                if (lightSyncGoods.Count > 200) {
+                    Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count +
+                            " -- будет произведен запрос полной базы товаров...");
+                    base_rescan_need = true;
+                    base_can_rescan = true;
+                    return;
+                }
+                Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
+                stage = "...";
 
-                    //база теперь должна быть в актуальном состоянии
-                    //сохраняем время, на которое база актуальна (только liteScanTime! 
-                    //lastScanTime сохраним когда перенесем изменения в объявления!!)
-                    //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
+                //переносим обновления в загруженную базу
+                foreach (var lg in lightSyncGoods) {
+                    var ind = bus.FindIndex(f => f.id == lg.id);
+                    //индекс карточки найден
+                    if (ind != -1) {
+                        //если чекбокс "игнорировать ссылки" активен
+                        if (checkBox_IgnoreUrls.Checked) {
+                            if (bus[ind].amount != lg.amount ||             //если изменилось количество или
+                                bus[ind].price != lg.price ||               //если изменилась цена или
+                                bus[ind].archive != lg.archive ||           //статус архивный или
+                                bus[ind].name != lg.name ||                 //изменилось наименование или
+                                bus[ind].description != lg.description ||   //изменилось описание или
+                                bus[ind].part != lg.part ||                 //изменился артикул
+                                bus[ind].weight != lg.weight                //изменился вес
+                                ) {
+                                //переносим все данные
+                                bus[ind] = lg;
+                                //время обновления карточки сдвигаю на время начала цикла синхронизации
+                                bus[ind].updated = sync_start.ToString();
+                            } else {
+                                //сохраняю в новых данных старую дату обновления
+                                lg.updated = bus[ind].updated;
+                                //переношу все новые данные
+                                bus[ind] = lg;
+                            }
+                        }
+                    } else { //если индекс карточки не найден - добавляем в коллекцию
+                        lg.updated = sync_start.ToString();
+                        bus.Add(lg);
+                    }
+                }
 
-                    label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
-                    dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
-                    dSet.Tables["controls"].Rows[0]["liteScanTime"] = sync_start.AddMinutes(-1);
+                //база теперь должна быть в актуальном состоянии
+                //сохраняем время, на которое база актуальна (только liteScanTime! 
+                //lastScanTime сохраним когда перенесем изменения в объявления!!)
+                //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
+
+                label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
+                dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
+                dSet.Tables["controls"].Rows[0]["liteScanTime"] = sync_start.AddMinutes(-1);
+                dSet.WriteXml(fSet);
+
+
+                ///вызываем событие
+                ///в котором сообщаем о том, что в базе есть изменения... на будущее
+                ///если будем использовать событийную модель
+
+
+
+                ///но пока события не реализованы в проекте
+                ///поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
+                ///которые изменились с момента последнего запроса
+                ///и дальше сдвинем контрольное время актуальности базы
+                ///а дальше всё как обычно, только сайты больше не парсим,
+                ///только вызываем методы обработки изменений и подъема упавших
+
+                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
+                    button_avito_get.PerformClick();
+                    await AddPartNumsAsync();//добавление артикулов из описания
+                    await CheckArhiveStatusAsync();//проверка архивного статуса
+                    await Task.Delay(60000);
+                    button_drom_get.PerformClick();
+                    await Task.Delay(60000);
+                    button_tiu_sync.PerformClick();
+                    await Task.Delay(60000);
+                    buttonKupiprodai.PerformClick();
+                    await Task.Delay(60000);
+                    button_GdeGet.PerformClick();
+                    await Task.Delay(60000);
+                    button_avto_pro.PerformClick();
+                    await Task.Delay(60000);
+                    button_AutoRuStart.PerformClick();
+                    await Task.Delay(60000);
+                    buttonSatom.PerformClick();
+                    await Task.Delay(60000);
+                    button_EuroAuto.PerformClick();
+                    await Task.Delay(60000);
+                    button_izap24.PerformClick();
+                    await Task.Delay(60000);
+                    button_vk_sync.PerformClick();
+                    await Task.Delay(60000);
+                    button_cdek.PerformClick();
+                    //нужно подождать конца обновлений объявлений
+                    await WaitButtonsActiveAsync();
+                    //проверка задвоенности наименований карточек товаров
+                    await CheckDublesAsync();//проверка дублей
+                    await CheckMultipleApostropheAsync();//проверка лишних аппострофов
+                    if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
+                    await GroupsMoveAsync();//проверка групп
+                    await TiuCheckAsync();//исправляем ссылки на тиу
+                    await PhotoClearAsync();//очистка ненужных фото
+                    dSet.Tables["controls"].Rows[0]["lastScanTime"] = sync_start;
+                    RootObject.ScanTime = sync_start;
+                    dateTimePicker1.Value = sync_start;
                     dSet.WriteXml(fSet);
 
-
-                    ///вызываем событие
-                    ///в котором сообщаем о том, что в базе есть изменения... на будущее
-                    ///если будем использовать событийную модель
-
-
-
-                    ///но пока события не реализованы в проекте
-                    ///поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
-                    ///которые изменились с момента последнего запроса
-                    ///и дальше сдвинем контрольное время актуальности базы
-                    ///а дальше всё как обычно, только сайты больше не парсим,
-                    ///только вызываем методы обработки изменений и подъема упавших
-
-                    if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
-                        button_avito_get.PerformClick();
-                        await AddPartNumsAsync();//добавление артикулов из описания
-                        await CheckArhiveStatusAsync();//проверка архивного статуса
-                        await Task.Delay(60000);
-                        button_drom_get.PerformClick();
-                        await Task.Delay(60000);
-                        button_tiu_sync.PerformClick();
-                        await Task.Delay(60000);
-                        buttonKupiprodai.PerformClick();
-                        await Task.Delay(60000);
-                        button_GdeGet.PerformClick();
-                        await Task.Delay(60000);
-                        button_avto_pro.PerformClick();
-                        await Task.Delay(60000);
-                        button_AutoRuStart.PerformClick();
-                        await Task.Delay(60000);
-                        buttonSatom.PerformClick();
-                        await Task.Delay(60000);
-                        button_EuroAuto.PerformClick();
-                        await Task.Delay(60000);
-                        button_izap24.PerformClick();
-                        await Task.Delay(60000);
-                        button_vk_sync.PerformClick();
-                        await Task.Delay(60000);
-                        button_cdek.PerformClick();
-                        //нужно подождать конца обновлений объявлений
-                        await WaitButtonsActiveAsync();
-                        //проверка задвоенности наименований карточек товаров
-                        await CheckDublesAsync();//проверка дублей
-                        await CheckMultipleApostropheAsync();//проверка лишних аппострофов
-                        if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
-                        if (checkBox_photo_clear.Checked) await PhotoClearAsync();//очистка ненужных фото
-                        await GroupsMoveAsync();//проверка групп
-                        await TiuCheckAsync();//исправляем ссылки на тиу
-                        dSet.Tables["controls"].Rows[0]["lastScanTime"] = sync_start;
-                        RootObject.ScanTime = sync_start;
-                        dateTimePicker1.Value = sync_start;
-                        dSet.WriteXml(fSet);
-
-                        await SaveBusAsync();
-                    }
-                    Log.Add("lite sync complete.");
-                    base_can_rescan = true;
+                    await SaveBusAsync();
                 }
+                Log.Add("lite sync complete.");
+                base_can_rescan = true;
             } catch (Exception ex) {
                 Log.Add("ошибка lite sync: " + ex.Message + "\n"
                     + ex.Source + "\n"
@@ -741,7 +742,7 @@ namespace Selen {
         //подгружаю товары из файла
         async Task LoadBusJSON() {
             var t = _db.GetParamDateTime("lastScanTime");
-            if (File.Exists(@"..\bus.json") && File.GetLastWriteTime(@"..\bus.json") < t) {
+            if (File.Exists(@"..\bus.json") && File.GetLastWriteTime(@"..\bus.json") > t) {
                 await GetBusGroupsAsync();
                 Log.Add("business.ru: загружаю список товаров...");
                 await Task.Factory.StartNew(() => {
@@ -751,8 +752,8 @@ namespace Selen {
                 Log.Add("business.ru: загружено " + bus.Count + " карточек товаров");
                 label_bus.Text = bus.Count + "/" + bus.Count(c => !string.IsNullOrEmpty(c.tiu) && c.tiu.Contains("http") && c.amount > 0);
                 button_base_get.BackColor = System.Drawing.Color.GreenYellow;
-                base_rescan_need = false;
             }
+            base_can_rescan = true;
         }
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
@@ -1141,44 +1142,6 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
 
-        private async Task PhotoClearAsync() {
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].amount <= 0 && bus[b].images.Count > 0 ||     //если нет на остатках
-                    bus[b].gde.Contains("http") &&                       //или если уже везде выложили - можно из базы подчистить
-                    bus[b].drom.Contains("http") &&
-                    (bus[b].avito.Contains("http") || bus[b].price < 2000) &&
-                    bus[b].auto.Contains("http") &&
-                    bus[b].cdek.Contains("http") &&
-                    bus[b].kp.Contains("http") &&
-                    bus[b].vk.Contains("http") &&
-                    bus[b].tiu.Contains("http") &&
-                    bus[b].images.Count > 10) {
-                    try {
-                        var name = bus[b].images[0].name;
-                        bus[b].images.Clear();
-                        if (bus[b].amount > 0)
-                            bus[b].images.Add(new Image {
-                                name = name,
-                                url = "https://images.ru.prom.st/" + name
-                            });
-                        var im = JsonConvert.SerializeObject(bus[b].images.ToArray());
-                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>()
-                                {
-                                    {"id", bus[b].id},
-                                    {"name", bus[b].name},
-                                    {"images", im}
-                                });
-                        //bus[b].images = null;
-                        Log.Add("business.ru: удалены лишние фото из карточки! - " + bus[b].name);
-                        await Task.Delay(1000);
-                        break;
-                    } catch (Exception x) {
-                        Log.Add("business.ru: ошибка при удалении фото из базы! - " + bus[b].name + " - " + x.Message);
-                    }
-                }
-            }
-        }
-
         private async void button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await ChangePostingsPrices();
@@ -1232,7 +1195,6 @@ namespace Selen {
 
 
         void ChangeStatus(object sender, ButtonStates buttonState) {
-            //button_avito_get.Enabled = true;
             var but = sender as System.Windows.Forms.Button;
             if (but != null) {
                 switch (buttonState) {
@@ -1271,7 +1233,7 @@ namespace Selen {
         //============
         public void ToLogBox(string s) {
             if (textBox_LogFilter.Text.Length == 0 || s.Contains(textBox_LogFilter.Text))
-                try {
+                try {//lock
                     if (logBox.InvokeRequired)
                         logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
                     else
@@ -1283,7 +1245,7 @@ namespace Selen {
         }
         //прокрутка лога
         private void richTextBox1_TextChanged(object sender, EventArgs e) {
-            logBox.SelectionStart = logBox.Text.Length - 1;
+            logBox.SelectionStart = logBox.TextLength;
             logBox.ScrollToCaret();
         }
         //обработка события на добавление записи
@@ -1322,26 +1284,28 @@ namespace Selen {
             }
         }
         //закрываем форму, сохраняем настройки
-        void Form1_FormClosing(object sender, FormClosingEventArgs e) {
+        async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             this.Visible = false;
             dSet.WriteXml(fSet);
             ClearTempFiles();
-            _tiu?.SaveCookies();
+            if(await _db.GetParamBoolAsync("saveCookiesBeforeClose")) {
+                _tiu?.SaveCookies();
+                _gde?.SaveCookies();
+                _cdek?.SaveCookies();
+                _drom?.SaveCookies();
+                _avto?.SaveCookies();
+                _auto?.SaveCookies();
+                _avito?.SaveCookies();
+                _kupiprodai?.SaveCookies();
+            }
             _tiu?.Quit();
-            _kupiprodai?.SaveCookies();
-            _kupiprodai?.Quit();
-            _gde?.SaveCookies();
             _gde?.Quit();
-            _avito?.SaveCookies();
-            _avito?.Quit();
-            _cdek?.SaveCookies();
             _cdek?.Quit();
-            _drom?.SaveCookies();
             _drom?.Quit();
-            _avto?.SaveCookies();
             _avto?.Quit();
-            _auto?.SaveCookies();
             _auto?.Quit();
+            _avito?.Quit();
+            _kupiprodai?.Quit();
         }
         //удаление временных файлов
         void ClearTempFiles() {
@@ -1445,58 +1409,81 @@ namespace Selen {
             }
         }
         //удаление фото из карточек
-        async Task PhotoClearAsync2() {
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].amount > 0 &&
-                    bus[b].price >= 500 &&
+        async Task PhotoClearAsync() {
+            var cnt = await _db.GetParamIntAsync("photosCheckCount");
+            for (int b = 0, i=0; b < bus.Count && i < cnt; b++) {
+                if (bus[b].amount <= 0 &&
+                    bus[b].images.Count >0 ||
+                  
+                    bus[b].amount > 0 &&
                     bus[b].images.Count == 1 &&
-                    bus[b].tiu.Contains("http") &&
-                    !bus[b].avito.Contains("http")) {
+                    GetTiuPhotosCount(b) > 1
+                    ) {
                     try {
-                        bus[b].images.Clear();
-                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", bus[b].id},
                                     {"name", bus[b].name},
                                     {"images", "[]"}
                                 });
-                        Log.Add("удалены фото из карточки! " + bus[b].name);
-                        await Task.Delay(1000);
+                        Log.Add(bus[b].name + " - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
+                        bus[b].images.Clear();
+                        await Task.Delay(10);
+                        i++;
                     } catch (Exception x) {
-                        Log.Add("ошибка при удалении фото из базы!\n" + bus[b].name + "\n" + x.Message);
+                        Log.Add("ошибка при удалении фото из карточки! - " + bus[b].name + " - " + x.Message);
                     }
                 }
             }
         }
-        //========================
-        //=== метод для тестов ===
-        //========================
-        private async void ButtonTest(object sender, EventArgs e) {
+        //проверка количества фото в каталоге тиу
+        private int GetTiuPhotosCount(int b) {
+            try {
+                var tiuId = bus[b].tiu.Split('/').Last();        //ищу id товара в каталоге tiu
+                if (tiuId.Length > 0) {
+                    //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
+                    var idRow = ds.Tables["offer"].Select("id = '" + tiuId + "'");
+                    if (idRow.Length == 0) Log.Add("ошибка! "+bus[b].name+" с id = " + tiuId + " - не найден в каталоге тиу!");
+                    else {
+                        var id = idRow[0]["offer_id"]; //беру поле offer_id из первой найденной строки
+                        var image_rows = ds.Tables["picture"].Select("offer_id = '" + id.ToString() + "'"); //все строки со ссылками на фото
+                        return image_rows.Count();
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add(bus[b].name + " - ошибка поиска фотографий в каталоге тиу! - " + x.Message);
+            }
+            return 0;
+        }
+        //отчет остатки по уровню цен
+        async void PriceLevelsRemainsReport(object sender, EventArgs e) {
+            var priceLevelsStr = _db.GetParamStr("priceLevelsForRemainsReport");
+            var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
+            foreach (var price in priceLevels) {
+                var x = bus.Count(w => w.tiu.Contains("http") && w.price >= price && w.amount > 0);
+                Log.Add("позиций с положительным остатком и ценой " + price + "+ : " + x);
+            }
+        }
+        //метод для тестов
+        async void buttonTest_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
-                ChangeStatus(sender, ButtonStates.NoActive);
-
-                var priceLevelsStr = _db.GetParamStr("priceLevelsForRemainsReport");
-                var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
-
-                foreach (var price in priceLevels) {
-                    var x = bus.Count(w => w.tiu.Contains("http") && w.price >= price && w.amount > 0);
-                    Log.Add("позиций с положительным остатком и ценой " + price + "+ : " + x);
-                }
-
-                Log.Add(
-                    bus.Count(w => w.amount > 0 &&
-                              w.price >= 500 &&
-                              w.tiu.Contains("http") &&
-                             !w.avito.Contains("http"))
-                       .ToString()
-                    );
 
                 //удаление фотографий
+                await PhotoClearAsync();
 
-                await PhotoClearAsync2();
 
-                ChangeStatus(sender, ButtonStates.Active);
+                //не выложено на авито
+                //Log.Add(
+                //    bus.Count(w => w.amount > 0 &&
+                //              w.price >= 500 &&
+                //              w.tiu.Contains("http") &&
+                //             !w.avito.Contains("http"))
+                //       .ToString()
+                //    );
+
+
 
                 //Log.Add(DateTime.Now.ToString().Replace(".", ""));
                 //await SftpUploadAsync();
@@ -1530,7 +1517,7 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
+            ChangeStatus(sender, ButtonStates.Active);
         }
-
     }
 }

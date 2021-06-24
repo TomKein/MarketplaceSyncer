@@ -112,11 +112,13 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("input[name='password']", _db.GetParamStr("avito.password"));
                     _dr.ButtonClick("//button[@type='submit']");
                 }
-                while (_dr.GetElementsCount(".profile-tabs") == 0) {
+                for(int i =0; _dr.GetElementsCount(".profile-tabs") == 0; i++) {
                     Thread.Sleep(_delay * 5);
                     _dr.ButtonClick("//a[contains(@href,'reload')]");
                     _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
+                    _dr.ButtonClick("//button[@id='reload-button']");
                     if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
+                    if (i >= 10) throw new Exception("ошибка входа в личный кабинет");
                 }
                 SaveCookies();
             });
@@ -207,7 +209,7 @@ namespace Selen.Sites {
             var elem = _dr.FindElements("//span[text()='Номер запчасти']/../../..//input");
             if (elem.Count > 0)
                 try {
-                    _dr.WriteToIWebElement(elem.First(), _bus[b].part);
+                    _dr.WriteToIWebElement(elem.First(), _bus[b].part.Split(',').First());
                 } catch { }
         }
 

@@ -35,7 +35,7 @@ namespace Selen
             this.button_base_get = new System.Windows.Forms.Button();
             this.button_avito_get = new System.Windows.Forms.Button();
             this.logBox = new System.Windows.Forms.RichTextBox();
-            this.buttonTest = new System.Windows.Forms.Button();
+            this.buttonPriceLevelsReport = new System.Windows.Forms.Button();
             this.button_vk_sync = new System.Windows.Forms.Button();
             this.button_tiu_sync = new System.Windows.Forms.Button();
             this.ds = new System.Data.DataSet();
@@ -59,7 +59,6 @@ namespace Selen
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.buttonSatom = new System.Windows.Forms.Button();
             this.labelKS = new System.Windows.Forms.Label();
-            this.checkBox_photo_clear = new System.Windows.Forms.CheckBox();
             this.buttonKupiprodai = new System.Windows.Forms.Button();
             this.buttonKupiprodaiAdd = new System.Windows.Forms.Button();
             this.labelKP = new System.Windows.Forms.Label();
@@ -85,6 +84,7 @@ namespace Selen
             this.button_izap24 = new System.Windows.Forms.Button();
             this.checkBox_GdeRu = new System.Windows.Forms.CheckBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.buttonTest = new System.Windows.Forms.Button();
             this.panel3 = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
@@ -138,6 +138,7 @@ namespace Selen
             this.logBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.logBox.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.logBox.ForeColor = System.Drawing.Color.LightYellow;
+            this.logBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
             this.logBox.Location = new System.Drawing.Point(185, 0);
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
@@ -146,15 +147,15 @@ namespace Selen
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
             // 
-            // buttonTest
+            // buttonPriceLevelsReport
             // 
-            this.buttonTest.Location = new System.Drawing.Point(745, 37);
-            this.buttonTest.Name = "buttonTest";
-            this.buttonTest.Size = new System.Drawing.Size(107, 23);
-            this.buttonTest.TabIndex = 20;
-            this.buttonTest.Text = "Остатки по ценам";
-            this.buttonTest.UseVisualStyleBackColor = true;
-            this.buttonTest.Click += new System.EventHandler(this.ButtonTest);
+            this.buttonPriceLevelsReport.Location = new System.Drawing.Point(686, 37);
+            this.buttonPriceLevelsReport.Name = "buttonPriceLevelsReport";
+            this.buttonPriceLevelsReport.Size = new System.Drawing.Size(107, 23);
+            this.buttonPriceLevelsReport.TabIndex = 20;
+            this.buttonPriceLevelsReport.Text = "Остатки по ценам";
+            this.buttonPriceLevelsReport.UseVisualStyleBackColor = true;
+            this.buttonPriceLevelsReport.Click += new System.EventHandler(this.PriceLevelsRemainsReport);
             // 
             // button_vk_sync
             // 
@@ -249,11 +250,11 @@ namespace Selen
             // 
             // buttonTestPartners
             // 
-            this.buttonTestPartners.Location = new System.Drawing.Point(355, 37);
+            this.buttonTestPartners.Location = new System.Drawing.Point(322, 37);
             this.buttonTestPartners.Name = "buttonTestPartners";
-            this.buttonTestPartners.Size = new System.Drawing.Size(164, 23);
+            this.buttonTestPartners.Size = new System.Drawing.Size(152, 23);
             this.buttonTestPartners.TabIndex = 61;
-            this.buttonTestPartners.Text = "Тест задвоения клиентов";
+            this.buttonTestPartners.Text = "Задвоения контрагентов";
             this.buttonTestPartners.UseVisualStyleBackColor = true;
             this.buttonTestPartners.Click += new System.EventHandler(this.ButtonTestPartnersClick);
             // 
@@ -381,16 +382,6 @@ namespace Selen
             this.labelKS.TabIndex = 104;
             this.labelKS.Text = "=> XML";
             // 
-            // checkBox_photo_clear
-            // 
-            this.checkBox_photo_clear.AutoSize = true;
-            this.checkBox_photo_clear.Location = new System.Drawing.Point(597, 13);
-            this.checkBox_photo_clear.Name = "checkBox_photo_clear";
-            this.checkBox_photo_clear.Size = new System.Drawing.Size(79, 17);
-            this.checkBox_photo_clear.TabIndex = 110;
-            this.checkBox_photo_clear.Text = "photo clear";
-            this.checkBox_photo_clear.UseVisualStyleBackColor = true;
-            // 
             // buttonKupiprodai
             // 
             this.buttonKupiprodai.Location = new System.Drawing.Point(12, 158);
@@ -423,7 +414,7 @@ namespace Selen
             // 
             this.button_PricesCheck.Location = new System.Drawing.Point(185, 37);
             this.button_PricesCheck.Name = "button_PricesCheck";
-            this.button_PricesCheck.Size = new System.Drawing.Size(164, 23);
+            this.button_PricesCheck.Size = new System.Drawing.Size(131, 23);
             this.button_PricesCheck.TabIndex = 115;
             this.button_PricesCheck.Text = "Корекция цен закупки";
             this.button_PricesCheck.UseVisualStyleBackColor = true;
@@ -482,7 +473,7 @@ namespace Selen
             // 
             // button_SaveCookie
             // 
-            this.button_SaveCookie.Location = new System.Drawing.Point(663, 37);
+            this.button_SaveCookie.Location = new System.Drawing.Point(608, 37);
             this.button_SaveCookie.Name = "button_SaveCookie";
             this.button_SaveCookie.Size = new System.Drawing.Size(76, 23);
             this.button_SaveCookie.TabIndex = 123;
@@ -544,9 +535,9 @@ namespace Selen
             // 
             // button_ReadSetXml
             // 
-            this.button_ReadSetXml.Location = new System.Drawing.Point(525, 37);
+            this.button_ReadSetXml.Location = new System.Drawing.Point(476, 37);
             this.button_ReadSetXml.Name = "button_ReadSetXml";
-            this.button_ReadSetXml.Size = new System.Drawing.Size(132, 23);
+            this.button_ReadSetXml.Size = new System.Drawing.Size(130, 23);
             this.button_ReadSetXml.TabIndex = 137;
             this.button_ReadSetXml.Text = "Перечитать настройки";
             this.button_ReadSetXml.UseVisualStyleBackColor = true;
@@ -700,6 +691,7 @@ namespace Selen
             this.panel2.AutoSize = true;
             this.panel2.Controls.Add(this.checkBox_sync);
             this.panel2.Controls.Add(this.buttonTest);
+            this.panel2.Controls.Add(this.buttonPriceLevelsReport);
             this.panel2.Controls.Add(this.checkBox_IgnoreUrls);
             this.panel2.Controls.Add(this.button_ReadSetXml);
             this.panel2.Controls.Add(this.button_put_desc);
@@ -707,13 +699,22 @@ namespace Selen
             this.panel2.Controls.Add(this.button_SaveCookie);
             this.panel2.Controls.Add(this.buttonTestPartners);
             this.panel2.Controls.Add(this.button_PricesCheck);
-            this.panel2.Controls.Add(this.checkBox_photo_clear);
             this.panel2.Controls.Add(this.checkBox_liteSync);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel2.Location = new System.Drawing.Point(0, 577);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(864, 64);
             this.panel2.TabIndex = 147;
+            // 
+            // buttonTest
+            // 
+            this.buttonTest.Location = new System.Drawing.Point(794, 37);
+            this.buttonTest.Name = "buttonTest";
+            this.buttonTest.Size = new System.Drawing.Size(69, 23);
+            this.buttonTest.TabIndex = 20;
+            this.buttonTest.Text = "Тест";
+            this.buttonTest.UseVisualStyleBackColor = true;
+            this.buttonTest.Click += new System.EventHandler(this.buttonTest_Click);
             // 
             // panel3
             // 
@@ -799,7 +800,7 @@ namespace Selen
         private System.Windows.Forms.Button button_base_get;
         private System.Windows.Forms.Button button_avito_get;
         private System.Windows.Forms.RichTextBox logBox;
-        private System.Windows.Forms.Button buttonTest;
+        private System.Windows.Forms.Button buttonPriceLevelsReport;
         private System.Windows.Forms.Button button_vk_sync;
         private System.Windows.Forms.Button button_tiu_sync;
         private System.Data.DataSet ds;
@@ -823,7 +824,6 @@ namespace Selen
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
         private System.Windows.Forms.Button buttonSatom;
         private System.Windows.Forms.Label labelKS;
-        private System.Windows.Forms.CheckBox checkBox_photo_clear;
         private System.Windows.Forms.Button buttonKupiprodai;
         private System.Windows.Forms.Button buttonKupiprodaiAdd;
         private System.Windows.Forms.Label labelKP;
@@ -853,6 +853,7 @@ namespace Selen
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.CheckBox checkBox_GdeRu;
         private System.Windows.Forms.Button button_izap24;
+        private System.Windows.Forms.Button buttonTest;
     }
 }
 

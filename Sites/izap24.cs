@@ -52,6 +52,7 @@ namespace Selen.Sites {
         public async Task SyncAsync(List<RootObject> bus, DataSet ds) {
             _bus = bus;
             _ds = ds;
+            if (_ds.Tables["offer"].Rows.Count == 0) return;//check datatable rows count (not empty)            
             await CreateCsvAsync();
             await Task.Factory.StartNew(() => {
                 SftpClient.Upload(_fexp);

@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,17 +20,27 @@ namespace Selen.Tools {
         public Selenium() {
             ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
             chromeservice.HideCommandPromptWindow = true;
-            _drv = new ChromeDriver(chromeservice);
+            _drv = new ChromeDriver(chromeservice, new ChromeOptions(), TimeSpan.FromSeconds(300));
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+            _drv.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(300);
+            Log.Add("_drv.Manage().Timeouts().PageLoad = " + _drv.Manage().Timeouts().PageLoad);
         }
 
         public void Navigate(string url, string check=null, int tryCount=10) {
             for (int i = 0; i < tryCount; i++) {
-                _drv.Navigate().GoToUrl(url);
-                ConfirmAlert();
-                if (String.IsNullOrEmpty(check) ||
-                    GetElementsCount(check) > 0) return;
-                Thread.Sleep(10000);
+                try {
+                    if (i > 0) {
+                        _drv.Navigate().Refresh();
+                        Thread.Sleep(20000);
+                    }
+                    _drv.Navigate().GoToUrl(url);
+                    ConfirmAlert();
+                    if (String.IsNullOrEmpty(check) ||
+                        GetElementsCount(check) > 0) return;
+                    Log.Add("selenium: неудачная попытка загрузки страницы ("+(i+1)+") - "+url+" - элемент не найден!");
+                } catch (Exception x) {
+                    Log.Add("selenium: неудачная попытка загрузки страницы ("+(i+1)+") - "+url+" - " +x.Message);
+                }
             }
             throw new Exception("selenium: ошибка! не удается загрузить страницу " + url + " - не найден элемент " + check);
         }

@@ -295,7 +295,7 @@ namespace Selen.Sites {
         }
 
         void SetPart(RootObject b) {
-            _part = !string.IsNullOrEmpty(b.part) ? b.part : b.id;
+            _part = !string.IsNullOrEmpty(b.part) ? b.part.Split(',').First() : b.id;
             _part = Regex.Replace(_part, "[^0-9a-zA-Z]", "");
             FindOffer();
             if (_dr.GetElementsCount("//td[@data-col='category.name']") > 0) _part = b.id;

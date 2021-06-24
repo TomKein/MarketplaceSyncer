@@ -232,10 +232,7 @@ namespace Selen.Sites {
             cl.Dispose();
         }
         void SetPart(RootObject b) {
-            _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.part);
-            if (_dr.GetElementsCount("//div[contains(@class,'error_annotation')]") > 0) {
-                _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", "");
-            }
+            _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.part.Split(',').First());
         }
         void PressOkButton() {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");
