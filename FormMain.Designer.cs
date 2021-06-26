@@ -73,7 +73,6 @@ namespace Selen
             this.numericUpDown_СdekCheckUrls = new System.Windows.Forms.NumericUpDown();
             this.label6 = new System.Windows.Forms.Label();
             this.numericUpDown_CdekAddNewCount = new System.Windows.Forms.NumericUpDown();
-            this.button_ReadSetXml = new System.Windows.Forms.Button();
             this.checkBox_AvtoProSyncEnable = new System.Windows.Forms.CheckBox();
             this.button_avto_pro = new System.Windows.Forms.Button();
             this.numericUpDown_AvtoProAddCount = new System.Windows.Forms.NumericUpDown();
@@ -149,7 +148,7 @@ namespace Selen
             // 
             // buttonPriceLevelsReport
             // 
-            this.buttonPriceLevelsReport.Location = new System.Drawing.Point(686, 37);
+            this.buttonPriceLevelsReport.Location = new System.Drawing.Point(562, 38);
             this.buttonPriceLevelsReport.Name = "buttonPriceLevelsReport";
             this.buttonPriceLevelsReport.Size = new System.Drawing.Size(107, 23);
             this.buttonPriceLevelsReport.TabIndex = 20;
@@ -186,7 +185,7 @@ namespace Selen
             this.checkBox_sync.AutoSize = true;
             this.checkBox_sync.Checked = true;
             this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sync.Location = new System.Drawing.Point(684, 12);
+            this.checkBox_sync.Location = new System.Drawing.Point(581, 12);
             this.checkBox_sync.Name = "checkBox_sync";
             this.checkBox_sync.Size = new System.Drawing.Size(168, 17);
             this.checkBox_sync.TabIndex = 35;
@@ -330,7 +329,7 @@ namespace Selen
             this.checkBox_liteSync.AutoSize = true;
             this.checkBox_liteSync.Checked = true;
             this.checkBox_liteSync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_liteSync.Location = new System.Drawing.Point(274, 13);
+            this.checkBox_liteSync.Location = new System.Drawing.Point(190, 13);
             this.checkBox_liteSync.Name = "checkBox_liteSync";
             this.checkBox_liteSync.Size = new System.Drawing.Size(174, 17);
             this.checkBox_liteSync.TabIndex = 95;
@@ -473,7 +472,7 @@ namespace Selen
             // 
             // button_SaveCookie
             // 
-            this.button_SaveCookie.Location = new System.Drawing.Point(608, 37);
+            this.button_SaveCookie.Location = new System.Drawing.Point(480, 38);
             this.button_SaveCookie.Name = "button_SaveCookie";
             this.button_SaveCookie.Size = new System.Drawing.Size(76, 23);
             this.button_SaveCookie.TabIndex = 123;
@@ -533,16 +532,6 @@ namespace Selen
             this.numericUpDown_CdekAddNewCount.TabIndex = 133;
             this.numericUpDown_CdekAddNewCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // button_ReadSetXml
-            // 
-            this.button_ReadSetXml.Location = new System.Drawing.Point(476, 37);
-            this.button_ReadSetXml.Name = "button_ReadSetXml";
-            this.button_ReadSetXml.Size = new System.Drawing.Size(130, 23);
-            this.button_ReadSetXml.TabIndex = 137;
-            this.button_ReadSetXml.Text = "Перечитать настройки";
-            this.button_ReadSetXml.UseVisualStyleBackColor = true;
-            this.button_ReadSetXml.Click += new System.EventHandler(this.button_ReadSetXmlClick);
-            // 
             // checkBox_AvtoProSyncEnable
             // 
             this.checkBox_AvtoProSyncEnable.AutoSize = true;
@@ -590,7 +579,7 @@ namespace Selen
             this.checkBox_IgnoreUrls.AutoSize = true;
             this.checkBox_IgnoreUrls.Checked = true;
             this.checkBox_IgnoreUrls.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_IgnoreUrls.Location = new System.Drawing.Point(454, 13);
+            this.checkBox_IgnoreUrls.Location = new System.Drawing.Point(370, 13);
             this.checkBox_IgnoreUrls.Name = "checkBox_IgnoreUrls";
             this.checkBox_IgnoreUrls.Size = new System.Drawing.Size(137, 17);
             this.checkBox_IgnoreUrls.TabIndex = 144;
@@ -693,7 +682,6 @@ namespace Selen
             this.panel2.Controls.Add(this.buttonTest);
             this.panel2.Controls.Add(this.buttonPriceLevelsReport);
             this.panel2.Controls.Add(this.checkBox_IgnoreUrls);
-            this.panel2.Controls.Add(this.button_ReadSetXml);
             this.panel2.Controls.Add(this.button_put_desc);
             this.panel2.Controls.Add(this.button_SettingsFormOpen);
             this.panel2.Controls.Add(this.button_SaveCookie);
@@ -708,7 +696,7 @@ namespace Selen
             // 
             // buttonTest
             // 
-            this.buttonTest.Location = new System.Drawing.Point(794, 37);
+            this.buttonTest.Location = new System.Drawing.Point(675, 38);
             this.buttonTest.Name = "buttonTest";
             this.buttonTest.Size = new System.Drawing.Size(69, 23);
             this.buttonTest.TabIndex = 20;
@@ -838,7 +826,6 @@ namespace Selen
         private System.Windows.Forms.NumericUpDown numericUpDown_СdekCheckUrls;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.NumericUpDown numericUpDown_CdekAddNewCount;
-        private System.Windows.Forms.Button button_ReadSetXml;
         private System.Windows.Forms.CheckBox checkBox_AvtoProSyncEnable;
         private System.Windows.Forms.Button button_avto_pro;
         private System.Windows.Forms.NumericUpDown numericUpDown_AvtoProAddCount;

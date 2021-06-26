@@ -48,16 +48,35 @@ namespace Selen.Sites {
             _dr = null;
         }
         //старт главного цикла синхронизации
-        public async Task StartAsync(List<RootObject> bus) {
-            Log.Add("gde.ru: начало выгрузки...");
-            _bus = bus;
-            await AuthAsync();
-            await EditAsync();
-            await AddAsync();
-            await ParseAsync();
-            await CheckUrls();
-            //await DelNoActiveAsync();
-            Log.Add("gde.ru: выгрузка завершена");
+        public async Task<bool> StartAsync(List<RootObject> bus) {
+            if (await _db.GetParamBoolAsync("gde.syncEnable")) {
+                Log.Add("gde.ru: начало выгрузки...");
+                _bus = bus;
+                for (int i = 0; ; i++) {
+                    try {
+                        await AuthAsync();
+                        await EditAsync();
+                        await AddAsync();
+                        await ParseAsync();
+                        await CheckUrls();
+                        Log.Add("gde.ru: выгрузка завершена");
+                        return true;
+                    } catch (Exception x) {
+                        Log.Add("gde.ru: ошибка синхронизации! - " + x.Message);
+                        if (x.Message.Contains("timed out") ||
+                        x.Message.Contains("already closed") ||
+                        x.Message.Contains("invalid session id") ||
+                        x.Message.Contains("chrome not reachable")) {
+                            Log.Add("gde.ru: ошибка браузера! - " + x.Message);
+                            _dr.Quit();
+                            _dr = null;
+                        }
+                        if (i >= 10) break;
+                        await Task.Delay(60000);
+                    }
+                }
+            }
+            return false;
         }
         //авторизация
         async Task AuthAsync() {

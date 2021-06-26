@@ -53,8 +53,8 @@ namespace Selen.Sites {
             await TiuMovePricelessToDrafts();
             await AddPhotosToBaseAsync();
             await TiuUploadAsync();
-            await AddSupplyAsync();
             await TiuSyncAsync2();
+            await AddSupplyAsync();
         }
         //авторизация
         private async Task AuthAsync() {
@@ -448,24 +448,11 @@ namespace Selen.Sites {
                                 {"name", _newOffers[i].name},
                                 {"group_id", _newOffers[i].group_id},
                                 {"description", _newOffers[i].description},
-                                {"measure_id", _newOffers[i].measure_id},//единицы измерений
+                                {"measure_id", _newOffers[i].measure_id},//добавил единицы измерений в параметры запроса
                                 {"209325", _newOffers[i].tiu }
                             })).id;
-                        //если единицы измерения не шт, то необходимо поменять привязку ед. изм. в карточке
-                        if (_newOffers[i].measure_id != "1") {
-                            //находим привязку единиц измерения
-                            var gm = JsonConvert.DeserializeObject<GoodsMeasures[]>(
-                                await Class365API.RequestAsync("get", "goodsmeasures", new Dictionary<string, string>() {
-                                    {"good_id", _newOffers[i].id}
-                                }));
-                            //меняем значение кода единицы изм
-                            var s = await Class365API.RequestAsync("put", "goodsmeasures", new Dictionary<string, string>(){
-                                {"id", gm[0].id},
-                                {"measure_id", _newOffers[i].measure_id}
-                            });
-                        }
                         Log.Add("business.ru: СОЗДАНА КАРТОЧКА ТОВАРА - " + _newOffers[i].name + ",  ост. " + _newOffers[i].amount +" ("+ _newOffers[i].measure_id + "), цена " + _newOffers[i].price);
-                        Thread.Sleep(1000);
+                        Thread.Sleep(2000);
                     }
                 }
                 //сделаем новое поступление

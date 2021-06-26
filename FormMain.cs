@@ -20,7 +20,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.59.1";
+        string _version = "1.59.2";
 
         DB _db = new DB();
 
@@ -227,32 +227,13 @@ namespace Selen {
         }
         //GDE.RU
         public async void GdeRu_Click(object sender, EventArgs e) {
-            if (await _db.GetParamBoolAsync("gde.syncEnable")) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                for (int i = 0; ; i++) {
-                    try {
-                        while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
-                        await _gde.StartAsync(bus);
-                        labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
-                        break;
-                    } catch (Exception x) {
-                        if (i >= 10) {
-                            ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                            return;
-                        }
-                        ChangeStatus(sender, ButtonStates.NonActiveWithProblem);
-                        Log.Add("gde.ru: ошибка синхронизации! - " + x.Message);
-                        if (x.Message.Contains("timed out") ||
-                            x.Message.Contains("already closed") ||
-                            x.Message.Contains("invalid session id") ||
-                            x.Message.Contains("chrome not reachable")) {
-                            _gde.Quit();
-                            await Task.Delay(60000);
-                        }
-                    }
-                }
-            }
-            ChangeStatus(sender, ButtonStates.Active);
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
+            if (await _gde.StartAsync(bus)) {
+                labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+                ChangeStatus(sender, ButtonStates.Active);
+            }else 
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //AVTO.PRO
         private async void AvtoPro_Click(object sender, EventArgs e) {
@@ -265,15 +246,15 @@ namespace Selen {
                     await _avto.AvtoProStartAsync(bus);
                     Log.Add("avto.pro: выгрузка завершена!");
 
-                    var lastScanTime = dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"].ToString();
+                    var lastScanTime = await _db.GetParamStrAsync("AvtoProLastScanTime");
+
                     //достаточно проверять один раз в недекю, и только ночью
                     if (DateTime.Parse(lastScanTime) < DateTime.Now.AddHours(-24)
                             && DateTime.Now.Hour < 3
                             && DateTime.Today.DayOfWeek == DayOfWeek.Sunday) {
                         Log.Add("avto.pro: парсинг сайта...");
                         await _avto.CheckAsync();
-                        dSet.Tables["controls"].Rows[0]["AvtoProLastScanTime"] = DateTime.Now;
-                        dSet.WriteXml(fSet);
+                        await _db.SetParamAsync("AvtoProLastScanTime", DateTime.Now.ToString());
                         Log.Add("avto.pro: парсинг завершен");
                     }
                     ChangeStatus(sender, ButtonStates.Active);
@@ -524,8 +505,6 @@ namespace Selen {
                     await Task.Delay(60000);
                     button_drom_get.PerformClick();
                     await Task.Delay(60000);
-                    button_tiu_sync.PerformClick();
-                    await Task.Delay(60000);
                     buttonKupiprodai.PerformClick();
                     await Task.Delay(60000);
                     button_GdeGet.PerformClick();
@@ -543,6 +522,8 @@ namespace Selen {
                     button_vk_sync.PerformClick();
                     await Task.Delay(60000);
                     button_cdek.PerformClick();
+                    await Task.Delay(60000);
+                    button_tiu_sync.PerformClick();
                     //нужно подождать конца обновлений объявлений
                     await WaitButtonsActiveAsync();
                     //проверка задвоенности наименований карточек товаров
@@ -1159,41 +1140,7 @@ namespace Selen {
             _auto.SaveCookies();
             _gde.SaveCookies();
         }
-        // запись в элемент
-        public void WriteToIWebElement(IWebDriver d, IWebElement we, string s = null, List<string> sl = null) {
-            Actions a = new Actions(d);
-            if (sl != null) {
-                a.MoveToElement(we)
-                 .Click()
-                 .Perform();
-                Thread.Sleep(2000);
-                a.KeyDown(OpenQA.Selenium.Keys.Control)
-                 .SendKeys("a")
-                 .KeyUp(OpenQA.Selenium.Keys.Control)
-                 .Perform();
-                Thread.Sleep(200);
-                a.SendKeys(OpenQA.Selenium.Keys.Backspace)
-                 .Perform();
-                Thread.Sleep(200);
-                foreach (var sub in sl) {
-                    if (sub.Length > 0) {
-                        a.SendKeys(sub);
-                    }
-                    a.SendKeys(OpenQA.Selenium.Keys.Enter).Build().Perform();
-                    a = new Actions(d);
-                }
-                //a.Perform();
-            }
-            if (!string.IsNullOrEmpty(s)) {
-                we.SendKeys(" ");
-                we.SendKeys(OpenQA.Selenium.Keys.Control + "a");
-                we.SendKeys(OpenQA.Selenium.Keys.Backspace);
-                we.SendKeys(s);
-            }
-            Thread.Sleep(1000);
-        }
-
-
+        //статус контрола
         void ChangeStatus(object sender, ButtonStates buttonState) {
             var but = sender as System.Windows.Forms.Button;
             if (but != null) {
@@ -1219,7 +1166,7 @@ namespace Selen {
                 }
             }
         }
-
+        //TODO delete this
         private void button_ReadSetXmlClick(object sender, EventArgs e) {
             try {
                 dSet.Clear();
@@ -1277,7 +1224,7 @@ namespace Selen {
         //загрузка файла настроек
         void dsOptions_Initialized(object sender, EventArgs e) {
             try {
-                dSet.ReadXml(fSet);
+                dSet.ReadXml(fSet);        //TODO delete this
                 dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             } catch (Exception x) {
                 MessageBox.Show("ошибка чтения set.xml - " + x.Message);
@@ -1286,7 +1233,7 @@ namespace Selen {
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             this.Visible = false;
-            dSet.WriteXml(fSet);
+            dSet.WriteXml(fSet);//TODO delete this
             ClearTempFiles();
             if(await _db.GetParamBoolAsync("saveCookiesBeforeClose")) {
                 _tiu?.SaveCookies();

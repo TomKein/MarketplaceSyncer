@@ -100,29 +100,27 @@ namespace Selen.Sites {
             }
         }
         //авторизация
-        private async Task AuthAsync() {
-            await Task.Factory.StartNew(() => {
-                if (_dr == null) {
-                    _dr = new Selenium();
-                    LoadCookies();
-                }
-                _dr.Navigate("https://avito.ru/profile");
-                if (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
-                    _dr.WriteToSelector("input[name='login']", _db.GetParamStr("avito.login"));
-                    _dr.WriteToSelector("input[name='password']", _db.GetParamStr("avito.password"));
-                    _dr.ButtonClick("//button[@type='submit']");
-                }
-                for(int i =0; _dr.GetElementsCount(".profile-tabs") == 0; i++) {
-                    Thread.Sleep(_delay * 5);
-                    _dr.ButtonClick("//a[contains(@href,'reload')]");
-                    _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
-                    _dr.ButtonClick("//button[@id='reload-button']");
-                    if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
-                    if (i >= 10) throw new Exception("ошибка входа в личный кабинет");
-                }
-                SaveCookies();
-            });
-        }
+        private async Task AuthAsync() =>await Task.Factory.StartNew(() => {
+            if (_dr == null) {
+                _dr = new Selenium();
+                LoadCookies();
+            }
+            _dr.Navigate("https://avito.ru/profile");
+            if (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
+                _dr.WriteToSelector("input[name='login']", _db.GetParamStr("avito.login"));
+                _dr.WriteToSelector("input[name='password']", _db.GetParamStr("avito.password"));
+                _dr.ButtonClick("//button[@type='submit']");
+            }
+            for (int i = 0; _dr.GetElementsCount(".profile-tabs") == 0; i++) {
+                Thread.Sleep(_delay * 5);
+                _dr.ButtonClick("//a[contains(@href,'reload')]");
+                _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
+                _dr.ButtonClick("//button[@id='reload-button']");
+                if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
+                if (i >= 10) throw new Exception("ошибка входа в личный кабинет");
+            }
+            SaveCookies();
+        });       
         //массовая проверка товаров
         private async Task EditAllAsync() {
             for (int b = 0; b < _bus.Count; b++) {
@@ -137,97 +135,67 @@ namespace Selen.Sites {
             }
         }
         //проверка авторизации
-        private async Task ChechAuthAsync() {
-            await Task.Factory.StartNew(() => {
-                //закрываю рекламу
-                _dr.ButtonClick("//button[contains(@class,'popup-close')]");
-                while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
-                    _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
-                //проверяю элемент Мои объявления
-                while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
-                    if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
-                        _dr.Refresh();
-                    else {
-                        throw new Exception("ошибка загрузки сайта!");
-                    }
+        private async Task ChechAuthAsync() => await Task.Factory.StartNew(() => {
+            //закрываю рекламу
+            _dr.ButtonClick("//button[contains(@class,'popup-close')]");
+            while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
+                _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
+            //проверяю элемент Мои объявления
+            while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
+                if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
+                    _dr.Refresh();
+                else {
+                    throw new Exception("ошибка загрузки сайта!");
                 }
-            });
-        }
+            }
+        });
         //редактирование объявления
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
-
-                var isDeleted = await Task.Factory.StartNew(() => {
-                    _dr.Navigate(_bus[b].avito);
-                    //есть на остатках, но страница без номера объявления - значит нужно восстановить
-                    if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0)
-                        _dr.ButtonClick("//button[text()='Восстановить']");
-                    //нет номера объявления и есть строка вы удалили это объявление навсегда - удаляю ссылку из карточки
-                    if (_dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0 && 
-                        _dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) {
-                        SaveUrlAsync(b, deleteUrl: true);
-                        Thread.Sleep(1000);
-                        return true;
-                    }
-                    return false;
-                });
-                if (isDeleted) return;
+                await ChechAuthAsync();
+                await UnDeleteAsync(b);
                 var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
-                bool isAlive = true;
-                for(int i=0; ; i++) {
-                    await ChechAuthAsync();
+                try {
                     await _dr.NavigateAsync(url, "//button[contains(@data-marker,'button-next')]");
-                    if (_dr.GetElementsCount("//a[@href='/profile']") > 0 && _dr.GetElementsCount("//div[@data-marker='category']")>0) break;
-                    isAlive = await CheckIsOfferAlive(b);
-                    if (!isAlive) break;
-                    if (i == 10) {
-                        Log.Add("avito.ru: ошибка! не удается загрузить объявление! - " + _bus[b].name + "  url: " + url);
-                        break;
+                } catch (Exception x) {
+                    if (_dr.GetElementText("//h1").Contains("на нашем сайте нет") || //если в заголовке указано что объявления нет на сайте
+                        _dr.GetElementsCount("//p[contains(text(),'удалили это объявление')]") > 0) {//сообщение, что оно удалено
+                        await SaveUrlAsync(b, deleteUrl: true);
+                        Log.Add("avito.ru: " + _bus[b].name + "ссылка на объявление удалена из карточки!");
+                        return;
                     }
                 }
-                if (isAlive) {
-                    await Task.Factory.StartNew(() => {
-                        SetStatus(b);
-                        SetPartNumber(b);
-                        SetManufacture(b);
-                        SetTitle(b);
-                        SetPrice(b);
-                        SetDesc(b);
-                        PressOk();
-                    });
-                } else {
-                    await SaveUrlAsync(b, deleteUrl: true);
-                }
+                await Task.Factory.StartNew(() => {
+                    SetStatus(b);
+                    SetPartNumber(b);
+                    SetManufacture(b);
+                    SetTitle(b);
+                    SetPrice(b);
+                    SetDesc(b);
+                    PressOk();
+                });
             }
         }
+        //восстановление удаленного объявления
+        private async Task UnDeleteAsync(int b) => await Task.Factory.StartNew(() => {
+            _dr.Navigate(_bus[b].avito);
+            if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0) { 
+                _dr.ButtonClick("//button[text()='Восстановить']");
+            }
+        });
 
         private void SetManufacture(int b) {
             //производителя авито определяет сам
         }
-
+        //заполняю номер запчасти из артикула
         private void SetPartNumber(int b) {
-            var elem = _dr.FindElements("//span[text()='Номер запчасти']/../../..//input");
-            if (elem.Count > 0)
-                try {
-                    _dr.WriteToIWebElement(elem.First(), _bus[b].part.Split(',').First());
-                } catch { }
-        }
-
-        //проверка активно ли объявление
-        private async Task<bool> CheckIsOfferAlive(int b) {
-            var count = 0;
-            await Task.Factory.StartNew(() => {
-                count = _dr.GetElementsCount("//p[contains(text(),'удалили это объявление') or contains(text(),'неверной ссылке')]");
-            });
-            if (count > 0 && !_dr.GetUrl().Contains("isDirect=1")) return false;
-            return true;
+            if (!string.IsNullOrEmpty(_bus[b].part))
+                _dr.WriteToSelector("//span[text()='Номер запчасти']/../../..//input", _bus[b].part.Split(',').First());
         }
         //удалить объявление асинхронно
-        private async Task DeleteAsync(int b) {
-            await Task.Factory.StartNew(() => {
-                Delete(b);
-            });
-        }
+        private async Task DeleteAsync(int b) => await Task.Factory.StartNew(() => {
+            Delete(b);
+        });
         //удалить объявление
         private void Delete(int b) {
             for (int i = 0; i < 10; i++) {

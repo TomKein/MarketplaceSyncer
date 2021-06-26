@@ -135,6 +135,10 @@ namespace Selen.Base {
                 return SetParam(name, value);
             });
         }
+        //получаю строку асинхронно
+        public async Task<string> GetParamStrAsync(string key) => await Task.Factory.StartNew(() => {
+            return GetParamStr(key);
+        });
         //получаем настройки как строку
         public string GetParamStr(string key) {
             //запрос для получения настроек

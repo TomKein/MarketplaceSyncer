@@ -42,7 +42,8 @@ namespace Selen.Tools {
                     Log.Add("selenium: неудачная попытка загрузки страницы ("+(i+1)+") - "+url+" - " +x.Message);
                 }
             }
-            throw new Exception("selenium: ошибка! не удается загрузить страницу " + url + " - не найден элемент " + check);
+            throw new Exception("selenium: ошибка браузера! - не удается загрузить страницу " + url + " - timed out!");
+            _drv.Quit();
         }
 
         public async Task NavigateAsync(string url, string check = null, int tryCount = 10) {
