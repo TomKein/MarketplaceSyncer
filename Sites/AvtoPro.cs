@@ -1,5 +1,6 @@
 ﻿using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
+using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ namespace Selen.Sites {
             "Бесплатная доставка до ТК"
         };
         Selenium _dr;
+        DB _db = DB._db;
 
         string _part;
 
@@ -152,6 +154,7 @@ namespace Selen.Sites {
         }
 
         public async Task AddAsync() {
+            AddCount = await _db.GetParamIntAsync("autoPro.addCount");
             for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--) {
                 if ((_bus[b].avtopro == null || !_bus[b].avtopro.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&

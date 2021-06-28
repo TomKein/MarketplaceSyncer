@@ -1,4 +1,5 @@
-﻿using Selen.Tools;
+﻿using Selen.Base;
+using Selen.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,8 +30,10 @@ namespace Selen.Sites {
         Selenium _dr;
         //список товаров
         List<RootObject> _bus = null;
+        //база данных
+        DB _db = DB._db;
         //по сколько объявлений добавлять за раз
-        public int AddCount { get; set; } = 1;
+        int AddCount { get; set; } = 1;
         //загрузка куки
         public void LoadCookies() {
             if (_dr != null) {
@@ -153,6 +156,7 @@ namespace Selen.Sites {
         }
         //добавить объявления на сайт
         private async Task AddAsync() {
+            AddCount = await _db.GetParamIntAsync("auto.addCount");
             for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--, AddCount--) {                        
                 if ((_bus[b].auto == null || !_bus[b].auto.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&

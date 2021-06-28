@@ -72,7 +72,7 @@ namespace Selen.Sites {
                             _dr = null;
                         }
                         if (i >= 10) break;
-                        await Task.Delay(60000);
+                        await Task.Delay(10000);
                     }
                 }
             }
@@ -357,7 +357,7 @@ namespace Selen.Sites {
         async Task ParsePage(int p) {
             try {
                 await Task.Factory.StartNew(() => {
-                    _dr.Navigate("https://gde.ru/cabinet/items/" + p);
+                    _dr.Navigate("https://gde.ru/cabinet/items/" + p, tryCount: 2);
                     var names = _dr.FindElements("//strong[@class='title']/a").Select(s => s.Text).ToList();
                     var prices = _dr.FindElements("//strong[@class='price']").Select(s => s.Text.Split(' ').First()).ToList();
                     var ids = _dr.FindElements("//span[@class='id']").Select(s => s.Text.Split(' ').Last()).ToList();
@@ -376,6 +376,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
+                if (x.Message.Contains("timed out")) throw;
                 Log.Add("gde.ru: ошибка парсинга страницы - " + x.Message);
             }
         }

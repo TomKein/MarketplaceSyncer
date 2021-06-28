@@ -161,7 +161,7 @@ namespace Selen.Sites {
         }
         //выкладываю объявления
         public async Task AddAsync() {
-            var count = _db.GetParamInt("kupiprodai.addCount");
+            var count = await _db.GetParamIntAsync("kupiprodai.addCount");
             for (int b = 0; b < _bus.Count && count > 0; b++) {
                 if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&

@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Interactions;
 using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -34,7 +32,6 @@ namespace Selen.Sites {
 
         //конструктор
         public Avito() {
-            //сохраняю ссылку для работы с базой данных
             _db = DB._db;
         }
         //главный цикл синхронизации
@@ -161,7 +158,7 @@ namespace Selen.Sites {
                     if (_dr.GetElementText("//h1").Contains("на нашем сайте нет") || //если в заголовке указано что объявления нет на сайте
                         _dr.GetElementsCount("//p[contains(text(),'удалили это объявление')]") > 0) {//сообщение, что оно удалено
                         await SaveUrlAsync(b, deleteUrl: true);
-                        Log.Add("avito.ru: " + _bus[b].name + "ссылка на объявление удалена из карточки!");
+                        Log.Add("avito.ru: " + _bus[b].name + " - ссылка на объявление удалена из карточки!");
                         return;
                     }
                 }

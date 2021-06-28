@@ -25,6 +25,7 @@ namespace Selen.Sites {
         };
         Selenium _dr;
         List<RootObject> _bus = null;
+        Random _rnd = new Random();
 
         public void LoadCookies() {
             if (_dr != null) {
@@ -286,15 +287,14 @@ namespace Selen.Sites {
             }
         }
 
-        public async Task<int> CheckUrlsAsync(int num, int count = 10) {
-            var newB = num + count;
-            for (int b = num; b < _bus.Count && b < newB; b++) {
-                if (!string.IsNullOrEmpty(_bus[b].cdek) && _bus[b].cdek.Contains("http") && await IsUrlDead(b)) {
+        public async Task CheckUrlsAsync(int count = 10) {
+            for (; count> 0;) {
+                var b = _rnd.Next(_bus.Count);
+                if (string.IsNullOrEmpty(_bus[b].cdek)) continue;
+                if (_bus[b].cdek.Contains("http") && await IsUrlDead(b)) {
                     await DeleteUrl(b);
                 }
             }
-            if (newB < _bus.Count) return newB;
-            return 0;
         }
 
         public async Task<bool> IsUrlDead(int b) {

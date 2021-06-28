@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Interactions;
 using Application = System.Windows.Forms.Application;
 using Color = System.Drawing.Color;
 using Selen.Sites;
@@ -20,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.59.2";
+        string _version = "1.59.3";
 
         DB _db = new DB();
 
@@ -164,12 +160,11 @@ namespace Selen {
         }
         //AUTO.RU
         async void AutoRu_Click(object sender, EventArgs e) {
-            if (checkBox_AutoRuSyncEnable.Checked) {
+            if (await _db.GetParamBoolAsync("auto.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     Log.Add("auto.ru: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);
-                    _auto.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
+                    while (base_rescan_need) await Task.Delay(30000);                    
                     await _auto.AutoRuStartAsync(bus);
                     Log.Add("auto.ru: выгрузка завершена!");
                     ChangeStatus(sender, ButtonStates.Active);
@@ -188,9 +183,6 @@ namespace Selen {
                 }
             }
         }
-        void numericUpDown_AutoRu_ValueChanged(object sender, EventArgs e) {
-            _auto.AddCount = (int)numericUpDown_AutoRuAddCount.Value;
-        }
         //KUPIPRODAI.RU
         async void KupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -198,7 +190,7 @@ namespace Selen {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     await _kupiprodai.StartAsync(bus);
-                    labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+                    label_KP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
                     ChangeStatus(sender, ButtonStates.Active);
                     break;
                 } catch (Exception x) {
@@ -222,7 +214,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need) await Task.Delay(30000);
             await _kupiprodai.AddAsync();
-            labelKP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+            label_KP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //GDE.RU
@@ -230,19 +222,18 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
             if (await _gde.StartAsync(bus)) {
-                labelGde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+                label_gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             }else 
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //AVTO.PRO
         private async void AvtoPro_Click(object sender, EventArgs e) {
-            if (checkBox_AvtoProSyncEnable.Checked) {
+            if (await _db.GetParamBoolAsync("autoPro.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     Log.Add("avto.pro: начало выгрузки...");
                     while (base_rescan_need) await Task.Delay(30000);
-                    _avto.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
                     await _avto.AvtoProStartAsync(bus);
                     Log.Add("avto.pro: выгрузка завершена!");
 
@@ -273,13 +264,6 @@ namespace Selen {
                 }
             }
         }
-        private void numericUpDown_avto_pro_add_ValueChanged(object sender, EventArgs e) {
-            try {
-                _avto.AddCount = (int)numericUpDown_AvtoProAddCount.Value;
-            } catch (Exception x) {
-                Log.Add("avto.pro: ошибка установки количества добавляемых объявлений");
-            }
-        }
         //CDEK.MARKET
         private async void Cdek_Click(object sender, EventArgs e) {
             if (checkBoxCdekSyncActive.Checked) {
@@ -295,10 +279,7 @@ namespace Selen {
                 }
                 if (numericUpDown_СdekCheckUrls.Value > 0) {
                     try {
-                        var num = int.Parse(dSet.Tables["controls"].Rows[0]["controlCdek"].ToString());
-                        num = await _cdek.CheckUrlsAsync(num, (int)numericUpDown_СdekCheckUrls.Value);
-                        dSet.Tables["controls"].Rows[0]["controlCdek"] = num;
-                        dSet.WriteXml(fSet);
+                        await _cdek.CheckUrlsAsync();
                         await _cdek.ParseSiteAsync();
                     } catch (Exception x) {
                         Log.Add("cdek.market: ошибка при проверке объявлений! - " + x.Message);
@@ -348,7 +329,7 @@ namespace Selen {
             //если синхронизация включена и завершен предыдуший цикл
             if (checkBox_sync.Checked && base_can_rescan) {
                 //галочка liteSync
-                if (checkBox_liteSync.Checked && 
+                if (await _db.GetParamBoolAsync("useLiteSync") && 
                     bus.Count > 0 &&   //список товаров содержит товары
                    !base_rescan_need) { //и его не нужно перезапрашивать
                     await GoLiteSync();
@@ -363,13 +344,9 @@ namespace Selen {
             var stage = "";
             try {
                 base_can_rescan = false;
-
                 sync_start = DateTime.Now;
-
                 Log.Add("lite sync started...");
-                stage = "запрашиваем время последней синхронизации...";
-                var lastTime = dSet.Tables["controls"].Rows[0]["liteScanTime"].ToString();
-                stage = "запрашиваем карточки из базы...";
+                var lastTime = await _db.GetParamStrAsync("liteScanTime");
                 //запросим новые/измененные карточки товаров
                 string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
                             {"archive", "0"},
@@ -380,9 +357,8 @@ namespace Selen {
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" },
-                            { "updated[from]", lastTime}
+                            {"updated[from]", lastTime}
                     });
-                stage = "меняем номера групп на названия...";
                 s = s.Replace("\"209325\":", "\"tiu\":")
                     .Replace("\"209326\":", "\"avito\":")
                     .Replace("\"209334\":", "\"drom\":")
@@ -394,25 +370,25 @@ namespace Selen {
                     .Replace("\"854872\":", "\"gde\":")
                     .Replace("\"1437133\":", "\"avtopro\":")
                     .Replace("\"854874\":", "\"cdek\":");
-                stage = "добавляем к списку...";
                 lightSyncGoods.Clear();
-                if (s.Length > 3) {
-                    lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
-                }
+                if (s.Length > 3) lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
 
                 stage = "текущие остатки...";
-                var ids = JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
+                var ids = JsonConvert.DeserializeObject<List<GoodIds>>(
+                    await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime}
                     }));
 
                 stage = "текущие цены...";
-                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
+                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
+                    await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime},
                         {"price_type_id","75524" } //интересуют только отпускные цены
                     })));
 
                 stage = "запросим реализации...";
-                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
+                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
+                    await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
                         {"updated[from]", lastTime}
                     })));
 
@@ -442,13 +418,13 @@ namespace Selen {
                 Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
                 stage = "...";
 
+                var ignoreUrlChanges = await _db.GetParamBoolAsync("ignoreUrlChanges");
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
                     var ind = bus.FindIndex(f => f.id == lg.id);
                     //индекс карточки найден
                     if (ind != -1) {
-                        //если чекбокс "игнорировать ссылки" активен
-                        if (checkBox_IgnoreUrls.Checked) {
+                        if (ignoreUrlChanges) {
                             if (bus[ind].amount != lg.amount ||             //если изменилось количество или
                                 bus[ind].price != lg.price ||               //если изменилась цена или
                                 bus[ind].archive != lg.archive ||           //статус архивный или
@@ -480,19 +456,12 @@ namespace Selen {
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
                 label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
-                dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
-                dSet.Tables["controls"].Rows[0]["liteScanTime"] = sync_start.AddMinutes(-1);
-                dSet.WriteXml(fSet);
+                await _db.SetParamAsync("liteScanTime", sync_start.AddMinutes(-1).ToString());
+                await _db.SetParamAsync("controlBus", bus.Count.ToString());
 
 
-                ///вызываем событие
-                ///в котором сообщаем о том, что в базе есть изменения... на будущее
-                ///если будем использовать событийную модель
-
-
-
-                ///но пока события не реализованы в проекте
-                ///поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
+                ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
+                ///пока события не реализованы в проекте, поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
                 ///которые изменились с момента последнего запроса
                 ///и дальше сдвинем контрольное время актуальности базы
                 ///а дальше всё как обычно, только сайты больше не парсим,
@@ -533,11 +502,9 @@ namespace Selen {
                     await GroupsMoveAsync();//проверка групп
                     await TiuCheckAsync();//исправляем ссылки на тиу
                     await PhotoClearAsync();//очистка ненужных фото
-                    dSet.Tables["controls"].Rows[0]["lastScanTime"] = sync_start;
+                    await _db.SetParamAsync("lastScanTime",sync_start.ToString());
                     RootObject.ScanTime = sync_start;
                     dateTimePicker1.Value = sync_start;
-                    dSet.WriteXml(fSet);
-
                     await SaveBusAsync();
                 }
                 Log.Add("lite sync complete.");
@@ -618,7 +585,7 @@ namespace Selen {
         async Task GetBusGoodsAsync2() {
             int lastScan;
             do {
-                lastScan = Convert.ToInt32(dSet.Tables["controls"].Rows[0]["controlBus"]);
+                lastScan = await _db.GetParamIntAsync("controlBus");
                 bus.Clear();
                 try {
                     for (int i = 1; i > 0; i++) {
@@ -653,10 +620,9 @@ namespace Selen {
                     Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
                     await Task.Delay(60000);
                 }
-                dSet.Tables["controls"].Rows[0]["controlBus"] = bus.Count.ToString();
+                await _db.SetParamAsync("controlBus", bus.Count.ToString());
             } while (bus.Count == 0 || Math.Abs(lastScan - bus.Count) > 400);
             Log.Add("business.ru: получено товаров " + bus.Count);
-            dSet.WriteXml(fSet);
         }
 
         async Task<List<RootObject>> GetBusGoodsAsync(List<string> ids) {
@@ -1109,9 +1075,8 @@ namespace Selen {
             try {
                 scanTime = dateTimePicker1.Value;
                 _db.SetParamAsync("lastScanTime", scanTime.ToString());
-                dSet.Tables["controls"].Rows[0]["liteScanTime"] = scanTime;
+                _db.SetParamAsync("liteScanTime", scanTime.ToString());
                 RootObject.ScanTime = scanTime;
-                dSet.WriteXml(fSet);
             } catch (Exception x) {
                 Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException.Message);
             }
@@ -1166,15 +1131,6 @@ namespace Selen {
                 }
             }
         }
-        //TODO delete this
-        private void button_ReadSetXmlClick(object sender, EventArgs e) {
-            try {
-                dSet.Clear();
-                dSet.ReadXml(fSet);
-            } catch (Exception x) {
-                Log.Add(x.Message);
-            }
-        }
         //============
         //=== ЛОГИ ===
         //============
@@ -1224,16 +1180,14 @@ namespace Selen {
         //загрузка файла настроек
         void dsOptions_Initialized(object sender, EventArgs e) {
             try {
-                dSet.ReadXml(fSet);        //TODO delete this
                 dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             } catch (Exception x) {
-                MessageBox.Show("ошибка чтения set.xml - " + x.Message);
+                MessageBox.Show("ошибка чтения lastScanTime из базы данных - " + x.Message);
             }
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             this.Visible = false;
-            dSet.WriteXml(fSet);//TODO delete this
             ClearTempFiles();
             if(await _db.GetParamBoolAsync("saveCookiesBeforeClose")) {
                 _tiu?.SaveCookies();

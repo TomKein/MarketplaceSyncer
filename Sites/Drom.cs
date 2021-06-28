@@ -1,8 +1,5 @@
-﻿//изменен метод SetPrice для товаров с залоговой стоимостью
-
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -12,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
@@ -30,7 +26,6 @@ namespace Selen.Sites {
         Random _rnd = new Random();
         //конструктор
         public Drom() {
-            //сохраняю ссылку для работы с базой данных
             _db = DB._db;
         }
 

@@ -31,7 +31,7 @@ namespace Selen.Tools {
                 try {
                     if (i > 0) {
                         _drv.Navigate().Refresh();
-                        Thread.Sleep(20000);
+                        Thread.Sleep(10000);
                     }
                     _drv.Navigate().GoToUrl(url);
                     ConfirmAlert();
