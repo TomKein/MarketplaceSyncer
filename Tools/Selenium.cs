@@ -26,10 +26,11 @@ namespace Selen.Tools {
             Log.Add("_drv.Manage().Timeouts().PageLoad = " + _drv.Manage().Timeouts().PageLoad);
         }
 
-        public void Navigate(string url, string check=null, int tryCount=10) {
+        public void Navigate(string url, string check=null, int tryCount=3) {
             for (int i = 0; i < tryCount; i++) {
                 try {
                     if (i > 0) {
+                        //_drv.FindElement(By.CssSelector("body")).SendKeys(OpenQA.Selenium.Keys.Control+OpenQA.Selenium.Keys.F5);
                         _drv.Navigate().Refresh();
                         Thread.Sleep(10000);
                     }
@@ -43,7 +44,6 @@ namespace Selen.Tools {
                 }
             }
             throw new Exception("selenium: ошибка браузера! - не удается загрузить страницу " + url + " - timed out!");
-            _drv.Quit();
         }
 
         public async Task NavigateAsync(string url, string check = null, int tryCount = 10) {

@@ -31,89 +31,90 @@ namespace Selen
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.button_drom_get = new System.Windows.Forms.Button();
-            this.button_base_get = new System.Windows.Forms.Button();
-            this.button_avito_get = new System.Windows.Forms.Button();
+            this.button_Drom = new System.Windows.Forms.Button();
+            this.button_BaseGet = new System.Windows.Forms.Button();
+            this.button_Avito = new System.Windows.Forms.Button();
             this.logBox = new System.Windows.Forms.RichTextBox();
-            this.buttonPriceLevelsReport = new System.Windows.Forms.Button();
-            this.button_vk_sync = new System.Windows.Forms.Button();
-            this.button_tiu_sync = new System.Windows.Forms.Button();
+            this.button_PriceLevelsReport = new System.Windows.Forms.Button();
+            this.button_Vk = new System.Windows.Forms.Button();
+            this.button_Tiu = new System.Windows.Forms.Button();
             this.ds = new System.Data.DataSet();
             this.checkBox_sync = new System.Windows.Forms.CheckBox();
-            this.label_bus = new System.Windows.Forms.Label();
-            this.label_tiu = new System.Windows.Forms.Label();
-            this.label_vk = new System.Windows.Forms.Label();
+            this.label_Bus = new System.Windows.Forms.Label();
+            this.label_Tiu = new System.Windows.Forms.Label();
+            this.label_Vk = new System.Windows.Forms.Label();
             this.timer_sync = new System.Windows.Forms.Timer(this.components);
-            this.label_drom = new System.Windows.Forms.Label();
-            this.button_put_desc = new System.Windows.Forms.Button();
-            this.buttonTestPartners = new System.Windows.Forms.Button();
-            this.button_AutoRuStart = new System.Windows.Forms.Button();
-            this.label_auto = new System.Windows.Forms.Label();
-            this.label_youla = new System.Windows.Forms.Label();
+            this.label_Drom = new System.Windows.Forms.Label();
+            this.button_Descriptions = new System.Windows.Forms.Button();
+            this.button_TestPartners = new System.Windows.Forms.Button();
+            this.button_AutoRu = new System.Windows.Forms.Button();
+            this.label_Auto = new System.Windows.Forms.Label();
+            this.label_Youla = new System.Windows.Forms.Label();
             this.label_lastSyncTime = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
-            this.buttonSatom = new System.Windows.Forms.Button();
-            this.buttonKupiprodai = new System.Windows.Forms.Button();
-            this.buttonKupiprodaiAdd = new System.Windows.Forms.Button();
-            this.label_KP = new System.Windows.Forms.Label();
-            this.button_PricesCheck = new System.Windows.Forms.Button();
-            this.button_GdeGet = new System.Windows.Forms.Button();
-            this.label_gde = new System.Windows.Forms.Label();
+            this.button_Satom = new System.Windows.Forms.Button();
+            this.button_Kupiprodai = new System.Windows.Forms.Button();
+            this.button_KupiprodaiAdd = new System.Windows.Forms.Button();
+            this.label_Kp = new System.Windows.Forms.Label();
+            this.button_PricesCorrection = new System.Windows.Forms.Button();
+            this.button_Gde = new System.Windows.Forms.Button();
+            this.label_Gde = new System.Windows.Forms.Label();
             this.button_cdek = new System.Windows.Forms.Button();
-            this.label_cdek = new System.Windows.Forms.Label();
+            this.label_Cdek = new System.Windows.Forms.Label();
             this.button_SaveCookie = new System.Windows.Forms.Button();
-            this.checkBoxCdekSyncActive = new System.Windows.Forms.CheckBox();
+            this.checkBox_CdekSyncActive = new System.Windows.Forms.CheckBox();
             this.numericUpDown_СdekCheckUrls = new System.Windows.Forms.NumericUpDown();
             this.numericUpDown_CdekAddNewCount = new System.Windows.Forms.NumericUpDown();
-            this.button_avto_pro = new System.Windows.Forms.Button();
-            this.button_SettingsFormOpen = new System.Windows.Forms.Button();
+            this.button_AvtoPro = new System.Windows.Forms.Button();
+            this.button_Settings = new System.Windows.Forms.Button();
             this.button_EuroAuto = new System.Windows.Forms.Button();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.button_izap24 = new System.Windows.Forms.Button();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.buttonTest = new System.Windows.Forms.Button();
-            this.panel3 = new System.Windows.Forms.Panel();
+            this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.button_Youla = new System.Windows.Forms.Button();
+            this.button_Izap24 = new System.Windows.Forms.Button();
+            this.panel_bottom = new System.Windows.Forms.Panel();
+            this.button_Test = new System.Windows.Forms.Button();
+            this.panel_Filter = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
             ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).BeginInit();
-            this.panel1.SuspendLayout();
-            this.panel2.SuspendLayout();
-            this.panel3.SuspendLayout();
+            this.panel_Buttons.SuspendLayout();
+            this.panel_bottom.SuspendLayout();
+            this.panel_Filter.SuspendLayout();
             this.panel4.SuspendLayout();
             this.SuspendLayout();
             // 
-            // button_drom_get
+            // button_Drom
             // 
-            this.button_drom_get.Location = new System.Drawing.Point(5, 138);
-            this.button_drom_get.Name = "button_drom_get";
-            this.button_drom_get.Size = new System.Drawing.Size(113, 23);
-            this.button_drom_get.TabIndex = 4;
-            this.button_drom_get.Text = "Drom.ru";
-            this.button_drom_get.UseVisualStyleBackColor = true;
-            this.button_drom_get.Click += new System.EventHandler(this.DromRu_Click);
+            this.button_Drom.Location = new System.Drawing.Point(5, 138);
+            this.button_Drom.Name = "button_Drom";
+            this.button_Drom.Size = new System.Drawing.Size(113, 23);
+            this.button_Drom.TabIndex = 4;
+            this.button_Drom.Text = "Drom.ru";
+            this.button_Drom.UseVisualStyleBackColor = true;
+            this.button_Drom.Click += new System.EventHandler(this.DromRu_Click);
             // 
-            // button_base_get
+            // button_BaseGet
             // 
-            this.button_base_get.Location = new System.Drawing.Point(5, 60);
-            this.button_base_get.Name = "button_base_get";
-            this.button_base_get.Size = new System.Drawing.Size(113, 21);
-            this.button_base_get.TabIndex = 1;
-            this.button_base_get.Text = "Запуск";
-            this.button_base_get.UseVisualStyleBackColor = true;
-            this.button_base_get.Click += new System.EventHandler(this.BaseGet);
+            this.button_BaseGet.Location = new System.Drawing.Point(5, 60);
+            this.button_BaseGet.Name = "button_BaseGet";
+            this.button_BaseGet.Size = new System.Drawing.Size(113, 21);
+            this.button_BaseGet.TabIndex = 1;
+            this.button_BaseGet.Text = "Запуск";
+            this.button_BaseGet.UseVisualStyleBackColor = true;
+            this.button_BaseGet.Click += new System.EventHandler(this.BaseGet);
             // 
-            // button_avito_get
+            // button_Avito
             // 
-            this.button_avito_get.Location = new System.Drawing.Point(5, 110);
-            this.button_avito_get.Name = "button_avito_get";
-            this.button_avito_get.Size = new System.Drawing.Size(113, 25);
-            this.button_avito_get.TabIndex = 3;
-            this.button_avito_get.Text = "Avito.ru";
-            this.button_avito_get.UseVisualStyleBackColor = true;
-            this.button_avito_get.Click += new System.EventHandler(this.AvitoRu_Click);
+            this.button_Avito.Location = new System.Drawing.Point(5, 110);
+            this.button_Avito.Name = "button_Avito";
+            this.button_Avito.Size = new System.Drawing.Size(113, 25);
+            this.button_Avito.TabIndex = 3;
+            this.button_Avito.Text = "Avito.ru";
+            this.button_Avito.UseVisualStyleBackColor = true;
+            this.button_Avito.Click += new System.EventHandler(this.AvitoRu_Click);
             // 
             // logBox
             // 
@@ -130,35 +131,35 @@ namespace Selen
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
             // 
-            // buttonPriceLevelsReport
+            // button_PriceLevelsReport
             // 
-            this.buttonPriceLevelsReport.Location = new System.Drawing.Point(670, 8);
-            this.buttonPriceLevelsReport.Name = "buttonPriceLevelsReport";
-            this.buttonPriceLevelsReport.Size = new System.Drawing.Size(107, 23);
-            this.buttonPriceLevelsReport.TabIndex = 20;
-            this.buttonPriceLevelsReport.Text = "Остатки по ценам";
-            this.buttonPriceLevelsReport.UseVisualStyleBackColor = true;
-            this.buttonPriceLevelsReport.Click += new System.EventHandler(this.PriceLevelsRemainsReport);
+            this.button_PriceLevelsReport.Location = new System.Drawing.Point(670, 8);
+            this.button_PriceLevelsReport.Name = "button_PriceLevelsReport";
+            this.button_PriceLevelsReport.Size = new System.Drawing.Size(107, 23);
+            this.button_PriceLevelsReport.TabIndex = 20;
+            this.button_PriceLevelsReport.Text = "Остатки по ценам";
+            this.button_PriceLevelsReport.UseVisualStyleBackColor = true;
+            this.button_PriceLevelsReport.Click += new System.EventHandler(this.PriceLevelsRemainsReport);
             // 
-            // button_vk_sync
+            // button_Vk
             // 
-            this.button_vk_sync.Location = new System.Drawing.Point(5, 238);
-            this.button_vk_sync.Name = "button_vk_sync";
-            this.button_vk_sync.Size = new System.Drawing.Size(113, 23);
-            this.button_vk_sync.TabIndex = 7;
-            this.button_vk_sync.Text = "Vk.com";
-            this.button_vk_sync.UseVisualStyleBackColor = true;
-            this.button_vk_sync.Click += new System.EventHandler(this.VkCom_Click);
+            this.button_Vk.Location = new System.Drawing.Point(5, 238);
+            this.button_Vk.Name = "button_Vk";
+            this.button_Vk.Size = new System.Drawing.Size(113, 23);
+            this.button_Vk.TabIndex = 7;
+            this.button_Vk.Text = "Vk.com";
+            this.button_Vk.UseVisualStyleBackColor = true;
+            this.button_Vk.Click += new System.EventHandler(this.VkCom_Click);
             // 
-            // button_tiu_sync
+            // button_Tiu
             // 
-            this.button_tiu_sync.Location = new System.Drawing.Point(5, 84);
-            this.button_tiu_sync.Name = "button_tiu_sync";
-            this.button_tiu_sync.Size = new System.Drawing.Size(113, 23);
-            this.button_tiu_sync.TabIndex = 2;
-            this.button_tiu_sync.Text = "Tiu.ru";
-            this.button_tiu_sync.UseVisualStyleBackColor = true;
-            this.button_tiu_sync.Click += new System.EventHandler(this.TiuRu_Click);
+            this.button_Tiu.Location = new System.Drawing.Point(5, 84);
+            this.button_Tiu.Name = "button_Tiu";
+            this.button_Tiu.Size = new System.Drawing.Size(113, 23);
+            this.button_Tiu.TabIndex = 2;
+            this.button_Tiu.Text = "Tiu.ru";
+            this.button_Tiu.UseVisualStyleBackColor = true;
+            this.button_Tiu.Click += new System.EventHandler(this.TiuRu_Click);
             // 
             // ds
             // 
@@ -176,31 +177,32 @@ namespace Selen
             this.checkBox_sync.Text = "синхронизация вкл";
             this.checkBox_sync.UseVisualStyleBackColor = true;
             // 
-            // label_bus
+            // label_Bus
             // 
-            this.label_bus.AutoSize = true;
-            this.label_bus.Location = new System.Drawing.Point(119, 63);
-            this.label_bus.Name = "label_bus";
-            this.label_bus.Size = new System.Drawing.Size(0, 13);
-            this.label_bus.TabIndex = 36;
+            this.label_Bus.AutoSize = true;
+            this.label_Bus.Location = new System.Drawing.Point(120, 64);
+            this.label_Bus.Name = "label_Bus";
+            this.label_Bus.Size = new System.Drawing.Size(16, 13);
+            this.label_Bus.TabIndex = 36;
+            this.label_Bus.Text = "...";
             // 
-            // label_tiu
+            // label_Tiu
             // 
-            this.label_tiu.AutoSize = true;
-            this.label_tiu.Location = new System.Drawing.Point(125, 89);
-            this.label_tiu.Name = "label_tiu";
-            this.label_tiu.Size = new System.Drawing.Size(10, 13);
-            this.label_tiu.TabIndex = 37;
-            this.label_tiu.Text = " ";
+            this.label_Tiu.AutoSize = true;
+            this.label_Tiu.Location = new System.Drawing.Point(120, 89);
+            this.label_Tiu.Name = "label_Tiu";
+            this.label_Tiu.Size = new System.Drawing.Size(16, 13);
+            this.label_Tiu.TabIndex = 37;
+            this.label_Tiu.Text = "...";
             // 
-            // label_vk
+            // label_Vk
             // 
-            this.label_vk.AutoSize = true;
-            this.label_vk.Location = new System.Drawing.Point(125, 243);
-            this.label_vk.Name = "label_vk";
-            this.label_vk.Size = new System.Drawing.Size(10, 13);
-            this.label_vk.TabIndex = 38;
-            this.label_vk.Text = " ";
+            this.label_Vk.AutoSize = true;
+            this.label_Vk.Location = new System.Drawing.Point(120, 243);
+            this.label_Vk.Name = "label_Vk";
+            this.label_Vk.Size = new System.Drawing.Size(16, 13);
+            this.label_Vk.TabIndex = 38;
+            this.label_Vk.Text = "...";
             // 
             // timer_sync
             // 
@@ -208,60 +210,62 @@ namespace Selen
             this.timer_sync.Interval = 300000;
             this.timer_sync.Tick += new System.EventHandler(this.timer_sync_Tick);
             // 
-            // label_drom
+            // label_Drom
             // 
-            this.label_drom.AutoSize = true;
-            this.label_drom.Location = new System.Drawing.Point(125, 143);
-            this.label_drom.Name = "label_drom";
-            this.label_drom.Size = new System.Drawing.Size(0, 13);
-            this.label_drom.TabIndex = 58;
+            this.label_Drom.AutoSize = true;
+            this.label_Drom.Location = new System.Drawing.Point(120, 143);
+            this.label_Drom.Name = "label_Drom";
+            this.label_Drom.Size = new System.Drawing.Size(16, 13);
+            this.label_Drom.TabIndex = 58;
+            this.label_Drom.Text = "...";
             // 
-            // button_put_desc
+            // button_Descriptions
             // 
-            this.button_put_desc.Location = new System.Drawing.Point(185, 7);
-            this.button_put_desc.Name = "button_put_desc";
-            this.button_put_desc.Size = new System.Drawing.Size(108, 24);
-            this.button_put_desc.TabIndex = 59;
-            this.button_put_desc.Text = "Описания";
-            this.button_put_desc.UseVisualStyleBackColor = true;
-            this.button_put_desc.Click += new System.EventHandler(this.button_put_desc_Click);
+            this.button_Descriptions.Location = new System.Drawing.Point(185, 7);
+            this.button_Descriptions.Name = "button_Descriptions";
+            this.button_Descriptions.Size = new System.Drawing.Size(108, 24);
+            this.button_Descriptions.TabIndex = 59;
+            this.button_Descriptions.Text = "Описания";
+            this.button_Descriptions.UseVisualStyleBackColor = true;
+            this.button_Descriptions.Click += new System.EventHandler(this.button_put_desc_Click);
             // 
-            // buttonTestPartners
+            // button_TestPartners
             // 
-            this.buttonTestPartners.Location = new System.Drawing.Point(434, 8);
-            this.buttonTestPartners.Name = "buttonTestPartners";
-            this.buttonTestPartners.Size = new System.Drawing.Size(152, 23);
-            this.buttonTestPartners.TabIndex = 61;
-            this.buttonTestPartners.Text = "Задвоения контрагентов";
-            this.buttonTestPartners.UseVisualStyleBackColor = true;
-            this.buttonTestPartners.Click += new System.EventHandler(this.ButtonTestPartnersClick);
+            this.button_TestPartners.Location = new System.Drawing.Point(434, 8);
+            this.button_TestPartners.Name = "button_TestPartners";
+            this.button_TestPartners.Size = new System.Drawing.Size(152, 23);
+            this.button_TestPartners.TabIndex = 61;
+            this.button_TestPartners.Text = "Задвоения контрагентов";
+            this.button_TestPartners.UseVisualStyleBackColor = true;
+            this.button_TestPartners.Click += new System.EventHandler(this.ButtonTestPartnersClick);
             // 
-            // button_AutoRuStart
+            // button_AutoRu
             // 
-            this.button_AutoRuStart.Location = new System.Drawing.Point(5, 264);
-            this.button_AutoRuStart.Name = "button_AutoRuStart";
-            this.button_AutoRuStart.Size = new System.Drawing.Size(113, 23);
-            this.button_AutoRuStart.TabIndex = 6;
-            this.button_AutoRuStart.Text = "Auto.ru";
-            this.button_AutoRuStart.UseVisualStyleBackColor = true;
-            this.button_AutoRuStart.Click += new System.EventHandler(this.AutoRu_Click);
+            this.button_AutoRu.Location = new System.Drawing.Point(5, 264);
+            this.button_AutoRu.Name = "button_AutoRu";
+            this.button_AutoRu.Size = new System.Drawing.Size(113, 23);
+            this.button_AutoRu.TabIndex = 6;
+            this.button_AutoRu.Text = "Auto.ru";
+            this.button_AutoRu.UseVisualStyleBackColor = true;
+            this.button_AutoRu.Click += new System.EventHandler(this.AutoRu_Click);
             // 
-            // label_auto
+            // label_Auto
             // 
-            this.label_auto.AutoSize = true;
-            this.label_auto.Location = new System.Drawing.Point(115, 267);
-            this.label_auto.Name = "label_auto";
-            this.label_auto.Size = new System.Drawing.Size(0, 13);
-            this.label_auto.TabIndex = 66;
+            this.label_Auto.AutoSize = true;
+            this.label_Auto.Location = new System.Drawing.Point(115, 267);
+            this.label_Auto.Name = "label_Auto";
+            this.label_Auto.Size = new System.Drawing.Size(0, 13);
+            this.label_Auto.TabIndex = 66;
             // 
-            // label_youla
+            // label_Youla
             // 
-            this.label_youla.AutoSize = true;
-            this.label_youla.Enabled = false;
-            this.label_youla.Location = new System.Drawing.Point(118, 537);
-            this.label_youla.Name = "label_youla";
-            this.label_youla.Size = new System.Drawing.Size(0, 13);
-            this.label_youla.TabIndex = 85;
+            this.label_Youla.AutoSize = true;
+            this.label_Youla.Enabled = false;
+            this.label_Youla.Location = new System.Drawing.Point(120, 372);
+            this.label_Youla.Name = "label_Youla";
+            this.label_Youla.Size = new System.Drawing.Size(16, 13);
+            this.label_Youla.TabIndex = 85;
+            this.label_Youla.Text = "...";
             // 
             // label_lastSyncTime
             // 
@@ -287,72 +291,74 @@ namespace Selen
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
             this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
             // 
-            // buttonSatom
+            // button_Satom
             // 
-            this.buttonSatom.Enabled = false;
-            this.buttonSatom.Location = new System.Drawing.Point(5, 476);
-            this.buttonSatom.Name = "buttonSatom";
-            this.buttonSatom.Size = new System.Drawing.Size(108, 23);
-            this.buttonSatom.TabIndex = 10;
-            this.buttonSatom.Text = "Satom.ru";
-            this.buttonSatom.UseVisualStyleBackColor = true;
-            this.buttonSatom.Click += new System.EventHandler(this.buttonSatom_Click);
+            this.button_Satom.Enabled = false;
+            this.button_Satom.Location = new System.Drawing.Point(5, 476);
+            this.button_Satom.Name = "button_Satom";
+            this.button_Satom.Size = new System.Drawing.Size(108, 23);
+            this.button_Satom.TabIndex = 10;
+            this.button_Satom.Text = "Satom.ru";
+            this.button_Satom.UseVisualStyleBackColor = true;
+            this.button_Satom.Click += new System.EventHandler(this.buttonSatom_Click);
             // 
-            // buttonKupiprodai
+            // button_Kupiprodai
             // 
-            this.buttonKupiprodai.Location = new System.Drawing.Point(5, 164);
-            this.buttonKupiprodai.Name = "buttonKupiprodai";
-            this.buttonKupiprodai.Size = new System.Drawing.Size(113, 23);
-            this.buttonKupiprodai.TabIndex = 5;
-            this.buttonKupiprodai.Text = "Купипродай";
-            this.buttonKupiprodai.UseVisualStyleBackColor = true;
-            this.buttonKupiprodai.Click += new System.EventHandler(this.KupiprodaiRu_Click);
+            this.button_Kupiprodai.Location = new System.Drawing.Point(5, 164);
+            this.button_Kupiprodai.Name = "button_Kupiprodai";
+            this.button_Kupiprodai.Size = new System.Drawing.Size(113, 23);
+            this.button_Kupiprodai.TabIndex = 5;
+            this.button_Kupiprodai.Text = "Купипродай";
+            this.button_Kupiprodai.UseVisualStyleBackColor = true;
+            this.button_Kupiprodai.Click += new System.EventHandler(this.KupiprodaiRu_Click);
             // 
-            // buttonKupiprodaiAdd
+            // button_KupiprodaiAdd
             // 
-            this.buttonKupiprodaiAdd.Location = new System.Drawing.Point(5, 186);
-            this.buttonKupiprodaiAdd.Name = "buttonKupiprodaiAdd";
-            this.buttonKupiprodaiAdd.Size = new System.Drawing.Size(113, 23);
-            this.buttonKupiprodaiAdd.TabIndex = 112;
-            this.buttonKupiprodaiAdd.Text = "Выкладывать";
-            this.buttonKupiprodaiAdd.UseVisualStyleBackColor = true;
-            this.buttonKupiprodaiAdd.Click += new System.EventHandler(this.KupiprodaiRuAdd_Click);
+            this.button_KupiprodaiAdd.Location = new System.Drawing.Point(5, 186);
+            this.button_KupiprodaiAdd.Name = "button_KupiprodaiAdd";
+            this.button_KupiprodaiAdd.Size = new System.Drawing.Size(113, 23);
+            this.button_KupiprodaiAdd.TabIndex = 112;
+            this.button_KupiprodaiAdd.Text = "Выкладывать";
+            this.button_KupiprodaiAdd.UseVisualStyleBackColor = true;
+            this.button_KupiprodaiAdd.Click += new System.EventHandler(this.KupiprodaiRuAdd_Click);
             // 
-            // label_KP
+            // label_Kp
             // 
-            this.label_KP.AutoSize = true;
-            this.label_KP.Location = new System.Drawing.Point(125, 169);
-            this.label_KP.Name = "label_KP";
-            this.label_KP.Size = new System.Drawing.Size(0, 13);
-            this.label_KP.TabIndex = 114;
+            this.label_Kp.AutoSize = true;
+            this.label_Kp.Location = new System.Drawing.Point(120, 169);
+            this.label_Kp.Name = "label_Kp";
+            this.label_Kp.Size = new System.Drawing.Size(16, 13);
+            this.label_Kp.TabIndex = 114;
+            this.label_Kp.Text = "...";
             // 
-            // button_PricesCheck
+            // button_PricesCorrection
             // 
-            this.button_PricesCheck.Location = new System.Drawing.Point(298, 8);
-            this.button_PricesCheck.Name = "button_PricesCheck";
-            this.button_PricesCheck.Size = new System.Drawing.Size(131, 23);
-            this.button_PricesCheck.TabIndex = 115;
-            this.button_PricesCheck.Text = "Корекция цен закупки";
-            this.button_PricesCheck.UseVisualStyleBackColor = true;
-            this.button_PricesCheck.Click += new System.EventHandler(this.button_PricesCheck_Click);
+            this.button_PricesCorrection.Location = new System.Drawing.Point(298, 8);
+            this.button_PricesCorrection.Name = "button_PricesCorrection";
+            this.button_PricesCorrection.Size = new System.Drawing.Size(131, 23);
+            this.button_PricesCorrection.TabIndex = 115;
+            this.button_PricesCorrection.Text = "Корекция цен закупки";
+            this.button_PricesCorrection.UseVisualStyleBackColor = true;
+            this.button_PricesCorrection.Click += new System.EventHandler(this.button_PricesCheck_Click);
             // 
-            // button_GdeGet
+            // button_Gde
             // 
-            this.button_GdeGet.Location = new System.Drawing.Point(5, 290);
-            this.button_GdeGet.Name = "button_GdeGet";
-            this.button_GdeGet.Size = new System.Drawing.Size(113, 23);
-            this.button_GdeGet.TabIndex = 9;
-            this.button_GdeGet.Text = "Gde.ru";
-            this.button_GdeGet.UseVisualStyleBackColor = true;
-            this.button_GdeGet.Click += new System.EventHandler(this.GdeRu_Click);
+            this.button_Gde.Location = new System.Drawing.Point(5, 290);
+            this.button_Gde.Name = "button_Gde";
+            this.button_Gde.Size = new System.Drawing.Size(113, 23);
+            this.button_Gde.TabIndex = 9;
+            this.button_Gde.Text = "Gde.ru";
+            this.button_Gde.UseVisualStyleBackColor = true;
+            this.button_Gde.Click += new System.EventHandler(this.GdeRu_Click);
             // 
-            // label_gde
+            // label_Gde
             // 
-            this.label_gde.AutoSize = true;
-            this.label_gde.Location = new System.Drawing.Point(125, 295);
-            this.label_gde.Name = "label_gde";
-            this.label_gde.Size = new System.Drawing.Size(0, 13);
-            this.label_gde.TabIndex = 118;
+            this.label_Gde.AutoSize = true;
+            this.label_Gde.Location = new System.Drawing.Point(120, 295);
+            this.label_Gde.Name = "label_Gde";
+            this.label_Gde.Size = new System.Drawing.Size(16, 13);
+            this.label_Gde.TabIndex = 118;
+            this.label_Gde.Text = "...";
             // 
             // button_cdek
             // 
@@ -364,14 +370,14 @@ namespace Selen
             this.button_cdek.UseVisualStyleBackColor = true;
             this.button_cdek.Click += new System.EventHandler(this.Cdek_Click);
             // 
-            // label_cdek
+            // label_Cdek
             // 
-            this.label_cdek.AutoSize = true;
-            this.label_cdek.Location = new System.Drawing.Point(125, 347);
-            this.label_cdek.Name = "label_cdek";
-            this.label_cdek.Size = new System.Drawing.Size(10, 13);
-            this.label_cdek.TabIndex = 122;
-            this.label_cdek.Text = " ";
+            this.label_Cdek.AutoSize = true;
+            this.label_Cdek.Location = new System.Drawing.Point(120, 347);
+            this.label_Cdek.Name = "label_Cdek";
+            this.label_Cdek.Size = new System.Drawing.Size(16, 13);
+            this.label_Cdek.TabIndex = 122;
+            this.label_Cdek.Text = "...";
             // 
             // button_SaveCookie
             // 
@@ -383,15 +389,15 @@ namespace Selen
             this.button_SaveCookie.UseVisualStyleBackColor = true;
             this.button_SaveCookie.Click += new System.EventHandler(this.button_SaveCookie_Click);
             // 
-            // checkBoxCdekSyncActive
+            // checkBox_CdekSyncActive
             // 
-            this.checkBoxCdekSyncActive.AutoSize = true;
-            this.checkBoxCdekSyncActive.Location = new System.Drawing.Point(7, 448);
-            this.checkBoxCdekSyncActive.Name = "checkBoxCdekSyncActive";
-            this.checkBoxCdekSyncActive.Size = new System.Drawing.Size(44, 17);
-            this.checkBoxCdekSyncActive.TabIndex = 125;
-            this.checkBoxCdekSyncActive.Text = "вкл";
-            this.checkBoxCdekSyncActive.UseVisualStyleBackColor = true;
+            this.checkBox_CdekSyncActive.AutoSize = true;
+            this.checkBox_CdekSyncActive.Location = new System.Drawing.Point(7, 448);
+            this.checkBox_CdekSyncActive.Name = "checkBox_CdekSyncActive";
+            this.checkBox_CdekSyncActive.Size = new System.Drawing.Size(44, 17);
+            this.checkBox_CdekSyncActive.TabIndex = 125;
+            this.checkBox_CdekSyncActive.Text = "вкл";
+            this.checkBox_CdekSyncActive.UseVisualStyleBackColor = true;
             // 
             // numericUpDown_СdekCheckUrls
             // 
@@ -426,25 +432,25 @@ namespace Selen
             this.numericUpDown_CdekAddNewCount.TabIndex = 133;
             this.numericUpDown_CdekAddNewCount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // button_avto_pro
+            // button_AvtoPro
             // 
-            this.button_avto_pro.Location = new System.Drawing.Point(5, 212);
-            this.button_avto_pro.Name = "button_avto_pro";
-            this.button_avto_pro.Size = new System.Drawing.Size(113, 23);
-            this.button_avto_pro.TabIndex = 139;
-            this.button_avto_pro.Text = "Avto.pro";
-            this.button_avto_pro.UseVisualStyleBackColor = true;
-            this.button_avto_pro.Click += new System.EventHandler(this.AvtoPro_Click);
+            this.button_AvtoPro.Location = new System.Drawing.Point(5, 212);
+            this.button_AvtoPro.Name = "button_AvtoPro";
+            this.button_AvtoPro.Size = new System.Drawing.Size(113, 23);
+            this.button_AvtoPro.TabIndex = 139;
+            this.button_AvtoPro.Text = "Avto.pro";
+            this.button_AvtoPro.UseVisualStyleBackColor = true;
+            this.button_AvtoPro.Click += new System.EventHandler(this.AvtoPro_Click);
             // 
-            // button_SettingsFormOpen
+            // button_Settings
             // 
-            this.button_SettingsFormOpen.Location = new System.Drawing.Point(6, 7);
-            this.button_SettingsFormOpen.Name = "button_SettingsFormOpen";
-            this.button_SettingsFormOpen.Size = new System.Drawing.Size(112, 24);
-            this.button_SettingsFormOpen.TabIndex = 59;
-            this.button_SettingsFormOpen.Text = "НАСТРОЙКИ";
-            this.button_SettingsFormOpen.UseVisualStyleBackColor = true;
-            this.button_SettingsFormOpen.Click += new System.EventHandler(this.button_SettingsFormOpen_Click);
+            this.button_Settings.Location = new System.Drawing.Point(6, 7);
+            this.button_Settings.Name = "button_Settings";
+            this.button_Settings.Size = new System.Drawing.Size(112, 24);
+            this.button_Settings.TabIndex = 59;
+            this.button_Settings.Text = "НАСТРОЙКИ";
+            this.button_Settings.UseVisualStyleBackColor = true;
+            this.button_Settings.Click += new System.EventHandler(this.button_SettingsFormOpen_Click);
             // 
             // button_EuroAuto
             // 
@@ -456,92 +462,103 @@ namespace Selen
             this.button_EuroAuto.UseVisualStyleBackColor = true;
             this.button_EuroAuto.Click += new System.EventHandler(this.EuroAuto_Click);
             // 
-            // panel1
+            // panel_Buttons
             // 
-            this.panel1.AutoSize = true;
-            this.panel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.panel1.Controls.Add(this.checkBox_sync);
-            this.panel1.Controls.Add(this.button_izap24);
-            this.panel1.Controls.Add(this.dateTimePicker1);
-            this.panel1.Controls.Add(this.button_EuroAuto);
-            this.panel1.Controls.Add(this.button_drom_get);
-            this.panel1.Controls.Add(this.button_base_get);
-            this.panel1.Controls.Add(this.button_avito_get);
-            this.panel1.Controls.Add(this.button_avto_pro);
-            this.panel1.Controls.Add(this.button_vk_sync);
-            this.panel1.Controls.Add(this.button_tiu_sync);
-            this.panel1.Controls.Add(this.label_bus);
-            this.panel1.Controls.Add(this.label_tiu);
-            this.panel1.Controls.Add(this.numericUpDown_CdekAddNewCount);
-            this.panel1.Controls.Add(this.label_vk);
-            this.panel1.Controls.Add(this.label_drom);
-            this.panel1.Controls.Add(this.numericUpDown_СdekCheckUrls);
-            this.panel1.Controls.Add(this.button_AutoRuStart);
-            this.panel1.Controls.Add(this.checkBoxCdekSyncActive);
-            this.panel1.Controls.Add(this.label_auto);
-            this.panel1.Controls.Add(this.label_cdek);
-            this.panel1.Controls.Add(this.button_cdek);
-            this.panel1.Controls.Add(this.label_youla);
-            this.panel1.Controls.Add(this.label_gde);
-            this.panel1.Controls.Add(this.button_GdeGet);
-            this.panel1.Controls.Add(this.label_lastSyncTime);
-            this.panel1.Controls.Add(this.label_KP);
-            this.panel1.Controls.Add(this.buttonSatom);
-            this.panel1.Controls.Add(this.buttonKupiprodaiAdd);
-            this.panel1.Controls.Add(this.buttonKupiprodai);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Left;
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(162, 417);
-            this.panel1.TabIndex = 146;
+            this.panel_Buttons.AutoSize = true;
+            this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.button_Youla);
+            this.panel_Buttons.Controls.Add(this.checkBox_sync);
+            this.panel_Buttons.Controls.Add(this.button_Izap24);
+            this.panel_Buttons.Controls.Add(this.dateTimePicker1);
+            this.panel_Buttons.Controls.Add(this.button_EuroAuto);
+            this.panel_Buttons.Controls.Add(this.button_Drom);
+            this.panel_Buttons.Controls.Add(this.button_BaseGet);
+            this.panel_Buttons.Controls.Add(this.button_Avito);
+            this.panel_Buttons.Controls.Add(this.button_AvtoPro);
+            this.panel_Buttons.Controls.Add(this.button_Vk);
+            this.panel_Buttons.Controls.Add(this.button_Tiu);
+            this.panel_Buttons.Controls.Add(this.label_Bus);
+            this.panel_Buttons.Controls.Add(this.label_Tiu);
+            this.panel_Buttons.Controls.Add(this.numericUpDown_CdekAddNewCount);
+            this.panel_Buttons.Controls.Add(this.label_Vk);
+            this.panel_Buttons.Controls.Add(this.label_Drom);
+            this.panel_Buttons.Controls.Add(this.numericUpDown_СdekCheckUrls);
+            this.panel_Buttons.Controls.Add(this.button_AutoRu);
+            this.panel_Buttons.Controls.Add(this.checkBox_CdekSyncActive);
+            this.panel_Buttons.Controls.Add(this.label_Auto);
+            this.panel_Buttons.Controls.Add(this.label_Cdek);
+            this.panel_Buttons.Controls.Add(this.button_cdek);
+            this.panel_Buttons.Controls.Add(this.label_Youla);
+            this.panel_Buttons.Controls.Add(this.label_Gde);
+            this.panel_Buttons.Controls.Add(this.button_Gde);
+            this.panel_Buttons.Controls.Add(this.label_lastSyncTime);
+            this.panel_Buttons.Controls.Add(this.label_Kp);
+            this.panel_Buttons.Controls.Add(this.button_Satom);
+            this.panel_Buttons.Controls.Add(this.button_KupiprodaiAdd);
+            this.panel_Buttons.Controls.Add(this.button_Kupiprodai);
+            this.panel_Buttons.Dock = System.Windows.Forms.DockStyle.Left;
+            this.panel_Buttons.Location = new System.Drawing.Point(0, 0);
+            this.panel_Buttons.Name = "panel_Buttons";
+            this.panel_Buttons.Size = new System.Drawing.Size(162, 417);
+            this.panel_Buttons.TabIndex = 146;
             // 
-            // button_izap24
+            // button_Youla
             // 
-            this.button_izap24.Location = new System.Drawing.Point(4, 342);
-            this.button_izap24.Name = "button_izap24";
-            this.button_izap24.Size = new System.Drawing.Size(114, 23);
-            this.button_izap24.TabIndex = 147;
-            this.button_izap24.Text = "IZap24.ru";
-            this.button_izap24.UseVisualStyleBackColor = true;
-            this.button_izap24.Click += new System.EventHandler(this.Izap24_Click);
+            this.button_Youla.Location = new System.Drawing.Point(5, 368);
+            this.button_Youla.Name = "button_Youla";
+            this.button_Youla.Size = new System.Drawing.Size(113, 23);
+            this.button_Youla.TabIndex = 148;
+            this.button_Youla.Text = "Youla.ru";
+            this.button_Youla.UseVisualStyleBackColor = true;
+            this.button_Youla.Click += new System.EventHandler(this.Youla_Click);
             // 
-            // panel2
+            // button_Izap24
             // 
-            this.panel2.AutoSize = true;
-            this.panel2.Controls.Add(this.buttonTest);
-            this.panel2.Controls.Add(this.buttonPriceLevelsReport);
-            this.panel2.Controls.Add(this.button_put_desc);
-            this.panel2.Controls.Add(this.button_SettingsFormOpen);
-            this.panel2.Controls.Add(this.button_SaveCookie);
-            this.panel2.Controls.Add(this.buttonTestPartners);
-            this.panel2.Controls.Add(this.button_PricesCheck);
-            this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(0, 417);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(589, 34);
-            this.panel2.TabIndex = 147;
+            this.button_Izap24.Location = new System.Drawing.Point(4, 342);
+            this.button_Izap24.Name = "button_Izap24";
+            this.button_Izap24.Size = new System.Drawing.Size(114, 23);
+            this.button_Izap24.TabIndex = 147;
+            this.button_Izap24.Text = "IZap24.ru";
+            this.button_Izap24.UseVisualStyleBackColor = true;
+            this.button_Izap24.Click += new System.EventHandler(this.Izap24_Click);
             // 
-            // buttonTest
+            // panel_bottom
             // 
-            this.buttonTest.Location = new System.Drawing.Point(781, 8);
-            this.buttonTest.Name = "buttonTest";
-            this.buttonTest.Size = new System.Drawing.Size(69, 23);
-            this.buttonTest.TabIndex = 20;
-            this.buttonTest.TabStop = false;
-            this.buttonTest.Text = "Тест";
-            this.buttonTest.UseVisualStyleBackColor = true;
-            this.buttonTest.Click += new System.EventHandler(this.buttonTest_Click);
+            this.panel_bottom.AutoSize = true;
+            this.panel_bottom.Controls.Add(this.button_Test);
+            this.panel_bottom.Controls.Add(this.button_PriceLevelsReport);
+            this.panel_bottom.Controls.Add(this.button_Descriptions);
+            this.panel_bottom.Controls.Add(this.button_Settings);
+            this.panel_bottom.Controls.Add(this.button_SaveCookie);
+            this.panel_bottom.Controls.Add(this.button_TestPartners);
+            this.panel_bottom.Controls.Add(this.button_PricesCorrection);
+            this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel_bottom.Location = new System.Drawing.Point(0, 417);
+            this.panel_bottom.Name = "panel_bottom";
+            this.panel_bottom.Size = new System.Drawing.Size(589, 34);
+            this.panel_bottom.TabIndex = 147;
             // 
-            // panel3
+            // button_Test
             // 
-            this.panel3.Controls.Add(this.textBox_LogFilter);
-            this.panel3.Controls.Add(this.button_LogFilterClear);
-            this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel3.Location = new System.Drawing.Point(162, 392);
-            this.panel3.Name = "panel3";
-            this.panel3.Padding = new System.Windows.Forms.Padding(2);
-            this.panel3.Size = new System.Drawing.Size(427, 25);
-            this.panel3.TabIndex = 148;
+            this.button_Test.Location = new System.Drawing.Point(781, 8);
+            this.button_Test.Name = "button_Test";
+            this.button_Test.Size = new System.Drawing.Size(69, 23);
+            this.button_Test.TabIndex = 20;
+            this.button_Test.TabStop = false;
+            this.button_Test.Text = "Тест";
+            this.button_Test.UseVisualStyleBackColor = true;
+            this.button_Test.Click += new System.EventHandler(this.buttonTest_Click);
+            // 
+            // panel_Filter
+            // 
+            this.panel_Filter.Controls.Add(this.textBox_LogFilter);
+            this.panel_Filter.Controls.Add(this.button_LogFilterClear);
+            this.panel_Filter.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel_Filter.Location = new System.Drawing.Point(162, 392);
+            this.panel_Filter.Name = "panel_Filter";
+            this.panel_Filter.Padding = new System.Windows.Forms.Padding(2);
+            this.panel_Filter.Size = new System.Drawing.Size(427, 25);
+            this.panel_Filter.TabIndex = 148;
             // 
             // textBox_LogFilter
             // 
@@ -568,8 +585,8 @@ namespace Selen
             // panel4
             // 
             this.panel4.Controls.Add(this.logBox);
-            this.panel4.Controls.Add(this.panel3);
-            this.panel4.Controls.Add(this.panel1);
+            this.panel4.Controls.Add(this.panel_Filter);
+            this.panel4.Controls.Add(this.panel_Buttons);
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
@@ -583,7 +600,7 @@ namespace Selen
             this.BackColor = System.Drawing.Color.Gray;
             this.ClientSize = new System.Drawing.Size(589, 451);
             this.Controls.Add(this.panel4);
-            this.Controls.Add(this.panel2);
+            this.Controls.Add(this.panel_bottom);
             this.MaximizeBox = false;
             this.Name = "FormMain";
             this.Text = "Синхронизация бизнес.ру ";
@@ -592,11 +609,11 @@ namespace Selen
             ((System.ComponentModel.ISupportInitialize)(this.ds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_СdekCheckUrls)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_CdekAddNewCount)).EndInit();
-            this.panel1.ResumeLayout(false);
-            this.panel1.PerformLayout();
-            this.panel2.ResumeLayout(false);
-            this.panel3.ResumeLayout(false);
-            this.panel3.PerformLayout();
+            this.panel_Buttons.ResumeLayout(false);
+            this.panel_Buttons.PerformLayout();
+            this.panel_bottom.ResumeLayout(false);
+            this.panel_Filter.ResumeLayout(false);
+            this.panel_Filter.PerformLayout();
             this.panel4.ResumeLayout(false);
             this.panel4.PerformLayout();
             this.ResumeLayout(false);
@@ -607,51 +624,52 @@ namespace Selen
 
 
         #endregion
-        private System.Windows.Forms.Button button_drom_get;
-        private System.Windows.Forms.Button button_base_get;
-        private System.Windows.Forms.Button button_avito_get;
+        private System.Windows.Forms.Button button_Drom;
+        private System.Windows.Forms.Button button_BaseGet;
+        private System.Windows.Forms.Button button_Avito;
         private System.Windows.Forms.RichTextBox logBox;
-        private System.Windows.Forms.Button buttonPriceLevelsReport;
-        private System.Windows.Forms.Button button_vk_sync;
-        private System.Windows.Forms.Button button_tiu_sync;
+        private System.Windows.Forms.Button button_PriceLevelsReport;
+        private System.Windows.Forms.Button button_Vk;
+        private System.Windows.Forms.Button button_Tiu;
         private System.Data.DataSet ds;
         private System.Windows.Forms.CheckBox checkBox_sync;
-        private System.Windows.Forms.Label label_bus;
-        private System.Windows.Forms.Label label_tiu;
-        private System.Windows.Forms.Label label_vk;
+        private System.Windows.Forms.Label label_Bus;
+        private System.Windows.Forms.Label label_Tiu;
+        private System.Windows.Forms.Label label_Vk;
         private System.Windows.Forms.Timer timer_sync;
-        private System.Windows.Forms.Label label_drom;
-        private System.Windows.Forms.Button button_put_desc;
-        private System.Windows.Forms.Button buttonTestPartners;
-        private System.Windows.Forms.Button button_AutoRuStart;
-        private System.Windows.Forms.Label label_auto;
-        private System.Windows.Forms.Label label_youla;
+        private System.Windows.Forms.Label label_Drom;
+        private System.Windows.Forms.Button button_Descriptions;
+        private System.Windows.Forms.Button button_TestPartners;
+        private System.Windows.Forms.Button button_AutoRu;
+        private System.Windows.Forms.Label label_Auto;
+        private System.Windows.Forms.Label label_Youla;
         private System.Windows.Forms.Label label_lastSyncTime;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
-        private System.Windows.Forms.Button buttonSatom;
-        private System.Windows.Forms.Button buttonKupiprodai;
-        private System.Windows.Forms.Button buttonKupiprodaiAdd;
-        private System.Windows.Forms.Label label_KP;
-        private System.Windows.Forms.Button button_PricesCheck;
-        private System.Windows.Forms.Button button_GdeGet;
-        private System.Windows.Forms.Label label_gde;
+        private System.Windows.Forms.Button button_Satom;
+        private System.Windows.Forms.Button button_Kupiprodai;
+        private System.Windows.Forms.Button button_KupiprodaiAdd;
+        private System.Windows.Forms.Label label_Kp;
+        private System.Windows.Forms.Button button_PricesCorrection;
+        private System.Windows.Forms.Button button_Gde;
+        private System.Windows.Forms.Label label_Gde;
         private System.Windows.Forms.Button button_cdek;
-        private System.Windows.Forms.Label label_cdek;
+        private System.Windows.Forms.Label label_Cdek;
         private System.Windows.Forms.Button button_SaveCookie;
-        private System.Windows.Forms.CheckBox checkBoxCdekSyncActive;
+        private System.Windows.Forms.CheckBox checkBox_CdekSyncActive;
         private System.Windows.Forms.NumericUpDown numericUpDown_СdekCheckUrls;
         private System.Windows.Forms.NumericUpDown numericUpDown_CdekAddNewCount;
-        private System.Windows.Forms.Button button_avto_pro;
-        private System.Windows.Forms.Button button_SettingsFormOpen;
+        private System.Windows.Forms.Button button_AvtoPro;
+        private System.Windows.Forms.Button button_Settings;
         private System.Windows.Forms.Button button_EuroAuto;
-        private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Panel panel2;
-        private System.Windows.Forms.Panel panel3;
+        private System.Windows.Forms.Panel panel_Buttons;
+        private System.Windows.Forms.Panel panel_bottom;
+        private System.Windows.Forms.Panel panel_Filter;
         private System.Windows.Forms.TextBox textBox_LogFilter;
         private System.Windows.Forms.Button button_LogFilterClear;
         private System.Windows.Forms.Panel panel4;
-        private System.Windows.Forms.Button button_izap24;
-        private System.Windows.Forms.Button buttonTest;
+        private System.Windows.Forms.Button button_Izap24;
+        private System.Windows.Forms.Button button_Test;
+        private System.Windows.Forms.Button button_Youla;
     }
 }
 

@@ -71,7 +71,7 @@ namespace Selen.Sites {
                             _dr.Quit();
                             _dr = null;
                         }
-                        if (i >= 10) break;
+                        if (i >= 2) break;
                         await Task.Delay(10000);
                     }
                 }
@@ -100,7 +100,7 @@ namespace Selen.Sites {
                             Log.Add("gde.ru: ошибка авторизации в кабинете, ждем ручной вход...");
                             Thread.Sleep(60000);
                         } else break;
-                        if (i > 10) throw new Exception("timed out - превышено время ожидания!");
+                        if (i > 20) throw new Exception("timed out - превышено время ожидания!");
                     }
                 }
                 SaveCookies();

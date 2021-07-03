@@ -195,33 +195,30 @@ namespace Selen.Sites {
         });
         //удалить объявление
         private void Delete(int b) {
-            for (int i = 0; i < 10; i++) {
-                _dr.Navigate(_bus[b].avito);
-                //ChechAuthAsync();
-                //если кнопки действия есть на странице - пробую снять
-                if (_dr.GetElementsCount("//*[contains(@class,'app-container')]") > 0) {
-                    Log.Add("avito.ru: " + _bus[b].name + " - снимаю объявление");
-                    _dr.ButtonClick("//button[@aria-busy='false']/span[text()='Хорошо']/..");
-                    _dr.ButtonClick("//*[text()='Снять с публикации']/..");
-                    _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
-                    _dr.ButtonClick("//button[@data-marker='save-reason']");
-                    Thread.Sleep(_delay);
-                    //проверяю наличие кнопок действия, если кнопки на месте - повторяю с начала
-                    if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0)
-                        Log.Add("avito.ru: " + _bus[b].name + " - объявление снято");
-                    else continue; 
-                }
-                //закрываю окно опроса
-                _dr.ButtonClick("//img[@alt='close']");
-                //если появилась кнопка удалить - нажимаю
-                _dr.ButtonClick("//button/*[text()='Удалить']");
-                //есть кнопка восстановить - объявление уже удалено
-                if (_dr.GetElementsCount("//button[text()='Восстановить']") > 0) return;
-                //если объявление удалено окончательно - нужно удалить ссылку из карточки товара
-                if (_dr.GetElementsCount("//div[@class='item-view-warning-content']/p[contains(text(),'навсегда')]") > 0) {
-                    SaveUrlAsync(b, deleteUrl: true);
-                    return;
-                }
+            _dr.Navigate(_bus[b].avito, "//a[text()='Мои объявления']");
+            //если кнопки действия есть на странице - пробую снять
+            if (_dr.GetElementsCount("//*[contains(@class,'app-container')]") > 0) {
+                Log.Add("avito.ru: " + _bus[b].name + " - снимаю объявление");
+                _dr.ButtonClick("//button[@aria-busy='false']/span[text()='Хорошо']/..");
+                _dr.ButtonClick("//*[text()='Снять с публикации']/..");
+                _dr.ButtonClick("//*[contains(text(),'Другая причина')]/..");
+                _dr.ButtonClick("//button[@data-marker='save-reason']");
+                Thread.Sleep(_delay);
+                //проверяю наличие кнопок действия, если кнопки на месте - повторяю с начала
+                if (_dr.GetElementsCount("//*[text()='Снять с публикации']") == 0)
+                    Log.Add("avito.ru: " + _bus[b].name + " - объявление снято");
+            }
+            //закрываю окно опроса
+            _dr.ButtonClick("//img[@alt='close']");
+            //если появилась кнопка удалить - нажимаю
+            _dr.ButtonClick("//button/*[text()='Удалить']");
+            //есть кнопка восстановить - объявление уже удалено
+            if (_dr.GetElementsCount("//button[text()='Восстановить']") > 0) return;
+            //если объявление удалено окончательно - нужно удалить ссылку из карточки товара
+            if (_dr.GetElementsCount("//div[@class='item-view-warning-content']/p[contains(text(),'навсегда')]") > 0 ||
+                _dr.GetElementsCount("//h1[contains(text(),'страницы на нашем сайте нет')]") > 0) {
+                SaveUrlAsync(b, deleteUrl: true);
+                return;
             }
             Log.Add("avito.ru: ошибка при снятии объявления! - " + _bus[b].name);
         }
@@ -488,12 +485,14 @@ namespace Selen.Sites {
         //нажимаю ОК
         private void PressOk(int count = 2) {
             for (int i = 0; i < count; i++) {
-                while (true) {
+                for (int c = 0; ; c++) { 
                     _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
                     var errorBox = _dr.FindElements("//div[contains(@class,'alert')]/*[@aria-label='Close']");
                     if (errorBox.Count > 0) {
                         _dr.ButtonClick("//div[contains(@class,'alert')]/*[@aria-label='Close']");
+                        Thread.Sleep(15000);
                     } else break;
+                    if (c >= 10) throw new Exception("не нажимается кнопка ОК");
                 };
             }
         }
@@ -571,6 +570,7 @@ namespace Selen.Sites {
                     }
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка при проверке ссылок - "+x.Message);
+                    if (x.Message.Contains("timed out")) throw;
                 }
             });
         }

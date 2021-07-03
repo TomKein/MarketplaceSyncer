@@ -294,6 +294,7 @@ namespace Selen.Sites {
                 if (_bus[b].cdek.Contains("http") && await IsUrlDead(b)) {
                     await DeleteUrl(b);
                 }
+                count--;
             }
         }
 

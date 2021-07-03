@@ -192,16 +192,17 @@ namespace Selen
         public List<string> DescriptionList(int b = 3000, string[] dop = null,bool removeSpec=false) {
             string d = description;
             if (removeSpec) d = d
-                                    .Replace("/", "")
-                                    .Replace("\\", "")
-                                    .Replace("(", "")
-                                    .Replace(")", "")
-                                    .Replace("[", "")
-                                    .Replace("]", "")
-                                    .Replace("!", "")
-                                    .Replace("#", "")
-                                    .Replace("*", "")
-                                    .Replace("+", "");
+                                    .Replace("/", " ")
+                                    .Replace("\\", " ")
+                                    .Replace("(", " ")
+                                    .Replace(")", " ")
+                                    .Replace("[", " ")
+                                    .Replace("]", " ")
+                                    .Replace("!", " ")
+                                    .Replace("#", " ")
+                                    .Replace("*", " ")
+                                    .Replace("%", " ")
+                                    .Replace("+", " ");
 
             var s = Regex.Replace(d
                                     .Replace("Есть и другие", "|")

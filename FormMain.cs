@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.59.3";
+        string _version = "1.60.1";
 
         DB _db = new DB();
 
@@ -35,11 +35,11 @@ namespace Selen {
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
+        Youla _youla = new Youla();
 
-        int pageLimitBase = 250;
+        int _pageLimitBase = 250;
+        bool _saveCookiesBeforeClose;
 
-        //настройки и контрольные значения
-        string fSet = "set.xml";
         //для возврата из форм
         public List<string> lForm3 = new List<string>();
         public string nForm3 = "";
@@ -143,7 +143,7 @@ namespace Selen {
             try {
                 while (base_rescan_need) await Task.Delay(30000);
                 await _drom.DromStartAsync(bus);
-                label_drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
+                label_Drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
@@ -190,7 +190,7 @@ namespace Selen {
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     await _kupiprodai.StartAsync(bus);
-                    label_KP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+                    label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
                     ChangeStatus(sender, ButtonStates.Active);
                     break;
                 } catch (Exception x) {
@@ -214,21 +214,21 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need) await Task.Delay(30000);
             await _kupiprodai.AddAsync();
-            label_KP.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+            label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //GDE.RU
-        public async void GdeRu_Click(object sender, EventArgs e) {
+        async void GdeRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
             if (await _gde.StartAsync(bus)) {
-                label_gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+                label_Gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             }else 
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //AVTO.PRO
-        private async void AvtoPro_Click(object sender, EventArgs e) {
+        async void AvtoPro_Click(object sender, EventArgs e) {
             if (await _db.GetParamBoolAsync("autoPro.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
@@ -265,13 +265,13 @@ namespace Selen {
             }
         }
         //CDEK.MARKET
-        private async void Cdek_Click(object sender, EventArgs e) {
-            if (checkBoxCdekSyncActive.Checked) {
+        async void Cdek_Click(object sender, EventArgs e) {
+            if (checkBox_CdekSyncActive.Checked) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 while (base_rescan_need) await Task.Delay(60000);
                 try {
                     await _cdek.SyncCdekAsync(bus, (int)numericUpDown_CdekAddNewCount.Value);
-                    label_cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
+                    label_Cdek.Text = bus.Count(c => c.cdek != null && c.cdek.Contains("http")).ToString();
                 } catch (Exception x) {
                     Log.Add("cdek.market: ошибка синхронизации! - " + x.Message);
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -289,7 +289,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //EUROAUTO.RU
-        private async void EuroAuto_Click(object sender, EventArgs e) {
+        async void EuroAuto_Click(object sender, EventArgs e) {
             if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 while (base_rescan_need) await Task.Delay(60000);
@@ -304,7 +304,7 @@ namespace Selen {
             }
         }
         //IZAP24.RU
-        private async void Izap24_Click(object sender, EventArgs e) {
+        async void Izap24_Click(object sender, EventArgs e) {
             if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 while (base_rescan_need ||
@@ -321,6 +321,16 @@ namespace Selen {
                 }
             }
         }
+        //YOULA.RU
+        async void Youla_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
+            if (await _youla.StartAsync(bus)) {
+                label_Youla.Text = bus.Count(c => c.youla != null && c.youla.Contains("http")).ToString();
+                ChangeStatus(sender, ButtonStates.Active);
+            } else
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+        }
 
         //===========================================
         //=== основной цикл (частота 1 раз в мин) ===
@@ -334,13 +344,13 @@ namespace Selen {
                    !base_rescan_need) { //и его не нужно перезапрашивать
                     await GoLiteSync();
                 } else if (DateTime.Now.AddHours(-1) > dateTimePicker1.Value) { //со времени последней синхронизации прошло больше часа
-                    button_base_get.PerformClick();
+                    button_BaseGet.PerformClick();
                 }
             }
         }
         //оптимизация синхронизации - чтобы не запрашивать всю базу каждый час - запросим только изменения
         async Task GoLiteSync() {
-            ChangeStatus(button_base_get, ButtonStates.NoActive);
+            ChangeStatus(button_BaseGet, ButtonStates.NoActive);
             var stage = "";
             try {
                 base_can_rescan = false;
@@ -413,6 +423,7 @@ namespace Selen {
                             " -- будет произведен запрос полной базы товаров...");
                     base_rescan_need = true;
                     base_can_rescan = true;
+                    ChangeStatus(button_BaseGet, ButtonStates.Active);
                     return;
                 }
                 Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count + " (выложенных на сайте " + lightSyncGoods.Count(c => c.tiu.Contains("http")) + ")");
@@ -455,7 +466,7 @@ namespace Selen {
                 //lastScanTime сохраним когда перенесем изменения в объявления!!)
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
-                label_bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
+                label_Bus.Text = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
                 await _db.SetParamAsync("liteScanTime", sync_start.AddMinutes(-1).ToString());
                 await _db.SetParamAsync("controlBus", bus.Count.ToString());
 
@@ -468,31 +479,33 @@ namespace Selen {
                 ///только вызываем методы обработки изменений и подъема упавших
 
                 if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
-                    button_avito_get.PerformClick();
+                    button_Avito.PerformClick();
                     await AddPartNumsAsync();//добавление артикулов из описания
                     await CheckArhiveStatusAsync();//проверка архивного статуса
                     await Task.Delay(60000);
-                    button_drom_get.PerformClick();
+                    button_Drom.PerformClick();
                     await Task.Delay(60000);
-                    buttonKupiprodai.PerformClick();
+                    button_Kupiprodai.PerformClick();
                     await Task.Delay(60000);
-                    button_GdeGet.PerformClick();
+                    button_Gde.PerformClick();
                     await Task.Delay(60000);
-                    button_avto_pro.PerformClick();
+                    button_AvtoPro.PerformClick();
                     await Task.Delay(60000);
-                    button_AutoRuStart.PerformClick();
+                    button_AutoRu.PerformClick();
                     await Task.Delay(60000);
-                    buttonSatom.PerformClick();
+                    button_Satom.PerformClick();
                     await Task.Delay(60000);
                     button_EuroAuto.PerformClick();
                     await Task.Delay(60000);
-                    button_izap24.PerformClick();
+                    button_Izap24.PerformClick();
                     await Task.Delay(60000);
-                    button_vk_sync.PerformClick();
+                    button_Vk.PerformClick();
                     await Task.Delay(60000);
                     button_cdek.PerformClick();
                     await Task.Delay(60000);
-                    button_tiu_sync.PerformClick();
+                    button_Tiu.PerformClick();
+                    await Task.Delay(60000);
+                    button_Youla.PerformClick();
                     //нужно подождать конца обновлений объявлений
                     await WaitButtonsActiveAsync();
                     //проверка задвоенности наименований карточек товаров
@@ -502,8 +515,6 @@ namespace Selen {
                     await GroupsMoveAsync();//проверка групп
                     await TiuCheckAsync();//исправляем ссылки на тиу
                     await PhotoClearAsync();//очистка ненужных фото
-                    await _db.SetParamAsync("lastScanTime",sync_start.ToString());
-                    RootObject.ScanTime = sync_start;
                     dateTimePicker1.Value = sync_start;
                     await SaveBusAsync();
                 }
@@ -517,7 +528,7 @@ namespace Selen {
                 base_can_rescan = true;
                 base_rescan_need = true;
             }
-            ChangeStatus(button_base_get, ButtonStates.Active);
+            ChangeStatus(button_BaseGet, ButtonStates.Active);
         }
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {
@@ -530,32 +541,34 @@ namespace Selen {
             await GetBusGoodsAsync2();
             var tlog = bus.Count + "/" + bus.Count(c => c.tiu.Contains("http") && c.amount > 0);
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog + "\nиз них с ценами " + bus.Count(c => c.amount > 0 && c.tiu.Contains("http") && c.price > 0));
-            label_bus.Text = tlog;
+            label_Bus.Text = tlog;
             await AddPartNumsAsync();
             await SaveBusAsync();
             base_rescan_need = false;
             //запуск браузеров
-            button_avito_get.PerformClick();
+            button_Avito.PerformClick();
             await Task.Delay(60000);
-            button_drom_get.PerformClick();
+            button_Drom.PerformClick();
             await Task.Delay(60000);
-            button_tiu_sync.PerformClick();
+            button_Tiu.PerformClick();
             await Task.Delay(60000);
-            buttonKupiprodai.PerformClick();
+            button_Kupiprodai.PerformClick();
             await Task.Delay(60000);
-            button_avto_pro.PerformClick();
+            button_AvtoPro.PerformClick();
             await Task.Delay(60000);
-            button_vk_sync.PerformClick();
+            button_Vk.PerformClick();
             await Task.Delay(60000);
-            button_GdeGet.PerformClick();
+            button_Gde.PerformClick();
             await Task.Delay(60000);
-            button_AutoRuStart.PerformClick();
+            button_AutoRu.PerformClick();
             await Task.Delay(60000);
             button_EuroAuto.PerformClick();
             await Task.Delay(60000);
-            button_izap24.PerformClick();
+            button_Izap24.PerformClick();
             await Task.Delay(60000);
             button_cdek.PerformClick();
+            await Task.Delay(60000);
+            button_Youla.PerformClick();
             await WaitButtonsActiveAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
             dateTimePicker1.Value = sync_start;
@@ -592,7 +605,7 @@ namespace Selen {
                         string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
                             {"archive", "0"},
                             {"type", "1"},
-                            {"limit", pageLimitBase.ToString()},
+                            {"limit", _pageLimitBase.ToString()},
                             {"page", i.ToString()},
                             {"with_additional_fields", "1"},
                             {"with_remains", "1"},
@@ -612,7 +625,7 @@ namespace Selen {
                                 .Replace("\"1437133\":", "\"avtopro\":")
                                 .Replace("\"854874\":", "\"cdek\":");
                             bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
-                            label_bus.Text = bus.Count.ToString();
+                            label_Bus.Text = bus.Count.ToString();
                         } else break;
                         //await Task.Delay(2000);
                     }
@@ -697,8 +710,8 @@ namespace Selen {
                     bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
                 });
                 Log.Add("business.ru: загружено " + bus.Count + " карточек товаров");
-                label_bus.Text = bus.Count + "/" + bus.Count(c => !string.IsNullOrEmpty(c.tiu) && c.tiu.Contains("http") && c.amount > 0);
-                button_base_get.BackColor = System.Drawing.Color.GreenYellow;
+                label_Bus.Text = bus.Count + "/" + bus.Count(c => !string.IsNullOrEmpty(c.tiu) && c.tiu.Contains("http") && c.amount > 0);
+                button_BaseGet.BackColor = System.Drawing.Color.GreenYellow;
             }
             base_can_rescan = true;
         }
@@ -711,6 +724,8 @@ namespace Selen {
             //меняю заголовок окна
             this.Text += _version;
             _writeLog = await _db.GetParamBoolAsync("writeLog");
+            dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
+            _saveCookiesBeforeClose = await _db.GetParamBoolAsync("saveCookiesBeforeClose");
             await LoadBusJSON();
         }
         // поиск и исправление дубликатов названий
@@ -809,14 +824,14 @@ namespace Selen {
                         string s = await Class365API.RequestAsync("get", "partnercontactinfo", new Dictionary<string, string>
                         {
                             {"contact_info_type_id","1"},
-                            {"limit", pageLimitBase.ToString()},
+                            {"limit", _pageLimitBase.ToString()},
                             {"page", i.ToString()}
                         });
 
                         if (s.Length > 3) {
                             pc.AddRange(JsonConvert.DeserializeObject<PartnerContactinfoClass[]>(s));
                             Thread.Sleep(500);
-                            label_bus.Text = bus.Count.ToString();
+                            label_Bus.Text = bus.Count.ToString();
                         } else {
                             break;
                         }
@@ -1003,16 +1018,17 @@ namespace Selen {
         }
         //пока не активируются все кнопки ожидаем 20 сек
         async Task WaitButtonsActiveAsync() {
-            while (!(button_tiu_sync.Enabled &&
+            while (!(button_Tiu.Enabled &&
                 button_EuroAuto.Enabled &&
-                button_drom_get.Enabled &&
-                button_vk_sync.Enabled &&
-                buttonKupiprodai.Enabled &&
-                button_avito_get.Enabled &&
-                button_AutoRuStart.Enabled &&
-                button_GdeGet.Enabled &&
+                button_Drom.Enabled &&
+                button_Vk.Enabled &&
+                button_Kupiprodai.Enabled &&
+                button_Avito.Enabled &&
+                button_AutoRu.Enabled &&
+                button_Gde.Enabled &&
                 button_cdek.Enabled &&
-                button_avto_pro.Enabled)
+                button_Youla.Enabled &&
+                button_AvtoPro.Enabled)
             ) await Task.Delay(20000);
         }
 
@@ -1104,6 +1120,7 @@ namespace Selen {
             _avito.SaveCookies();
             _auto.SaveCookies();
             _gde.SaveCookies();
+            _youla.SaveCookies();
         }
         //статус контрола
         void ChangeStatus(object sender, ButtonStates buttonState) {
@@ -1174,22 +1191,11 @@ namespace Selen {
         void button_LogFilterClear_Click(object sender, EventArgs e) {
             textBox_LogFilter.Text = "";
         }
-        //=================
-        //=== НАСТРОЙКИ ===
-        //=================
-        //загрузка файла настроек
-        void dsOptions_Initialized(object sender, EventArgs e) {
-            try {
-                dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
-            } catch (Exception x) {
-                MessageBox.Show("ошибка чтения lastScanTime из базы данных - " + x.Message);
-            }
-        }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             this.Visible = false;
             ClearTempFiles();
-            if(await _db.GetParamBoolAsync("saveCookiesBeforeClose")) {
+            if(_saveCookiesBeforeClose) {
                 _tiu?.SaveCookies();
                 _gde?.SaveCookies();
                 _cdek?.SaveCookies();
@@ -1198,6 +1204,7 @@ namespace Selen {
                 _auto?.SaveCookies();
                 _avito?.SaveCookies();
                 _kupiprodai?.SaveCookies();
+                _youla?.SaveCookies();
             }
             _tiu?.Quit();
             _gde?.Quit();
@@ -1207,6 +1214,7 @@ namespace Selen {
             _auto?.Quit();
             _avito?.Quit();
             _kupiprodai?.Quit();
+            _youla?.Quit();
         }
         //удаление временных файлов
         void ClearTempFiles() {
@@ -1227,7 +1235,7 @@ namespace Selen {
             for (int i = 1; ; i++) {
                 //запрашиваю товары из документов "ввод на остатки"
                 var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
-                        {"limit", pageLimitBase.ToString()},
+                        {"limit", _pageLimitBase.ToString()},
                         {"page", i.ToString()},
                     });
                 //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
@@ -1271,7 +1279,7 @@ namespace Selen {
             for (int i = 1; ; i++) {
                 //запрашиваю товары из документов "Оприходования"
                 var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
-                        {"limit", pageLimitBase.ToString()},
+                        {"limit", _pageLimitBase.ToString()},
                         {"page", i.ToString()},
                     });
                 //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
@@ -1368,11 +1376,23 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                for (int b = 0, j = 10; b < bus.Count; b++) {
+                    if(!string.IsNullOrEmpty(bus[b].youla) && 
+                        bus[b].youla.Contains("youla.io")) {
+                        await Class365API.RequestAsync("put","goods",new Dictionary<string, string> {
+                            { "id", bus[b].id},
+                            { "name", bus[b].name},
+                            { "402489","" }
+                        });
+                        Log.Add("youla.ru: " + bus[b].name + " - удалена старая ссылка из карточки - "+bus[b].youla);
+                        bus[b].youla = "";
+                        await Task.Delay(2000);
+                        j--;
+                    }
+                }
+                
                 //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
-
-                //удаление фотографий
-                await PhotoClearAsync();
 
 
                 //не выложено на авито
