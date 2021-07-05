@@ -58,15 +58,15 @@ namespace Selen.Tools {
             if (url.Contains("http")) _drv.Navigate().GoToUrl(url);
         }
 
-        public void ButtonClick(string s) {
+        public void ButtonClick(string s, int sleep=1000) {
             var el = FindElements(s);
             if (el.Count > 0) {
                 Actions a = new Actions(_drv);
                 try {
                     a.MoveToElement(el.First()).Perform();
-                    Thread.Sleep(200);
+                    Thread.Sleep(sleep/5);
                     el.First().Click();
-                    Thread.Sleep(1000);
+                    Thread.Sleep(sleep);
                 } catch { }
                 ConfirmAlert();
             }

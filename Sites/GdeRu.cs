@@ -224,33 +224,31 @@ namespace Selen.Sites {
         }
         //выкладываю объявления
         public async Task AddAsync() {
-            var count = _db.GetParamInt("gde.addCount");
+            var count = await _db.GetParamIntAsync("gde.addCount");
             for (int b = 0; b < _bus.Count && count > 0; b++) {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
                      _bus[b].tiu.Contains("http") &&
                      _bus[b].amount > 0 &&
                      _bus[b].price >= 0 &&
                      _bus[b].images.Count > 0) {
-
-                    var t = Task.Factory.StartNew(() => {
-                        if (!IsNonActive(b)) {
-                            _dr.Navigate("https://kaluga.gde.ru/post");
-                            SetTitle(b);
-                            SetPhone();
-                            SetCategory(b);
-                            SetDesc(b);
-                            SetPrice(b);
-                            SetAddr();
-                            SetImages(b);
-                            CheckFreeOfCharge();
-                            PressOkButton();
-                        }
-                    });
                     try {
-                        await t;
+                        await Task.Factory.StartNew(() => {
+                            if (!IsNonActive(b)) {
+                                _dr.Navigate("https://kaluga.gde.ru/post");
+                                SetTitle(b);
+                                SetPhone();
+                                SetCategory(b);
+                                SetDesc(b);
+                                SetPrice(b);
+                                SetAddr();
+                                SetImages(b);
+                                CheckFreeOfCharge();
+                                PressOkButton();
+                            }
+                        });
                         await SaveUrlAsync(b);
-                        count--;
                         Log.Add("gde.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + count + ")");
+                        count--;
                     } catch (Exception x) {
                         Log.Add("gde.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
                         break;
