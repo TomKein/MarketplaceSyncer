@@ -35,7 +35,7 @@ namespace Selen.Sites {
         //сохранение кукис
         public void SaveCookies() {
             if (_dr != null) {
-                _dr.Navigate("https://youla.ru/");
+                _dr.Navigate("https://youla.ru/pro");
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
                     _db.SetParam("youla.cookies", c);
@@ -200,26 +200,25 @@ namespace Selen.Sites {
                 try {
                     byte[] bts = cl.DownloadData(_bus[b].images[u].url);
                     File.WriteAllBytes("youla_" + u + ".jpg", bts);
-                    Thread.Sleep(1000);
+                    Thread.Sleep(200);
                     _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "youla_" + u + ".jpg ");
                 } catch (Exception x) {
                     Log.Add("youla.ru: " + _bus[b].name + " - ошибка загрузки фото - " + _bus[b].images[u].url);
                     Thread.Sleep(1000);
                 }
             }
-            Thread.Sleep(5000);
+            Thread.Sleep(1000);
             cl.Dispose();
         }
         //жму кнопку ок
         void PressOkButton(int i=1) {
-            for (; i > 0; i--) {
-                _dr.ButtonClick("//button[@type='submit']", 5000);
-            }
+            _dr.ButtonClick("//button[@type='submit']", 5000);
+            if (i == 2) _dr.ButtonClick("//span[text()='Опубликовать объявление']/..");
         }
         //выкладываю объявления
         public async Task AddAsync() {
             var count = await _db.GetParamIntAsync("youla.addCount");
-            for (int b = 0; b < _bus.Count && count > 0; b++) {
+            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].youla == null || !_bus[b].youla.Contains("http")) &&
                      _bus[b].tiu.Contains("http") &&
                      _bus[b].amount > 0 &&
@@ -228,7 +227,7 @@ namespace Selen.Sites {
                     try {
                         if (await Task.Factory.StartNew(() => {
                             _dr.Navigate("https://youla.ru/product/create");
-                            if (SetCategory(b)) return false;
+                            if (!SetCategory(b)) return false;
                             SetTitle(b);
                             SetDesc(b);
                             SetPrice(b);
@@ -238,9 +237,9 @@ namespace Selen.Sites {
                             return true;
                         })) {
                             await SaveUrlAsync(b);
+                            Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + count + ")");
+                            count--;
                         }
-                        count--;
-                        Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + count + ")");
                     } catch (Exception x) {
                         Log.Add("youla.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
                         break;
@@ -262,7 +261,10 @@ namespace Selen.Sites {
         }
         //заполняю адрес магазина
         private void SetAddr() {
-            _dr.WriteToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input", "Россия, Калуга, Московская улица, 331");
+            _dr.WriteToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input", " Московская 331");
+            Thread.Sleep(3000);
+            _dr.SendKeysToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input",
+                OpenQA.Selenium.Keys.ArrowDown+OpenQA.Selenium.Keys.Enter);
         }
         //выбор категории
         bool SetCategory(int b) {
@@ -291,20 +293,29 @@ namespace Selen.Sites {
                             _dr.ButtonClick("//div[@data-name='attributes.kuzovnaya_detal']");
                             if (name.Contains("двигатель")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Двигатель в сборе']");
-                            } else if (name.Contains("цилинд") || name.Contains("порш")) {
+                                break; 
+                            } else if (name.Contains("цилинд") || name.Contains("порш") || name.Contains("коленв")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Блок цилиндров и детали']");
+                                //название детали
+                                _dr.ButtonClick("//div[@data-name='attributes.chast_detali']");
+                                if (name.Contains("колен")) {
+                                    _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Коленвал']");
+                                    break;
+                                }
                             } else if (name.Contains("грм") || name.Contains("цеп")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='ГРМ система и цепь']");
+                                break; 
                             } else if (name.Contains("клап") && name.Contains("крыш")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Клапанная крышка']");
+                                break; 
                             } else if (name.Contains("коллек") && name.Contains("впус")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Коллектор впускной']");
-                            } else if (name.Contains("блок") || name.Contains("крыш")) {
+                                break; 
+                            } else if (name.Contains("корпус") || name.Contains("крышк")) {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Корпус и крышки']");
-                            } else if (name.Contains("блок") || name.Contains("крыш")) {
-                                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Корпус и крышки']");
+                                break; 
                             }
-                            break;
+                            return false;
                         case "Топливная, выхлопная система":
                             if (name.Contains("выпускной") ||
                                 name.Contains("глушител") ||
@@ -345,6 +356,11 @@ namespace Selen.Sites {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Тормозная система']");
                             } else {
                                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Подвеска']");
+                                _dr.ButtonClick("//div[@data-name='attributes.kuzovnaya_detal']");
+                                if (name.Contains("балка")) {
+                                    _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Балка']");
+                                    break;
+                                }
                             }
                             return false;
                         case "Салон":
@@ -370,6 +386,16 @@ namespace Selen.Sites {
                     //вид транспорта
                     _dr.ButtonClick("//div[@data-name='attributes.avtozapchasti_vid_transporta']");
                     _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Для автомобилей']");
+                    //состояние
+                    _dr.ButtonClick("//div[@data-name='attributes.zapchast_sostoyanie']");
+                    if (_bus[b].IsNew()) {
+                        _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Новые']");
+                    } else {
+                        _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Б/у']");
+                    }
+                    //тип объявления
+                    _dr.ButtonClick("//div[@data-name='attributes.type_classified']");
+                    _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Приобрел на продажу']");
                     break;
             }
             return true;

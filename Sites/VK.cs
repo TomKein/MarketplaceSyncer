@@ -32,7 +32,7 @@ namespace Selen.Sites {
 
 
         public async Task VkSyncAsync(List<RootObject> bus) {
-            //запуск раз в 4 часа достаточно
+            //TODO вынести в настройки / запуск раз в 4 часа достаточно
             if (DateTime.Now.Hour / 4 != 0) return;
             _bus = bus;
             await GetParamsAsync();
