@@ -166,6 +166,10 @@ namespace Selen.Sites {
             SetTitle(b);
             SetPrice(b);
             SetDesc(b);
+            SetPart(b);
+            SetMarkAndModel(b);
+            _dr.ButtonClick("//div[@data-name='attributes.type_classified']");
+            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
             //проверка фото
             var photos = _dr.FindElements("//div[@id='images']//button[1]");
             if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
@@ -190,6 +194,20 @@ namespace Selen.Sites {
         //пишу описание
         void SetDesc(int b) {
             _dr.WriteToSelector("//textarea[@name='description']", sl: _bus[b].DescriptionList(2990, _addDesc));
+        }
+        //пишу артикул
+        void SetPart(int b) {
+            _dr.WriteToSelector("//input[@name='attributes.part_number']", 
+                !string.IsNullOrEmpty(_bus[b].part) ? _bus[b].part.Split(',').First() :"");
+        }
+        //пишу марку и модель
+        void SetMarkAndModel(int b) {
+            var m = _bus[b].GetNameMarkModel();
+            if (m == null) return;
+            _dr.ButtonClick("//div[@data-name='attributes.auto_brand']");
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input",m[1]);
+            _dr.ButtonClick("//div[@data-name='attributes.auto_model']");
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2]);
         }
         //загрузка фото
         void SetImages(int b) {
@@ -234,12 +252,13 @@ namespace Selen.Sites {
                             SetDesc(b);
                             SetPrice(b);
                             SetAddr();
+                            SetPart(b);
+                            SetMarkAndModel(b);
                             PressOkButton(2);
                             return true;
                         })) {
                             await SaveUrlAsync(b);
-                            Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + count + ")");
-                            count--;
+                            Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + --count + ")");
                         }
                     } catch (Exception x) {
                         Log.Add("youla.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
@@ -332,7 +351,7 @@ namespace Selen.Sites {
             }
             //тип объявления
             _dr.ButtonClick("//div[@data-name='attributes.type_classified']");
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Приобрел на продажу']");
+            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
             return true;
         }
     }

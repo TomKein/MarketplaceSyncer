@@ -327,7 +327,13 @@ namespace Selen
         }
         //определяю название запчасти, марку и модель из описания
         private static string[] _autos;
-        public async Task<string[]> GetNameMarkModelAsync() => await Task.Factory.StartNew(() => {
+        //марка и модель асинхронный метод
+        public async Task<string[]> GetNameMarkModelAsync() => 
+            await Task.Factory.StartNew(() => {
+                return GetNameMarkModel();
+            });
+        //марка и модель синхронный метод
+        public string[] GetNameMarkModel() {
             //склеиваю название и описание
             var desc = (name + " " + HtmlDecodedDescription()).ToLowerInvariant();
             //новый словарь для учета совпадений
@@ -361,7 +367,7 @@ namespace Selen
             Log.Add("business.ru: " + name + " пропущен - не удалось определить марку или модель");
             //обнуляю список моделей для загрузки исправленного в новом проходе
             return null;
-        });
+        }
         //перечитать марки и модели
         public static void ResetAutos() {
             _autos = File.ReadAllLines(@"..\auto.txt");
