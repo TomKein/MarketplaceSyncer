@@ -109,11 +109,11 @@ namespace Selen.Tools {
             if (sl != null) {
                 Actions a = new Actions(_drv);
                 a.MoveToElement(we).Click().Perform();
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 a.KeyDown(Keys.Control).SendKeys("a").KeyUp(Keys.Control).Perform();
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 a.SendKeys(Keys.Backspace).Perform();
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 foreach (var sub in sl) {
                     if (sub.Length > 0) {
                         a.SendKeys(sub);
@@ -124,14 +124,14 @@ namespace Selen.Tools {
             }
             if (!string.IsNullOrEmpty(s)) {
                 we.SendKeys(" ");
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 we.SendKeys(Keys.Control + "a");
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 we.SendKeys(Keys.Backspace);
-                Thread.Sleep(400);
+                Thread.Sleep(500);
                 we.SendKeys(s);
             }
-            Thread.Sleep(600);
+            Thread.Sleep(800);
         }
 
         public void SendKeysToSelector(string s, string k) {

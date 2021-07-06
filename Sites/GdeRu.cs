@@ -406,7 +406,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Log.Add("kupiprodai.ru: ошибка при проверке ссылок - " + x.Message);
+                Log.Add("gde.ru: ошибка при проверке ссылок - " + x.Message);
             }
         }
     }
