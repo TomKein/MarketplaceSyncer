@@ -338,6 +338,7 @@ namespace Selen
             var desc = (name + " " + HtmlDecodedDescription()).ToLowerInvariant();
             //новый словарь для учета совпадений
             var dict = new Dictionary<string, int>();
+            if (_autos == null) ResetAutos();
             //проверяю похожесть на каждый элемент списка
             for (int i = 0; i < _autos.Length; i++) {
                 dict.Add(_autos[i], 0);

@@ -167,21 +167,25 @@ namespace Selen.Sites {
             SetPrice(b);
             SetDesc(b);
             SetPart(b);
-            SetMarkAndModel(b);
-            _dr.ButtonClick("//div[@data-name='attributes.type_classified']");
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
+            //SetMarkAndModel(b);
+            //SetPhone();
+            //_dr.ButtonClick("//div[@data-name='attributes.type_classified']");
+            //_dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
             //проверка фото
-            var photos = _dr.FindElements("//div[@id='images']//button[1]");
-            if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+            var photosCount = _dr.FindElements("//div[@id='images']//button[1]").Count;
+            if (photosCount != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
                 Log.Add("youla.ru: " + _bus[b].name + " - обновляю фотографии");
-                foreach (var photo in photos) {
-                    photo.Click();
-                    Thread.Sleep(1000);
-                }
+                for(; photosCount > 0; photosCount--) 
+                    _dr.ButtonClick("//div[@id='images']//button[1]",2000);
                 SetImages(b);
             }
-            PressOkButton();
+            PressOkButton(2);
             Log.Add("youla.ru: " + _bus[b].name + " - объявление обновлено");
+        }
+        //указываю телефон
+        private void SetPhone() {
+            _dr.WriteToSelector("//label[text()='Контактный телефон']/../..//input", 
+                OpenQA.Selenium.Keys.ArrowDown + OpenQA.Selenium.Keys.Enter);
         }
         //пишу название
         private void SetTitle(int b) {
@@ -205,9 +209,9 @@ namespace Selen.Sites {
             var m = _bus[b].GetNameMarkModel();
             if (m == null) return;
             _dr.ButtonClick("//div[@data-name='attributes.auto_brand']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input",m[1]);
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input", m[1] + OpenQA.Selenium.Keys.Enter);
             _dr.ButtonClick("//div[@data-name='attributes.auto_model']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2]);
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2] + OpenQA.Selenium.Keys.Enter);
         }
         //загрузка фото
         void SetImages(int b) {
@@ -252,6 +256,7 @@ namespace Selen.Sites {
                             SetDesc(b);
                             SetPrice(b);
                             SetAddr();
+                            SetPhone();
                             SetPart(b);
                             SetMarkAndModel(b);
                             PressOkButton(2);
@@ -323,17 +328,50 @@ namespace Selen.Sites {
                     return false;
                 default:
                     _dr.ButtonClick("//div[text()='Запчасти']");
-                    if (name.Contains("ступица")) Select("avtozapchasti_tip", "Подвеска", "kuzovnaya_detal", "Ступица", "chast_detali", "Ступица");
-                    else if (name.Contains("насос") && name.Contains("гур")) Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Гидроусилитель и электроусилитель");
-                    else if (name.Contains("рулевая") && name.Contains("рейка")) Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Рулевая рейка", "chast_detali", "Рулевая рейка");
-                    else if (name.Contains("стартер")) Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Стартер", "chast_detali", "Стартер в сборе");
-                    else if (name.Contains("генератор")) Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Генератор", "chast_detali", "Генератор в сборе");
-                    else if (name.Contains("маховик")) Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Сцепление", "chast_detali", "Маховик");
-                    else if (name.Contains("усилитель") && name.Contains("вакуумный")) Select("avtozapchasti_tip", "Тормозная система", "kuzovnaya_detal", "Тормозной цилиндр");
-                    else if (name.Contains("подрамник")) Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Силовые элементы", "chast_detali", "Рама");
-                    else if (name.Contains("люк") && (name.Contains("крыш") || name.Contains("электр"))) Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Крыша и комплектующие", "chast_detali", "Крыша");
-                    else if (name.Contains("двигатель")) Select("avtozapchasti_tip", "Двигатель, ГРМ, турбина", "kuzovnaya_detal", "Двигатель в сборе", "chast_detali", "Двигатель внутреннего сгорания");
-                    else if (name.Contains("дверь")) Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Двери", "chast_detali", "Дверь боковая");
+                    if (name.Contains("ступица"))
+                        Select("avtozapchasti_tip", "Подвеска", "kuzovnaya_detal", "Ступица", "chast_detali", "Ступица");
+                    if (name.Contains("компрессор кондиционера"))
+                        Select("avtozapchasti_tip", "Системы охлаждения, обогрева", "kuzovnaya_detal", "Детали кондиционера", "chast_detali", "Компрессор кондиционера");
+                    else if (name.Contains("балка") && name.Contains("зад"))
+                        Select("avtozapchasti_tip", "Подвеска", "kuzovnaya_detal", "Балка");
+                    else if (name.Contains("крышка") && name.Contains("багажник"))
+                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Багажник и комплектующие", "chast_detali", "Дверь багажника");
+                    else if (name.Contains("блок") && name.Contains("управлени"))
+                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Блок управления");
+                    else if (name.Contains("насос") && name.Contains("гур"))
+                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Гидроусилитель и электроусилитель");
+                    else if (name.Contains("панель") && name.Contains("прибор"))
+                        Select("avtozapchasti_tip", "Салон, интерьер", "kuzovnaya_detal", "Спидометр");
+                    else if (name.Contains("рулевая") && name.Contains("рейка"))
+                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Рулевая рейка", "chast_detali", "Рулевая рейка");
+                    else if (name.Contains("стартер"))
+                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Стартер", "chast_detali", "Стартер в сборе");
+                    else if (name.Contains("генератор"))
+                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Генератор", "chast_detali", "Генератор в сборе");
+                    else if (name.Contains("маховик"))
+                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Сцепление", "chast_detali", "Маховик");
+                    else if (name.Contains("кулиса"))
+                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Ручка КПП и кулиса");
+                    else if (name.Contains("привод") && (name.Contains("левый")|| name.Contains("правый")||name.Contains("передн")|| name.Contains("задни")))
+                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Привод и дифференциал", "chast_detali", "Приводной вал");
+                    else if (name.Contains("усилитель") && name.Contains("вакуумный"))
+                        Select("avtozapchasti_tip", "Тормозная система", "kuzovnaya_detal", "Тормозной цилиндр");
+                    else if (name.Contains("подрамник"))
+                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Силовые элементы", "chast_detali", "Рама");
+                    else if (name.Contains("люк") && (name.Contains("крыш") || name.Contains("электр")))
+                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Крыша и комплектующие", "chast_detali", "Крыша");
+                    else if (name.Contains("зеркал") && (name.Contains("лево") || name.Contains("прав")))
+                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Зеркала", "chast_detali", "Боковые зеркала заднего вида");
+                    else if (name.Contains("форсун") && name.Contains("топлив"))
+                        Select("avtozapchasti_tip", "Топливная система", "kuzovnaya_detal", "Форсунка топливная", "chast_detali", "Форсунка топливная");
+                    else if (name.Contains("подушка"))
+                        Select("avtozapchasti_tip", "Безопасность", "kuzovnaya_detal", "Подушка безопасности");
+                    else if (name.Contains("руль"))
+                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Руль");
+                    else if (name.Contains("двигатель"))
+                        Select("avtozapchasti_tip", "Двигатель, ГРМ, турбина", "kuzovnaya_detal", "Двигатель в сборе", "chast_detali", "Двигатель внутреннего сгорания");
+                    else if (name.Contains("дверь"))
+                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Двери", "chast_detali", "Дверь боковая");
                     else {
                         Log.Add("youla.ru: "+_bus[b].name+" - пропущен, не описана категория ("+b+")");
                         return false; }
