@@ -286,110 +286,125 @@ namespace Selen.Sites {
         }
         //заполняю адрес магазина
         private void SetAddr() {
-            while (_dr.GetElementAttribute("//input[@placeholder='Введите город, улицу, дом']","value")!= "Россия, Калуга, Московская улица, 331") {
-                _dr.WriteToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input", " Калуга, Московская улица, 331");
+            for (int i=0; ;i++) {
+                _dr.WriteToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input", 
+                    " Калуга, Московская улица, 331");
                 Thread.Sleep(4000);
                 _dr.SendKeysToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input",
                     OpenQA.Selenium.Keys.ArrowDown+OpenQA.Selenium.Keys.Enter);
+                if (_dr.GetElementAttribute("//input[@placeholder='Введите город, улицу, дом']", "value") == "Россия, Калуга, Московская улица, 331") break;
+                if (i > 30) throw new Exception("ошибка - не могу указать адрес!");
             }
         }
         //выбор категории
-        void Select(string seltype="", string type="", string selgroup="", string group="", string selname="", string name="") {
-            //тип
-            if (seltype.Length > 0) {
-                _dr.ButtonClick("//div[@data-name='attributes." + seltype + "']",2000);
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='" + type + "']", 3000);
-            }
-            //группа деталей
-            if (selgroup.Length > 0) {
-                _dr.ButtonClick("//div[@data-name='attributes." + selgroup + "']", 2000);
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='" + group + "']", 3000);
-            }
-            //название детали
-            if (selname.Length > 0) {
-                _dr.ButtonClick("//div[@data-name='attributes." + selname + "']", 2000);
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='" + name + "']", 3000);
+        void Select(Dictionary<string, string> param = null) {
+            foreach(var key in param.Keys) {
+                if (key == "avtozapchasti_tip") _dr.ButtonClick("//div[text()='Запчасти']");
+                _dr.ButtonClick("//div[@data-name='attributes." + key + "']",2000);
+                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='" + param[key] + "']", 3000);
             }
         }
-        //выбор категории
+        //определение категории
         bool SetCategory(int b) {
             var name = _bus[b].name.ToLowerInvariant();
             var desc = _bus[b].description.ToLowerInvariant();
+            var d = new Dictionary<string, string>();
             //основная категория
-            switch (_bus[b].GroupName()) {
-                case "Шины, диски, колеса":
-                    //_dr.ButtonClick("//div[text()='Шины и диски']");
-                    return false;
-                case "Аудио-видеотехника":
-                    //_dr.ButtonClick("//div[text()='Аудио и видео']");
-                    return false;
-                case "Автохимия":
-                    //_dr.ButtonClick("//div[text()='Масла и автохимия']");
-                    return false;
-                default:
-                    _dr.ButtonClick("//div[text()='Запчасти']");
-                    if (name.Contains("ступица"))
-                        Select("avtozapchasti_tip", "Подвеска", "kuzovnaya_detal", "Ступица", "chast_detali", "Ступица");
-                    if (name.Contains("компрессор кондиционера"))
-                        Select("avtozapchasti_tip", "Системы охлаждения, обогрева", "kuzovnaya_detal", "Детали кондиционера", "chast_detali", "Компрессор кондиционера");
-                    else if (name.Contains("балка") && name.Contains("зад"))
-                        Select("avtozapchasti_tip", "Подвеска", "kuzovnaya_detal", "Балка");
-                    else if (name.Contains("крышка") && name.Contains("багажник"))
-                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Багажник и комплектующие", "chast_detali", "Дверь багажника");
-                    else if (name.Contains("блок") && name.Contains("управлени"))
-                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Блок управления");
-                    else if (name.Contains("насос") && name.Contains("гур"))
-                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Гидроусилитель и электроусилитель");
-                    else if (name.Contains("панель") && name.Contains("прибор"))
-                        Select("avtozapchasti_tip", "Салон, интерьер", "kuzovnaya_detal", "Спидометр");
-                    else if (name.Contains("рулевая") && name.Contains("рейка"))
-                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Рулевая рейка", "chast_detali", "Рулевая рейка");
-                    else if (name.Contains("стартер"))
-                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Стартер", "chast_detali", "Стартер в сборе");
-                    else if (name.Contains("генератор"))
-                        Select("avtozapchasti_tip", "Электрооборудование", "kuzovnaya_detal", "Генератор", "chast_detali", "Генератор в сборе");
-                    else if (name.Contains("маховик"))
-                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Сцепление", "chast_detali", "Маховик");
-                    else if (name.Contains("кулиса"))
-                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Ручка КПП и кулиса");
-                    else if (name.Contains("привод") && (name.Contains("левый")|| name.Contains("правый")||name.Contains("передн")|| name.Contains("задни")))
-                        Select("avtozapchasti_tip", "Трансмиссия, привод", "kuzovnaya_detal", "Привод и дифференциал", "chast_detali", "Приводной вал");
-                    else if (name.Contains("усилитель") && name.Contains("вакуумный"))
-                        Select("avtozapchasti_tip", "Тормозная система", "kuzovnaya_detal", "Тормозной цилиндр");
-                    else if (name.Contains("подрамник"))
-                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Силовые элементы", "chast_detali", "Рама");
-                    else if (name.Contains("люк") && (name.Contains("крыш") || name.Contains("электр")))
-                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Крыша и комплектующие", "chast_detali", "Крыша");
-                    else if (name.Contains("зеркал") && (name.Contains("лево") || name.Contains("прав")))
-                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Зеркала", "chast_detali", "Боковые зеркала заднего вида");
-                    else if (name.Contains("форсун") && name.Contains("топлив"))
-                        Select("avtozapchasti_tip", "Топливная система", "kuzovnaya_detal", "Форсунка топливная", "chast_detali", "Форсунка топливная");
-                    else if (name.Contains("подушка"))
-                        Select("avtozapchasti_tip", "Безопасность", "kuzovnaya_detal", "Подушка безопасности");
-                    else if (name.Contains("руль"))
-                        Select("avtozapchasti_tip", "Рулевое управление", "kuzovnaya_detal", "Руль");
-                    else if (name.Contains("двигатель"))
-                        Select("avtozapchasti_tip", "Двигатель, ГРМ, турбина", "kuzovnaya_detal", "Двигатель в сборе", "chast_detali", "Двигатель внутреннего сгорания");
-                    else if (name.Contains("дверь"))
-                        Select("avtozapchasti_tip", "Кузовные запчасти", "kuzovnaya_detal", "Двери", "chast_detali", "Дверь боковая");
-                    else {
-                        Log.Add("youla.ru: "+_bus[b].name+" - пропущен, не описана категория ("+b+")");
-                        return false; }
-                    break;
+            if (name.Contains("ступица")) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Ступица");
+                d.Add("chast_detali", "Ступица");
+            } else if (name.Contains("компрессор кондиционера")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Детали кондиционера");
+                d.Add("chast_detali", "Компрессор кондиционера");
+            } else if (name.Contains("балка") && name.Contains("зад")) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Балка");
+            } else if (name.Contains("крышка") && name.Contains("багажник")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Багажник и комплектующие");
+                d.Add("chast_detali", "Дверь багажника");
+            } else if (name.Contains("блок") && name.Contains("управлени")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Блок управления");
+            } else if (name.Contains("насос") && name.Contains("гур")) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Гидроусилитель и электроусилитель");
+            } else if (name.Contains("панель") && name.Contains("прибор")) {
+                d.Add("avtozapchasti_tip", "Салон, интерьер");
+                d.Add("kuzovnaya_detal", "Спидометр");
+            } else if (name.Contains("рулевая") && name.Contains("рейка")) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Рулевая рейка");
+                d.Add("chast_detali", "Рулевая рейка");
+            } else if (name.Contains("стартер")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Стартер");
+                d.Add("chast_detali", "Стартер в сборе");
+            } else if (name.Contains("генератор")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Генератор");
+                d.Add("chast_detali", "Генератор в сборе");
+            } else if (name.Contains("маховик")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Сцепление");
+                d.Add("chast_detali", "Маховик");
+            } else if (name.Contains("кулиса")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Ручка КПП и кулиса");
+            } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни"))) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Привод и дифференциал");
+                d.Add("chast_detali", "Приводной вал");
+            } else if (name.Contains("усилитель") && name.Contains("вакуумный")) {
+                d.Add("avtozapchasti_tip", "Тормозная система");
+                d.Add("kuzovnaya_detal", "Тормозной цилиндр");
+            } else if (name.Contains("подрамник")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Силовые элементы");
+                d.Add("chast_detali", "Рама");
+            } else if (name.Contains("люк") && (name.Contains("крыш") || name.Contains("электр"))) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Крыша и комплектующие");
+                d.Add("chast_detali", "Крыша");
+            } else if (name.Contains("зеркал") && (name.Contains("лево") || name.Contains("прав"))) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Зеркала");
+                d.Add("chast_detali", "Боковые зеркала заднего вида");
+            } else if (name.Contains("форсун") && name.Contains("топлив")) {
+                d.Add("avtozapchasti_tip", "Топливная система");
+                d.Add("kuzovnaya_detal", "Форсунка топливная");
+                d.Add("chast_detali", "Форсунка топливная");
+            } else if (name.Contains("подушка")) {
+                d.Add("avtozapchasti_tip", "Безопасность");
+                d.Add("kuzovnaya_detal", "Подушка безопасности");
+            } else if (name.Contains("руль")) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Руль");
+            } else if (name.Contains("двигатель")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Двигатель в сборе");
+                d.Add("chast_detali", "Двигатель внутреннего сгорания");
+            } else if (name.Contains("дверь")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Двери");
+                d.Add("chast_detali", "Дверь боковая");
+            }
+            if (d.Count == 0) {
+                Log.Add("youla.ru: " + _bus[b].name + " - пропущен, не описана категория (" + b + ")");
+                return false;
             }
             //вид транспорта
-            _dr.ButtonClick("//div[@data-name='attributes.avtozapchasti_vid_transporta']");
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Для автомобилей']");
+            d.Add("avtozapchasti_vid_transporta","Для автомобилей");
             //состояние
-            _dr.ButtonClick("//div[@data-name='attributes.zapchast_sostoyanie']");
-            if (_bus[b].IsNew()) {
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Новые']");
-            } else {
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Б/у']");
-            }
+            if (_bus[b].IsNew())
+                d.Add("zapchast_sostoyanie", "Новые");
+             else 
+                d.Add("zapchast_sostoyanie", "Б/у");
             //тип объявления
-            _dr.ButtonClick("//div[@data-name='attributes.type_classified']");
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
+            d.Add("type_classified", "Магазин");
+            Select(d);
             return true;
         }
     }
