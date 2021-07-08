@@ -244,7 +244,7 @@ namespace Selen.Sites {
                 if ((_bus[b].youla == null || !_bus[b].youla.Contains("http")) &&
                      _bus[b].tiu.Contains("http") &&
                      _bus[b].amount > 0 &&
-                     _bus[b].price >= 2000 &&
+                     _bus[b].price >= 1500 &&
                      _bus[b].images.Count > 0) {
                     try {
                         if (await Task.Factory.StartNew(() => {
@@ -263,10 +263,11 @@ namespace Selen.Sites {
                             return true;
                         })) {
                             await SaveUrlAsync(b);
-                            Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + --count + ")");
+                            count--;
                         }
                     } catch (Exception x) {
                         Log.Add("youla.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
+                        _dr.Navigate("https://youla.ru/pro");
                         break;
                     }
                 }
@@ -282,7 +283,12 @@ namespace Selen.Sites {
                     {"name", _bus[b].name},
                     {_url, _bus[b].youla}
                 });
+                Log.Add("youla.ru: " + _bus[b].name + " - объявление добавлено");
+            } else {
+                Log.Add("youla.ru: " + _bus[b].name + " - объявление не удалось добавить!");
+                _dr.Navigate("https://youla.ru/pro");
             }
+
         }
         //заполняю адрес магазина
         private void SetAddr() {
@@ -293,7 +299,7 @@ namespace Selen.Sites {
                 _dr.SendKeysToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input",
                     OpenQA.Selenium.Keys.ArrowDown+OpenQA.Selenium.Keys.Enter);
                 if (_dr.GetElementAttribute("//input[@placeholder='Введите город, улицу, дом']", "value") == "Россия, Калуга, Московская улица, 331") break;
-                if (i > 30) throw new Exception("ошибка - не могу указать адрес!");
+                if (i > 20) throw new Exception("ошибка - не могу указать адрес!");
             }
         }
         //выбор категории
@@ -314,10 +320,25 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Ступица");
                 d.Add("chast_detali", "Ступица");
+            } else if (name.Contains("кронштейн") || name.Contains("опора") || name.Contains("креплен") || 
+                name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот")) {
+            } else if (name.Contains("противотум") && name.Contains("фара")) {
+                d.Add("avtozapchasti_tip", "Автосвет, оптика");
+                d.Add("kuzovnaya_detal", "Противотуманная фара (ПТФ)");
+            } else if (name.Contains("фара")) {
+                d.Add("avtozapchasti_tip", "Автосвет, оптика");
+                d.Add("kuzovnaya_detal", "Фара");
+            } else if (name.Contains("фонарь")) {
+                d.Add("avtozapchasti_tip", "Автосвет, оптика");
+                d.Add("kuzovnaya_detal", "Задний фонарь");
             } else if (name.Contains("компрессор кондиционера")) {
                 d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
                 d.Add("kuzovnaya_detal", "Детали кондиционера");
                 d.Add("chast_detali", "Компрессор кондиционера");
+            } else if (name.Contains("шкив") && name.Contains("коленвал")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "ГРМ система и цепь");
+                d.Add("chast_detali", "Шкив коленвала");
             } else if (name.Contains("балка") && name.Contains("зад")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Балка");
@@ -325,12 +346,19 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Багажник и комплектующие");
                 d.Add("chast_detali", "Дверь багажника");
+            } else if (name.Contains("стеклоподъемник")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Двери");
+                d.Add("chast_detali", "Стеклоподъемный механизм и комплектующие");
             } else if (name.Contains("блок") && name.Contains("управлени")) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Блок управления");
             } else if (name.Contains("насос") && name.Contains("гур")) {
                 d.Add("avtozapchasti_tip", "Рулевое управление");
                 d.Add("kuzovnaya_detal", "Гидроусилитель и электроусилитель");
+            } else if ((name.Contains("шланг") || name.Contains("трубк")) && name.Contains("гур")) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Шланг ГУР");
             } else if (name.Contains("панель") && name.Contains("прибор")) {
                 d.Add("avtozapchasti_tip", "Салон, интерьер");
                 d.Add("kuzovnaya_detal", "Спидометр");
