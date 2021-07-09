@@ -326,6 +326,24 @@ namespace Selen.Sites {
                 (name.Contains("печко")|| name.Contains("отопит") || name.Contains("климат"))) {
                 d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
                 d.Add("kuzovnaya_detal", "Блок управления печкой");
+            } else if (name.Contains("вкладыш") && name.Contains("шатун")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Полукольца");
+            } else if (name.Contains("шатун")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Шатун");
+            } else if (name.Contains("заслонка") && name.Contains("дросс")){ 
+                d.Add("avtozapchasti_tip", "Топливная система");
+                d.Add("kuzovnaya_detal", "Дроссель");
+                d.Add("chast_detali", "Дроссельная заслонка");
+            } else if (name.Contains("стабилизатор") && (name.Contains("перед") || name.Contains("зад"))) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Стабилизатор");
+                d.Add("chast_detali", "Стабилизатор");
+            } else if (name.Contains("рулев") && (name.Contains("карданч") || name.Contains("вал") || name.Contains("колонк"))) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Рулевая колонка");
+
             } else if (name.Contains("трапеция") && (name.Contains("дворник") || name.Contains("очистител"))) {
                 d.Add("avtozapchasti_tip", "Система очистки");
                 d.Add("kuzovnaya_detal", "Трапеция дворников");
@@ -344,7 +362,6 @@ namespace Selen.Sites {
             } else if (name.Contains("клапан") && (name.Contains("егр") || name.Contains("egr"))) {
                 d.Add("avtozapchasti_tip", "Выхлопная система");
                 d.Add("kuzovnaya_detal", "EGR/SCR система");
-
             } else if (name.Contains("блок") && name.Contains("управлени")) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Блок управления");
