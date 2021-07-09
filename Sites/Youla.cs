@@ -313,7 +313,7 @@ namespace Selen.Sites {
         //определение категории
         bool SetCategory(int b) {
             var name = _bus[b].name.ToLowerInvariant();
-            var desc = _bus[b].description.ToLowerInvariant();
+            //var desc = _bus[b].description.ToLowerInvariant();
             var d = new Dictionary<string, string>();
             //основная категория
             if (name.Contains("ступица")) {
@@ -321,10 +321,56 @@ namespace Selen.Sites {
                 d.Add("kuzovnaya_detal", "Ступица");
                 d.Add("chast_detali", "Ступица");
             } else if (name.Contains("кронштейн") || name.Contains("опора") || name.Contains("креплен") || 
-                name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот")) {
+                name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот") || name.Contains("прокладка")) {
+            } else if (name.Contains("блок") && name.Contains("управлени") && 
+                (name.Contains("печко")|| name.Contains("отопит") || name.Contains("климат"))) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Блок управления печкой");
+            } else if (name.Contains("трапеция") && (name.Contains("дворник") || name.Contains("очистител"))) {
+                d.Add("avtozapchasti_tip", "Система очистки");
+                d.Add("kuzovnaya_detal", "Трапеция дворников");
+            } else if (name.Contains("рем") && name.Contains("безопас")) {
+                d.Add("avtozapchasti_tip", "Безопасность");
+                d.Add("kuzovnaya_detal", "Ремни безопасности");
+            } else if (name.Contains("расходомер") || name.Contains("дмрв") || name.Contains("кислорода") || name.Contains("лямбда")) {
+                d.Add("avtozapchasti_tip", "Выхлопная система");
+                d.Add("kuzovnaya_detal", "Датчики");
+            } else if (name.Contains("глушитель")) {
+                d.Add("avtozapchasti_tip", "Выхлопная система");
+                d.Add("kuzovnaya_detal", "Глушитель");
+            } else if (name.Contains("коллектор") && name.Contains("выпускной")) {
+                d.Add("avtozapchasti_tip", "Выхлопная система");
+                d.Add("kuzovnaya_detal", "Коллектор выпускной");
+            } else if (name.Contains("клапан") && (name.Contains("егр") || name.Contains("egr"))) {
+                d.Add("avtozapchasti_tip", "Выхлопная система");
+                d.Add("kuzovnaya_detal", "EGR/SCR система");
+
+            } else if (name.Contains("блок") && name.Contains("управлени")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Блок управления");
+            } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни"))) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Привод и дифференциал");
+                d.Add("chast_detali", "Приводной вал");
+            } else if (name.Contains("маховик") || name.Contains("венец")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Сцепление");
+                d.Add("chast_detali", "Маховик");
             } else if (name.Contains("противотум") && name.Contains("фара")) {
                 d.Add("avtozapchasti_tip", "Автосвет, оптика");
                 d.Add("kuzovnaya_detal", "Противотуманная фара (ПТФ)");
+            } else if ((name.Contains("кулис") || name.Contains("переключения") || name.Contains("селектор")) &&
+                name.Contains("кпп")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Ручка КПП и кулиса");
+            } else if (name.Contains("мкпп")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Коробка передач");
+                d.Add("chast_detali", "МКПП");
+            } else if (name.Contains("переключат") && 
+                (name.Contains("подрулев") || name.Contains("дворник") || name.Contains("поворот"))) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Подрулевой переключатель");
             } else if (name.Contains("фара")) {
                 d.Add("avtozapchasti_tip", "Автосвет, оптика");
                 d.Add("kuzovnaya_detal", "Фара");
@@ -350,9 +396,6 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Двери");
                 d.Add("chast_detali", "Стеклоподъемный механизм и комплектующие");
-            } else if (name.Contains("блок") && name.Contains("управлени")) {
-                d.Add("avtozapchasti_tip", "Электрооборудование");
-                d.Add("kuzovnaya_detal", "Блок управления");
             } else if (name.Contains("насос") && name.Contains("гур")) {
                 d.Add("avtozapchasti_tip", "Рулевое управление");
                 d.Add("kuzovnaya_detal", "Гидроусилитель и электроусилитель");
@@ -374,17 +417,9 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Генератор");
                 d.Add("chast_detali", "Генератор в сборе");
-            } else if (name.Contains("маховик")) {
-                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
-                d.Add("kuzovnaya_detal", "Сцепление");
-                d.Add("chast_detali", "Маховик");
             } else if (name.Contains("кулиса")) {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Ручка КПП и кулиса");
-            } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни"))) {
-                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
-                d.Add("kuzovnaya_detal", "Привод и дифференциал");
-                d.Add("chast_detali", "Приводной вал");
             } else if (name.Contains("усилитель") && name.Contains("вакуумный")) {
                 d.Add("avtozapchasti_tip", "Тормозная система");
                 d.Add("kuzovnaya_detal", "Тормозной цилиндр");
@@ -404,6 +439,10 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Топливная система");
                 d.Add("kuzovnaya_detal", "Форсунка топливная");
                 d.Add("chast_detali", "Форсунка топливная");
+            } else if (name.Contains("вентилятор") && name.Contains("охлаждения")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Радиатор и детали");
+                d.Add("chast_detali", "Вентилятор радиатора");
             } else if (name.Contains("подушка")) {
                 d.Add("avtozapchasti_tip", "Безопасность");
                 d.Add("kuzovnaya_detal", "Подушка безопасности");
