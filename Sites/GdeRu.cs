@@ -340,7 +340,7 @@ namespace Selen.Sites {
         //парсинг объявлений
         async Task ParseAsync() {
             //парсинг случайных страниц
-            _dr.Navigate("https://kaluga.gde.ru/cabinet/ads/index");
+            await _dr.NavigateAsync("https://kaluga.gde.ru/cabinet/ads/index");
             var ElementString = _dr.GetElementText("//ul[@class='tabs-list']/li[@class='active']");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
@@ -359,8 +359,8 @@ namespace Selen.Sites {
                     var names = _dr.FindElements("//strong[@class='title']/a").Select(s => s.Text).ToList();
                     var prices = _dr.FindElements("//strong[@class='price']").Select(s => s.Text.Split(' ').First()).ToList();
                     var ids = _dr.FindElements("//span[@class='id']").Select(s => s.Text.Split(' ').Last()).ToList();
-                    if (names.Count() != prices.Count() ||
-                        names.Count() != ids.Count()) {
+                    if (names.Count != prices.Count ||
+                        names.Count != ids.Count) {
                         throw new Exception("количество элементов не совпадает!");
                     }
                     for (int i = 0; i < ids.Count; i++) {

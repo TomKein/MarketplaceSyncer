@@ -56,7 +56,7 @@ namespace Selen.Sites {
                         await AuthAsync();
                         await EditAsync();
                         await AddAsync();
-                        //await ParseAsync();
+                        await ParseAsync();
                         //await CheckUrls();
                         Log.Add("youla.ru: выгрузка завершена");
                         return true;
@@ -302,6 +302,60 @@ namespace Selen.Sites {
                 if (i > 20) throw new Exception("ошибка - не могу указать адрес!");
             }
         }
+        //проверка объявлений (парсинг кабинета)
+        async Task ParseAsync() {
+            await _dr.NavigateAsync("https://youla.ru/pro");
+            //строка с количеством объявлений
+            var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
+            //строка количество объявлений
+            var str = span.Split(' ').First();
+            //число количество страниц
+            var n = int.Parse(str) /20;
+            //пробегаюсь по страницам
+            for (int i = 1; i < n; i += _rnd.Next(2)) {
+                await ParsePageAsync(i);
+            }
+        }
+        //парсинг страницы
+        async Task ParsePageAsync(int p) {
+            try {
+                await Task.Factory.StartNew(() => {
+                    _dr.ButtonClick("//span[@data-test-id='B2BPaginationPageNumber-"+p+"']");
+                    var names = _dr.FindElements("//p[contains(@class,'feFMTD')]").Select(s => s.Text).ToList();
+                    var prices = _dr.FindElements("//span[@data-test-component='B2BPrice']").Select(s => s.Text.Replace(" ","")).ToList();
+                    var ids = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']").Select(s => s.GetAttribute("href").Remove(0,1)).ToList();
+                    if (names.Count != prices.Count ||
+                        names.Count != ids.Count) {
+                        throw new Exception("количество элементов не совпадает!");
+                    }
+                    for (int i = 0; i < ids.Count; i++) {
+                        var b = _bus.FindIndex(f => f.youla.Contains(ids[i]));
+                        if (b == -1) {
+                            _dr.Navigate(ids[i]);
+                            //кнопка снять с публикации
+                            _dr.ButtonClick("//button[@data-test-action='ProductWithdrawClick']");
+                            //кнопка другая причина
+                            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
+                            Log.Add("youla.ru: " + names[i] + " - потерянное объявление снято");
+                            //кнопка удалить объявление
+                            _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']");
+                            //кнопка удалить
+                            _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
+                            Log.Add("youla.ru: " + names[i] + " - потерянное объявление удалено");
+
+                        } else if (_bus[b].price.ToString() != prices[i] ||
+                                  !_bus[b].name.Contains(names[i])) {
+                            EditOffer(b);
+                        }
+                    }
+                });
+            } catch (Exception x) {
+                if (x.Message.Contains("timed out")) throw;
+                Log.Add("youla.ru: ошибка парсинга страницы " + p + " - " + x.Message);
+            }
+        }
+
+
         //выбор категории
         void Select(Dictionary<string, string> param = null) {
             foreach(var key in param.Keys) {
@@ -317,7 +371,7 @@ namespace Selen.Sites {
             var d = new Dictionary<string, string>();
             //основная категория
             if (name.Contains("кронштейн ") || name.Contains("опора") || name.Contains("креплен") || name.Contains("подушк")) {
-            } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот") || name.Contains("прокладка")) {
+            } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
             } else if(name.Contains("ступица")) {
@@ -335,6 +389,14 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Бампер и комплектующие");
                 d.Add("chast_detali", "Бампер");
+            } else if (name.Contains("крыло ") && (name.Contains("лев") || name.Contains("прав"))) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Крылья и комплектующие");
+                d.Add("chast_detali", "Крылья");            } 
+            else if (name.Contains("крыша ")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Крыша и комплектующие");
+                d.Add("chast_detali", "Крыша");
             } else if (name.Contains("вкладыш") && name.Contains("шатун")) {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
@@ -390,6 +452,10 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Сцепление");
                 d.Add("chast_detali", "Маховик");
+            } else if (name.Contains("акпп")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Коробка передач");
+                d.Add("chast_detali", "АКПП");
             } else if (name.Contains("противотум") && name.Contains("фара")) {
                 d.Add("avtozapchasti_tip", "Автосвет, оптика");
                 d.Add("kuzovnaya_detal", "Противотуманная фара (ПТФ)");
@@ -570,72 +636,6 @@ namespace Selen.Sites {
 //    }
 //    button_youla_add.PerformClick();
 //}
-
-////добавляем юлу
-//private async void button_youla_add_Click(object sender, EventArgs e) {
-//    for (int b = 0; b < bus.Count; b++) {
-//        if (numericUpDown_youla.Value <= 0) break;
-//        if (bus[b].tiu.Contains("http") &&
-//            bus[b].amount > 0 &&
-//            bus[b].price > 0 &&
-//            bus[b].images.Count > 0 &&
-//           !bus[b].youla.Contains("http")) {
-//            var add = Task.Factory.StartNew(() => {
-//                Actions a = new Actions(ul);
-//                //кнопка подать объявление
-//                ul.FindElement(By.CssSelector("div.header_bar__add._header_add_container.hidden-tablet > button")).Click();
-//                Thread.Sleep(1000);
-//                //категория                       
-//                SetYoulaCategory(b, a);
-//                Thread.Sleep(1000);
-//                //тип
-//                SetYoulaType(b, ul.FindElement(By.ClassName("Select-placeholder")));
-//                Thread.Sleep(1000);
-//                SetYoulaTitle(b);
-//                Thread.Sleep(1000);
-//                SetYoulaPrice(b);
-//                Thread.Sleep(1000);
-//                SetYoulaDesc(b);
-//                Thread.Sleep(1000);
-//                SetYulaImages(b);
-//                Thread.Sleep(1000);
-//                SetYulaAddress();
-//                Thread.Sleep(1000);
-//                PressYulaOkButton();
-//                Thread.Sleep(5000);
-//            });
-//            try {
-//                await add;
-//                string youId = ul.Url;
-//                //string youId = ul.FindElement(By.CssSelector(
-//                //                    "div.page_title.page_title--main.visible-md.visible-lg > p > a:nth-child(1)"))
-//                //                 .GetAttribute("href");
-//                if (!String.IsNullOrEmpty(youId) && youId.Contains("promotion")) {
-//                    bus[b].youla = youId.Replace("promotion", "update");
-//                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
-//                    {
-//                        {"id", bus[b].id},
-//                        {"name", bus[b].name},
-//                        {"402489", bus[b].youla}
-//                    });
-//                    ToLog("юла выложено и привязано объявление\n" + b + " " + bus[b].name);
-//                    numericUpDown_youla.Value--;
-//                }
-//                else {
-//                    ToLog("ЮЛА ОШИБКА ПРИВЯЗКИ НОВОГО ОБЪЯВЛЕНИЯ! " + bus[b].name);
-//                    numericUpDown_youla.Value = 0;
-//                    bak = 0;
-//                }
-//            }
-//            catch (Exception ex) {
-//                ToLog("button_youla_add_Click: " + ex.Message);
-//                numericUpDown_youla.Value = 0;
-//                bak = 0;
-//            }
-//        }
-//    }
-//}
-
 
 ////проверка ссылок на юлу
 //private async void button_YoulaCheck_Click(object sender, EventArgs e) {
