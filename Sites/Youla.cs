@@ -304,7 +304,8 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            await _dr.NavigateAsync("https://youla.ru/pro");
+            if (DateTime.Now.Hour % 4 != 0) return;
+            await _dr.NavigateAsync("https://youla.ru/pro", "//span[contains(@data-test-block,'TotalCount')]");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
             //строка количество объявлений
@@ -312,24 +313,29 @@ namespace Selen.Sites {
             //число количество страниц
             var n = int.Parse(str) /20;
             //пробегаюсь по страницам
-            for (int i = 1; i < n; i += _rnd.Next(2)) {
+            for (int i = 1; i < n; i += _rnd.Next(1, 3)) {
+                if (_dr.GetElementsCount("//span[@data-test-id='B2BPaginationPageNumber-" + i + "']") == 0) break;
                 await ParsePageAsync(i);
             }
+            Log.Add("youla.ru: проверка кабинета завершена!");
         }
         //парсинг страницы
         async Task ParsePageAsync(int p) {
             try {
                 await Task.Factory.StartNew(() => {
                     _dr.ButtonClick("//span[@data-test-id='B2BPaginationPageNumber-"+p+"']");
-                    var names = _dr.FindElements("//p[contains(@class,'feFMTD')]").Select(s => s.Text).ToList();
-                    var prices = _dr.FindElements("//span[@data-test-component='B2BPrice']").Select(s => s.Text.Replace(" ","")).ToList();
-                    var ids = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']").Select(s => s.GetAttribute("href").Remove(0,1)).ToList();
+                    Thread.Sleep(10000);
+                    var names = _dr.FindElements("//div[@data-test-component='B2BProductCard']//p").Select(s => s.Text).ToList();
+                    var prices = _dr.FindElements("//span[@data-test-component='B2BPrice']").Select(s => s.Text.Replace("₽", "").Replace("\u205F", "").Trim()).ToList();
+                    var ids = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']").Select(s => s.GetAttribute("href")).ToList();
                     if (names.Count != prices.Count ||
                         names.Count != ids.Count) {
                         throw new Exception("количество элементов не совпадает!");
                     }
                     for (int i = 0; i < ids.Count; i++) {
-                        var b = _bus.FindIndex(f => f.youla.Contains(ids[i]));
+                        //определяю индекс карточки товара
+                        var b = _bus.FindIndex(f => f.youla.Contains(ids[i].Split('/').Last().Remove(0,1)));
+                        //если индекс не найден удаляю объявление
                         if (b == -1) {
                             _dr.Navigate(ids[i]);
                             //кнопка снять с публикации
@@ -342,7 +348,6 @@ namespace Selen.Sites {
                             //кнопка удалить
                             _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
                             Log.Add("youla.ru: " + names[i] + " - потерянное объявление удалено");
-
                         } else if (_bus[b].price.ToString() != prices[i] ||
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
@@ -374,17 +379,39 @@ namespace Selen.Sites {
             } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
-            } else if(name.Contains("ступица")) {
+            } else if (name.Contains("ступица")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Ступица");
                 d.Add("chast_detali", "Ступица");
-            } else if (name.Contains("блок") && name.Contains("управлени") && 
-                (name.Contains("печко")|| name.Contains("отопит") || name.Contains("климат"))) {
+            } else if (name.Contains("блок") && name.Contains("управлени") &&
+                (name.Contains("печко") || name.Contains("отопит") || name.Contains("климат"))) {
                 d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
                 d.Add("kuzovnaya_detal", "Блок управления печкой");
+            } else if (name.Contains("коммутатор ")) {
+                d.Add("avtozapchasti_tip", "Система зажигания");
+                d.Add("kuzovnaya_detal", "Коммутатор зажигания");
+            } else if (name.Contains("катушка") && name.Contains("зажиган")) {
+                d.Add("avtozapchasti_tip", "Система зажигания");
+                d.Add("kuzovnaya_detal", "Катушка зажигания");
+            } else if (name.Contains("замок") && name.Contains("зажиган")) {
+                d.Add("avtozapchasti_tip", "Система зажигания");
+                d.Add("kuzovnaya_detal", "Контактная группа");
+            } else if (name.Contains("заслонки") && (name.Contains("печк") || name.Contains("отопит"))) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Сервопривод");
+            } else if (name.Contains("моторчик ") && (name.Contains("печк") || name.Contains("отопит"))) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Моторчик печки");
+            } else if ((name.Contains("корпус ") || name.Contains("крышка ")) && name.Contains("термостат")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Термостат");
+                d.Add("chast_detali", "Термостат");
             } else if (name.Contains("коллектор") && name.Contains("впускной")) {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Коллектор впускной");
+            } else if (name.Contains("проводка") || name.Contains("жгут провод")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Жгут проводов");
             } else if (name.Contains("бампер ") && (name.Contains("перед") || name.Contains("задн"))) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Бампер и комплектующие");
@@ -392,8 +419,8 @@ namespace Selen.Sites {
             } else if (name.Contains("крыло ") && (name.Contains("лев") || name.Contains("прав"))) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Крылья и комплектующие");
-                d.Add("chast_detali", "Крылья");            } 
-            else if (name.Contains("крыша ")) {
+                d.Add("chast_detali", "Крылья");
+            } else if (name.Contains("крыша ")) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Крыша и комплектующие");
                 d.Add("chast_detali", "Крыша");
@@ -412,7 +439,7 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
                 d.Add("chast_detali", "Шатун");
-            } else if (name.Contains("заслонка") && name.Contains("дросс")){ 
+            } else if (name.Contains("заслонка") && name.Contains("дросс")) {
                 d.Add("avtozapchasti_tip", "Топливная система");
                 d.Add("kuzovnaya_detal", "Дроссель");
                 d.Add("chast_detali", "Дроссельная заслонка");
@@ -452,10 +479,6 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Сцепление");
                 d.Add("chast_detali", "Маховик");
-            } else if (name.Contains("акпп")) {
-                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
-                d.Add("kuzovnaya_detal", "Коробка передач");
-                d.Add("chast_detali", "АКПП");
             } else if (name.Contains("противотум") && name.Contains("фара")) {
                 d.Add("avtozapchasti_tip", "Автосвет, оптика");
                 d.Add("kuzovnaya_detal", "Противотуманная фара (ПТФ)");
@@ -467,7 +490,7 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Коробка передач");
                 d.Add("chast_detali", "МКПП");
-            } else if (name.Contains("переключат") && 
+            } else if (name.Contains("переключат") &&
                 (name.Contains("подрулев") || name.Contains("дворник") || name.Contains("поворот"))) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Подрулевой переключатель");
@@ -557,6 +580,16 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Двери");
                 d.Add("chast_detali", "Дверь боковая");
+            } else if (name.Contains("акпп ")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Коробка передач");
+                d.Add("chast_detali", "АКПП");
+            } else if (name.Contains("трамблер ")) {
+                d.Add("avtozapchasti_tip", "Система зажигания");
+                d.Add("kuzovnaya_detal", "Трамблер");
+            } else if (name.Contains("реле ") && name.Contains("накала")) {
+                d.Add("avtozapchasti_tip", "Система зажигания");
+                d.Add("kuzovnaya_detal", "Реле свечей накала");
             }
             if (d.Count == 0) {
                 Log.Add("youla.ru: " + _bus[b].name + " - пропущен, не описана категория (" + b + ")");
