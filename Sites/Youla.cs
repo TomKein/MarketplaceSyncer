@@ -511,6 +511,10 @@ namespace Selen.Sites {
             } else if (name.Contains("балка") && name.Contains("зад")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Балка");
+            } else if (name.Contains("кулак ") && (name.Contains("зад") || name.Contains("перед") || 
+                name.Contains("поворотн") || name.Contains("правый") || name.Contains("левый"))) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Поворотный кулак");
             } else if (name.Contains("крышка") && name.Contains("багажник")) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Багажник и комплектующие");
@@ -576,10 +580,15 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Двигатель в сборе");
                 d.Add("chast_detali", "Двигатель внутреннего сгорания");
-            } else if (name.Contains("дверь")) {
+            } else if (name.Contains("дверь ")) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Двери");
                 d.Add("chast_detali", "Дверь боковая");
+            } else if (name.Contains("капот ")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Капоты и комплектующие");
+                d.Add("chast_detali", "Капот");
+
             } else if (name.Contains("акпп ")) {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Коробка передач");
