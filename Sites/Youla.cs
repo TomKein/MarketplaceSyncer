@@ -376,7 +376,8 @@ namespace Selen.Sites {
             var d = new Dictionary<string, string>();
             //основная категория
             if (name.Contains("кронштейн ") || name.Contains("опора") || name.Contains("креплен") || name.Contains("подушк")) {
-            } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
+            } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("обшивк") || name.Contains("накладк") ||
+                name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
             } else if (name.Contains("ступица")) {
@@ -511,7 +512,7 @@ namespace Selen.Sites {
             } else if (name.Contains("балка") && name.Contains("зад")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Балка");
-            } else if (name.Contains("кулак ") && (name.Contains("зад") || name.Contains("перед") || 
+            } else if (name.Contains("кулак ") && (name.Contains("зад") || name.Contains("перед") ||
                 name.Contains("поворотн") || name.Contains("правый") || name.Contains("левый"))) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Поворотный кулак");
@@ -576,6 +577,11 @@ namespace Selen.Sites {
             } else if (name.Contains("руль")) {
                 d.Add("avtozapchasti_tip", "Рулевое управление");
                 d.Add("kuzovnaya_detal", "Руль");
+            } else if (name.Contains("сиденья ") && name.Contains("передние") ||
+                       name.Contains("сиденье ") && name.Contains("переднее") ||
+                       name.Contains("регулир") && name.Contains("сиденья")) {
+                d.Add("avtozapchasti_tip", "Салон, интерьер");
+                d.Add("kuzovnaya_detal", "Сиденья");
             } else if (name.Contains("двигатель")) {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Двигатель в сборе");
@@ -588,7 +594,6 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Капоты и комплектующие");
                 d.Add("chast_detali", "Капот");
-
             } else if (name.Contains("акпп ")) {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Коробка передач");
@@ -599,6 +604,36 @@ namespace Selen.Sites {
             } else if (name.Contains("реле ") && name.Contains("накала")) {
                 d.Add("avtozapchasti_tip", "Система зажигания");
                 d.Add("kuzovnaya_detal", "Реле свечей накала");
+            } else if (name.Contains("стойк") && name.Contains("стабилизат")) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Стабилизатор");
+                d.Add("chast_detali", "Стойки стабилизатора");
+            } else if (name.Contains("втулк") && name.Contains("стабилизат")) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Стабилизатор");
+                d.Add("chast_detali", "Втулки стабилизатора");
+            } else if (name.Contains("стабилизатор ")) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Стабилизатор");
+                d.Add("chast_detali", "Стабилизатор");
+            } else if (name.Contains("стойка ") && (name.Contains("передн") || name.Contains("задн"))) {
+                d.Add("avtozapchasti_tip", "Подвеска");
+                d.Add("kuzovnaya_detal", "Амортизаторы");
+            } else if (name.Contains("суппорт ") && (name.Contains("передн") || name.Contains("задн"))) {
+                d.Add("avtozapchasti_tip", "Тормозная система");
+                d.Add("kuzovnaya_detal", "Суппорт");
+            } else if (name.Contains("блок ") && name.Contains("abs")) {
+                d.Add("avtozapchasti_tip", "Тормозная система");
+                d.Add("kuzovnaya_detal", "Система ABS");
+            } else if ((name.Contains("стеклоочист") || name.Contains("дворник")) && name.Contains("решетк") || name.Contains("жабо ")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Капоты и комплектующие");
+                d.Add("chast_detali", "Решетка капота");
+            } else if ((name.Contains("стеклоочист") || name.Contains("дворник")) && name.Contains("мотор")) {
+                d.Add("avtozapchasti_tip", "Система очистки");
+                d.Add("kuzovnaya_detal", "Мотор стеклоочистителя");
+            } else if (name.Contains("стекло ")) {
+                d.Add("avtozapchasti_tip", "Стекла");
             }
             if (d.Count == 0) {
                 Log.Add("youla.ru: " + _bus[b].name + " - пропущен, не описана категория (" + b + ")");
