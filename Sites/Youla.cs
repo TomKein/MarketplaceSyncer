@@ -366,7 +366,7 @@ namespace Selen.Sites {
             foreach(var key in param.Keys) {
                 if (key == "avtozapchasti_tip") _dr.ButtonClick("//div[text()='Запчасти']");
                 _dr.ButtonClick("//div[@data-name='attributes." + key + "']",2000);
-                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='" + param[key] + "']", 3000);
+                _dr.ButtonClick("//div[@class='Select-menu-outer']//div[contains(text(),'" + param[key] + "')]", 3000);
             }
         }
         //определение категории
@@ -380,6 +380,7 @@ namespace Selen.Sites {
                 name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
+            } else if (name.Contains("состав") || name.Contains("масло ") || name.Contains("полирол")) {
             } else if (name.Contains("ступица")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Ступица");
@@ -469,7 +470,7 @@ namespace Selen.Sites {
             } else if (name.Contains("клапан") && (name.Contains("егр") || name.Contains("egr"))) {
                 d.Add("avtozapchasti_tip", "Выхлопная система");
                 d.Add("kuzovnaya_detal", "EGR/SCR система");
-            } else if (name.Contains("блок") && name.Contains("управлени")) {
+            } else if (name.Contains("блок") && name.Contains("управлени") || name.Contains("ЭБУ ")) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Блок управления");
             } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни") || name.Contains("полуос"))) {
@@ -616,7 +617,7 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Стабилизатор");
                 d.Add("chast_detali", "Стабилизатор");
-            } else if (name.Contains("стойка ") && (name.Contains("передн") || name.Contains("задн"))) {
+            } else if ((name.Contains("стойка ")|| name.Contains("амортизатор")) && (name.Contains("передн") || name.Contains("задн"))) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Амортизаторы");
             } else if (name.Contains("суппорт ") && (name.Contains("передн") || name.Contains("задн"))) {
@@ -632,6 +633,28 @@ namespace Selen.Sites {
             } else if ((name.Contains("стеклоочист") || name.Contains("дворник")) && name.Contains("мотор")) {
                 d.Add("avtozapchasti_tip", "Система очистки");
                 d.Add("kuzovnaya_detal", "Мотор стеклоочистителя");
+            } else if (name.Contains("блок ") && name.Contains("предохранителей")) {
+                d.Add("avtozapchasti_tip", "Электрооборудование");
+                d.Add("kuzovnaya_detal", "Блок предохранителей");
+            } else if (name.Contains("радиатор ") && name.Contains("охлаждения")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Радиатор и детали");
+                d.Add("chast_detali", "Радиатор охлаждения");
+            } else if (name.Contains("радиатор ") && name.Contains("кондиционера")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Радиатор и детали");
+                d.Add("chast_detali", "Радиатор кондиционера");
+            } else if (name.Contains("расширительный") && name.Contains("бачок")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Радиатор и детали");
+                d.Add("chast_detali", "Расширительный бачок");
+            } else if (name.Contains("бак ") && name.Contains("топливный") || name.Contains("бензобак")) {
+                d.Add("avtozapchasti_tip", "Топливная система");
+                d.Add("kuzovnaya_detal", "Топливный бак");
+            } else if (name.Contains("вискомуфта ")) {
+                d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
+                d.Add("kuzovnaya_detal", "Радиатор и детали");
+                d.Add("chast_detali", "Вискомуфта");
             } else if (name.Contains("стекло ")) {
                 d.Add("avtozapchasti_tip", "Стекла");
             }
