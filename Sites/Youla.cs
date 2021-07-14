@@ -418,6 +418,30 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Бампер и комплектующие");
                 d.Add("chast_detali", "Бампер");
+            } else if (name.Contains("бампер") && name.Contains("усилитель")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Бампер и комплектующие");
+                d.Add("chast_detali", "Усилитель бампера");
+            } else if (name.Contains("бампер") && name.Contains("абсорбер")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Бампер и комплектующие");
+                d.Add("chast_detali", "Абсорбер бампера");
+            } else if (name.Contains("замок") && name.Contains("двери")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Замки");
+                d.Add("chast_detali", "Замок двери");
+            } else if (name.Contains("замок") && name.Contains("капота")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Замки");
+                d.Add("chast_detali", "Замок капота");
+            } else if (name.Contains("замок") && name.Contains("багажник")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Замки");
+                d.Add("chast_detali", "Замок багажника");
+            } else if (name.Contains("замка") && name.Contains("компрессор")) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Замки");
+                d.Add("chast_detali", "Центральный замок");
             } else if (name.Contains("крыло ") && (name.Contains("лев") || name.Contains("прав"))) {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Крылья и комплектующие");
@@ -510,6 +534,10 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "ГРМ система и цепь");
                 d.Add("chast_detali", "Шкив коленвала");
+            } else if (name.Contains("коленвал")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
+                d.Add("chast_detali", "Коленвал");
             } else if (name.Contains("балка") && name.Contains("зад")) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Балка");

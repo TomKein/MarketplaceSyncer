@@ -30,7 +30,6 @@ namespace Selen.Tools {
             for (int i = 0; i < tryCount; i++) {
                 try {
                     if (i > 0) {
-                        //_drv.FindElement(By.CssSelector("body")).SendKeys(OpenQA.Selenium.Keys.Control+OpenQA.Selenium.Keys.F5);
                         _drv.Navigate().Refresh();
                         Thread.Sleep(10000);
                     }
