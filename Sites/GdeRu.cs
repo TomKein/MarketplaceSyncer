@@ -156,7 +156,8 @@ namespace Selen.Sites {
             SetDesc(b);
             //проверка фото
             var photos = _dr.FindElements("//a[text()='Удалить']");
-            if (photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)) {
+            if (photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)
+                && _bus[b].images.Count > 0) {
                 Log.Add("gde.ru: " + _bus[b].name + " - обновляю фотографии");
                 foreach (var photo in photos) {
                     photo.Click();

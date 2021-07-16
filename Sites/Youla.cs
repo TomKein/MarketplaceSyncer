@@ -167,13 +167,10 @@ namespace Selen.Sites {
             SetPrice(b);
             SetDesc(b);
             SetPart(b);
-            //SetMarkAndModel(b);
-            //SetPhone();
-            //_dr.ButtonClick("//div[@data-name='attributes.type_classified']");
-            //_dr.ButtonClick("//div[@class='Select-menu-outer']//div[text()='Магазин']");
             //проверка фото
             var photosCount = _dr.FindElements("//div[@id='images']//button[1]").Count;
-            if (photosCount != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+            if (photosCount != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
+                && _bus[b].images.Count > 0) {
                 Log.Add("youla.ru: " + _bus[b].name + " - обновляю фотографии");
                 for(; photosCount > 0; photosCount--) 
                     _dr.ButtonClick("//div[@id='images']//button[1]",2000);

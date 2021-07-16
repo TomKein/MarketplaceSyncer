@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.61.1";
+        string _version = "1.61.2";
 
         DB _db = new DB();
 
@@ -1334,7 +1334,7 @@ namespace Selen {
                                     {"name", bus[b].name},
                                     {"images", "[]"}
                                 });
-                        Log.Add(bus[b].name + " - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
+                        Log.Add(bus[b].name + " ["+b+"] - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
                         bus[b].images.Clear();
                         await Task.Delay(10);
                         i++;

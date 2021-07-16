@@ -128,7 +128,8 @@ namespace Selen.Sites {
             SetDesc(b);
             //проверка фото
             var photos = _dr.FindElements("//div[@id='images']/div/span");
-            if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
+            if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
+                && _bus[b].images.Count > 0) {
                 Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
                 foreach (var photo in photos) {
                     photo.Click();
