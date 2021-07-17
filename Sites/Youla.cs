@@ -376,6 +376,15 @@ namespace Selen.Sites {
             if (name.Contains("кронштейн ") || name.Contains("опора") || name.Contains("креплен") || name.Contains("подушк")) {
             } else if (name.Contains("планк") || name.Contains("молдинг") || name.Contains("обшивк") || name.Contains("накладк") ||
                 name.Contains("катафот") || name.Contains("прокладка") || name.Contains("сальник")) {
+            } else if ((name.Contains("трубк") || name.Contains("шланг")) && 
+                (name.Contains("гур") || name.Contains("гидроусилител") ||
+                name.Contains("высокого") || name.Contains("низкого"))) {
+                d.Add("avtozapchasti_tip", "Рулевое управление");
+                d.Add("kuzovnaya_detal", "Шланг ГУР");
+
+
+
+
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
             } else if (name.Contains("состав") || name.Contains("масло ") || name.Contains("полирол")) {
@@ -492,7 +501,8 @@ namespace Selen.Sites {
             } else if (name.Contains("клапан") && (name.Contains("егр") || name.Contains("egr"))) {
                 d.Add("avtozapchasti_tip", "Выхлопная система");
                 d.Add("kuzovnaya_detal", "EGR/SCR система");
-            } else if (name.Contains("блок") && name.Contains("управлени") || name.Contains("ЭБУ ")) {
+            } else if (name.Contains("блок ") && (name.Contains("управлени") ||
+                name.Contains("комфорта")) || name.Contains("ЭБУ ")) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Блок управления");
             } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни") || name.Contains("полуос"))) {
@@ -540,7 +550,8 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
                 d.Add("chast_detali", "Коленвал");
-            } else if (name.Contains("балка") && name.Contains("зад")) {
+            } else if (name.Contains("балка ") && 
+                      (name.Contains("зад") || name.Contains("передняя")||name.Contains("подмоторная"))) {
                 d.Add("avtozapchasti_tip", "Подвеска");
                 d.Add("kuzovnaya_detal", "Балка");
             } else if (name.Contains("кулак ") && (name.Contains("зад") || name.Contains("перед") ||
@@ -558,9 +569,6 @@ namespace Selen.Sites {
             } else if (name.Contains("насос") && name.Contains("гур")) {
                 d.Add("avtozapchasti_tip", "Рулевое управление");
                 d.Add("kuzovnaya_detal", "Гидроусилитель и электроусилитель");
-            } else if ((name.Contains("шланг") || name.Contains("трубк")) && name.Contains("гур")) {
-                d.Add("avtozapchasti_tip", "Рулевое управление");
-                d.Add("kuzovnaya_detal", "Шланг ГУР");
             } else if (name.Contains("панель") && name.Contains("прибор")) {
                 d.Add("avtozapchasti_tip", "Салон, интерьер");
                 d.Add("kuzovnaya_detal", "Спидометр");
@@ -711,8 +719,8 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Турбина, компрессор");
                 d.Add("chast_detali", "Компрессор");
-            } else if (name.Contains("корпус ") && (name.Contains("воздушн"))) {
-                d.Add("avtozapchasti_tip", "ГРМ система и цепь");
+            } else if (name.Contains("корпус ") && (name.Contains("воздушн"))){
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Корпус и крышки");
                 d.Add("chast_detali", "Корпус фильтра");
             } else if ((name.Contains("порог ") || name.Contains("пороги ")) && 
