@@ -362,6 +362,7 @@ namespace Selen.Sites {
         void Select(Dictionary<string, string> param = null) {
             foreach(var key in param.Keys) {
                 if (key == "avtozapchasti_tip") _dr.ButtonClick("//div[text()='Запчасти']");
+                if (key == "shiny_diski_tip") _dr.ButtonClick("//div[text()='Шины и диски']");
                 _dr.ButtonClick("//div[@data-name='attributes." + key + "']",2000);
                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[contains(text(),'" + param[key] + "')]", 3000);
             }
@@ -502,6 +503,10 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Трансмиссия, привод");
                 d.Add("kuzovnaya_detal", "Сцепление");
                 d.Add("chast_detali", "Маховик");
+            } else if (name.Contains("диск") && name.Contains("сцеплен")) {
+                d.Add("avtozapchasti_tip", "Трансмиссия, привод");
+                d.Add("kuzovnaya_detal", "Сцепление");
+                d.Add("chast_detali", "Диск сцепления");
             } else if (name.Contains("противотум") && name.Contains("фара")) {
                 d.Add("avtozapchasti_tip", "Автосвет, оптика");
                 d.Add("kuzovnaya_detal", "Противотуманная фара (ПТФ)");
@@ -605,7 +610,8 @@ namespace Selen.Sites {
                 d.Add("kuzovnaya_detal", "Руль");
             } else if (name.Contains("сиденья ") && name.Contains("передние") ||
                        name.Contains("сиденье ") && name.Contains("переднее") ||
-                       name.Contains("регулир") && name.Contains("сиденья")) {
+                       name.Contains("регулир") && name.Contains("сиденья")||
+                       name.Contains("сидень") && name.Contains("водител")) {
                 d.Add("avtozapchasti_tip", "Салон, интерьер");
                 d.Add("kuzovnaya_detal", "Сиденья");
             } else if (name.Contains("двигатель")) {
@@ -680,8 +686,29 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Системы охлаждения, обогрева");
                 d.Add("kuzovnaya_detal", "Радиатор и детали");
                 d.Add("chast_detali", "Вискомуфта");
+            } else if (name.Contains("крышка ") && (name.Contains("клапанная") || name.Contains("гбц"))) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Клапанная крышка");
+                d.Add("chast_detali", "Клапанная крышка");
+            } else if (name.Contains("крышка ") && (name.Contains("двигателя") || name.Contains("двс"))) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Корпус и крышки");
+                d.Add("chast_detali", "Крышка двигателя");
+            } else if (name.Contains("гбц ")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
+                d.Add("chast_detali", "Головка блока цилиндров");
             } else if (name.Contains("стекло ")) {
                 d.Add("avtozapchasti_tip", "Стекла");
+            } else if (name.Contains("диск ")) {
+                d.Add("shiny_diski_tip", "Диски");
+                d.Add("shiny_naznachenie", "Для легкового автомобиля");
+                d.Add("shiny_diametr", _bus[b].GetDiskSize());
+                d.Add("disk_tip", name.Contains(" лит") ? "Литые"
+                                                        : name.Contains(" кован") ? "Кованые"
+                                                                                  : "Штампованные");
+                d.Add("diski_kolichestvo_otverstiy", _bus[b].GetNumberOfHoles());
+                d.Add("diski_diametr_raspolozheniya_otverstiy", _bus[b].GetDiameterOfHoles());
             }
             if (d.Count == 0) {
                 Log.Add("youla.ru: " + _bus[b].name + " - пропущен, не описана категория (" + b + ")");
