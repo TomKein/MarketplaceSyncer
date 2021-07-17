@@ -698,6 +698,36 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
                 d.Add("kuzovnaya_detal", "Блок цилиндров и детали");
                 d.Add("chast_detali", "Головка блока цилиндров");
+            } else if (name.Contains("турбина ")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Турбина, компрессор");
+                d.Add("chast_detali", "Турбина");
+            } else if (name.Contains("поддон ") && 
+                (name.Contains("двс") || name.Contains("двигател") || name.Contains("масл"))) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Прокладки и поддон");
+                d.Add("chast_detali", "Поддон картера");
+            } else if (name.Contains("турбокомпрессор ")) {
+                d.Add("avtozapchasti_tip", "Двигатель, ГРМ, турбина");
+                d.Add("kuzovnaya_detal", "Турбина, компрессор");
+                d.Add("chast_detali", "Компрессор");
+            } else if (name.Contains("корпус ") && (name.Contains("воздушн"))) {
+                d.Add("avtozapchasti_tip", "ГРМ система и цепь");
+                d.Add("kuzovnaya_detal", "Корпус и крышки");
+                d.Add("chast_detali", "Корпус фильтра");
+            } else if ((name.Contains("порог ") || name.Contains("пороги ")) && 
+                       (name.Contains("левы") || name.Contains("правы"))) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Силовые элементы");
+                d.Add("chast_detali", "Пороги");
+            } else if (name.Contains("лонжерон ") || name.Contains("лонжероны ") ||
+                       (name.Contains("морда"))) {
+                d.Add("avtozapchasti_tip", "Кузовные запчасти");
+                d.Add("kuzovnaya_detal", "Силовые элементы");
+                d.Add("chast_detali", "Лонжероны");
+
+
+
             } else if (name.Contains("стекло ")) {
                 d.Add("avtozapchasti_tip", "Стекла");
             } else if (name.Contains("диск ")) {
