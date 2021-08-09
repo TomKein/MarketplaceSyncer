@@ -201,17 +201,17 @@ namespace Selen.Sites {
                         var elementsCount = _dr.GetElementsCount("//td[@data-col='category.name']");
                         Log.Add("avto.pro: найдено " + i);
                         if (elementsCount == 1) break;
-                        if (i >= 100) throw new Exception("не могу найти объявление для привязки! - ссылка не была сохранена!");
+                        if (i >= 40) throw new Exception("не могу найти объявление для привязки! - ссылка не была сохранена!");
                     };
                     _dr.ButtonClick("//td[@data-col='category.name']");
                     for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
                         Log.Add("avto.pro: ожидаю загрузку страницы ("+i+")...");
-                        if (i >= 100) throw new Exception("ошибка ожидания загрузки страницы - ссылка не была сохранена!");
+                        if (i >= 40) throw new Exception("ошибка ожидания загрузки страницы - ссылка не была сохранена!");
                         Thread.Sleep(1000);
                     }
-                    var elementText = _dr.GetElementText("//textarea[@name='Info']");
+                    var elementText = _dr.GetElementAttribute("//input[@name='Code']","value");
                     if (!string.IsNullOrEmpty(elementText)) break;
-                    if (j >= 100) throw new Exception("ошибка проверки текста формы - ссылка не была сохранена!");
+                    if (j >= 40) throw new Exception("ошибка проверки текста формы - ссылка не была сохранена!");
                 }
                 b.avtopro = _dr.GetUrl();
             });
@@ -220,7 +220,7 @@ namespace Selen.Sites {
                 {"name", b.name},
                 {_url, b.avtopro}
             });
-            Log.Add("avto.pro: ссылка на объявление успешно сохранена (" + b.avtopro + ")");
+            Log.Add("avto.pro: " + b.name + " - ссылка на объявление успешно сохранена (" + b.avtopro + ")");
             await Task.Delay(2000);
         }
 
@@ -319,9 +319,9 @@ namespace Selen.Sites {
                 if (_dr.GetElementsCount("//span[contains(text(),'уже есть на складе')]") > 0)
                     throw new Exception("не срабатывает кнопка Сохраненить - данный товар уже есть на складе!");
                 for (int i = 0; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
-                    if (i >= 100) throw new Exception("ошибка ожидания загрузки страницы после нажатия Сохранить!");
+                    if (i >= 30) throw new Exception("ошибка ожидания загрузки страницы после нажатия Сохранить!");
                     Log.Add("avto.pro: ожидаю загрузку страницы (" + i + ")...");
-                    Thread.Sleep(1000);
+                    Thread.Sleep(3000);
                 }
             }
         }

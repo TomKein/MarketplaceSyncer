@@ -33,7 +33,7 @@ namespace Selen.Sites {
 
         public async Task VkSyncAsync(List<RootObject> bus) {
             //TODO вынести в настройки / запуск раз в 4 часа достаточно
-            if (DateTime.Now.Hour / 4 != 0) return;
+            if (DateTime.Now.Hour % 3 != 0) return;
             _bus = bus;
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
@@ -107,7 +107,8 @@ namespace Selen.Sites {
                                         dopPhotos.Add(photo.FirstOrDefault().Id.Value);
                                     }
                                 } catch (Exception ex) {
-                                    Log.Add("vk.com: ошибка при загрузке фото! - " + ex.Message);
+                                    Log.Add("vk.com: " + _bus[i].name + " - ошибка загрузки фото! - " + ex.Message);
+                                    throw;
                                 }
                             }
                             //меняем доп описание

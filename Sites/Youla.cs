@@ -57,7 +57,7 @@ namespace Selen.Sites {
                         await EditAsync();
                         await AddAsync();
                         await ParseAsync();
-                        //await CheckUrls();
+                        await ActivateAsync();
                         Log.Add("youla.ru: выгрузка завершена");
                         return true;
                     } catch (Exception x) {
@@ -77,6 +77,50 @@ namespace Selen.Sites {
             }
             return false;
         }
+        //активация устаревших объявлений 
+        private async Task ActivateAsync() => await Task.Factory.StartNew(() => {
+            //перехожу на главную страницу, проверяю наличие кнопки Активные
+            _dr.Navigate("https://youla.ru/pro", "//span[text()='Активные']/..");
+            //нажимаю кнопку Активные
+            _dr.ButtonClick("//span[text()='Активные']/..");
+            //выбираю Неактивные
+            _dr.ButtonClick("//ul/div[text()='Неактивные']",10000);
+            //получаю ссылки на товары
+            var a = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']")
+                       .Select(s => s.GetAttribute("href"))
+                       .ToList();
+            //получаю заданное количество для активирования
+            int count = _db.GetParamInt("youla.countToUp");
+            //ограничиваю количеством реально обнаруженных неактивных
+            count = a.Count > count ? count : a.Count;
+            //перебираю товары
+            for (var i = 0; count > 0 && i < a.Count-1; i++) {
+                //выделяю id объявления из ссылки
+                var id = a[i].Split('/').Last().TrimStart('p');
+                //нахожу карточку в бизнес.ру
+                var b = _bus.FindIndex(_ => _.youla.Contains(id));
+                //проверяю индекс и остаток товара и цену
+                if (b == -1) {
+                    Log.Add("youla.ru: " + a[i] + " - объявление не привязано к бизнес.ру");
+                    continue;
+                }
+                //если есть на остатках
+                if (_bus[b].amount > 0) {
+                    //загружаю объявление
+                    _dr.Navigate(a[i]);
+                    //если есть кнопка опубликовать повторно
+                    if (_dr.GetElementsCount("//button[@data-test-action='RepublishClick']") > 0) {
+                        //жму опубликовать повторно
+                        _dr.ButtonClick("//button[@data-test-action='RepublishClick']", 5000);
+                        Log.Add("youla.ru: " + _bus[b].name + " - объявление активировано (ост. " + --count + ")");
+                    }
+                } else {
+                    //иначе удаляю объявление
+                    Delete(b);
+                }
+            }
+        });
+
         //авторизация
         async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
@@ -133,26 +177,31 @@ namespace Selen.Sites {
                 }
             }
         }
-        //удаление объявления
+        //удаление объявления асинхронно
         async Task DeleteAsync(int b) {
             try {
                 await Task.Factory.StartNew(() => {
-                    _dr.Navigate(_bus[b].youla);
-                    //кнопка снять с публикации
-                    _dr.ButtonClick("//button[@data-test-action='ProductWithdrawClick']");
-                    //кнопка другая причина
-                    _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
-                    Log.Add("youla.ru: " + _bus[b].name + " - объявление снято");
-                    //кнопка удалить объявление
-                    _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']");
-                    //кнопка удалить
-                    _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
-                    Log.Add("youla.ru: " + _bus[b].name + " - объявление удалено");
+                    Delete(b);
                 });
             } catch (Exception x) {
                 Log.Add("youla.ru: ошибка удаления! - " + _bus[b].name + " - " + x.Message);
             }
         }
+        //удаление объявления
+        private void Delete(int b) {
+            _dr.Navigate(_bus[b].youla);
+            //кнопка снять с публикации
+            _dr.ButtonClick("//button[@data-test-action='ProductWithdrawClick']");
+            //кнопка другая причина
+            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
+            Log.Add("youla.ru: " + _bus[b].name + " - объявление снято");
+            //кнопка удалить объявление
+            _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']");
+            //кнопка удалить
+            _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
+            Log.Add("youla.ru: " + _bus[b].name + " - объявление удалено");
+        }
+
         //редактирование объявления асинхронно
         async Task EditOfferAsync(int b) {
             await Task.Factory.StartNew(() => {
@@ -241,7 +290,7 @@ namespace Selen.Sites {
                 if ((_bus[b].youla == null || !_bus[b].youla.Contains("http")) &&
                      _bus[b].tiu.Contains("http") &&
                      _bus[b].amount > 0 &&
-                     _bus[b].price >= 1500 &&
+                     _bus[b].price >= 1000 &&
                      _bus[b].images.Count > 0) {
                     try {
                         if (await Task.Factory.StartNew(() => {
@@ -301,7 +350,7 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            if (DateTime.Now.Hour % 4 != 0) return;
+            if (DateTime.Now.Hour % 6 != 0) return;
             await _dr.NavigateAsync("https://youla.ru/pro", "//span[contains(@data-test-block,'TotalCount')]");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
@@ -381,10 +430,6 @@ namespace Selen.Sites {
                 name.Contains("высокого") || name.Contains("низкого"))) {
                 d.Add("avtozapchasti_tip", "Рулевое управление");
                 d.Add("kuzovnaya_detal", "Шланг ГУР");
-
-
-
-
             } else if (name.Contains("трубк") || name.Contains("шланг")) {
             } else if (name.Contains("трос ")) {
             } else if (name.Contains("состав") || name.Contains("масло ") || name.Contains("полирол")) {
@@ -501,8 +546,8 @@ namespace Selen.Sites {
             } else if (name.Contains("клапан") && (name.Contains("егр") || name.Contains("egr"))) {
                 d.Add("avtozapchasti_tip", "Выхлопная система");
                 d.Add("kuzovnaya_detal", "EGR/SCR система");
-            } else if (name.Contains("блок ") && (name.Contains("управлени") ||
-                name.Contains("комфорта")) || name.Contains("ЭБУ ")) {
+            } else if ((name.Contains("блок ") || name.Contains("комплект ")) && 
+                (name.Contains("управлени") || name.Contains("комфорта")) || name.Contains("ЭБУ ")) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Блок управления");
             } else if (name.Contains("привод") && (name.Contains("левый") || name.Contains("правый") || name.Contains("передн") || name.Contains("задни") || name.Contains("полуос"))) {
@@ -529,7 +574,8 @@ namespace Selen.Sites {
                 d.Add("kuzovnaya_detal", "Коробка передач");
                 d.Add("chast_detali", "МКПП");
             } else if (name.Contains("переключат") &&
-                (name.Contains("подрулев") || name.Contains("дворник") || name.Contains("поворот"))) {
+                      (name.Contains("подрулев") || name.Contains("дворник") || 
+                       name.Contains("поворот") || name.Contains("стеклоочист"))) {
                 d.Add("avtozapchasti_tip", "Электрооборудование");
                 d.Add("kuzovnaya_detal", "Подрулевой переключатель");
             } else if (name.Contains("фара")) {
@@ -733,9 +779,6 @@ namespace Selen.Sites {
                 d.Add("avtozapchasti_tip", "Кузовные запчасти");
                 d.Add("kuzovnaya_detal", "Силовые элементы");
                 d.Add("chast_detali", "Лонжероны");
-
-
-
             } else if (name.Contains("стекло ")) {
                 d.Add("avtozapchasti_tip", "Стекла");
             } else if (name.Contains("диск ")) {
