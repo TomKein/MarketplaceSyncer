@@ -180,19 +180,19 @@ namespace Selen.Sites {
             bool isEdit = !_dr.GetUrl().Contains("_");
             //селектор фотографий для каждого случая свой
             string selector = isEdit ? "//div[contains(@class,'uploader-item')]/img"
-                                     : "//div[contains(@class,'gallery-img')]/img";
+                                     : "//div[contains(@class,'gallery-imgs-container')]/div";
             //получаю количество фотографий в объявлении
             var countReal = _dr.GetElementsCount(selector);
             //количество фотографий, которое должно быть в объявлении
             int countMust = _bus[b].images.Count > 10 ? 10 : _bus[b].images.Count;
             //если расхождение и в карточке количество не нулевое
-            if (countMust != countReal && countMust > 0) {
+            if (countMust != countReal && countMust > 1) {
                 //перехожу в режим редактирования, если были не в нем
                 if (!isEdit) {
                     var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
                     _dr.Navigate(url, "//button[contains(@data-marker,'button-next')]");
                 }
-                //удаляю все фото, которые есть объяалении
+                //удаляю все фото, которые есть объявлении
                 for(; countReal>0; countReal--) {
                     _dr.ButtonClick("//button[@title='Удалить']",3000);
                 }
@@ -200,6 +200,7 @@ namespace Selen.Sites {
                 SetImages(b);
                 //нажимаю сохранить, если метод был вызван не из редактирования
                 if (!isEdit) PressOk();
+                Log.Add("avito.ru: "+_bus[b].name+" - фотографии обновлены");
             }
         }
 
