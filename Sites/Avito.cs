@@ -166,6 +166,7 @@ namespace Selen.Sites {
                     SetStatus(b);
                     SetPartNumber(b);
                     SetManufacture(b);
+                    CheckPhotos(b);
                     SetTitle(b);
                     SetPrice(b);
                     SetDesc(b);
@@ -173,6 +174,35 @@ namespace Selen.Sites {
                 });
             }
         }
+        //проверка фотографий в объявлении
+        private void CheckPhotos(int b) {
+            //определяю, был ли вызван метод на странице редактирования или просмотра объявления
+            bool isEdit = !_dr.GetUrl().Contains("_");
+            //селектор фотографий для каждого случая свой
+            string selector = isEdit ? "//div[contains(@class,'uploader-item')]/img"
+                                     : "//div[contains(@class,'gallery-img')]/img";
+            //получаю количество фотографий в объявлении
+            var countReal = _dr.GetElementsCount(selector);
+            //количество фотографий, которое должно быть в объявлении
+            int countMust = _bus[b].images.Count > 10 ? 10 : _bus[b].images.Count;
+            //если расхождение и в карточке количество не нулевое
+            if (countMust != countReal && countMust > 0) {
+                //перехожу в режим редактирования, если были не в нем
+                if (!isEdit) {
+                    var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
+                    _dr.Navigate(url, "//button[contains(@data-marker,'button-next')]");
+                }
+                //удаляю все фото, которые есть объяалении
+                for(; countReal>0; countReal--) {
+                    _dr.ButtonClick("//button[@title='Удалить']",3000);
+                }
+                //загружаю новые фото
+                SetImages(b);
+                //нажимаю сохранить, если метод был вызван не из редактирования
+                if (!isEdit) PressOk();
+            }
+        }
+
         //восстановление удаленного объявления
         private async Task UnDeleteAsync(int b) => await Task.Factory.StartNew(() => {
             _dr.Navigate(_bus[b].avito);
@@ -539,41 +569,41 @@ namespace Selen.Sites {
             _dr.ButtonClick("//div[@data-marker='category-wizard/button' and text()='" + s + "']");
         }
         //проверяю ссылки
-        public async Task CheckUrlsAsync() {
-            await Task.Factory.StartNew(() => {
-                try {
-                    //проверяю ссылки в карточках на корректность
-                    var reg = "http.+([0-9]+)$";
-                    foreach (var item in _bus.Where(w=>w.avito.Contains("avito"))) {
-                        if (!Regex.IsMatch(item.avito, reg))
-                            Log.Add("avito.ru: ошибка! неверная ссылка! - " + item.name + " - " + item.avito);
-                    }
-                    //проверяю объявление по ссылке в случайной карточке с положительным остатком checkUrlsCount раз
-                    var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
-                    if (checkUrlsCount > 0) Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
-                    for (int i = 0; checkUrlsCount > 0; i++) {
-                        //выбираю случайный индекс
-                        var b = _rnd.Next(_bus.Count);
-                        //если нет ссылки на авито или нет на остатках - пропускаю
-                        if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0) continue;
-                        _dr.Navigate(_bus[b].avito);
-                        //не найден заголовок объявления на странице - возможно проблема с интернетом, пока пропускаем
-                        if (_dr.GetElementsCount(".title-info-title") == 0) {
-                            Log.Add("avito.ru: ошибка загрузки страницы для проверки ссылки " + _bus[b].name + "  --  " + _bus[b].avito);
-                            continue;
-                        }
-                        //если удалено - восстанавливаю, т.к. есть положительный остаток
-                        _dr.ButtonClick("//button[@name='restore']");
-                        //если найден элемент "удалено навсегда" - удаляю ссылку из карточки товара (асинхронно без ожидания)
-                        if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) SaveUrlAsync(b, deleteUrl: true);
-                        checkUrlsCount--;
-                    }
-                } catch (Exception x) {
-                    Log.Add("avito.ru: ошибка при проверке ссылок - "+x.Message);
-                    if (x.Message.Contains("timed out")) throw;
+        public async Task CheckUrlsAsync() => await Task.Factory.StartNew(() => {
+            try {
+                //проверяю ссылки в карточках на корректность
+                var reg = "http.+([0-9]+)$";
+                foreach (var item in _bus.Where(w => w.avito.Contains("avito"))) {
+                    if (!Regex.IsMatch(item.avito, reg))
+                        Log.Add("avito.ru: ошибка! неверная ссылка! - " + item.name + " - " + item.avito);
                 }
-            });
-        }
+                //проверяю объявление по ссылке в случайной карточке с положительным остатком checkUrlsCount раз
+                var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
+                if (checkUrlsCount > 0) Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
+                for (int i = 0; checkUrlsCount > 0; i++) {
+                    //выбираю случайный индекс
+                    var b = _rnd.Next(_bus.Count);
+                    //если нет ссылки на авито или нет на остатках - пропускаю
+                    if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0) continue;
+                    _dr.Navigate(_bus[b].avito);
+                    //не найден заголовок объявления на странице - возможно проблема с интернетом, пока пропускаем
+                    if (_dr.GetElementsCount(".title-info-title") == 0) {
+                        Log.Add("avito.ru: ошибка загрузки страницы для проверки ссылки " + _bus[b].name + "  --  " + _bus[b].avito);
+                        continue;
+                    }
+                    //если удалено - восстанавливаю, т.к. есть положительный остаток
+                    _dr.ButtonClick("//button[@name='restore']");
+                    //если найден элемент "удалено навсегда" - удаляю ссылку из карточки товара (асинхронно без ожидания)
+                    if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) SaveUrlAsync(b, deleteUrl: true);
+                    //проверяю фотографии в объявлении
+                    CheckPhotos(b);
+                    checkUrlsCount--;
+                }
+            } catch (Exception x) {
+                Log.Add("avito.ru: ошибка при проверке ссылок - " + x.Message);
+                if (x.Message.Contains("timed out")) throw;
+            }
+        });
         //указываю тип товара
         private void SetOfferType() {
             _dr.WriteToSelector("//option[contains(text(),'на продажу')]/..", OpenQA.Selenium.Keys.ArrowDown + OpenQA.Selenium.Keys.ArrowDown + OpenQA.Selenium.Keys.Enter);
