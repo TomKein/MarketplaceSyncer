@@ -103,6 +103,7 @@ namespace Selen.Sites {
         void Edit(RootObject b) {
             _dr.Navigate(b.drom);
             SetTitle(b);
+            CheckPhotos(b);
             SetDesc(b);
             SetPrice(b);
             SetPart(b);
@@ -112,7 +113,26 @@ namespace Selen.Sites {
             if (b.amount <= 0) Delete();
             else Up();
         }
-
+        //проверка фотографий в объявлении
+        private void CheckPhotos(RootObject b) {
+            //селектор фотографий в объявлении
+            string selector = "//div[@class='grid-item-wrapper']/img";
+            //получаю количество фотографий в объявлении
+            var countReal = _dr.GetElementsCount(selector);
+            //количество фотографий, которое должно быть в объявлении
+            int countMust = b.images.Count;
+            //если расхождение и в карточке количество не нулевое
+            if (countMust != countReal && countMust > 1) {
+                //удаляю все фото, которые есть объявлении
+                for (; countReal > 0; countReal--) {
+                    _dr.ButtonClick("//a[text()='Удалить']", 10000);
+                }
+                //загружаю новые фото
+                SetImages(b);
+                Log.Add("drom.ru: " + b.name + " - фотографии обновлены");
+            }
+        }
+        //заполнить наименование
         void SetTitle(RootObject b) {
             _dr.WriteToSelector("//input[@name='subject']", b.name);
         }

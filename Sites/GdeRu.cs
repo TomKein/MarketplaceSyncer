@@ -360,6 +360,7 @@ namespace Selen.Sites {
                     var names = _dr.FindElements("//strong[@class='title']/a").Select(s => s.Text).ToList();
                     var prices = _dr.FindElements("//strong[@class='price']").Select(s => s.Text.Split(' ').First()).ToList();
                     var ids = _dr.FindElements("//span[@class='id']").Select(s => s.Text.Split(' ').Last()).ToList();
+                    var prolongUrls = _dr.FindElements("//a[contains(@href,'prolong?id')]").Select(s => s.GetAttribute("href")).ToList();
                     if (names.Count != prices.Count ||
                         names.Count != ids.Count) {
                         throw new Exception("количество элементов не совпадает!");
@@ -372,6 +373,10 @@ namespace Selen.Sites {
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
                         }
+                    }
+                    foreach(var url in prolongUrls) {
+                        _dr.Navigate(url);
+                        Thread.Sleep(5000);
                     }
                 });
             } catch (Exception x) {

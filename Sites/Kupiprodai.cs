@@ -173,9 +173,9 @@ namespace Selen.Sites {
                         _dr.Navigate("https://vip.kupiprodai.ru/add/");
                         SetTitle(b);
                         SetCategory(b);
+                        SetImages(b);
                         SetDesc(b);
                         SetPrice(b);
-                        SetImages(b);
                         PressOkButton();
                     });
                     try {

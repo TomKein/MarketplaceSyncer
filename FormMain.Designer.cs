@@ -1,7 +1,6 @@
 ﻿using System;
 
-namespace Selen
-{
+namespace Selen {
     partial class FormMain
     {
         /// <summary>

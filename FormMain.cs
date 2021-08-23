@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.63.2";
+        string _version = "1.64.1";
 
         DB _db = new DB();
 
@@ -792,7 +792,7 @@ namespace Selen {
                         }
                     }
                     if (flag_need_form4) {
-                        Form f4 = new Form4();
+                        Form f4 = new FormEdit();
                         f4.Owner = this;
                         f4.ShowDialog();
                         if (f4.DialogResult == DialogResult.OK) {

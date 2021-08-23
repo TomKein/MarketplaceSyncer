@@ -1,6 +1,6 @@
 ﻿namespace Selen
 {
-    partial class Form4
+    partial class FormEdit
     {
         /// <summary>
         /// Required designer variable.
