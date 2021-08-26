@@ -17,12 +17,12 @@ namespace Selen.Tools {
 
         public readonly IWebDriver _drv;
 
-        public Selenium() {
+        public Selenium(int waitSeconds=300) {
             ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
             chromeservice.HideCommandPromptWindow = true;
-            _drv = new ChromeDriver(chromeservice, new ChromeOptions(), TimeSpan.FromSeconds(300));
+            _drv = new ChromeDriver(chromeservice, new ChromeOptions(), TimeSpan.FromSeconds(waitSeconds));
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
-            _drv.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(300);
+            _drv.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(waitSeconds);
             Log.Add("_drv.Manage().Timeouts().PageLoad = " + _drv.Manage().Timeouts().PageLoad);
         }
 

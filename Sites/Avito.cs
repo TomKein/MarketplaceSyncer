@@ -39,10 +39,10 @@ namespace Selen.Sites {
             Log.Add("avito.ru: начало выгрузки...");
             GetParams(bus);
             await AuthAsync();
-            await RemoveDraftAsync();
-            await EditAllAsync();
             await AddAsync();
+            await EditAllAsync();
             await AvitoUpAsync();
+            await RemoveDraftAsync();
             await CheckUrlsAsync();
             Log.Add("avito.ru: выгрузка завершена");
         }

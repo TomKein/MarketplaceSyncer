@@ -85,7 +85,7 @@ namespace Selen.Sites {
                 _addDesc = JsonConvert.DeserializeObject<string[]>(
                     _db.GetParamStr("gde.addDescription"));
                 if (_dr == null) {
-                    _dr = new Selenium();
+                    _dr = new Selenium(waitSeconds:120);
                     LoadCookies();
                 }
                 _dr.Navigate("https://kaluga.gde.ru/user/login");
@@ -374,9 +374,9 @@ namespace Selen.Sites {
                             EditOffer(b);
                         }
                     }
-                    foreach(var url in prolongUrls) {
+                    foreach(var url in prolongUrls.Take(5)) {
                         _dr.Navigate(url);
-                        Thread.Sleep(5000);
+                        Thread.Sleep(1000);
                     }
                 });
             } catch (Exception x) {
