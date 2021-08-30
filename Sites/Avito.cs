@@ -265,13 +265,13 @@ namespace Selen.Sites {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("https://avito.ru/additem", "//span[text()='Категория']");
                         SetCategory(b);
-                        SetAddress();
-                        SetImages(b);
                         SetTitle(b);
                         SetOfferType();
                         SetStatus(b);
                         SetDiskParams(b);
                         SetPrice(b);
+                        SetAddress();
+                        SetImages(b);
                         SetDesc(b);
                         //SetDesc(b, minDesc:true);
                         //SetPartNumber(b);
@@ -468,6 +468,7 @@ namespace Selen.Sites {
                             //теперь активирую
                             if (await UpOfferAsync(b)) {
                                 await Task.Delay(_delay);
+                                await RandomClicksAsync();
                                 if (_editAfterUp) await EditAsync(b);
                             }
                         }
@@ -477,6 +478,18 @@ namespace Selen.Sites {
                 Log.Add("avito.ru: ошибка парсинга страницы! - " + x.Message);
             }
         }
+
+        async Task RandomClicksAsync() => await Task.Factory.StartNew(() => {
+            if (_rnd.Next(3) == 1) {
+                var a = _dr.FindElements("//a[not(contains(@href,'/exit'))]").ToList();
+                a[_rnd.Next(a.Count)].Click();
+                Thread.Sleep(_rnd.Next(_delay * 10));
+                if (_rnd.Next(3) == 1) {
+                    _dr.Navigate("https://avito.ru/profile");
+                }
+            }
+        });
+
         //активация объявления
         private async Task<bool> UpOfferAsync(int b) {
             var succ = false;
