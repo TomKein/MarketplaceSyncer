@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.65.2";
+        string _version = "1.66.1";
 
         DB _db = new DB();
 
@@ -44,8 +44,6 @@ namespace Selen {
         public List<string> lForm3 = new List<string>();
         public string nForm3 = "";
         public string BindedName = "";
-        //глобальный индекс для формы
-        public int _i;
         //флаг - нужен рескан базы
         bool base_rescan_need = false;
         //флаг - можно запускать новый цикл синхронизации
@@ -164,7 +162,7 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     Log.Add("auto.ru: начало выгрузки...");
-                    while (base_rescan_need) await Task.Delay(30000);                    
+                    while (base_rescan_need) await Task.Delay(30000);
                     await _auto.AutoRuStartAsync(bus);
                     Log.Add("auto.ru: выгрузка завершена!");
                     ChangeStatus(sender, ButtonStates.Active);
@@ -224,7 +222,7 @@ namespace Selen {
             if (await _gde.StartAsync(bus)) {
                 label_Gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
-            }else 
+            } else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //AVTO.PRO
@@ -251,7 +249,7 @@ namespace Selen {
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                    Log.Add("avto.pro: ошибка выгрузки! - " + x.Message);//TODO изменить регистр сообщения 
+                    Log.Add("avto.pro: ошибка выгрузки! - " + x.Message);
                     if (x.Message.Contains("timed out") ||
                         x.Message.Contains("already closed") ||
                         x.Message.Contains("invalid session id") ||
@@ -339,7 +337,7 @@ namespace Selen {
             //если синхронизация включена и завершен предыдуший цикл
             if (checkBox_sync.Checked && base_can_rescan) {
                 //галочка liteSync
-                if (await _db.GetParamBoolAsync("useLiteSync") && 
+                if (await _db.GetParamBoolAsync("useLiteSync") &&
                     bus.Count > 0 &&   //список товаров содержит товары
                    !base_rescan_need) { //и его не нужно перезапрашивать
                     await GoLiteSync();
@@ -771,39 +769,38 @@ namespace Selen {
                 rus.Add(ar[1]);
             }
             file.Clear();
-
+            //количество изменений за один раз
+            var n = _db.GetParamInt("descriptionEditCount");
             //пробегаемся по описаниям карточек базы
-            for (_i = 0; _i < bus.Count; _i++) {
+            for (int i = 0; i < bus.Count && n > 0; i++) {
                 //если есть привязка к тиу
-                if (bus[_i].tiu.Contains("tiu.ru")) {
-                    bool flag_need_form4 = false;
+                if (bus[i].tiu.Contains("tiu.ru")) {
+                    bool flag_need_formEdit = false;
                     //старое название, нужно обрезать
-                    if (bus[_i].description.Contains("Есть и другие")) {
-                        bus[_i].description = bus[_i].description.Replace("Есть и другие", "|").Split('|')[0];
-                        flag_need_form4 = true;
+                    if (bus[i].description.Contains("Есть и другие")) {
+                        bus[i].description = bus[i].description.Replace("Есть и другие", "|").Split('|')[0];
+                        flag_need_formEdit = true;
                     }
                     //для каждого слова из словаря проверим, содержится ли оно в описании
                     for (int d = 0; d < eng.Count; d++) {
                         //если содержит английское написание И не содержит такого же на русском ИЛИ содержит
-                        if (bus[_i].description.Contains(eng[d]) && !bus[_i].description.Contains(rus[d])) {
-                            bus[_i].description = bus[_i].description.Replace(eng[d], eng[d] + " / " + rus[d]);
-                            flag_need_form4 = true;
+                        if (bus[i].description.Contains(eng[d]) && !bus[i].description.Contains(rus[d])) {
+                            bus[i].description = bus[i].description.Replace(eng[d], eng[d] + " / " + rus[d]);
+                            flag_need_formEdit = true;
                             break;
                         }
                     }
-                    if (flag_need_form4) {
-                        Form f4 = new FormEdit();
+                    if (flag_need_formEdit) {
+                        Form f4 = new FormEdit(i);
                         f4.Owner = this;
                         f4.ShowDialog();
                         if (f4.DialogResult == DialogResult.OK) {
-                            int i = _i;
-                            var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>()
-                            {
+                            var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
                                 {"id", bus[i].id},
                                 {"name", bus[i].name},
                                 {"description", bus[i].description},
                             });
-                            Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description);
+                            Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description + "осталось (" + --n + ")");
                         }
                         f4.Dispose();
                     }
@@ -1195,7 +1192,7 @@ namespace Selen {
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             this.Visible = false;
             ClearTempFiles();
-            if(_saveCookiesBeforeClose) {
+            if (_saveCookiesBeforeClose) {
                 _tiu?.SaveCookies();
                 _gde?.SaveCookies();
                 _cdek?.SaveCookies();
@@ -1320,10 +1317,10 @@ namespace Selen {
         //удаление фото из карточек
         async Task PhotoClearAsync() {
             var cnt = await _db.GetParamIntAsync("photosCheckCount");
-            for (int b = 0, i=0; b < bus.Count && i < cnt; b++) {
+            for (int b = 0, i = 0; b < bus.Count && i < cnt; b++) {
                 if (bus[b].amount <= 0 &&
-                    bus[b].images.Count >0 ||
-                  
+                    bus[b].images.Count > 0 ||
+
                     bus[b].amount > 0 &&
                     bus[b].images.Count == 1 &&
                     GetTiuPhotosCount(b) > 1
@@ -1334,7 +1331,7 @@ namespace Selen {
                                     {"name", bus[b].name},
                                     {"images", "[]"}
                                 });
-                        Log.Add(bus[b].name + " ["+b+"] - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
+                        Log.Add(bus[b].name + " [" + b + "] - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
                         bus[b].images.Clear();
                         await Task.Delay(10);
                         i++;
@@ -1351,7 +1348,7 @@ namespace Selen {
                 if (tiuId.Length > 0) {
                     //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
                     var idRow = ds.Tables["offer"].Select("id = '" + tiuId + "'");
-                    if (idRow.Length == 0) Log.Add("ошибка! "+bus[b].name+" с id = " + tiuId + " - не найден в каталоге тиу!");
+                    if (idRow.Length == 0) Log.Add("ошибка! " + bus[b].name + " с id = " + tiuId + " - не найден в каталоге тиу!");
                     else {
                         var id = idRow[0]["offer_id"]; //беру поле offer_id из первой найденной строки
                         var image_rows = ds.Tables["picture"].Select("offer_id = '" + id.ToString() + "'"); //все строки со ссылками на фото
@@ -1377,20 +1374,20 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 for (int b = 0, j = 10; b < bus.Count; b++) {
-                    if(!string.IsNullOrEmpty(bus[b].youla) && 
+                    if (!string.IsNullOrEmpty(bus[b].youla) &&
                         bus[b].youla.Contains("youla.io")) {
-                        await Class365API.RequestAsync("put","goods",new Dictionary<string, string> {
+                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                             { "id", bus[b].id},
                             { "name", bus[b].name},
                             { "402489","" }
                         });
-                        Log.Add("youla.ru: " + bus[b].name + " - удалена старая ссылка из карточки - "+bus[b].youla);
+                        Log.Add("youla.ru: " + bus[b].name + " - удалена старая ссылка из карточки - " + bus[b].youla);
                         bus[b].youla = "";
                         await Task.Delay(2000);
                         j--;
                     }
                 }
-                
+
                 //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
 

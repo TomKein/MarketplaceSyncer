@@ -351,13 +351,13 @@ namespace Selen.Sites {
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
             if (DateTime.Now.Hour % 6 != 0) return;
-            await _dr.NavigateAsync("https://youla.ru/pro", "//span[contains(@data-test-block,'TotalCount')]");
+            await _dr.NavigateAsync("https://youla.ru/pro");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
             //строка количество объявлений
             var str = span.Split(' ').First();
             //число количество страниц
-            var n = int.Parse(str) /20;
+            var n = str.Length == 0 ? 0: int.Parse(str) /20;
             //пробегаюсь по страницам
             for (int i = 1; i < n; i += _rnd.Next(1, 3)) {
                 if (_dr.GetElementsCount("//span[@data-test-id='B2BPaginationPageNumber-" + i + "']") == 0) break;

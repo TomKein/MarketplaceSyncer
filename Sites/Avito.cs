@@ -97,7 +97,7 @@ namespace Selen.Sites {
             }
         }
         //авторизация
-        private async Task AuthAsync() =>await Task.Factory.StartNew(() => {
+        private async Task AuthAsync() => await Task.Factory.StartNew(() => {
             if (_dr == null) {
                 _dr = new Selenium();
                 LoadCookies();
@@ -117,7 +117,7 @@ namespace Selen.Sites {
                 if (i >= 10) throw new Exception("ошибка входа в личный кабинет");
             }
             SaveCookies();
-        });       
+        });
         //массовая проверка товаров
         private async Task EditAllAsync() {
             for (int b = 0; b < _bus.Count; b++) {
@@ -193,21 +193,21 @@ namespace Selen.Sites {
                     _dr.Navigate(url, "//button[contains(@data-marker,'button-next')]");
                 }
                 //удаляю все фото, которые есть объявлении
-                for(; countReal>0; countReal--) {
-                    _dr.ButtonClick("//button[@title='Удалить']",3000);
+                for (; countReal > 0; countReal--) {
+                    _dr.ButtonClick("//button[@title='Удалить']", 3000);
                 }
                 //загружаю новые фото
                 SetImages(b);
                 //нажимаю сохранить, если метод был вызван не из редактирования
                 if (!isEdit) PressOk();
-                Log.Add("avito.ru: "+_bus[b].name+" - фотографии обновлены");
+                Log.Add("avito.ru: " + _bus[b].name + " - фотографии обновлены");
             }
         }
 
         //восстановление удаленного объявления
         private async Task UnDeleteAsync(int b) => await Task.Factory.StartNew(() => {
             _dr.Navigate(_bus[b].avito);
-            if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0) { 
+            if (_bus[b].amount > 0 && _dr.GetElementsCount("//span[@data-marker='item-view/item-id']") == 0) {
                 _dr.ButtonClick("//button[text()='Восстановить']");
             }
         });
@@ -256,7 +256,7 @@ namespace Selen.Sites {
         //добавить объявление асинхронно
         public async Task AddAsync() {
             await ChechAuthAsync();
-            for (int b = _bus.Count - 1; b > -1  && AddCount > 0; b--) {
+            for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--) {
                 if ((_bus[b].avito == null || !_bus[b].avito.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
                     _bus[b].amount > 0 &&
@@ -293,7 +293,7 @@ namespace Selen.Sites {
         //сохранение ссылки
         private async Task SaveUrlAsync(int b, bool deleteUrl = false) {
             if (deleteUrl) {
-                Log.Add("avito: удаляю ссылку из карточки "+ _bus[b].name+"  --  "+_bus[b].avito);
+                Log.Add("avito: удаляю ссылку из карточки " + _bus[b].name + "  --  " + _bus[b].avito);
                 _bus[b].avito = "";
                 await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                     { "id", _bus[b].id},
@@ -304,7 +304,7 @@ namespace Selen.Sites {
                 await Task.Delay(_delay); //ждем, потому что объявление не всегда сразу готово
                 var id = _dr.GetUrl().Split('[')[1].Split(']')[0];
                 var url = "https://www.avito.ru/items/" + id;
-                for (int i = 0; ; i++) { 
+                for (int i = 0; ; i++) {
                     await _dr.NavigateAsync(url, ".title-info-main");
                     url = _dr.GetUrl();
                     if (!url.Contains("avito.ru/items")) break;
@@ -324,7 +324,7 @@ namespace Selen.Sites {
         }
         //параметры колесных дисков
         private void SetDiskParams(int b) {
-            if (_bus[b].GroupName()== "Шины, диски, колеса") {
+            if (_bus[b].GroupName() == "Шины, диски, колеса") {
                 var bn = _bus[b].name.ToLowerInvariant();
                 if (bn.Contains("диск")) { //заполняю параметры дисков
                     //тип диска
@@ -334,10 +334,10 @@ namespace Selen.Sites {
                     else _dr.WriteToSelector(selector, "лит" + OpenQA.Selenium.Keys.Enter);
                     //диметр
                     selector = "//option[text()='16.5']/..";
-                    _dr.WriteToSelector(selector,_bus[b].GetDiskSize() + OpenQA.Selenium.Keys.Enter);
+                    _dr.WriteToSelector(selector, _bus[b].GetDiskSize() + OpenQA.Selenium.Keys.Enter);
                     //ширина обода
                     selector = "//option[text()='3.5']/..";
-                    _dr.WriteToSelector(selector,"5" + OpenQA.Selenium.Keys.Enter); //ставим 5 по дефолту, т.к. нет инфы
+                    _dr.WriteToSelector(selector, "5" + OpenQA.Selenium.Keys.Enter); //ставим 5 по дефолту, т.к. нет инфы
                     //количество отверстий
                     selector = "//option[text()='3']/..";
                     _dr.WriteToSelector(selector, _bus[b].GetNumberOfHoles() + OpenQA.Selenium.Keys.Enter);
@@ -392,7 +392,7 @@ namespace Selen.Sites {
         //устанавливка адреса
         private void SetAddress() {
             var s = "Калуга, Московская улица, 331";
-            _dr.WriteToSelector("input[id*='params[2851]']",s);
+            _dr.WriteToSelector("input[id*='params[2851]']", s);
             Actions a = new Actions(_dr._drv);
             a.SendKeys(OpenQA.Selenium.Keys.ArrowDown)
              .SendKeys(OpenQA.Selenium.Keys.Enter)
@@ -405,7 +405,7 @@ namespace Selen.Sites {
             int inactive = 0, active = 0, old = 0, archived = 0;
             await Task.Factory.StartNew(() => {
                 var inactiveString = _dr.GetElementText("//li[@data-marker='tabs/inactive']/span[2]");
-                inactive = inactiveString.Length > 0 ? int.Parse(inactiveString) :0;
+                inactive = inactiveString.Length > 0 ? int.Parse(inactiveString) : 0;
                 var activeString = _dr.GetElementText("//li[@data-marker='tabs/active']/span[2]");
                 active = activeString.Length > 0 ? int.Parse(activeString) : 0;
                 var oldString = _dr.GetElementText("//li[@data-marker='tabs/old']/span[2]");
@@ -416,19 +416,19 @@ namespace Selen.Sites {
             //процент страниц для проверки
             var checkPagesProcent = await _db.GetParamIntAsync("avito.checkPagesProcent");
             //перебираю номера страниц
-            for (int i = 0; i < active/50; i++) {
+            for (int i = 0; i < active / 50; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) > checkPagesProcent) continue;
                 //проверить данную страницу
-                await ParsePage("/active", i+1);
+                await ParsePage("/active", i + 1);
                 //проверить также страницу снятых, если номер в пределах
-                if (i < old / 50) await ParsePage("/old", i+1);
+                if (i < old / 50) await ParsePage("/old", i + 1);
                 //проверить также страницу удаленных, если номер в пределах
                 if (i < archived / 50) await ParsePage("/archived", i + 1);
             }
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i+1); }
-            for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i+1); }
+            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
+            for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
             for (int i = 0; i <= archived / 50 && CountToUp > 0; i++) { await ParsePage("/archived", i + 1); }
         }
         //проверка объявлений на странице
@@ -459,7 +459,7 @@ namespace Selen.Sites {
                         if (CountToUp > 0 &&
                             _bus[b].price >= _priceLevel &&
                             _bus[b].amount > 0 &&
-                            (location != "/active")){
+                            (location != "/active")) {
                             //если удалено - восстанавливаю, без этого не активируется
                             if (location == "/archived") {
                                 await _dr.NavigateAsync(_bus[b].avito, ".title-info-title");
@@ -478,22 +478,23 @@ namespace Selen.Sites {
                 Log.Add("avito.ru: ошибка парсинга страницы! - " + x.Message);
             }
         }
-
+        //случайные клики
         async Task RandomClicksAsync() => await Task.Factory.StartNew(() => {
             if (_rnd.Next(3) == 1) {
-                var a = _dr.FindElements("//a[not(contains(@href,'/exit'))]").ToList();
-                a[_rnd.Next(a.Count)].Click();
-                Thread.Sleep(_rnd.Next(_delay * 10));
-                if (_rnd.Next(3) == 1) {
-                    _dr.Navigate("https://avito.ru/profile");
+                try {
+                    var a = _dr.FindElements("//a[not(contains(@href,'/exit'))]").ToList();
+                    a[_rnd.Next(a.Count)].Click();
+                    Thread.Sleep(_rnd.Next(_delay * 10));
+                } catch (Exception x){
+                    Log.Add("avito.ru: неудачный клик - " + x.Message);
                 }
             }
+            if (_rnd.Next(3) == 1) _dr.Navigate("https://avito.ru/profile");
         });
-
         //активация объявления
         private async Task<bool> UpOfferAsync(int b) {
             var succ = false;
-            await Task.Factory.StartNew(()=> {
+            await Task.Factory.StartNew(() => {
                 var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
                 var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
                 _dr.Navigate(url, "//h1[contains(text(),'Размещение')]");
@@ -529,7 +530,7 @@ namespace Selen.Sites {
         //нажимаю ОК
         private void PressOk(int count = 2) {
             for (int i = 0; i < count; i++) {
-                for (int c = 0; ; c++) { 
+                for (int c = 0; ; c++) {
                     _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
                     var errorBox = _dr.FindElements("//div[contains(@class,'alert')]/*[@aria-label='Close']");
                     if (errorBox.Count > 0) {
@@ -561,11 +562,11 @@ namespace Selen.Sites {
             cl.Dispose();
         }
         //заполнение описание
-        void SetDesc(int b, bool minDesc=false) {
-            _dr.WriteToSelector("div.DraftEditor-root", sl: GetAvitoDesc(b, minDesc:minDesc));
+        void SetDesc(int b, bool minDesc = false) {
+            _dr.WriteToSelector("div.DraftEditor-root", sl: GetAvitoDesc(b, minDesc: minDesc));
         }
         //создаю описание с дополнением
-        public List<string> GetAvitoDesc(int b, bool minDesc=false) {
+        public List<string> GetAvitoDesc(int b, bool minDesc = false) {
             List<string> s = _bus[b].DescriptionList(2799, _addDesc);
             if (!minDesc) s.AddRange(_addDesc2);
             return s;
@@ -628,7 +629,7 @@ namespace Selen.Sites {
                 _dr.Navigate("https://avito.ru/404");
                 var c = _db.GetParamStr("avito.cookies");
                 _dr.LoadCookies(c);
-                Thread.Sleep(_delay/10);
+                Thread.Sleep(_delay / 10);
             }
         }
         //сохранить куки

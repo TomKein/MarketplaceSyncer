@@ -45,7 +45,7 @@ namespace Selen.Tools {
             throw new Exception("selenium: ошибка браузера! - не удается загрузить страницу " + url + " - timed out!");
         }
 
-        public async Task NavigateAsync(string url, string check = null, int tryCount = 10) {
+        public async Task NavigateAsync(string url, string check = null, int tryCount = 3) {
             await Task.Factory.StartNew(() => {
                 Navigate(url,check,tryCount);
             });
