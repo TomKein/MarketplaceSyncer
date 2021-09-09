@@ -344,7 +344,7 @@ namespace Selen.Sites {
                 Thread.Sleep(4000);
                 _dr.SendKeysToSelector("//div[contains(@class,'_yjs_geolocation-map')]//input",
                     OpenQA.Selenium.Keys.ArrowDown+OpenQA.Selenium.Keys.Enter);
-                if (_dr.GetElementAttribute("//input[@placeholder='Введите город, улицу, дом']", "value") == "Россия, Калуга, Московская улица, 331") break;
+                if (_dr.GetElementAttribute("//div[contains(@class,'_yjs_geolocation-map')]//input", "value") == "Россия, Калуга, Московская улица, 331") break;
                 if (i > 20) throw new Exception("ошибка - не могу указать адрес!");
             }
         }

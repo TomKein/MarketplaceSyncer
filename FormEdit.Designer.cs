@@ -64,9 +64,9 @@
             // pictureBox1
             // 
             this.pictureBox1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.pictureBox1.Location = new System.Drawing.Point(23, 12);
+            this.pictureBox1.Location = new System.Drawing.Point(14, 12);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(580, 300);
+            this.pictureBox1.Size = new System.Drawing.Size(589, 300);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 58;
             this.pictureBox1.TabStop = false;
@@ -98,6 +98,7 @@
             this.textBox_Price.Font = new System.Drawing.Font("Arial Narrow", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBox_Price.Location = new System.Drawing.Point(14, 362);
             this.textBox_Price.Name = "textBox_Price";
+            this.textBox_Price.ReadOnly = true;
             this.textBox_Price.Size = new System.Drawing.Size(100, 32);
             this.textBox_Price.TabIndex = 60;
             this.textBox_Price.Text = "123";
@@ -115,7 +116,7 @@
             this.Controls.Add(this.button1);
             this.Name = "FormEdit";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Новый товар в базе";
+            this.Text = "Редактирование карточки в бизнес.ру";
             this.Shown += new System.EventHandler(this.Form4_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);

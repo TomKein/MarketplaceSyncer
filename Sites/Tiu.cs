@@ -64,16 +64,15 @@ namespace Selen.Sites {
                 }
                 LoadCookies();
                 _dr.Navigate("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
-                if (_dr.GetUrl().Contains("sign-in")) {
-                    _dr.ButtonClick("//ul/li/b[text()='Продавец']");
-                    _dr.ButtonClick("//a/b[text()='Войти как продавец']");
-                    _dr.WriteToSelector("//*[@id='phone_email']", _db.GetParamStr("tiu.login")); //rogachev.aleksey@gmail.com, 9106027626@mail.ru
+                if (_dr.GetUrl().Contains("source=redirect")) {
+                    _dr.WriteToSelector("//*[@id='phone_email']", _db.GetParamStr("tiu.login"));
                     _dr.ButtonClick("//button[@id='phoneEmailConfirmButton']");
-                    _dr.WriteToSelector("//*[@id='enterPassword']", _db.GetParamStr("tiu.password"));  // $Drumbotanik122122, RAD00239000
+                    _dr.WriteToSelector("//*[@id='enterPassword']", _db.GetParamStr("tiu.password"));
                     _dr.ButtonClick("//*[@id='enterPasswordConfirmButton']");
                 }
-                while (_dr.GetUrl().Contains("sign-in")) {
-                    Log.Add("tiu.ru: ошибка авторизации! ожидаю вход в кабинет...");
+                for (int i=0; _dr.GetUrl().Contains("source=redirect");i++) {
+                    if (i > 10) throw new Exception("tiu.ru: ошибка авторизации! превышено количество попыток!");
+                    Log.Add("tiu.ru: ошибка авторизации! ожидаю вход в кабинет (" + i + ")...");
                     Thread.Sleep(60000);
                 }
                 Log.Add("tiu.ru: продолжаю работу...");

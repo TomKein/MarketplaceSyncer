@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.66.1";
+        string _version = "1.67.1";
 
         DB _db = new DB();
 
@@ -800,7 +800,8 @@ namespace Selen {
                                 {"name", bus[i].name},
                                 {"description", bus[i].description},
                             });
-                            Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description + "осталось (" + --n + ")");
+                            if (s.Contains("updated")) Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description + " (ост. " + --n + ")");
+                            else Log.Add("business.ru: ошибка сохранения изменений " + bus[i].name + " - " + s + " (ост. " + --n + ")");
                         }
                         f4.Dispose();
                     }
