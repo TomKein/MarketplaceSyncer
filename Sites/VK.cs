@@ -27,25 +27,42 @@ namespace Selen.Sites {
         string _url;
         string[] _dopDesc;
         string[] _dopDesc2;
-        int _addCount;
+        int _addCount;                                              //добавлять X объявлений в час
+        int _catalogCheckInterval;                                 //проверять каталог на сайте каждые Х часов
         List<RootObject> _bus = null;
 
 
         public async Task VkSyncAsync(List<RootObject> bus) {
-            //TODO вынести в настройки / запуск раз в 4 часа достаточно
-            if (DateTime.Now.Hour % 3 != 0) return;
             _bus = bus;
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
+            await EditAsync();
+            await AddVKAsync();
+            if (DateTime.Now.Hour % _catalogCheckInterval != 0) return;
             await GetAlbumsVKAsync();
             Log.Add("vk.com: получено " + vkAlb.Count + " альбомов");
             if (vkAlb.Count > 0) {
                 await GetVKAsync();
-                await EditVKAsync();
-                await AddVKAsync();
+                await CheckVKAsync();
             }
         }
-
+        //проверка изменений в бизнес.ру
+        async Task EditAsync() => await Task.Factory.StartNew(() => {
+            for (int b = 0; b < _bus.Count; b++) {
+                if (_bus[b].IsTimeUpDated() &&
+                    _bus[b].vk != null &&
+                    _bus[b].vk.Contains("http")) {
+                    if (_bus[b].amount <= 0) {
+                        var id = long.Parse(_bus[b].vk.Split('_').Last());
+                        _vk.Markets.Delete(-_marketId, id);
+                        Log.Add("vk.com: " + _bus[b].name + " - удалено!");
+                        Thread.Sleep(1000);
+                    } else
+                        Edit(b);
+                }
+            }
+        });
+        //запрос параметров из настроек
         async Task GetParamsAsync() {
             await Task.Factory.StartNew(() => {
                 _db = DB._db;
@@ -55,9 +72,10 @@ namespace Selen.Sites {
                 _dopDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc"));
                 _dopDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc2"));
                 _addCount = _db.GetParamInt("vk.addCount");
+                _catalogCheckInterval = _db.GetParamInt("vk.catalogCheckInterval"); 
             });
         }
-
+        //добавляю объявления на ВК
         private async Task AddVKAsync() {
             for (int i = 0; i < _bus.Count && _addCount > 0; i++) {
                 if (_bus[i].images.Count > 0 && _bus[i].tiu.Contains("http")
@@ -150,7 +168,7 @@ namespace Selen.Sites {
                 }
             }
         }
-
+        //запрос всех объявлений на ВК
         private async Task GetVKAsync() {
             await Task.Factory.StartNew(() => {
                 vkMark.Clear();
@@ -169,7 +187,8 @@ namespace Selen.Sites {
                 Log.Add("vk.com: получено " + vkMark.Count + " товаров");
             });
         }
-        private async Task EditVKAsync() {
+        //проверка объявлений на вк
+        async Task CheckVKAsync() {
             await Task.Factory.StartNew(() => {
                 for (int i = 0; i < vkMark.Count; i++) {
                     //для каждого товара поищем индекс в базе карточек товаров
@@ -192,27 +211,36 @@ namespace Selen.Sites {
                     } else if (_bus[b].price != vkMark[i].Price.Amount / 100 ||
                         _bus[b].name != vkMark[i].Title ||
                         _bus[b].IsTimeUpDated()) {
-                        try {
-                            var param = new MarketProductParams();
-                            param.Name = _bus[b].name;
-                            var desc = _bus[b].DescriptionList(dop: _dopDesc);
-                            desc.AddRange(_dopDesc2);
-                            param.Description = desc.Aggregate((a1,a2)=>a1+"\n"+a2);
-                            param.CategoryId = (long)vkMark[i].Category.Id;
-                            param.ItemId = vkMark[i].Id;
-                            param.OwnerId = (long)vkMark[i].OwnerId;
-                            param.MainPhotoId = (long)vkMark[i].Photos[0].Id;
-                            param.PhotoIds = vkMark[i].Photos.Skip(1).Select(s=>(long)s.Id);
-                            param.Price = (decimal) _bus[b].price;
-                            _vk.Markets.Edit(param);
-                            Log.Add("vk.com: " + vkMark[i].Title + " - обновлено");
-                            Thread.Sleep(1000);
-                        } catch (Exception x) {
-                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка редактирования! - " + x.Message);
-                        }
+                        Edit(b);
                     }
                 }
             });
+        }
+        //редактирую объявление
+        private void Edit(int b) {
+            try {
+                //получа id объявления в вк из ссыки в карточке товара
+                var id = _bus[b].vk.Split('_').Last();
+                //запрашиваю товар из маркета
+                var vk = _vk.Markets.GetById(new string []{ id }, extended:true).First();
+                //готовлю параметры
+                var param = new MarketProductParams();
+                param.Name = _bus[b].name;
+                var desc = _bus[b].DescriptionList(dop: _dopDesc);
+                desc.AddRange(_dopDesc2);
+                param.Description = desc.Aggregate((a1, a2) => a1 + "\n" + a2);
+                param.CategoryId = (long)vk.Category.Id;
+                param.ItemId = vk.Id;
+                param.OwnerId = (long)vk.OwnerId;
+                param.MainPhotoId = (long)vk.Photos[0].Id;
+                param.PhotoIds = vk.Photos.Skip(1).Select(s => (long)s.Id);
+                param.Price = (decimal)_bus[b].price;
+                _vk.Markets.Edit(param);
+                Log.Add("vk.com: " + _bus[b].name + " - обновлено");
+                Thread.Sleep(1000);
+            } catch (Exception x) {
+                Log.Add("vk.com: " + _bus[b].name + " - ошибка редактирования! - " + x.Message);
+            }
         }
 
         private async Task GetAlbumsVKAsync() {
