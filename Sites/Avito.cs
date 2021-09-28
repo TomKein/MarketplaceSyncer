@@ -480,7 +480,7 @@ namespace Selen.Sites {
         }
         //случайные клики
         async Task RandomClicksAsync() => await Task.Factory.StartNew(() => {
-            if (_rnd.Next(3) == 1) {
+            if (_rnd.Next(4) == 1) {
                 try {
                     var a = _dr.FindElements("//a[not(contains(@href,'/exit'))]").ToList();
                     a[_rnd.Next(a.Count)].Click();
@@ -489,7 +489,11 @@ namespace Selen.Sites {
                     Log.Add("avito.ru: неудачный клик - " + x.Message);
                 }
             }
-            if (_rnd.Next(3) == 1) _dr.Navigate("https://avito.ru/profile");
+            if (_rnd.Next(4) == 1) {
+                if (_rnd.Next(3) == 1) _dr._drv.Navigate().Back();
+                if (_rnd.Next(3) == 1) _dr._drv.Navigate().Forward();
+                _dr.Navigate("https://avito.ru/profile");
+            }
         });
         //активация объявления
         private async Task<bool> UpOfferAsync(int b) {

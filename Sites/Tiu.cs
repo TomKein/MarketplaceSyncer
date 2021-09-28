@@ -65,10 +65,12 @@ namespace Selen.Sites {
                 LoadCookies();
                 _dr.Navigate("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
                 if (_dr.GetUrl().Contains("source=redirect")) {
-                    _dr.WriteToSelector("//*[@id='phone_email']", _db.GetParamStr("tiu.login"));
+                    _dr.WriteToSelector("//*[@id='phone_field']", _db.GetParamStr("tiu.login"));
                     _dr.ButtonClick("//button[@id='phoneEmailConfirmButton']");
                     _dr.WriteToSelector("//*[@id='enterPassword']", _db.GetParamStr("tiu.password"));
                     _dr.ButtonClick("//*[@id='enterPasswordConfirmButton']");
+                    Thread.Sleep(5000);
+                    _dr.Navigate("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
                 }
                 for (int i=0; _dr.GetUrl().Contains("source=redirect");i++) {
                     if (i > 10) throw new Exception("tiu.ru: ошибка авторизации! превышено количество попыток!");

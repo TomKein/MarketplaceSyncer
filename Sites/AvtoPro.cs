@@ -201,12 +201,12 @@ namespace Selen.Sites {
                         var elementsCount = _dr.GetElementsCount("//td[@data-col='category.name']");
                         Log.Add("avto.pro: найдено " + i);
                         if (elementsCount == 1) break;
-                        if (i >= 40) throw new Exception("не могу найти объявление для привязки! - ссылка не была сохранена!");
+                        if (i >= 100) throw new Exception("не могу найти объявление для привязки! - ссылка не была сохранена!");
                     };
                     _dr.ButtonClick("//td[@data-col='category.name']");
                     for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
                         Log.Add("avto.pro: ожидаю загрузку страницы ("+i+")...");
-                        if (i >= 40) throw new Exception("ошибка ожидания загрузки страницы - ссылка не была сохранена!");
+                        if (i >= 50) throw new Exception("ошибка ожидания загрузки страницы - ссылка не была сохранена!");
                         Thread.Sleep(1000);
                     }
                     var elementText = _dr.GetElementAttribute("//input[@name='Code']","value");
@@ -238,7 +238,7 @@ namespace Selen.Sites {
                             Thread.Sleep(20000);
                     }
                     _dr.ButtonClick("//div[text()='Поиск']");
-                    _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.Enter);
+                    _dr.SendKeysToSelector("//input[@class='pro-select__search']", _part + OpenQA.Selenium.Keys.ArrowDown + OpenQA.Selenium.Keys.Enter);
                     for (int i = 1; _dr.GetElementsCount("//div[@class='pro-loader']") > 0; i++) {
                         if (i >= 50) throw new Exception("timed out - не удается дождаться поиска "+ _part);
                         Log.Add("avto.pro: ожидаю загрузку страницы (" + i + ")");

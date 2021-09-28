@@ -365,7 +365,7 @@ namespace Selen
                     return new string[] { n.ToString().Trim(), s[0], s[1] + " " + s[2] };
                 }
             }
-            Log.Add("business.ru: " + name + " пропущен - не удалось определить марку или модель");
+            //Log.Add("business.ru: " + name + " пропущен - не удалось определить марку или модель");
             //обнуляю список моделей для загрузки исправленного в новом проходе
             return null;
         }

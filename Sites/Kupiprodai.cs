@@ -251,11 +251,11 @@ namespace Selen.Sites {
                 try {
                     byte[] bts = cl.DownloadData(_bus[b].images[u].url);
                     File.WriteAllBytes("kp_" + u + ".jpg", bts);
-                    Thread.Sleep(1000);
+                    Thread.Sleep(100);
                     _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "kp_" + u + ".jpg ");
                 } catch (Exception x) {
                     Log.Add("kupiprodai.ru: ошибка загрузки фото! - " + _bus[b].name + " - " + x.Message);
-                    Thread.Sleep(1000);
+                    Thread.Sleep(3000);
                 }
             }
             cl.Dispose();
