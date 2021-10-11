@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.68.4";
+        string _version = "1.69.2";
 
         DB _db = new DB();
 
@@ -353,7 +353,7 @@ namespace Selen {
             try {
                 base_can_rescan = false;
                 sync_start = DateTime.Now;
-                Log.Add("lite sync started...");
+                Log.Add("business.ru: запрос изменений...");
                 var lastTime = await _db.GetParamStrAsync("liteScanTime");
                 //запросим новые/измененные карточки товаров
                 string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
@@ -417,7 +417,7 @@ namespace Selen {
                 }
                 //если изменений слишком много - нужен полный рескан базы
                 if (lightSyncGoods.Count > 200) {
-                    Log.Add("business.ru: Новых/измененных карточек: " + lightSyncGoods.Count +
+                    Log.Add("business.ru: новых/измененных карточек: " + lightSyncGoods.Count +
                             " -- будет произведен запрос полной базы товаров...");
                     base_rescan_need = true;
                     base_can_rescan = true;
@@ -516,10 +516,10 @@ namespace Selen {
                     dateTimePicker1.Value = sync_start;
                     await SaveBusAsync();
                 }
-                Log.Add("lite sync complete.");
+                Log.Add("business.ru: цикл синхронизации завершен");
                 base_can_rescan = true;
             } catch (Exception ex) {
-                Log.Add("ошибка lite sync: " + ex.Message + "\n"
+                Log.Add("business.ru: ошибка синхронизации: " + ex.Message + "\n"
                     + ex.Source + "\n"
                     + ex.InnerException + "\n"
                     + stage);
@@ -724,8 +724,34 @@ namespace Selen {
             _writeLog = await _db.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             _saveCookiesBeforeClose = await _db.GetParamBoolAsync("saveCookiesBeforeClose");
+            await CheckMultiRunAsync();
             await LoadBusJSON();
         }
+        //проверка на параллельный запуск
+        async Task CheckMultiRunAsync() {
+            while (true) {
+                try {
+                    //запрашиваю последнюю запись из лога
+                    DataTable table = await _db.GetLogAsync("", 1);
+                    //если запись получена
+                    if (table.Rows.Count > 0) {
+                        DateTime time = (DateTime)table.Rows[0].ItemArray[1];
+                        string text = table.Rows[0].ItemArray[3] as string;
+                        Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text +"\n*****\n\n", false);
+                        //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
+                        if (text.Contains("синхронизация остановлена") ||
+                            time.AddMinutes(5) < DateTime.Now) return;
+                        else
+                            Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
+                    } else
+                        Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
+                    await Task.Delay(61*1000);
+                } catch (Exception x) {
+                    Log.Add("ошибка при контроле параллельных запусков - " + x.Message, false);
+                }
+            }
+        }
+
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
             List<string> bus_dubl = new List<string>();
@@ -1191,6 +1217,7 @@ namespace Selen {
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
+            if (base_can_rescan) Log.Add("синхронизация остановлена!");
             this.Visible = false;
             ClearTempFiles();
             if (_saveCookiesBeforeClose) {

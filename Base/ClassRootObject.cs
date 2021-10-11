@@ -362,7 +362,7 @@ namespace Selen
                     //разбираю строку с маркой
                     var s = best[0].Split(';');
                     //возвращаю результат: 1-название запчасти, 2-марка, 3-модель
-                    return new string[] { n.ToString().Trim(), s[0], s[1] + " " + s[2] };
+                    return new string[] { n.ToString().Trim(), s[0], s[1], s[2] };
                 }
             }
             //Log.Add("business.ru: " + name + " пропущен - не удалось определить марку или модель");

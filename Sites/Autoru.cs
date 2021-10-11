@@ -169,7 +169,7 @@ namespace Selen.Sites {
                         //определяем авто, если не удалось - пропускаем
                         var s = await _bus[b].GetNameMarkModelAsync();
                         if (s == null) continue;
-                        var m = " для " + s[1] + " " + s[2];
+                        var m = " для " + s[1] + " " + s[2] + " " + s[3];
                         await Task.Factory.StartNew(() => {
                             _dr.Navigate("https://auto.ru/parts/user-offer?rgid=6");
                             SelectCategory(b,m);

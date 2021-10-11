@@ -227,11 +227,12 @@ namespace Selen.Base {
             Task.Factory.StartNew(()=>{
                 //запрос для записи в лог
                 var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
-                            "VALUES (NOW(), @site, @message);";            
+                            "VALUES (@datetime, @site, @message);";            
                 //создаю команду
                 MySqlCommand command = new MySqlCommand(query, connection);
                 command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
                 command.Parameters.Add("@message", MySqlDbType.Text).Value = message;
+                command.Parameters.Add("@datetime", MySqlDbType.DateTime).Value = DateTime.Now;
                 //выполняю запрос
                 ExecuteCommandNonQuery(command);
                 //чистка лога
