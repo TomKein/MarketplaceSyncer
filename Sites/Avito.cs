@@ -521,11 +521,16 @@ namespace Selen.Sites {
         }
         //выбор статуса
         private void SetStatus(int b) {
-            if (_bus[b].IsNew()) {
+            //новый или б/у
+            if (_bus[b].IsNew())
                 _dr.ButtonClick("//span[contains(text(),'Новое')]/../..");
-            } else {
+            else
                 _dr.ButtonClick("//span[contains(text(),'Б/у')]/../..");
-            }
+            //оригинальность
+            if (_bus[b].IsOrigin())
+                _dr.ButtonClick("//span[text()='Оригинал']/../..");
+            else
+                _dr.ButtonClick("//span[text()='Аналог']/../..");
         }
         //указываю телефон
         private void SetPhone() {
