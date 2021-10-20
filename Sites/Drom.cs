@@ -109,9 +109,12 @@ namespace Selen.Sites {
             SetPart(b);
             //SetWeight(b);
             PressOkButton();
+            Log.Add("drom.ru: " + b.name + " - объявление обновлено");
             Thread.Sleep(2000);
-            if (b.amount <= 0) Delete();
-            else Up();
+            if (b.amount <= 0) {
+                Delete();
+                Log.Add("drom.ru: " + b.name + " - объявление снято");
+            } else Up();
         }
         //проверка фотографий в объявлении
         private void CheckPhotos(RootObject b) {
@@ -362,7 +365,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine("DROM.RU: ОШИБКА ПАРСИНГА\n" + x.Message + "\n" + x.InnerException.Message);
+                Debug.WriteLine("drom.ru: ошибка парсинга! - " + x.Message + " - " + x.InnerException.Message);
             }
         }
         void CheckPage(List<RootObject> drom) {

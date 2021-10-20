@@ -216,6 +216,7 @@ namespace Selen.Sites {
             SetPrice(b);
             SetDesc(b);
             SetPart(b);
+            SetMarkAndModel(b);
             //проверка фото
             var photosCount = _dr.FindElements("//div[@id='images']//button[1]").Count;
             if (photosCount != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
@@ -255,9 +256,13 @@ namespace Selen.Sites {
             var m = _bus[b].GetNameMarkModel();
             if (m == null) return;
             _dr.ButtonClick("//div[@data-name='attributes.auto_brand']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input", m[1] + OpenQA.Selenium.Keys.Enter);
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input", m[1]);
+            string mark = m[1].Substring(0,1).ToUpper() + m[1].Substring(1);
+            _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='"+mark+"']");
             _dr.ButtonClick("//div[@data-name='attributes.auto_model']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2] + OpenQA.Selenium.Keys.Enter);
+            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2]);
+            string model = m[2].Substring(0,1).ToUpper() + m[2].Substring(1);
+            _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='"+model+"']");
         }
         //загрузка фото
         void SetImages(int b) {
