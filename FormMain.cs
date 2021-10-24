@@ -788,7 +788,7 @@ namespace Selen {
             //загрузим словарь
             List<string> eng = new List<string>();
             List<string> rus = new List<string>();
-            List<string> file = new List<string>(System.IO.File.ReadAllLines("dict.txt", Encoding.UTF8));
+            List<string> file = new List<string>(System.IO.File.ReadAllLines(@"..\dict.txt", Encoding.UTF8));
             foreach (var s in file) {
                 var ar = s.Split(',');
                 eng.Add(ar[0]);

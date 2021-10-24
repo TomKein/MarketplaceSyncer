@@ -3,17 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using ClosedXML.Excel;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Web;
+using Selen.Tools;
 
 namespace Selen {
 
@@ -22,7 +17,7 @@ namespace Selen {
         public object result { get; set; }
         public string token { get; set; }
         public string app_psw { get; set; }
-        public int request_count { get; set; }
+        public string request_count { get; set; }
     }
 
     static class Class365API {
@@ -72,18 +67,18 @@ namespace Selen {
             ps += "&app_psw=" + GetMd5(hashenc);
             //6
             Uri url = new Uri(baseAdr, "repair.json?" + ps);
-
             HttpResponseMessage res = await hc.GetAsync(url);
-
             var js = await res.Content.ReadAsStringAsync();
 
             if (res.StatusCode != HttpStatusCode.OK || js.Contains("Превышение лимита")) {
                 rr.token = "";
+                Log.Add("business.ru: ошибка получения токена авторизации! - " + res.StatusCode.ToString());
                 await Task.Delay(60000);
-            }
-            else
+            } else {
                 //сохраним токен
                 rr = JsonConvert.DeserializeObject<RootResponse>(js);
+                Log.Add("business.ru: получен новый токен!");
+            }
             await Task.Delay(1000);
         }
 
@@ -123,7 +118,6 @@ namespace Selen {
                     if (action.ToUpper() == "GET") {
                         httpResponseMessage = await hc.GetAsync(url + "?" + qstr);
                     } else if (action.ToUpper() == "PUT") {
-                        //HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/json");
                         HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/json");
                         httpResponseMessage = await hc.PutAsync(url, content);
                     } else if (action.ToUpper() == "POST") {
@@ -133,16 +127,17 @@ namespace Selen {
                     if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
                         var js = await httpResponseMessage.Content.ReadAsStringAsync();
                         rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                        Thread.Sleep(rr.request_count*10);
+                        //todo добавить параметр в настройки
+                        Thread.Sleep(100);
                         flag = false;
                         return JsonConvert.SerializeObject(rr.result);
-                    }
-
+                    } 
+                    Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
                     await RepairAsync();
                     qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
                     await Task.Delay(20000);
-                } catch //(Exception e)
-                {
+                } catch (Exception x){
+                    Log.Add("business.ru: ошибка запроса к бизнес.ру - " + x.Message);
                     await Task.Delay(30000);
                     qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
                     rr.token = "";

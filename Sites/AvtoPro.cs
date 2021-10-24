@@ -75,6 +75,8 @@ namespace Selen.Sites {
                     }
                     SaveCookies();
                 }
+                //принимаю политику и куки
+                _dr.ButtonClick("//div[@id='cookie-block']//button");
             });
         }
         public async Task MassEditAsync() {
@@ -114,7 +116,7 @@ namespace Selen.Sites {
 
         void SetManufacturer(RootObject b) {
             var desc = b.name.ToLowerInvariant() + " " + b.description.ToLowerInvariant();
-            var auto = File.ReadAllLines("..\\auto.txt")
+            var auto = File.ReadAllLines(@"..\auto.txt")
                            .Where(w => w.Length > 0 && w.Contains(";")).ToList();
             var dict = new Dictionary<string, int>();
             for (int i = 0; i < auto.Count; i++) {

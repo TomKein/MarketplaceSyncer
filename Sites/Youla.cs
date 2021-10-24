@@ -255,14 +255,18 @@ namespace Selen.Sites {
         void SetMarkAndModel(int b) {
             var m = _bus[b].GetNameMarkModel();
             if (m == null) return;
-            _dr.ButtonClick("//div[@data-name='attributes.auto_brand']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input", m[1]);
-            string mark = m[1].Substring(0,1).ToUpper() + m[1].Substring(1);
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='"+mark+"']");
-            _dr.ButtonClick("//div[@data-name='attributes.auto_model']");
-            _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2]);
-            string model = m[2].Substring(0,1).ToUpper() + m[2].Substring(1);
-            _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='"+model+"']");
+            if (_dr.GetElementText("//div[@data-name='attributes.auto_brand']") == "Не выбрано") {
+                _dr.ButtonClick("//div[@data-name='attributes.auto_brand']");
+                _dr.WriteToSelector("//div[@data-name='attributes.auto_brand']//input", m[1]);
+                string mark = m[1].Substring(0, 1).ToUpper() + m[1].Substring(1);
+                _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='" + mark + "']");
+            }
+            if (_dr.GetElementText("//div[@data-name='attributes.auto_model']") == "Не выбрано") {
+                _dr.ButtonClick("//div[@data-name='attributes.auto_model']");
+                _dr.WriteToSelector("//div[@data-name='attributes.auto_model']//input", m[2]);
+                string model = m[2].Substring(0, 1).ToUpper() + m[2].Substring(1);
+                _dr.ButtonClick("//div[@class='Select-menu-outer']//*[text()='" + model + "']");
+            }
         }
         //загрузка фото
         void SetImages(int b) {

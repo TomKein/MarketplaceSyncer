@@ -66,7 +66,7 @@ namespace Selen.Sites {
                 _dr.Navigate("https://my.tiu.ru/cms/product?status=0&presence=not_avail");
                 if (_dr.GetUrl().Contains("source=redirect")) {
                     _dr.WriteToSelector("//*[@id='phone_field']", _db.GetParamStr("tiu.login"));
-                    _dr.ButtonClick("//button[@id='phoneEmailConfirmButton']");
+                    _dr.ButtonClick("//button[@id='phoneConfirmButton']");
                     _dr.WriteToSelector("//*[@id='enterPassword']", _db.GetParamStr("tiu.password"));
                     _dr.ButtonClick("//*[@id='enterPasswordConfirmButton']");
                     Thread.Sleep(5000);
