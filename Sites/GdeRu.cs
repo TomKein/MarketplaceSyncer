@@ -109,20 +109,12 @@ namespace Selen.Sites {
         //обновление объявлений
         async Task EditAsync() {
             for (int b = 0; b < _bus.Count; b++) {
-                if (_bus[b].gde != null &&
+                if (_bus[b].IsTimeUpDated() && 
+                    _bus[b].gde != null &&
                     _bus[b].gde.Contains("http")) {
-                    //удаляю если нет на остатках
                     if (_bus[b].amount <= 0) {
                         await DeleteAsync(b);
-                        //убираю ссылку из карточки товара
-                        _bus[b].gde = " ";
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                            { "id", _bus[b].id },
-                            { "name", _bus[b].name },
-                            { _url, _bus[b].gde }
-                        });
-                        Log.Add("gde.ru: " + _bus[b].name + " - ссылка из карточки удалена");
-                    } else if (_bus[b].IsTimeUpDated() && _bus[b].price > 0) {
+                    } else if (_bus[b].price > 0) {
                         await EditOfferAsync(b);
                     }
                 }
@@ -196,7 +188,7 @@ namespace Selen.Sites {
                     Thread.Sleep(1000);
                 }
             }
-            Thread.Sleep(5000);
+            Thread.Sleep(15000);
             cl.Dispose();
         }
         //жму кнопку ок
@@ -248,8 +240,7 @@ namespace Selen.Sites {
                             }
                         });
                         await SaveUrlAsync(b);
-                        Log.Add("gde.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + count + ")");
-                        count--;
+                        Log.Add("gde.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + --count + ")");
                     } catch (Exception x) {
                         Log.Add("gde.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
                         break;
@@ -259,15 +250,22 @@ namespace Selen.Sites {
         }
         //сохраняю ссылку на объявление
         async Task SaveUrlAsync(int b) {
-            if (_dr.GetUrl().Contains("postLast")) {
-                var url = @"https://kaluga.gde.ru/cabinet/item/update?id=" + _dr.GetUrl().Split('/').Last();
-                _bus[b].gde = url;
-                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+            for (int i = 0; i < 3; i++) {
+                if (_dr.GetUrl().Contains("postLast")) {
+                    var url = @"https://kaluga.gde.ru/cabinet/item/update?id=" + _dr.GetUrl().Split('/').Last();
+                    _bus[b].gde = url;
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                 {"id", _bus[b].id},
                                 {"name", _bus[b].name},
                                 {_url, _bus[b].gde}
                             });
+                    Log.Add("gde.ru: " + _bus[b].gde + " ссылка успешно сохранена");
+                    return;
+                }
+                await Task.Delay(5000);
+                _dr.Refresh();
             }
+            throw new Exception("ссылка не объявление не найдена");
         }
         //выбор категории
         private void SetCategory(int b) {

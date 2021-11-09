@@ -199,6 +199,8 @@ namespace Selen.Sites {
             _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']");
             //кнопка удалить
             _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
+            //снова кнопка другая причина
+            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
             Log.Add("youla.ru: " + _bus[b].name + " - объявление удалено");
         }
 
