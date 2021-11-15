@@ -83,7 +83,7 @@ namespace Selen.Sites {
                     //если попали на страницу (проверяю url)
                     if (_dr.GetUrl().Contains("/profile/items/draft")) {
                         //нажимаю первый черновик меню
-                        _dr.ButtonClick("//button[contains(@class,'actions-dropdown')]");
+                        _dr.ButtonClick("//button[contains(@data-marker,'item-info')]");
                         //нажимаю удалить
                         _dr.ButtonClick("//button[contains(@data-marker,'remove-draft')]");
                     }
@@ -404,13 +404,13 @@ namespace Selen.Sites {
             await _dr.NavigateAsync(url, ".profile-tabs");
             int inactive = 0, active = 0, old = 0, archived = 0;
             await Task.Factory.StartNew(() => {
-                var inactiveString = _dr.GetElementText("//li[@data-marker='tabs/inactive']/span[2]");
+                var inactiveString = _dr.GetElementText("//button[@data-marker='tabs/inactive']/span/span").Replace(" ","");
                 inactive = inactiveString.Length > 0 ? int.Parse(inactiveString) : 0;
-                var activeString = _dr.GetElementText("//li[@data-marker='tabs/active']/span[2]");
+                var activeString = _dr.GetElementText("//button[@data-marker='tabs/active']/span/span").Replace(" ", "");
                 active = activeString.Length > 0 ? int.Parse(activeString) : 0;
-                var oldString = _dr.GetElementText("//li[@data-marker='tabs/old']/span[2]");
+                var oldString = _dr.GetElementText("//button[@data-marker='tabs/old']/span/span").Replace(" ", "");
                 old = oldString.Length > 0 ? int.Parse(oldString) : 0;
-                var archivedString = _dr.GetElementText("//li[@data-marker='tabs/archived']/span[2]");
+                var archivedString = _dr.GetElementText("//button[@data-marker='tabs/archived']/span/span").Replace(" ", "");
                 archived = archivedString.Length > 0 ? int.Parse(archivedString) : 0;
             });
             //процент страниц для проверки
@@ -438,7 +438,7 @@ namespace Selen.Sites {
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
                 await _dr.NavigateAsync(url, ".profile-tabs");
                 //парсинг объявлений на странице
-                var items = await _dr.FindElementsAsync("//div[contains(@class,'text-t')]//a");
+                var items = await _dr.FindElementsAsync("//div[contains(@class,'title-title')]//a");
                 var urls = items.Select(s => s.GetAttribute("href")).ToList();
                 var ids = urls.Select(s => s.Split('_').Last()).ToList();
                 var names = items.Select(s => s.Text).ToList();
