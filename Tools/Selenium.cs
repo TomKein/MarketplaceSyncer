@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Selen.Base;
 
 
 namespace Selen.Tools {
@@ -20,7 +21,9 @@ namespace Selen.Tools {
         public Selenium(int waitSeconds=300) {
             ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
             chromeservice.HideCommandPromptWindow = true;
-            _drv = new ChromeDriver(chromeservice, new ChromeOptions(), TimeSpan.FromSeconds(waitSeconds));
+            var chromeOptions = new ChromeOptions();
+            if (DB._db.GetParamBool("headlessChrome")) chromeOptions.AddArgument("headless");
+            _drv = new ChromeDriver(chromeservice, chromeOptions, TimeSpan.FromSeconds(waitSeconds));
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
             _drv.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(waitSeconds);
             Log.Add("_drv.Manage().Timeouts().PageLoad = " + _drv.Manage().Timeouts().PageLoad);

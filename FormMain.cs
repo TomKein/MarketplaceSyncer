@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.72.2";
+        string _version = "1.73.1";
 
         DB _db = new DB();
 
@@ -1401,20 +1401,9 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                for (int b = 0, j = 10; b < bus.Count; b++) {
-                    if (!string.IsNullOrEmpty(bus[b].youla) &&
-                        bus[b].youla.Contains("youla.io")) {
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                            { "id", bus[b].id},
-                            { "name", bus[b].name},
-                            { "402489","" }
-                        });
-                        Log.Add("youla.ru: " + bus[b].name + " - удалена старая ссылка из карточки - " + bus[b].youla);
-                        bus[b].youla = "";
-                        await Task.Delay(2000);
-                        j--;
-                    }
-                }
+                
+
+                
 
                 //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
                 //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
