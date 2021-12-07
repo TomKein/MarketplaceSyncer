@@ -138,6 +138,7 @@ namespace Selen.Sites {
             while (_dr.GetElementsCount("//p/a[contains(text(),'обновить страницу')]") > 0)
                 _dr.ButtonClick("//p/a[contains(text(),'обновить страницу')]");
             //проверяю элемент Мои объявления
+            ////a[text()='Вход и регистрация']
             while (_dr.GetElementsCount("//a[text()='Мои объявления']") == 0) {
                 if (_dr.GetElementsCount("//h1[text()='Сайт временно недоступен']") > 0)
                     _dr.Refresh();
@@ -267,12 +268,12 @@ namespace Selen.Sites {
                         SetCategory(b);
                         SetTitle(b);
                         SetOfferType();
-                        SetStatus(b);
                         SetDiskParams(b);
                         SetPrice(b);
                         SetAddress();
                         SetImages(b);
                         SetDesc(b);
+                        SetStatus(b);
                         //SetDesc(b, minDesc:true);
                         //SetPartNumber(b);
                         SetManufacture(b);
@@ -523,7 +524,7 @@ namespace Selen.Sites {
         private void SetStatus(int b) {
             //новый или б/у
             if (_bus[b].IsNew())
-                _dr.ButtonClick("//span[contains(text(),'Новое')]/../..");
+                _dr.ButtonClick("//label/span[contains(text(),'Новое')]/../..");
             else
                 _dr.ButtonClick("//span[contains(text(),'Б/у')]/../..");
             //оригинальность
