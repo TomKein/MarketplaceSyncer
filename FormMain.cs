@@ -1401,54 +1401,61 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                
-
-                
-
-                //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
-                //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
-
-
-                //не выложено на авито
-                //Log.Add(
-                //    bus.Count(w => w.amount > 0 &&
-                //              w.price >= 500 &&
-                //              w.tiu.Contains("http") &&
-                //             !w.avito.Contains("http"))
-                //       .ToString()
-                //    );
+                if (_avito._dr!=null)_avito._dr.ScreenShot();
+                if (_drom._dr != null) _drom._dr.ScreenShot();
+                if (_kupiprodai._dr != null) _kupiprodai._dr.ScreenShot();
+                if (_tiu._dr != null) _tiu._dr.ScreenShot();
+                if (_youla._dr != null) _youla._dr.ScreenShot();
+                if (_gde._dr != null) _gde._dr.ScreenShot();
+                if (_cdek._dr != null) _cdek._dr.ScreenShot();
+                if (_avto._dr != null) _avto._dr.ScreenShot();
+                if (_auto._dr != null) _auto._dr.ScreenShot();
 
 
-
-                //Log.Add(DateTime.Now.ToString().Replace(".", ""));
-                //await SftpUploadAsync();
-                //var json = JsonConvert.SerializeObject(bus[0]);
-
-                //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
-                //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
-
-                //var j = _db.GetGood("id", bus[0].id.ToString());
-                //var b = JsonConvert.DeserializeObject<RootObject>(j);
-
-                //var j2 = _db.GetGood("drom", "47176874");
-                //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+                    //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
+                    //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
 
 
-                //var res = db.SetParam("test", "123");
-                //var res2 = db.SetParam("test", "777");
-                //var str = db.GetParamStr("test");
-                //var i = db.GetParamInt("test");
-                //res = db.SetParam("test", DateTime.Now.ToString());
-                //var dt = db.GetParamDateTime("test");
+                    //не выложено на авито
+                    //Log.Add(
+                    //    bus.Count(w => w.amount > 0 &&
+                    //              w.price >= 500 &&
+                    //              w.tiu.Contains("http") &&
+                    //             !w.avito.Contains("http"))
+                    //       .ToString()
+                    //    );
 
-                //пробую записать в лог из вторичного потока (в 10 потоков)
-                //for (int j = 0; j < 10; j++) {
-                //    Task.Factory.StartNew(() => {
-                //        for (int i = 0; i < 100; i++) {
-                //            db.Log.Add("site", j+" thread = " + i.ToString());
-                //        }
-                //    });
-                //}
+
+
+                    //Log.Add(DateTime.Now.ToString().Replace(".", ""));
+                    //await SftpUploadAsync();
+                    //var json = JsonConvert.SerializeObject(bus[0]);
+
+                    //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                    //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+
+                    //var j = _db.GetGood("id", bus[0].id.ToString());
+                    //var b = JsonConvert.DeserializeObject<RootObject>(j);
+
+                    //var j2 = _db.GetGood("drom", "47176874");
+                    //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+
+
+                    //var res = db.SetParam("test", "123");
+                    //var res2 = db.SetParam("test", "777");
+                    //var str = db.GetParamStr("test");
+                    //var i = db.GetParamInt("test");
+                    //res = db.SetParam("test", DateTime.Now.ToString());
+                    //var dt = db.GetParamDateTime("test");
+
+                    //пробую записать в лог из вторичного потока (в 10 потоков)
+                    //for (int j = 0; j < 10; j++) {
+                    //    Task.Factory.StartNew(() => {
+                    //        for (int i = 0; i < 100; i++) {
+                    //            db.Log.Add("site", j+" thread = " + i.ToString());
+                    //        }
+                    //    });
+                    //}
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

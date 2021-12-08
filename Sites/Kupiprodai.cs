@@ -14,7 +14,7 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     class Kupiprodai {
-        Selenium _dr;               //браузер
+        public Selenium _dr;               //браузер
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание

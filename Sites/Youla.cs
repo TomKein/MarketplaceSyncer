@@ -13,7 +13,7 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class Youla {
-        Selenium _dr;               //браузер
+        public Selenium _dr;               //браузер
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара     //402489
         string[] _addDesc;          //дополнительное описание

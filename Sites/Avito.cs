@@ -15,7 +15,7 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class Avito {
-        Selenium _dr;
+        public Selenium _dr;
         DB _db;
         List<RootObject> _bus = null;
         Random _rnd = new Random();

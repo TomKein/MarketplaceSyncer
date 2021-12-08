@@ -23,7 +23,7 @@ namespace Selen.Sites {
           //"Наложенный платёж ТК ПЭК (габаритные и тяжёлые детали)",
           "Бесплатная доставка до транспортной компании!"
         };
-        Selenium _dr;
+        public Selenium _dr;
         List<RootObject> _bus = null;
         Random _rnd = new Random();
 

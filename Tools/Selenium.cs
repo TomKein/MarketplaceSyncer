@@ -22,11 +22,26 @@ namespace Selen.Tools {
             ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
             chromeservice.HideCommandPromptWindow = true;
             var chromeOptions = new ChromeOptions();
-            if (DB._db.GetParamBool("headlessChrome")) chromeOptions.AddArgument("headless");
+            if (DB._db.GetParamBool("headlessChrome")) {
+                chromeOptions.AddArgument("headless");
+                chromeOptions.AddArgument("disable-gpu");
+                chromeOptions.AddArgument("window-size=1920,1080");
+                chromeOptions.AddArgument("no-sandbox");
+            }
             _drv = new ChromeDriver(chromeservice, chromeOptions, TimeSpan.FromSeconds(waitSeconds));
             _drv.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
             _drv.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(waitSeconds);
             Log.Add("_drv.Manage().Timeouts().PageLoad = " + _drv.Manage().Timeouts().PageLoad);
+        }
+
+        public void ScreenShot() {
+            try {
+                var name = @"..\Screenshots\" + DateTime.Now.ToString().Replace(":",".") + " ["+DateTime.Now.Millisecond + "].png";
+                ((ITakesScreenshot)_drv).GetScreenshot().SaveAsFile(name, ScreenshotImageFormat.Png);
+                Log.Add("Selenium: скриншот сохранен " + name);
+            } catch (Exception x) {
+                Log.Add("Selenium: ошибка сохранения скриншота! - " + x.Message);
+            }
         }
 
         public void Navigate(string url, string check=null, int tryCount=3) {

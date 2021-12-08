@@ -27,7 +27,7 @@ namespace Selen.Sites {
             "Бесплатная доставка до транспортной компании!"
         };
         //браузер
-        Selenium _dr;
+        public Selenium _dr;
         //список товаров
         List<RootObject> _bus = null;
         //база данных

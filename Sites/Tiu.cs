@@ -16,7 +16,7 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     class Tiu {
-        Selenium _dr;
+        public Selenium _dr;
         int _tiuCount = 0;
         List<RootObject> _newOffers = new List<RootObject>();
         DataSet _ds;

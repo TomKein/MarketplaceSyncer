@@ -26,7 +26,7 @@ namespace Selen.Sites {
             "Наложенный платёж ТК ПЭК габаритные и тяжёлые детали",
             "Бесплатная доставка до ТК"
         };
-        Selenium _dr;
+        public Selenium _dr;
         DB _db = DB._db;
 
         string _part;
