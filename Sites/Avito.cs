@@ -439,7 +439,7 @@ namespace Selen.Sites {
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
                 await _dr.NavigateAsync(url, ".profile-tabs");
                 //парсинг объявлений на странице
-                var items = await _dr.FindElementsAsync("//div[contains(@class,'title-title')]//a");
+                var items = await _dr.FindElementsAsync("//div[contains(@class,'item-body-root')]//a");
                 var urls = items.Select(s => s.GetAttribute("href")).ToList();
                 var ids = urls.Select(s => s.Split('_').Last()).ToList();
                 var names = items.Select(s => s.Text).ToList();
@@ -605,7 +605,7 @@ namespace Selen.Sites {
                 //проверяю объявление по ссылке в случайной карточке с положительным остатком checkUrlsCount раз
                 var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
                 if (checkUrlsCount > 0) Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
-                for (int i = 0; checkUrlsCount > 0; i++) {
+                for (int i = 0; checkUrlsCount > 0; i++, checkUrlsCount--) {
                     //выбираю случайный индекс
                     var b = _rnd.Next(_bus.Count);
                     //если нет ссылки на авито или нет на остатках - пропускаю
@@ -622,7 +622,6 @@ namespace Selen.Sites {
                     if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) SaveUrlAsync(b, deleteUrl: true);
                     //проверяю фотографии в объявлении
                     CheckPhotos(b);
-                    checkUrlsCount--;
                 }
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка при проверке ссылок - " + x.Message);

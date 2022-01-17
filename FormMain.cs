@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.73.1";
+        string _version = "1.74.1";
 
         DB _db = new DB();
 
@@ -334,20 +334,15 @@ namespace Selen {
         //=== основной цикл (частота 1 раз в мин) ===
         //===========================================
         private async void timer_sync_Tick(object sender, EventArgs e) {
-            //если синхронизация включена и завершен предыдуший цикл
-            if (checkBox_sync.Checked && base_can_rescan) {
-                //галочка liteSync
-                if (await _db.GetParamBoolAsync("useLiteSync") &&
-                    bus.Count > 0 &&   //список товаров содержит товары
-                   !base_rescan_need) { //и его не нужно перезапрашивать
-                    await GoLiteSync();
-                } else if (DateTime.Now.AddHours(-1) > dateTimePicker1.Value) { //со времени последней синхронизации прошло больше часа
-                    button_BaseGet.PerformClick();
-                }
-            }
+            if (!checkBox_sync.Checked || !base_can_rescan) return;
+            if (DateTime.Now.Hour < await _db.GetParamIntAsync("syncStartHour")) return;
+            if (DateTime.Now.Hour >= await _db.GetParamIntAsync("syncStopHour")) return;
+            if (await _db.GetParamBoolAsync("useLiteSync")) await GoLiteSync();
+            if (DateTime.Now.AddHours(-1) > dateTimePicker1.Value) button_BaseGet.PerformClick();
         }
-        //оптимизация синхронизации - чтобы не запрашивать всю базу каждый час - запросим только изменения
+        //оптимизированная синхронизации - запрос только последних изменений
         async Task GoLiteSync() {
+            if (bus.Count <= 0 || base_rescan_need) return;
             ChangeStatus(button_BaseGet, ButtonStates.NoActive);
             var stage = "";
             try {
@@ -757,7 +752,7 @@ namespace Selen {
             List<string> bus_dubl = new List<string>();
             List<string> bus_upper_names = new List<string>();
             do {
-                Task t1 = Task.Factory.StartNew(() => {
+                await Task.Factory.StartNew(() => {
                     bus_upper_names = bus.Where(a => !a.name.Contains("Без имени"))
                                          .Select(t => t.name.ToUpper())
                                          .ToList();
@@ -765,11 +760,11 @@ namespace Selen {
                                               .Distinct()
                                               .ToList();
                 });
-                await t1;
                 foreach (var d in bus_dubl) {
                     int ind = bus.FindLastIndex(t => t.name.ToUpper() == d);
-                    bus[ind].name += !string.IsNullOrEmpty(bus[ind].part) && !bus[ind].name.Contains(bus[ind].part) ? " " + bus[ind].part :
-                                     bus[ind].name.EndsWith("`") ? "`" : " `";
+                    bus[ind].name = !string.IsNullOrEmpty(bus[ind].part) && !bus[ind].name.Contains(bus[ind].part) ? bus[ind].name+" " + bus[ind].part 
+                                                                                                                   : bus[ind].name.EndsWith("`") ? bus[ind].name+"`" 
+                                                                                                                                                 : bus[ind].name+" `";
                     Thread.Sleep(10);
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
                     {
@@ -777,7 +772,7 @@ namespace Selen {
                         { "name" , bus[ind].name}
                     });
                     Log.Add("база исправлен дубль названия " + bus[ind].name);
-                    Thread.Sleep(1000);
+                    await Task.Delay(1000);
                 }
             } while (bus_dubl.Count() > 0);
             Thread.Sleep(10);
@@ -796,7 +791,7 @@ namespace Selen {
             }
             file.Clear();
             //количество изменений за один раз
-            var n = _db.GetParamInt("descriptionEditCount");
+            var n = await _db.GetParamIntAsync("descriptionEditCount");
             //пробегаемся по описаниям карточек базы
             for (int i = 0; i < bus.Count && n > 0; i++) {
                 //если есть привязка к тиу
@@ -1401,15 +1396,52 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                if (_avito._dr!=null)_avito._dr.ScreenShot();
-                if (_drom._dr != null) _drom._dr.ScreenShot();
-                if (_kupiprodai._dr != null) _kupiprodai._dr.ScreenShot();
-                if (_tiu._dr != null) _tiu._dr.ScreenShot();
-                if (_youla._dr != null) _youla._dr.ScreenShot();
-                if (_gde._dr != null) _gde._dr.ScreenShot();
-                if (_cdek._dr != null) _cdek._dr.ScreenShot();
-                if (_avto._dr != null) _avto._dr.ScreenShot();
-                if (_auto._dr != null) _auto._dr.ScreenShot();
+                for (int i = 0; i < bus.Count; i++) {
+                    //название без кавычек
+                    var tmpName = bus[i].name.TrimEnd(new[] { '`',' ','\''});
+                    //признак дублирования
+                    var haveDub = bus.Count(c => c.name.Contains(tmpName)) > 1;
+                    //если есть дубли, но нет на остатках и НЕ заканчивается ' - переименовываю
+                    if (bus[i].amount <= 0 
+                        && haveDub 
+                        && !bus[i].name.EndsWith("'")) {
+                        bus[i].name = tmpName + " '";
+                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                            { "id" , bus[i].id},
+                            { "name" , bus[i].name}
+                        });
+                        Log.Add("база: переименование (нет в наличии): " + bus[i].name);
+                        await Task.Delay(1000);
+                    }
+                    //если есть дубли, остаток и в конце ` или '
+                    if (bus[i].amount > 0 
+                        && (haveDub && bus[i].name.EndsWith("`") 
+                            || bus[i].name.EndsWith("'"))) {
+                        //проверяем свободные имена
+                        while (bus.Count(c => c.name == tmpName) > 0) tmpName += tmpName.EndsWith("`") ? "`"
+                                                                                                       : " `";
+                        //если нашлось имя покороче
+                        if (tmpName.Length < bus[i].name.Length) {
+                            Log.Add("база: сокращаю название "+ bus[i].name + " => " + tmpName);
+                            bus[i].name = tmpName;
+                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                { "id" , bus[i].id},
+                                { "name" , bus[i].name}
+                            });
+                            await Task.Delay(1000);
+                        }
+                    }
+                }
+
+                //if (_avito._dr!=null)_avito._dr.ScreenShot();
+                //if (_drom._dr != null) _drom._dr.ScreenShot();
+                //if (_kupiprodai._dr != null) _kupiprodai._dr.ScreenShot();
+                //if (_tiu._dr != null) _tiu._dr.ScreenShot();
+                //if (_youla._dr != null) _youla._dr.ScreenShot();
+                //if (_gde._dr != null) _gde._dr.ScreenShot();
+                //if (_cdek._dr != null) _cdek._dr.ScreenShot();
+                //if (_avto._dr != null) _avto._dr.ScreenShot();
+                //if (_auto._dr != null) _auto._dr.ScreenShot();
 
 
                     //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });

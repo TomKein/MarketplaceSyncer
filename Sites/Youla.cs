@@ -35,7 +35,7 @@ namespace Selen.Sites {
         //сохранение кукис
         public void SaveCookies() {
             if (_dr != null) {
-                _dr.Navigate("https://youla.ru/pro");
+                //_dr.Navigate("https://youla.ru/pro");
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
                     _db.SetParam("youla.cookies", c);
@@ -71,7 +71,7 @@ namespace Selen.Sites {
                             _dr = null;
                         }
                         if (i >= 2) break;
-                        await Task.Delay(10000);
+                        await Task.Delay(600000);
                     }
                 }
             }
@@ -82,7 +82,7 @@ namespace Selen.Sites {
             //перехожу на главную страницу, проверяю наличие кнопки Активные
             _dr.Navigate("https://youla.ru/pro", "//span[text()='Активные']/..");
             //нажимаю кнопку Активные
-            _dr.ButtonClick("//span[text()='Активные']/..");
+            _dr.ButtonClick("//span[text()='Активные']/..",5000);
             //выбираю Неактивные
             _dr.ButtonClick("//ul/div[text()='Неактивные']",10000);
             //получаю ссылки на товары
@@ -94,7 +94,7 @@ namespace Selen.Sites {
             //ограничиваю количеством реально обнаруженных неактивных
             count = a.Count > count ? count : a.Count;
             //перебираю товары
-            for (var i = 0; count > 0 && i < a.Count-1; i++) {
+            for (var i = 0; count > 0 && i < a.Count-1; i++, count--) {
                 //выделяю id объявления из ссылки
                 var id = a[i].Split('/').Last().TrimStart('p');
                 //нахожу карточку в бизнес.ру
@@ -108,11 +108,13 @@ namespace Selen.Sites {
                 if (_bus[b].amount > 0) {
                     //загружаю объявление
                     _dr.Navigate(a[i]);
+                    //закрываю всплывающее окно
+                    _dr.ButtonClick("//div[@data-test-action='CloseClick']");
                     //если есть кнопка опубликовать повторно
                     if (_dr.GetElementsCount("//button[@data-test-action='RepublishClick']") > 0) {
                         //жму опубликовать повторно
-                        _dr.ButtonClick("//button[@data-test-action='RepublishClick']", 5000);
-                        Log.Add("youla.ru: " + _bus[b].name + " - объявление активировано (ост. " + --count + ")");
+                        _dr.ButtonClick("//button[@data-test-action='RepublishClick']", 10000);
+                        Log.Add("youla.ru: " + _bus[b].name + " - объявление активировано (ост. " + (count-1) + ")");
                     }
                 } else {
                     //иначе удаляю объявление
@@ -131,6 +133,14 @@ namespace Selen.Sites {
                     _dr = new Selenium();
                     LoadCookies();
                 }
+                if (_dr.GetUrl().Contains("connect.vk.com")) {//неудачный вход, 
+                    throw new Exception("ошибка авторизации");
+                    //ставим плагин для импорта куки
+                    _dr.Navigate("https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn?hl=ru");
+                    _dr.ButtonClick("//div[@aria-label='Установить']");
+                    _dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
+                }
+
                 _dr.Navigate("https://youla.ru/pro");
                 _dr.ButtonClick("//div[@data-test-action='CloseClick']/i");
                 //если есть кнопка входа - пытаюсь залогиниться
@@ -191,16 +201,16 @@ namespace Selen.Sites {
         private void Delete(int b) {
             _dr.Navigate(_bus[b].youla);
             //кнопка снять с публикации
-            _dr.ButtonClick("//button[@data-test-action='ProductWithdrawClick']");
+            _dr.ButtonClick("//button[@data-test-action='ProductWithdrawClick']",5000);
             //кнопка другая причина
-            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
+            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 5000);
             Log.Add("youla.ru: " + _bus[b].name + " - объявление снято");
             //кнопка удалить объявление
-            _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']");
+            _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']",5000);
             //кнопка удалить
             _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
             //снова кнопка другая причина
-            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 3000);
+            _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 10000);
             Log.Add("youla.ru: " + _bus[b].name + " - объявление удалено");
         }
 
@@ -291,8 +301,8 @@ namespace Selen.Sites {
         }
         //жму кнопку ок
         void PressOkButton(int i=1) {
-            _dr.ButtonClick("//button[@type='submit']", 5000);
-            if (i == 2) _dr.ButtonClick("//span[text()='Опубликовать объявление']/..", 5000);
+            _dr.ButtonClick("//button[@type='submit']", 10000);
+            if (i == 2) _dr.ButtonClick("//span[text()='Опубликовать объявление']/..", 10000);
         }
         //выкладываю объявления
         public async Task AddAsync() {
@@ -421,8 +431,8 @@ namespace Selen.Sites {
         //выбор категории
         void Select(Dictionary<string, string> param = null) {
             foreach(var key in param.Keys) {
-                if (key == "avtozapchasti_tip") _dr.ButtonClick("//div[text()='Запчасти']");
-                if (key == "shiny_diski_tip") _dr.ButtonClick("//div[text()='Шины и диски']");
+                if (key == "avtozapchasti_tip") _dr.ButtonClick("//button[text()='Запчасти']");
+                if (key == "shiny_diski_tip") _dr.ButtonClick("//button[text()='Шины и диски']");
                 _dr.ButtonClick("//div[@data-name='attributes." + key + "']",2000);
                 _dr.ButtonClick("//div[@class='Select-menu-outer']//div[contains(text(),'" + param[key] + "')]", 3000);
             }

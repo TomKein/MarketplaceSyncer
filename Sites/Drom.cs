@@ -146,7 +146,7 @@ namespace Selen.Sites {
         }
 
         public async Task AddAsync() {
-            var count = _db.GetParamInt("drom.addCount");
+            var count = await _db.GetParamIntAsync("drom.addCount");
             for (int b = 0; b < _bus.Count && count > 0; b++) {
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     _bus[b].tiu.Contains("http") &&
@@ -348,7 +348,7 @@ namespace Selen.Sites {
             return 1;
         }
         public async Task CheckAsync() {
-            int count = _db.GetParamInt("drom.checkPagesCount");
+            int count = await _db.GetParamIntAsync("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("all");

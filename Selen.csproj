@@ -245,8 +245,8 @@
     <Reference Include="VkNet, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\VkNet.1.61.0\lib\net461\VkNet.dll</HintPath>
     </Reference>
-    <Reference Include="WebDriver, Version=3.141.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Selenium.WebDriver.3.141.0\lib\net45\WebDriver.dll</HintPath>
+    <Reference Include="WebDriver, Version=4.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Selenium.WebDriver.4.1.0\lib\net47\WebDriver.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="WinSCPnet, Version=1.7.2.10640, Culture=neutral, PublicKeyToken=2271ec4a3c56d0bf, processorArchitecture=MSIL">
@@ -364,12 +364,12 @@
     <Error Condition="!Exists('packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets'))" />
     <Error Condition="!Exists('packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets'))" />
     <Error Condition="!Exists('packages\WinSCP.5.17.7\build\WinSCP.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\WinSCP.5.17.7\build\WinSCP.targets'))" />
-    <Error Condition="!Exists('packages\Selenium.WebDriver.ChromeDriver.95.0.4638.5401\build\Selenium.WebDriver.ChromeDriver.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Selenium.WebDriver.ChromeDriver.95.0.4638.5401\build\Selenium.WebDriver.ChromeDriver.targets'))" />
+    <Error Condition="!Exists('packages\Selenium.WebDriver.ChromeDriver.97.0.4692.7100\build\Selenium.WebDriver.ChromeDriver.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Selenium.WebDriver.ChromeDriver.97.0.4692.7100\build\Selenium.WebDriver.ChromeDriver.targets'))" />
   </Target>
   <Import Project="packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets" Condition="Exists('packages\Microsoft.Bcl.Build.1.0.21\build\Microsoft.Bcl.Build.targets')" />
   <Import Project="packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
   <Import Project="packages\WinSCP.5.17.7\build\WinSCP.targets" Condition="Exists('packages\WinSCP.5.17.7\build\WinSCP.targets')" />
-  <Import Project="packages\Selenium.WebDriver.ChromeDriver.95.0.4638.5401\build\Selenium.WebDriver.ChromeDriver.targets" Condition="Exists('packages\Selenium.WebDriver.ChromeDriver.95.0.4638.5401\build\Selenium.WebDriver.ChromeDriver.targets')" />
+  <Import Project="packages\Selenium.WebDriver.ChromeDriver.97.0.4692.7100\build\Selenium.WebDriver.ChromeDriver.targets" Condition="Exists('packages\Selenium.WebDriver.ChromeDriver.97.0.4692.7100\build\Selenium.WebDriver.ChromeDriver.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
