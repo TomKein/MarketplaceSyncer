@@ -343,7 +343,7 @@ namespace Selen.Sites {
             var ElementString = _dr.GetElementText("//ul[@class='tabs-list']/li[@class='active']");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
-            var checkPagesProcent = _db.GetParamInt("gde.checkPagesProcent");
+            var checkPagesProcent = await _db.GetParamIntAsync("gde.checkPagesProcent");
             for (int i = 0; i < pageCount; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) > checkPagesProcent) continue;

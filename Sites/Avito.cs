@@ -428,8 +428,8 @@ namespace Selen.Sites {
                 if (i < archived / 50) await ParsePage("/archived", i + 1);
             }
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
             for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
+            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
             for (int i = 0; i <= archived / 50 && CountToUp > 0; i++) { await ParsePage("/archived", i + 1); }
         }
         //проверка объявлений на странице
@@ -466,8 +466,14 @@ namespace Selen.Sites {
                                 await _dr.NavigateAsync(_bus[b].avito, ".title-info-title");
                                 _dr.ButtonClick("//button[@name='restore']");
                             }
-                            //теперь активирую
-                            if (await UpOfferAsync(b)) {
+                            //если на вкладке архив
+                            if (location == "/old") {
+                                _dr.Navigate(_bus[b].avito);
+                                _dr.ButtonClick("//button[@name='start']");
+                                _dr.ButtonClick("//button[@type='submit']/span[text()='Активировать']/..",_delay);
+                            }
+                            //активирую неопубликованное
+                            else if (await UpOfferAsync(b)) {
                                 await Task.Delay(_delay);
                                 await RandomClicksAsync();
                                 if (_editAfterUp) await EditAsync(b);

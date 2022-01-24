@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.74.1";
+        string _version = "1.75.1";
 
         DB _db = new DB();
 
@@ -749,6 +749,10 @@ namespace Selen {
 
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
+            button_Test.PerformClick();
+            return;
+
+            //удалить
             List<string> bus_dubl = new List<string>();
             List<string> bus_upper_names = new List<string>();
             do {
@@ -1396,11 +1400,11 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                for (int i = 0; i < bus.Count; i++) {
+                for (int i = 0, cnt = 0; i < bus.Count && cnt < 2; i++) {
                     //название без кавычек
                     var tmpName = bus[i].name.TrimEnd(new[] { '`',' ','\''});
                     //признак дублирования
-                    var haveDub = bus.Count(c => c.name.Contains(tmpName)) > 1;
+                    var haveDub = bus.Count(c => c.name.Contains(tmpName) && c.amount>0) > 1;
                     //если есть дубли, но нет на остатках и НЕ заканчивается ' - переименовываю
                     if (bus[i].amount <= 0 
                         && haveDub 
@@ -1410,7 +1414,7 @@ namespace Selen {
                             { "id" , bus[i].id},
                             { "name" , bus[i].name}
                         });
-                        Log.Add("база: переименование (нет в наличии): " + bus[i].name);
+                        Log.Add("база: переименование ["+ ++cnt +"] нет в наличии: " + bus[i].name);
                         await Task.Delay(1000);
                     }
                     //если есть дубли, остаток и в конце ` или '
@@ -1418,11 +1422,11 @@ namespace Selen {
                         && (haveDub && bus[i].name.EndsWith("`") 
                             || bus[i].name.EndsWith("'"))) {
                         //проверяем свободные имена
-                        while (bus.Count(c => c.name == tmpName) > 0) tmpName += tmpName.EndsWith("`") ? "`"
+                        while (bus.Count(c => c.name == tmpName && c.amount > 0) > 0) tmpName += tmpName.EndsWith("`") ? "`"
                                                                                                        : " `";
-                        //если нашлось имя покороче
-                        if (tmpName.Length < bus[i].name.Length) {
-                            Log.Add("база: сокращаю название "+ bus[i].name + " => " + tmpName);
+                        //если новое имя короче или если старое заканчивается '
+                        if (tmpName.Length < bus[i].name.Length || bus[i].name.EndsWith("'")) {
+                            Log.Add("база: сокращаю наименование [" + ++cnt + "] " + bus[i].name + " => " + tmpName);
                             bus[i].name = tmpName;
                             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                 { "id" , bus[i].id},

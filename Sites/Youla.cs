@@ -371,7 +371,7 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            if (DateTime.Now.Hour % 6 != 0) return;
+            if (DateTime.Now.Hour % 11 != 0) return;
             await _dr.NavigateAsync("https://youla.ru/pro");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");

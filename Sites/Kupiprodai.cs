@@ -51,7 +51,7 @@ namespace Selen.Sites {
         public async Task StartAsync(List<RootObject> bus) {
             Log.Add("kupiprodai.ru: начало выгрузки...");
             _bus = bus;
-            _url = _db.GetParamStr("kupiprodai.url");
+            _url = await _db.GetParamStrAsync("kupiprodai.url");
             _addDesc = JsonConvert.DeserializeObject<string[]>(
                 _db.GetParamStr("kupiprodai.addDescription"));
             await AuthAsync();
