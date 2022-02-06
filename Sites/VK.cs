@@ -238,7 +238,7 @@ namespace Selen.Sites {
     //проверка актуальности ссылок в карточках бизнес.ру
     async Task CheckBusAsync() {
         //для каждой карточки в бизнес.ру
-        for (int b = 0, c = 10; b < _bus.Count && c > 0; b++) {
+        for (int b = 0, c = 5; b < _bus.Count && c > 0; b++) {
             //если нет ссылки перехожу к следующей
             if (!_bus[b].vk.Contains("http")) continue;
             try {

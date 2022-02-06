@@ -94,7 +94,7 @@ namespace Selen.Base {
                         break;
                     } catch (Exception x) {
                         Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message, writeDb:false);
-                        Thread.Sleep(3000);
+                        Thread.Sleep(5000);
                     }
                     if (i >= 100) {
                         Log.Add("mysql: ошибка обращения к базе данных! - превышено количество попыток обращений!", writeDb: false);

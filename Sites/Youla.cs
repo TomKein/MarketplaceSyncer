@@ -79,6 +79,9 @@ namespace Selen.Sites {
         }
         //активация устаревших объявлений 
         private async Task ActivateAsync() => await Task.Factory.StartNew(() => {
+            //получаю заданное количество для активирования
+            int count = _db.GetParamInt("youla.countToUp");
+            if (count == 0) return;
             //перехожу на главную страницу, проверяю наличие кнопки Активные
             _dr.Navigate("https://youla.ru/pro", "//span[text()='Активные']/..");
             //нажимаю кнопку Активные
@@ -89,8 +92,6 @@ namespace Selen.Sites {
             var a = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']")
                        .Select(s => s.GetAttribute("href"))
                        .ToList();
-            //получаю заданное количество для активирования
-            int count = _db.GetParamInt("youla.countToUp");
             //ограничиваю количеством реально обнаруженных неактивных
             count = a.Count > count ? count : a.Count;
             //перебираю товары
@@ -140,8 +141,8 @@ namespace Selen.Sites {
                     _dr.ButtonClick("//div[@aria-label='Установить']");
                     _dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
                 }
-
-                _dr.Navigate("https://youla.ru/pro");
+                if (_dr.GetUrl()!= "https://youla.ru/pro")
+                    _dr.Navigate("https://youla.ru/pro");
                 _dr.ButtonClick("//div[@data-test-action='CloseClick']/i");
                 //если есть кнопка входа - пытаюсь залогиниться
                 if (_dr.GetElementsCount("//a[@href='/login' and @data-test-action='LoginClick']") > 0) {
@@ -380,7 +381,7 @@ namespace Selen.Sites {
             //число количество страниц
             var n = str.Length == 0 ? 0: int.Parse(str) /20;
             //пробегаюсь по страницам
-            for (int i = 1; i < n; i += _rnd.Next(1, 3)) {
+            for (int i = 1; i < n && _rnd.Next(100) > 10; i += _rnd.Next(1, 3)) {
                 if (_dr.GetElementsCount("//span[@data-test-id='B2BPaginationPageNumber-" + i + "']") == 0) break;
                 await ParsePageAsync(i);
             }

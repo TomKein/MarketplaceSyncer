@@ -164,13 +164,14 @@ namespace Selen.Sites {
                     }
                 }
                 await Task.Factory.StartNew(() => {
+                    SetTitle(b);
                     SetStatus(b);
                     SetPartNumber(b);
                     SetManufacture(b);
-                    CheckPhotos(b);
-                    SetTitle(b);
-                    SetPrice(b);
                     SetDesc(b);
+                    CheckPhotos(b);
+                    SetPrice(b);
+                    SetGeo();
                     PressOk();
                 });
             }
@@ -212,9 +213,40 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//button[text()='Восстановить']");
             }
         });
-
+        //производство, марка и модель
         private void SetManufacture(int b) {
-            //производителя авито определяет сам
+            //производителя авито определяет самостоятельно
+            //определяю марку и модель
+            var m = _bus[b].GetNameMarkModel();
+            //если не удалось - пропуск
+            if (m == null) return;
+            //проверяю поле в объявлении
+            if (_dr.GetElementAttribute("//input[@id='params[111075]']","value") == "") {
+                //1. заполняю марку
+                _dr.ButtonClick("//input[@id='params[111075]']");
+                string mrk = m[1].Substring(0, 1).ToUpper() + m[1].Substring(1);
+                _dr.WriteToSelector("//input[@id='params[111075]']", mrk);
+                _dr.ButtonClick("//div[@data-marker='params[111075]']//span[text()='"+mrk+"']");
+                _dr.ButtonClick("//div[@data-marker='params[111075]']//div[contains(@class,'root_active')]//span");
+                //2. заполняю модель
+                string mod = m[2].Substring(0, 1).ToUpper() + m[2].Substring(1);
+                _dr.WriteToSelector("//select[@id='params[111076]']",mod+OpenQA.Selenium.Keys.Enter);
+
+                //3. заполняю поколение, если доступно (доработать auto.txt)
+                if (_dr.GetElementsCount("//select[@id='params[111078]']/../../*[contains(@class,'withoutValue')]") > 0) {
+                    _dr.ButtonClick("//select[@id='params[111078]']");
+                    string pok = m[3].Substring(0, 1).ToUpper() + m[3].Substring(1) + " ";
+                    _dr.WriteToSelector("//select[@id='params[111078]']", pok + OpenQA.Selenium.Keys.Enter);
+                }
+                //проверка корректности
+                if(_dr.GetElementsCount("//select[@id='params[111078]']/../../*[contains(@class,'withoutValue')]") > 0) { //есть поле пустое - ошибка
+                    //убираю марку
+                    _dr.ButtonClick("//input[@id='params[111075]']/..//div/*");
+                    Log.Add("avito: SetManufacture - ошибка! авто не заполнено - " + _bus[b].name+ " [ "+m[1]+","+m[2]+","+m[3]+" ]");
+                    return;
+                }
+                Log.Add("avito: SetManufacture - заполнено авто - " + _bus[b].name + " [ " + m[1] + "," + m[2] + "," + m[3] + " ]");
+            }
         }
         //заполняю номер запчасти из артикула
         private void SetPartNumber(int b) {
@@ -267,17 +299,18 @@ namespace Selen.Sites {
                         _dr.Navigate("https://avito.ru/additem", "//span[text()='Категория']");
                         SetCategory(b);
                         SetTitle(b);
+                        SetStatus(b);
                         SetOfferType();
                         SetDiskParams(b);
-                        SetPrice(b);
-                        SetAddress();
-                        SetImages(b);
-                        SetDesc(b);
-                        SetStatus(b);
-                        //SetDesc(b, minDesc:true);
                         //SetPartNumber(b);
                         SetManufacture(b);
+                        SetImages(b);
+                        //SetDesc(b);
+                        SetDesc(b, minDesc:true);
+                        SetPrice(b);
+                        SetAddress();
                         SetPhone();
+                        SetGeo();
                         PressOk();
                     });
                     try {
@@ -421,7 +454,7 @@ namespace Selen.Sites {
                 //пропуск страниц
                 if (_rnd.Next(100) > checkPagesProcent) continue;
                 //проверить данную страницу
-                await ParsePage("/active", i + 1);
+                if (i < 101) await ParsePage("/active", i + 1);
                 //проверить также страницу снятых, если номер в пределах
                 if (i < old / 50) await ParsePage("/old", i + 1);
                 //проверить также страницу удаленных, если номер в пределах
@@ -514,6 +547,7 @@ namespace Selen.Sites {
                     SetStatus(b);
                     PressOk();
                 }
+                //SetGeo();
                 //нажимаю активировать и уменьшаю счетчик
                 var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
                 if (butOpub.Count > 0) {
@@ -543,14 +577,25 @@ namespace Selen.Sites {
         private void SetPhone() {
             _dr.WriteToSelector("//input[@id='phone']", "9208994545");
         }
+        //geo
+        private void SetGeo() {
+            //отмечаю Россия
+            for (int i = 0; i < 5; i++) {
+                if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") == 0)
+                    _dr.ButtonClick("//span[text()='Россия']", _delay);
+                else break;
+            }
+        }
         //нажимаю ОК
         private void PressOk(int count = 2) {
             for (int i = 0; i < count; i++) {
                 for (int c = 0; ; c++) {
                     _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
-                    var errorBox = _dr.FindElements("//div[contains(@class,'alert')]/*[@aria-label='Close']");
+                    var errorBox = _dr.FindElements("//*[@role='button' and @name='close']");
+                    //var errorBox = _dr.FindElements("//div[contains(@class,'alert')]/*[@aria-label='Close']");
                     if (errorBox.Count > 0) {
-                        _dr.ButtonClick("//div[contains(@class,'alert')]/*[@aria-label='Close']");
+                        _dr.ButtonClick("//*[@role='button' and @name='close']");
+                        //_dr.ButtonClick("//div[contains(@class,'alert')]/*[@aria-label='Close']");
                         Thread.Sleep(15000);
                     } else break;
                     if (c >= 10) throw new Exception("не нажимается кнопка ОК");
@@ -564,10 +609,14 @@ namespace Selen.Sites {
             var num = _bus[b].images.Count > 10 ? 10 : _bus[b].images.Count;
             for (int u = 0; u < num; u++) {
                 for (int t = 0; ; t++) {
-                    byte[] bts = cl.DownloadData(_bus[b].images[u].url);
-                    File.WriteAllBytes("avito_" + u + ".jpg", bts);
-                    Thread.Sleep(_delay / 10);
-                    _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
+                    try {
+                        byte[] bts = cl.DownloadData(_bus[b].images[u].url);
+                        File.WriteAllBytes("avito_" + u + ".jpg", bts);
+                        Thread.Sleep(_delay / 10);
+                        _dr.SendKeysToSelector("input[type=file]", Application.StartupPath + "\\" + "avito_" + u + ".jpg");
+                    } catch (Exception x) {
+                        Log.Add("avito: SetImages - " + x.Message);
+                    }
                     if (_dr.GetElementsCount("//div[contains(@class,'alert-content')]/../*[@role='button']") > 0)
                         _dr.ButtonClick("//div[contains(@class,'alert-content')]/../*[@role='button']");
                     else

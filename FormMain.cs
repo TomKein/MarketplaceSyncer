@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.75.1";
+        string _version = "1.77.1";
 
         DB _db = new DB();
 
@@ -338,7 +338,7 @@ namespace Selen {
             if (DateTime.Now.Hour < await _db.GetParamIntAsync("syncStartHour")) return;
             if (DateTime.Now.Hour >= await _db.GetParamIntAsync("syncStopHour")) return;
             if (await _db.GetParamBoolAsync("useLiteSync")) await GoLiteSync();
-            if (DateTime.Now.AddHours(-1) > dateTimePicker1.Value) button_BaseGet.PerformClick();
+            if (DateTime.Now.AddHours(-6) > dateTimePicker1.Value) button_BaseGet.PerformClick();
         }
         //оптимизированная синхронизации - запрос только последних изменений
         async Task GoLiteSync() {
@@ -440,7 +440,7 @@ namespace Selen {
                                 //переносим все данные
                                 bus[ind] = lg;
                                 //время обновления карточки сдвигаю на время начала цикла синхронизации
-                                bus[ind].updated = sync_start.ToString();
+                                bus[ind].updated = sync_start.ToString();   //todo нужно ли?
                             } else {
                                 //сохраняю в новых данных старую дату обновления
                                 lg.updated = bus[ind].updated;
@@ -732,7 +732,7 @@ namespace Selen {
                     if (table.Rows.Count > 0) {
                         DateTime time = (DateTime)table.Rows[0].ItemArray[1];
                         string text = table.Rows[0].ItemArray[3] as string;
-                        Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text +"\n*****\n\n", false);
+                        Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
                         //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
                         if (text.Contains("синхронизация остановлена") ||
                             time.AddMinutes(5) < DateTime.Now) return;
@@ -740,7 +740,7 @@ namespace Selen {
                             Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
                     } else
                         Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
-                    await Task.Delay(61*1000);
+                    await Task.Delay(61 * 1000);
                 } catch (Exception x) {
                     Log.Add("ошибка при контроле параллельных запусков - " + x.Message, false);
                 }
@@ -749,37 +749,46 @@ namespace Selen {
 
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
-            button_Test.PerformClick();
-            return;
-
-            //удалить
-            List<string> bus_dubl = new List<string>();
-            List<string> bus_upper_names = new List<string>();
-            do {
-                await Task.Factory.StartNew(() => {
-                    bus_upper_names = bus.Where(a => !a.name.Contains("Без имени"))
-                                         .Select(t => t.name.ToUpper())
-                                         .ToList();
-                    bus_dubl = bus_upper_names.Where(a => bus_upper_names.Count(f => a == f) > 1)
-                                              .Distinct()
-                                              .ToList();
-                });
-                foreach (var d in bus_dubl) {
-                    int ind = bus.FindLastIndex(t => t.name.ToUpper() == d);
-                    bus[ind].name = !string.IsNullOrEmpty(bus[ind].part) && !bus[ind].name.Contains(bus[ind].part) ? bus[ind].name+" " + bus[ind].part 
-                                                                                                                   : bus[ind].name.EndsWith("`") ? bus[ind].name+"`" 
-                                                                                                                                                 : bus[ind].name+" `";
-                    Thread.Sleep(10);
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
-                    {
-                        { "id" , bus[ind].id},
-                        { "name" , bus[ind].name}
-                    });
-                    Log.Add("база исправлен дубль названия " + bus[ind].name);
-                    await Task.Delay(1000);
+            try {
+                for (int i = DateTime.Now.Second, cnt = 0; i < bus.Count && cnt < 2; i+=10) {
+                    //название без кавычек
+                    var tmpName = bus[i].name.TrimEnd(new[] { '`', ' ', '\'' });
+                    //признак дублирования
+                    var haveDub = bus.Count(c => c.name.Contains(tmpName) && c.amount > 0) > 1;
+                    //если есть дубли, но нет на остатках и НЕ заканчивается ' - переименовываю
+                    if (bus[i].amount <= 0
+                        && haveDub
+                        && !bus[i].name.EndsWith("'")) {
+                        bus[i].name = tmpName + " '";
+                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                            { "id" , bus[i].id},
+                            { "name" , bus[i].name}
+                        });
+                        Log.Add("база: переименование [" + ++cnt + "] нет в наличии: " + bus[i].name);
+                        await Task.Delay(1000);
+                    }
+                    //если есть дубли, остаток и в конце ` или '
+                    if (bus[i].amount > 0
+                        && (haveDub && bus[i].name.EndsWith("`")
+                            || bus[i].name.EndsWith("'"))) {
+                        //проверяем свободные имена
+                        while (bus.Count(c => c.name == tmpName && c.amount > 0) > 0) tmpName += tmpName.EndsWith("`") ? "`"
+                                                                                                                       : " `";
+                        //если новое имя короче или если старое заканчивается '
+                        if (tmpName.Length < bus[i].name.Length || bus[i].name.EndsWith("'")) {
+                            Log.Add("база: сокращаю наименование [" + ++cnt + "] " + bus[i].name + " => " + tmpName);
+                            bus[i].name = tmpName;
+                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                { "id" , bus[i].id},
+                                { "name" , bus[i].name}
+                            });
+                            await Task.Delay(1000);
+                        }
+                    }
                 }
-            } while (bus_dubl.Count() > 0);
-            Thread.Sleep(10);
+            } catch (Exception x) {
+                Log.Add("CheckDublesAsync: ошибка! " + x.Message);
+            }
         }
         //редактирование описаний, добавленние синонимов
         private async void button_put_desc_Click(object sender, EventArgs e) {
@@ -1400,42 +1409,7 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                for (int i = 0, cnt = 0; i < bus.Count && cnt < 2; i++) {
-                    //название без кавычек
-                    var tmpName = bus[i].name.TrimEnd(new[] { '`',' ','\''});
-                    //признак дублирования
-                    var haveDub = bus.Count(c => c.name.Contains(tmpName) && c.amount>0) > 1;
-                    //если есть дубли, но нет на остатках и НЕ заканчивается ' - переименовываю
-                    if (bus[i].amount <= 0 
-                        && haveDub 
-                        && !bus[i].name.EndsWith("'")) {
-                        bus[i].name = tmpName + " '";
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                            { "id" , bus[i].id},
-                            { "name" , bus[i].name}
-                        });
-                        Log.Add("база: переименование ["+ ++cnt +"] нет в наличии: " + bus[i].name);
-                        await Task.Delay(1000);
-                    }
-                    //если есть дубли, остаток и в конце ` или '
-                    if (bus[i].amount > 0 
-                        && (haveDub && bus[i].name.EndsWith("`") 
-                            || bus[i].name.EndsWith("'"))) {
-                        //проверяем свободные имена
-                        while (bus.Count(c => c.name == tmpName && c.amount > 0) > 0) tmpName += tmpName.EndsWith("`") ? "`"
-                                                                                                       : " `";
-                        //если новое имя короче или если старое заканчивается '
-                        if (tmpName.Length < bus[i].name.Length || bus[i].name.EndsWith("'")) {
-                            Log.Add("база: сокращаю наименование [" + ++cnt + "] " + bus[i].name + " => " + tmpName);
-                            bus[i].name = tmpName;
-                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                { "id" , bus[i].id},
-                                { "name" , bus[i].name}
-                            });
-                            await Task.Delay(1000);
-                        }
-                    }
-                }
+
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();
                 //if (_drom._dr != null) _drom._dr.ScreenShot();
@@ -1448,50 +1422,50 @@ namespace Selen {
                 //if (_auto._dr != null) _auto._dr.ScreenShot();
 
 
-                    //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
-                    //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
+                //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
+                //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
 
 
-                    //не выложено на авито
-                    //Log.Add(
-                    //    bus.Count(w => w.amount > 0 &&
-                    //              w.price >= 500 &&
-                    //              w.tiu.Contains("http") &&
-                    //             !w.avito.Contains("http"))
-                    //       .ToString()
-                    //    );
+                //не выложено на авито
+                //Log.Add(
+                //    bus.Count(w => w.amount > 0 &&
+                //              w.price >= 500 &&
+                //              w.tiu.Contains("http") &&
+                //             !w.avito.Contains("http"))
+                //       .ToString()
+                //    );
 
 
 
-                    //Log.Add(DateTime.Now.ToString().Replace(".", ""));
-                    //await SftpUploadAsync();
-                    //var json = JsonConvert.SerializeObject(bus[0]);
+                //Log.Add(DateTime.Now.ToString().Replace(".", ""));
+                //await SftpUploadAsync();
+                //var json = JsonConvert.SerializeObject(bus[0]);
 
-                    //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
-                    //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+                //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
 
-                    //var j = _db.GetGood("id", bus[0].id.ToString());
-                    //var b = JsonConvert.DeserializeObject<RootObject>(j);
+                //var j = _db.GetGood("id", bus[0].id.ToString());
+                //var b = JsonConvert.DeserializeObject<RootObject>(j);
 
-                    //var j2 = _db.GetGood("drom", "47176874");
-                    //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+                //var j2 = _db.GetGood("drom", "47176874");
+                //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
 
 
-                    //var res = db.SetParam("test", "123");
-                    //var res2 = db.SetParam("test", "777");
-                    //var str = db.GetParamStr("test");
-                    //var i = db.GetParamInt("test");
-                    //res = db.SetParam("test", DateTime.Now.ToString());
-                    //var dt = db.GetParamDateTime("test");
+                //var res = db.SetParam("test", "123");
+                //var res2 = db.SetParam("test", "777");
+                //var str = db.GetParamStr("test");
+                //var i = db.GetParamInt("test");
+                //res = db.SetParam("test", DateTime.Now.ToString());
+                //var dt = db.GetParamDateTime("test");
 
-                    //пробую записать в лог из вторичного потока (в 10 потоков)
-                    //for (int j = 0; j < 10; j++) {
-                    //    Task.Factory.StartNew(() => {
-                    //        for (int i = 0; i < 100; i++) {
-                    //            db.Log.Add("site", j+" thread = " + i.ToString());
-                    //        }
-                    //    });
-                    //}
+                //пробую записать в лог из вторичного потока (в 10 потоков)
+                //for (int j = 0; j < 10; j++) {
+                //    Task.Factory.StartNew(() => {
+                //        for (int i = 0; i < 100; i++) {
+                //            db.Log.Add("site", j+" thread = " + i.ToString());
+                //        }
+                //    });
+                //}
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

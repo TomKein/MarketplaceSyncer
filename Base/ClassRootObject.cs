@@ -338,7 +338,7 @@ namespace Selen
             var desc = (name + " " + HtmlDecodedDescription()).ToLowerInvariant();
             //новый словарь для учета совпадений
             var dict = new Dictionary<string, int>();
-            if (_autos == null) ResetAutos();
+            ResetAutos();
             //проверяю похожесть на каждый элемент списка
             for (int i = 0; i < _autos.Length; i++) {
                 dict.Add(_autos[i], 0);
@@ -371,7 +371,10 @@ namespace Selen
         }
         //перечитать марки и модели
         public static void ResetAutos() {
-            _autos = File.ReadAllLines(@"..\auto.txt");
+            if (_autos == null || File.GetLastWriteTime(@"..\auto.txt") > ScanTime) {
+                _autos = File.ReadAllLines(@"..\auto.txt");
+                File.SetLastWriteTime(@"..\auto.txt", ScanTime);
+            }
         }
         //перечитать из таблицы настроек
         public static void ResetManufactures() {
