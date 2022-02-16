@@ -135,16 +135,25 @@ namespace Selen.Sites {
                     LoadCookies();
                 }
                 if (_dr.GetUrl().Contains("connect.vk.com")) {//неудачный вход, 
-                    throw new Exception("ошибка авторизации");
+                    //throw new Exception("ошибка авторизации");
                     //ставим плагин для импорта куки
+                    _dr.Quit();
+                    _dr = new Selenium();
                     _dr.Navigate("https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn?hl=ru");
                     _dr.ButtonClick("//div[@aria-label='Установить']");
                     _dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
+                    for (int i = 0; ; i++) {
+                        if (_dr.GetUrl().Contains("youla.ru")) break; 
+                        if (i > 30) throw new Exception("timed out - ошибка! превышено время ожидания авторизации!");
+                        Log.Add("youla.ru: ожидаю вход (i)...");
+                        Thread.Sleep(10000);
+                    }
+                    Log.Add("youla.ru: успешный вход!");
                 }
                 if (_dr.GetUrl()!= "https://youla.ru/pro")
                     _dr.Navigate("https://youla.ru/pro");
                 _dr.ButtonClick("//div[@data-test-action='CloseClick']/i");
-                //если есть кнопка входа - пытаюсь залогиниться
+                //если есть кнопка входа - пытаюсь залогиниться через смс
                 if (_dr.GetElementsCount("//a[@href='/login' and @data-test-action='LoginClick']") > 0) {
                     _dr.ButtonClick("//a[@href='/login' and @data-test-action='LoginClick']");
                     var login = _db.GetParamStr("youla.login");

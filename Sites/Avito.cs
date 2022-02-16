@@ -171,7 +171,7 @@ namespace Selen.Sites {
                     SetDesc(b);
                     CheckPhotos(b);
                     SetPrice(b);
-                    SetGeo();
+                    SetGeo(b);
                     PressOk();
                 });
             }
@@ -310,7 +310,7 @@ namespace Selen.Sites {
                         SetPrice(b);
                         SetAddress();
                         SetPhone();
-                        SetGeo();
+                        SetGeo(b);
                         PressOk();
                     });
                     try {
@@ -577,29 +577,65 @@ namespace Selen.Sites {
         private void SetPhone() {
             _dr.WriteToSelector("//input[@id='phone']", "9208994545");
         }
-        //geo
-        private void SetGeo() {
-            //отмечаю Россия
-            for (int i = 0; i < 5; i++) {
-                if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") == 0)
-                    _dr.ButtonClick("//span[text()='Россия']", _delay);
-                else break;
+        //расширение гео
+        private void SetGeo(int b) {
+            var g = _bus[b].GroupName();
+            var n = _bus[b].name.ToLowerInvariant();
+            //отключаю Россия
+            if (g == "Шины, диски, колеса"||
+                g == "ИНСТРУМЕНТЫ (НОВЫЕ)"||
+                g == "Инструменты" ||
+                ((g == "Кузовные запчасти" || 
+                  g == "Салон" || 
+                  g == "Пластик кузова") &&
+                 (
+                 n.Contains("дверь") ||
+                 n.Contains("бампер") ||
+                 n.Contains("усилитель") ||
+                 n.Contains("абсорбер") ||
+                 n.Contains("капот") ||
+                 n.Contains("порог") ||
+                 n.Contains("крыша") ||
+                 n.Contains("багажник") ||
+                 n.Contains("рама") ||
+                 n.Contains("подрамник") ||
+                 n.Contains("балка") ||
+                 n.Contains("сиден") ||
+                 n.Contains("диван") ||
+                 n.Contains("обшивк") ||
+                 n.Contains("люк") ||
+                 n.Contains("лонжерон") ||
+                 n.Contains("четверт") ||
+                 n.Contains("крыло задн") ||
+                 n.Contains("задняя часть") ||
+                 n.Contains("лонжер") 
+                 ))
+                ) {
+                for (int i = 0; i < 5; i++) {
+                    if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") > 0)
+                        _dr.ButtonClick("//span[text()='Россия']", _delay);
+                    else break;
+                }
+            } else {
+            //включаю Россия
+                for (int i = 0; i < 5; i++) {
+                    if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") == 0)
+                        _dr.ButtonClick("//span[text()='Россия']", _delay);
+                    else break;
+                }
             }
         }
         //нажимаю ОК
         private void PressOk(int count = 2) {
-            for (int i = 0; i < count; i++) {
-                for (int c = 0; ; c++) {
-                    _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
-                    var errorBox = _dr.FindElements("//*[@role='button' and @name='close']");
-                    //var errorBox = _dr.FindElements("//div[contains(@class,'alert')]/*[@aria-label='Close']");
-                    if (errorBox.Count > 0) {
-                        _dr.ButtonClick("//*[@role='button' and @name='close']");
-                        //_dr.ButtonClick("//div[contains(@class,'alert')]/*[@aria-label='Close']");
-                        Thread.Sleep(15000);
-                    } else break;
-                    if (c >= 10) throw new Exception("не нажимается кнопка ОК");
-                };
+            int err = 0;
+            for (int i = 0; i < count;) {
+                if (err > 10) throw new Exception("не нажимается кнопка ОК");
+                _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
+                if (_dr.GetElementsCount("//*[@role='button' and @name='close']") > 0) {
+                    _dr.ButtonClick("//*[@role='button' and @name='close']");
+                    err++;
+                    Thread.Sleep(15000);
+                }else i++;
             }
         }
         //загрузка фото
