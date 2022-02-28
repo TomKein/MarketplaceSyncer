@@ -255,7 +255,7 @@ namespace Selen
 
         public bool IsNew() {
             var low = (name + ":" + description).ToLowerInvariant();
-            return !Regex.IsMatch(low, @"(б[\/\\.]у)");
+            return !Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу ");
         }
 
         public bool IsOrigin() {

@@ -238,14 +238,15 @@ namespace Selen.Sites {
                     string pok = m[3].Substring(0, 1).ToUpper() + m[3].Substring(1) + " ";
                     _dr.WriteToSelector("//select[@id='params[111078]']", pok + OpenQA.Selenium.Keys.Enter);
                 }
-                //проверка корректности
-                if(_dr.GetElementsCount("//select[@id='params[111078]']/../../*[contains(@class,'withoutValue')]") > 0) { //есть поле пустое - ошибка
-                    //убираю марку
-                    _dr.ButtonClick("//input[@id='params[111075]']/..//div/*");
-                    Log.Add("avito: SetManufacture - ошибка! авто не заполнено - " + _bus[b].name+ " [ "+m[1]+","+m[2]+","+m[3]+" ]");
-                    return;
-                }
                 Log.Add("avito: SetManufacture - заполнено авто - " + _bus[b].name + " [ " + m[1] + "," + m[2] + "," + m[3] + " ]");
+            }
+            //проверка корректности
+            if(_dr.GetElementsCount("//div[contains(@class,'withoutValue') or contains(@class,'select-error')]") > 0
+                || _dr.GetElementsCount("//label[@for='params[111078]']")==0) { //есть поле пустое - ошибка
+                //убираю марку
+                _dr.ButtonClick("//input[@id='params[111075]']/..//div/*");
+                Log.Add("avito: SetManufacture - ошибка! авто не заполнено - " + _bus[b].name+ " [ "+m[1]+","+m[2]+","+m[3]+" ]");
+                return;
             }
         }
         //заполняю номер запчасти из артикула
@@ -541,13 +542,13 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 var id = _bus[b].avito.Replace("/", "_").Split('_').Last();
                 var url = "https://www.avito.ru/account/pay_fee?item_id=" + id;
-                _dr.Navigate(url, "//h1[contains(text(),'Размещение')]");
+                _dr.Navigate(url, "//div");
                 //проверка наличия формы редактирования
                 if (_dr.GetElementsCount("//*[contains(text(),'Состояние')]") > 0) {
                     SetStatus(b);
+                    SetManufacture(b);
                     PressOk();
                 }
-                //SetGeo();
                 //нажимаю активировать и уменьшаю счетчик
                 var butOpub = _dr.FindElements("//button[@type='submit']/span[text()='Активировать']/..");
                 if (butOpub.Count > 0) {
@@ -583,33 +584,22 @@ namespace Selen.Sites {
             var n = _bus[b].name.ToLowerInvariant();
             //отключаю Россия
             if (g == "Шины, диски, колеса"||
-                g == "ИНСТРУМЕНТЫ (НОВЫЕ)"||
                 g == "Инструменты" ||
-                ((g == "Кузовные запчасти" || 
-                  g == "Салон" || 
-                  g == "Пластик кузова") &&
-                 (
-                 n.Contains("дверь") ||
-                 n.Contains("бампер") ||
-                 n.Contains("усилитель") ||
-                 n.Contains("абсорбер") ||
-                 n.Contains("капот") ||
-                 n.Contains("порог") ||
-                 n.Contains("крыша") ||
-                 n.Contains("багажник") ||
-                 n.Contains("рама") ||
-                 n.Contains("подрамник") ||
-                 n.Contains("балка") ||
-                 n.Contains("сиден") ||
-                 n.Contains("диван") ||
-                 n.Contains("обшивк") ||
-                 n.Contains("люк") ||
-                 n.Contains("лонжерон") ||
-                 n.Contains("четверт") ||
-                 n.Contains("крыло задн") ||
-                 n.Contains("задняя часть") ||
-                 n.Contains("лонжер") 
-                 ))
+                g == "ИНСТРУМЕНТЫ (НОВЫЕ)"||
+                g == "Аудио-видеотехника" ||
+                g == "Датчики" ||
+                g == "Генераторы" ||
+                g == "Электрика, зажигание" ||
+                g == "Блоки управления" ||
+                g == "Стартеры" ||
+                g == "Салон" ||
+                g == "Ручки и замки кузова"||
+                g == "Петли" ||
+                g == "Кузовные запчасти" ||
+                g == "Пластик кузова" ||
+                g == "Зеркала" ||
+                g == "Кронштейны, опоры" ||
+                g == "Тросы автомобильные"
                 ) {
                 for (int i = 0; i < 5; i++) {
                     if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") > 0)
@@ -631,11 +621,14 @@ namespace Selen.Sites {
             for (int i = 0; i < count;) {
                 if (err > 10) throw new Exception("не нажимается кнопка ОК");
                 _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
+                //всплывающее окно с ошибкой
                 if (_dr.GetElementsCount("//*[@role='button' and @name='close']") > 0) {
-                    _dr.ButtonClick("//*[@role='button' and @name='close']");
+                    _dr.ButtonClick("//*[@role='button' and @name='close']",15000);
                     err++;
-                    Thread.Sleep(15000);
-                }else i++;
+                //проверка корректности заполнения марки
+                } else if (_dr.GetElementsCount("//div[contains(@class,'withoutValue') or contains(@class,'select-error')]") > 0) {
+                    _dr.ButtonClick("//input[@id='params[111075]']/..//div/*",15000);
+                } else i++;
             }
         }
         //загрузка фото
