@@ -205,7 +205,7 @@ namespace Selen {
         //SATOM.RU
         async void buttonSatom_Click(object sender, EventArgs e) {//TODO отключено, настроить
             ChangeStatus(sender, ButtonStates.NoActive);
-            //выгрузка xml через ссылку на товары тиу больше не работает
+            sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //===========================================
