@@ -26,9 +26,11 @@ namespace Selen.Sites {
         //загрузка кукис
         public void LoadCookies() {
             if (_dr != null) {
-                _dr.Navigate("https://youla.ru/");
+                _dr.Navigate("https://youla.ru/404");
                 var c = _db.GetParamStr("youla.cookies");
                 _dr.LoadCookies(c);
+                Thread.Sleep(1000);
+                _dr.Navigate("https://youla.ru/pro");
                 Thread.Sleep(1000);
             }
         }
@@ -37,7 +39,7 @@ namespace Selen.Sites {
             if (_dr != null) {
                 //_dr.Navigate("https://youla.ru/pro");
                 var c = _dr.SaveCookies();
-                if (c.Length > 20)
+                if (c.Length > 30)
                     _db.SetParam("youla.cookies", c);
             }
         }
@@ -51,7 +53,6 @@ namespace Selen.Sites {
             if (await _db.GetParamBoolAsync("youla.syncEnable")) {
                 Log.Add("youla.ru: начало выгрузки...");
                 _bus = bus;
-                for (int i = 0; ; i++) {
                     try {
                         await AuthAsync();
                         await EditAsync();
@@ -70,10 +71,7 @@ namespace Selen.Sites {
                             _dr.Quit();
                             _dr = null;
                         }
-                        if (i >= 2) break;
-                        await Task.Delay(600000);
                     }
-                }
             }
             return false;
         }
@@ -134,19 +132,20 @@ namespace Selen.Sites {
                     _dr = new Selenium();
                     LoadCookies();
                 }
-                if (_dr.GetUrl().Contains("connect.vk.com")) {//неудачный вход, 
+                if (_dr.GetUrl().Contains("connect")) {//неудачный вход, 
                     //throw new Exception("ошибка авторизации");
                     //ставим плагин для импорта куки
                     _dr.Quit();
+                    Thread.Sleep(10000);
                     _dr = new Selenium();
-                    _dr.Navigate("https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn?hl=ru");
+                    _dr.Navigate("https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn");
                     //_dr.ButtonClick("//div[@aria-label='Установить']");
                     //_dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
                     for (int i = 0; ; i++) {
                         if (_dr.GetUrl().Contains("youla.ru")) break; 
                         if (i > 60) throw new Exception("timed out - ошибка! превышено время ожидания авторизации!");
                         Log.Add("youla.ru: ожидаю вход (i)...");
-                        Thread.Sleep(20000);
+                        Thread.Sleep(30000);
                     }
                     Log.Add("youla.ru: успешный вход!");
                 }
