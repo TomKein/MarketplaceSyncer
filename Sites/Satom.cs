@@ -8,7 +8,7 @@ using Selen.Base;
 using Selen.Tools;
 
 namespace Selen.Sites {
-    internal class Satom {        
+    internal class Satom {
         //список товаров
         List<RootObject> _bus = null;
         //файл выгрузки
@@ -40,28 +40,68 @@ namespace Selen.Sites {
             "289732",   //"АВТОХИМИЯ"
         };
         public Satom() {
-            
+
         }
         //старт выгрузки
-        public async Task SyncAsync(List<RootObject> bus) {
+        public async void SyncAsync(List<RootObject> bus) {
             await Task.Factory.StartNew(() => {
-                _bus = bus;
-                GenerateXlsx();
-                SftpClient.Upload(_fexp);
+                try {
+                    _bus = bus;
+                    GenerateXlsx();
+                    //SftpClient.Upload(_fexp);
+                } catch (Exception x) {
+                    Log.Add("satom: ошибка выгрузки - "+x.Message);
+                }
             });
         }
 
-
         public void GenerateXlsx() {
+            //открываю файл с данными
+            Log.Add("загружаю файл");
             var workbook = new XLWorkbook(_fexp);
+            Log.Add("файл успешно загружен");
+            //беру первую таблицу
             var ws = workbook.Worksheets.First();
+            //определяю границы данных
             var range = ws.RangeUsed();
+            //количество столбцов
             var colCount = range.ColumnCount();
+            //количесвто строк
             var rowCount = range.RowCount();
+            Log.Add("rowCount:" +rowCount + " colCount:"+colCount);
+            //перебираю строки, чтобы заменить идентификаторы tiu на идентификаторы business
+            for (int i = 2; i < 100/*rowCount*/; i++) {
+                //наименование позиции
+                var name = ws.Cell(i, 1).GetString();
+                //цена
+                var price = ws.Cell(i, 2).GetValue<int>();
+                Log.Add("имя:" +name + " цена:"+price);
+                
+                //ищем карточки товара
+                var bus = _bus.Where(b => b.name==name);
+                Log.Add("bus: "+bus.Count());
+                //если нашли несколько
+                if (bus.Count()>1) {
+                    Log.Add("bus: ДУБЛИ! "+bus.Count()+"\n"+bus.Select(s => s.name+" - "+s.id+" - "+s.description).Aggregate((a, b) => a+"\n"+b));
+                }
+                //если нашли 1
+                if (bus.Count() == 1) {
+                    if (bus.First().amount<0) {
+                        Log.Add("bus: УДАЛЯЮ СТРОКУ (нет на остатках) - " + ws.Row(i).ToString()+" - "+bus.First().name);
+                        ws.Row(i).Delete();
+                        i--;
+                    } else if (bus.First().price != price) {
+                        Log.Add("bus: МЕНЯЮ ЦЕНУ - " + price +" - "+bus.First().price);
+                        ws.Cell(i, 2).SetValue<int>(bus.First().price);                        
+                    }else
+                        ws.Cell(i, 17).Value = bus.First().id;
+                } else {
+                    Log.Add("bus: УДАЛЯЮ ИДЕНТИФИКАТОР (не найден) - "+name);
+                    ws.Cell(i, 17).Value = "---";
+                }
 
-            var test = ws.Cell(1,1).Value;
-
-            Log.Add("satom: col="+colCount+" row="+rowCount+" test="+test);
+            }
+            workbook.SaveAs(_fexp.Replace("satom", "satom_out"));
         }
 
     }
