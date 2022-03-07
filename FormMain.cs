@@ -32,6 +32,7 @@ namespace Selen {
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
         Youla _youla = new Youla();
+        Satom sat = new Satom();
 
         int _pageLimitBase = 250;
         bool _saveCookiesBeforeClose;
@@ -1225,7 +1226,8 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var sat = new Satom();
+                sat.SyncAsync(bus);
+
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();
                 //if (_drom._dr != null) _drom._dr.ScreenShot();
