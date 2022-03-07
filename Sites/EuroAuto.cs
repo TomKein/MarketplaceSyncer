@@ -18,6 +18,7 @@ namespace Selen.Sites {
         string _ferr = "ea_errors.csv";
         //блокируемые группы
         string[] _blockedGroupsIds = new[] {
+            "2060149",    //"РАЗБОРКА (ЧЕРНОВИКИ)" 
             "75573",    //"УСЛУГИ"
             "209277",   //"ЗАКАЗЫ"
             "430926",   //"МАСЛА"

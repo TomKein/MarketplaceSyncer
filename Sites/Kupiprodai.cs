@@ -165,7 +165,7 @@ namespace Selen.Sites {
             var count = await _db.GetParamIntAsync("kupiprodai.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
-                    _bus[b].tiu.Contains("http") &&
+                    !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                     _bus[b].amount > 0 &&
                     _bus[b].price >= 0 &&
                     _bus[b].images.Count > 0) {
@@ -284,7 +284,7 @@ namespace Selen.Sites {
             var checkPagesProcent = _db.GetParamInt("kupiprodai.checkPagesProcent");
             for (int i = 0; i < pageCount; i++) {
                 //пропуск страниц
-                if (_rnd.Next(100) > checkPagesProcent) continue;
+                if (_rnd.Next(100) >= checkPagesProcent) continue;
                 await ParsePage(i + 1);
             }
         }
@@ -307,7 +307,12 @@ namespace Selen.Sites {
                         var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
                         if (b == -1) {
                             _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
-                        } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "") ||
+                        } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "")
+
+                                        && _bus[b].price > 1000 //todo убрать!
+                                        && DateTime.Now.Minute < 50
+
+                        ||
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
                         }

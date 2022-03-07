@@ -119,17 +119,12 @@ namespace Selen
         public List<Image> images { get; set; }
         public List<Remains> remains { get; set; }
         public List<Prices> prices { get; set; }
-        public string tiu { get; set; }
         public string avito { get; set; }
-        public string auto { get; set; }
         public string drom { get; set; }
         public string youla { get; set; }
         public string vk { get; set; }
-        public string ks { get; set; }
         public string kp { get; set; }
         public string gde { get; set; }
-        public string cdek { get; set; }
-        public string avtopro { get; set; }
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }
@@ -255,7 +250,7 @@ namespace Selen
 
         public bool IsNew() {
             var low = (name + ":" + description).ToLowerInvariant();
-            return !Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу ");
+            return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
         }
 
         public bool IsOrigin() {

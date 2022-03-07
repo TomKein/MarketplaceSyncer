@@ -218,9 +218,9 @@ namespace Selen.Sites {
         //выкладываю объявления
         public async Task AddAsync() {
             var count = await _db.GetParamIntAsync("gde.addCount");
-            for (int b = 0; b < _bus.Count && count > 0; b++) {
+            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
-                     _bus[b].tiu.Contains("http") &&
+                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                      _bus[b].amount > 0 &&
                      _bus[b].price >= 0 &&
                      _bus[b].images.Count > 0) {
@@ -367,7 +367,12 @@ namespace Selen.Sites {
                         var b = _bus.FindIndex(f => f.gde.Contains(ids[i]));
                         if (b == -1) {
                             _dr.Navigate("https://kaluga.gde.ru/cabinet/item/delete?id=" + ids[i]);
-                        } else if (_bus[b].price.ToString() != prices[i] ||
+                        } else if (_bus[b].price.ToString() != prices[i]
+
+                                        && _bus[i].price > 1000 //todo убрать!
+                                        && DateTime.Now.Minute < 45
+
+                        ||
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
                         }

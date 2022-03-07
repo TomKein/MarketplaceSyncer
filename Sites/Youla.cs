@@ -140,13 +140,13 @@ namespace Selen.Sites {
                     _dr.Quit();
                     _dr = new Selenium();
                     _dr.Navigate("https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn?hl=ru");
-                    _dr.ButtonClick("//div[@aria-label='Установить']");
-                    _dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
+                    //_dr.ButtonClick("//div[@aria-label='Установить']");
+                    //_dr.Navigate("chrome-extension://lpmockibcakojclnfmhchibmdpmollgn/editor.html?store=0");
                     for (int i = 0; ; i++) {
                         if (_dr.GetUrl().Contains("youla.ru")) break; 
-                        if (i > 30) throw new Exception("timed out - ошибка! превышено время ожидания авторизации!");
+                        if (i > 60) throw new Exception("timed out - ошибка! превышено время ожидания авторизации!");
                         Log.Add("youla.ru: ожидаю вход (i)...");
-                        Thread.Sleep(10000);
+                        Thread.Sleep(20000);
                     }
                     Log.Add("youla.ru: успешный вход!");
                 }
@@ -233,7 +233,7 @@ namespace Selen.Sites {
         //редактирование объявления синхронно
         void EditOffer(int b) {
             _dr.Navigate(_bus[b].youla,"//h2");
-            _dr.ButtonClick("//a[@data-test-action='ProductEditClick']", 2000);
+            _dr.ButtonClick("//a[@data-test-action='ProductEditClick']", 12000);
             SetTitle(b);
             SetPrice(b);
             SetDesc(b);
@@ -319,7 +319,7 @@ namespace Selen.Sites {
             var count = await _db.GetParamIntAsync("youla.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].youla == null || !_bus[b].youla.Contains("http")) &&
-                     _bus[b].tiu.Contains("http") &&
+                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                      _bus[b].amount > 0 &&
                      _bus[b].price >= 1000 &&
                      _bus[b].images.Count > 0) {
@@ -381,7 +381,7 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            if (DateTime.Now.Hour % 11 != 0) return;
+            //if (DateTime.Now.Hour % 11 != 0) return;
             await _dr.NavigateAsync("https://youla.ru/pro");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
@@ -390,7 +390,7 @@ namespace Selen.Sites {
             //число количество страниц
             var n = str.Length == 0 ? 0: int.Parse(str) /20;
             //пробегаюсь по страницам
-            for (int i = 1; i < n && _rnd.Next(100) > 10; i += _rnd.Next(1, 3)) {
+            for (int i = 1; i < n && _rnd.Next(100) > 5; i += _rnd.Next(1, 3)) {
                 if (_dr.GetElementsCount("//span[@data-test-id='B2BPaginationPageNumber-" + i + "']") == 0) break;
                 await ParsePageAsync(i);
             }
@@ -401,7 +401,7 @@ namespace Selen.Sites {
             try {
                 await Task.Factory.StartNew(() => {
                     _dr.ButtonClick("//span[@data-test-id='B2BPaginationPageNumber-"+p+"']");
-                    Thread.Sleep(10000);
+                    Thread.Sleep(14000);
                     var names = _dr.FindElements("//div[@data-test-component='B2BProductCard']//p").Select(s => s.Text).ToList();
                     var prices = _dr.FindElements("//span[@data-test-component='B2BPrice']").Select(s => s.Text.Replace("₽", "").Replace("\u205F", "").Trim()).ToList();
                     var ids = _dr.FindElements("//a[@data-test-action='B2BProductCardClick']").Select(s => s.GetAttribute("href")).ToList();
@@ -425,9 +425,13 @@ namespace Selen.Sites {
                             //кнопка удалить
                             _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
                             Log.Add("youla.ru: " + names[i] + " - потерянное объявление удалено");
-                        } else if (_bus[b].price.ToString() != prices[i] ||
+                        } else if (_bus[b].price.ToString() != prices[i]
+                        
+                                    &&_bus[b].price >= 100
+                        ||
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
+                            if (DateTime.Now.Minute > 50) return;
                         }
                     }
                 });

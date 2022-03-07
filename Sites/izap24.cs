@@ -22,6 +22,7 @@ namespace Selen.Sites {
         string _ferr = "iz_errors.csv";
         //блокируемые группы
         string[] _blockedGroupsIds = new[] {
+            "2060149",    //"РАЗБОРКА (ЧЕРНОВИКИ)" 
             "75573",    //"УСЛУГИ"
             "77369",    //"Импортированные"
             "168723",   //"Аудио-видеотехника"
@@ -66,7 +67,7 @@ namespace Selen.Sites {
             try {
                 //получаю список товаров
                 var offers = _bus.Where(w =>
-                    w.tiu.Contains("http") &&                       //есть ссылка на tiu
+                    w.images.Count>0 &&                             //есть фото
                     w.amount > 0 &&                                 //с положительным остатком
                     w.price > 0 &&                                  //с положительной ценой
                     !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
@@ -113,20 +114,21 @@ namespace Selen.Sites {
 
         private void GetPhtotoUrls(RootObject offer, StringBuilder urls) {
             try {
-                var tiuId = offer.tiu.Split('/').Last();        //ищу id товара в каталоге tiu
-                if (tiuId.Length > 0) {
-                    //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
-                    var idRow = _ds.Tables["offer"].Select("id = '" + tiuId + "'");
-                    if (idRow.Length == 0) Log.Add("ошибка! товар с id = " + tiuId + " - не найден в каталоге тиу!");
-                    else {
-                        var id = idRow[0]["offer_id"]; //беру поле offer_id из первой найденной строки
-                        var image_rows = _ds.Tables["picture"].Select("offer_id = '" + id.ToString() + "'"); //все строки со ссылками на фото
-                        for (int i = 0; i < image_rows.Length; i++) { //собираю строку со ссылками для выгрузки
-                            urls.Append(image_rows[i]["picture_Text"].ToString());
-                            if (i < image_rows.Length - 1) urls.Append(",");
-                        }
-                    }
-                }
+                //TODO тиу больше не работает, нужно заменить ссылки
+                //var tiuId = offer.tiu.Split('/').Last();        //ищу id товара в каталоге tiu
+                //if (tiuId.Length > 0) {
+                //    //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
+                //    var idRow = _ds.Tables["offer"].Select("id = '" + tiuId + "'");
+                //    if (idRow.Length == 0) Log.Add("ошибка! товар с id = " + tiuId + " - не найден в каталоге тиу!");
+                //    else {
+                //        var id = idRow[0]["offer_id"]; //беру поле offer_id из первой найденной строки
+                //        var image_rows = _ds.Tables["picture"].Select("offer_id = '" + id.ToString() + "'"); //все строки со ссылками на фото
+                //        for (int i = 0; i < image_rows.Length; i++) { //собираю строку со ссылками для выгрузки
+                //            urls.Append(image_rows[i]["picture_Text"].ToString());
+                //            if (i < image_rows.Length - 1) urls.Append(",");
+                //        }
+                //    }
+                //}
             } catch (Exception x) {
                 Log.Add("izap24: ошибка поиска фотографий в каталоге тиу! - " + x.Message);
             }

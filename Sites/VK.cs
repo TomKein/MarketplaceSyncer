@@ -103,24 +103,27 @@ namespace Selen.Sites {
         } catch (Exception x) {
             Log.Add("vk.com: " + _bus[b].name + " - ошибка редактирования! - " + x.Message);
         }
-        Thread.Sleep(1000);
+        Thread.Sleep(10000);
     }
     //добавляю объявления на ВК
     private async Task AddVKAsync() {
-        for (int i = 0; i < _bus.Count && _addCount > 0; i++) {
+        for (int b = 0; b < _bus.Count && _addCount > 0; b++) {
             //если есть фотографии, привязка на тиу, цена, количество и нет привязки на вк
-            if (_bus[i].images.Count > 0 && _bus[i].tiu.Contains("http")
-                && _bus[i].price > 0 && _bus[i].amount > 0 && !_bus[i].vk.Contains("http")) {
+            if (_bus[b].images.Count > 0
+                && !_bus[b].GroupName().Contains("ЧЕРНОВИК")
+                && _bus[b].price > 0 
+                && _bus[b].amount > 0 
+                && !_bus[b].vk.Contains("http")) {
                 try {
                     _addCount--;
-                    await AddAsync(i);
+                    await AddAsync(b);
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                                      {"id", _bus[i].id},
-                                                      {"name", _bus[i].name},
-                                                      {_url, _bus[i].vk} });
-                    Log.Add("vk.com: " + _bus[i].name + " - добавлено");
+                                                      {"id", _bus[b].id},
+                                                      {"name", _bus[b].name},
+                                                      {_url, _bus[b].vk} });
+                    Log.Add("vk.com: " + _bus[b].name + " - добавлено");
                 } catch (Exception ex) {
-                    Log.Add("vk.com: " + _bus[i].name + " - ошибка при добавлении! " + ex.Message);
+                    Log.Add("vk.com: " + _bus[b].name + " - ошибка при добавлении! " + ex.Message);
                 }
 
             }
@@ -228,7 +231,11 @@ namespace Selen.Sites {
                     Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
                 }
                 //если изменилась цена, наименование или карточка товара - редактирую
-            } else if (_bus[b].price != vkMark[i].Price.Amount / 100 ||
+            } else if (_bus[b].price != vkMark[i].Price.Amount / 100 
+                        
+                           && _bus[b].price > 1000 //todo удалить
+                           && DateTime.Now.Minute < 50
+            ||
                 _bus[b].name != vkMark[i].Title ||
                 _bus[b].IsTimeUpDated()) {
                 Edit(b);
@@ -238,7 +245,7 @@ namespace Selen.Sites {
     //проверка актуальности ссылок в карточках бизнес.ру
     async Task CheckBusAsync() {
         //для каждой карточки в бизнес.ру
-        for (int b = 0, c = 5; b < _bus.Count && c > 0; b++) {
+        for (int b = 0, c = 2; b < _bus.Count && c > 0; b++) {
             //если нет ссылки перехожу к следующей
             if (!_bus[b].vk.Contains("http")) continue;
             try {

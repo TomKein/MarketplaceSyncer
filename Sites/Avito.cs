@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ClosedXML.Excel;
 
 namespace Selen.Sites {
     class Avito {
@@ -37,7 +38,7 @@ namespace Selen.Sites {
         //главный цикл синхронизации
         public async Task StartAsync(List<RootObject> bus) {
             Log.Add("avito.ru: начало выгрузки...");
-            GetParams(bus);
+            GetParams(bus);//            await GenerateXml();
             await AuthAsync();
             await AddAsync();
             await EditAllAsync();
@@ -292,7 +293,7 @@ namespace Selen.Sites {
             await ChechAuthAsync();
             for (int b = _bus.Count - 1; b > -1 && AddCount > 0; b--) {
                 if ((_bus[b].avito == null || !_bus[b].avito.Contains("http")) &&
-                    _bus[b].tiu.Contains("http") &&
+                    !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                     _bus[b].amount > 0 &&
                     _bus[b].price >= _priceLevel &&
                     _bus[b].images.Count > 0) {
@@ -464,13 +465,14 @@ namespace Selen.Sites {
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
             for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
             for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
-            for (int i = 0; i <= archived / 50 && CountToUp > 0; i++) { await ParsePage("/archived", i + 1); }
+            for (int i = 0; i <= archived / 50 && CountToUp > 0; i+=10) { await ParsePage("/archived", i + 1); }
         }
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
             try {
                 //перехожу в раздел
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
+                if (DateTime.Now.Second % 2 == 0) url += "&s=5";
                 await _dr.NavigateAsync(url, ".profile-tabs");
                 //парсинг объявлений на странице
                 var items = await _dr.FindElementsAsync("//div[contains(@class,'item-body-root')]//a");
@@ -490,6 +492,8 @@ namespace Selen.Sites {
                         //проверяю, нужно ли его снять
                         //if (location == "/active" && _bus[b].amount <= 0) Delete(b);
                         if (_bus[b].amount <= 0 && location != "/archived") await DeleteAsync(b);
+                        //проверяю цены
+                        if (_bus[b].price.ToString() != prices[i] && location != "/archived") await EditAsync(b);
                         //если объявление в разделе "архив" или "неопубликованные", но есть на остатках и цена больше пороговой - поднимаю
                         if (CountToUp > 0 &&
                             _bus[b].price >= _priceLevel &&
