@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.79.1";
+        string _version = "1.80.1";
 
         DB _db = new DB();
 
@@ -1225,7 +1225,7 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-
+                var sat = new Satom();
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();
                 //if (_drom._dr != null) _drom._dr.ScreenShot();
