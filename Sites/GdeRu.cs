@@ -369,7 +369,7 @@ namespace Selen.Sites {
                             _dr.Navigate("https://kaluga.gde.ru/cabinet/item/delete?id=" + ids[i]);
                         } else if (_bus[b].price.ToString() != prices[i]
 
-                                        && _bus[i].price > 1000 //todo убрать!
+                                        && _bus[i].price > 500 //todo убрать!
                                         && DateTime.Now.Minute < 45
 
                         ||

@@ -110,7 +110,7 @@ namespace Selen.Sites {
             //SetWeight(b);
             PressOkButton();
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
-            Thread.Sleep(2000);
+            //Thread.Sleep(2000);
             if (b.amount <= 0) {
                 Delete();
             } else Up();
@@ -384,8 +384,8 @@ namespace Selen.Sites {
             if (i > -1 &&
                 ((item.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
 
-                && _bus[i].price > 2000 //todo убрать!
-                && DateTime.Now.Minute < 50
+                    && _bus[i].price > 2000 //todo убрать!
+                    && DateTime.Now.Minute < 50
 
                 ) ||
                 !item.description.Contains("далено") && _bus[i].amount <= 0 ||

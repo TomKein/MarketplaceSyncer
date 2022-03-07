@@ -309,8 +309,8 @@ namespace Selen.Sites {
                             _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
                         } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "")
 
-                                        && _bus[b].price > 1000 //todo убрать!
-                                        && DateTime.Now.Minute < 50
+                                        && _bus[b].price > 500 //todo убрать!
+                                        && DateTime.Now.Minute < 45
 
                         ||
                                   !_bus[b].name.Contains(names[i])) {

@@ -233,8 +233,8 @@ namespace Selen.Sites {
                 //если изменилась цена, наименование или карточка товара - редактирую
             } else if (_bus[b].price != vkMark[i].Price.Amount / 100 
                         
-                           && _bus[b].price > 1000 //todo удалить
-                           && DateTime.Now.Minute < 50
+                           && _bus[b].price > 500 //todo удалить
+                           && DateTime.Now.Minute < 48
             ||
                 _bus[b].name != vkMark[i].Title ||
                 _bus[b].IsTimeUpDated()) {
