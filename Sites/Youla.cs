@@ -37,9 +37,10 @@ namespace Selen.Sites {
         //сохранение кукис
         public void SaveCookies() {
             if (_dr != null) {
-                //_dr.Navigate("https://youla.ru/pro");
+                if (!_dr.GetUrl().Contains("youla"))
+                    _dr.Navigate("https://youla.ru/pro");
                 var c = _dr.SaveCookies();
-                if (c.Length > 20)
+                if (c.Length > 1000)
                     _db.SetParam("youla.cookies", c);
             }
         }
