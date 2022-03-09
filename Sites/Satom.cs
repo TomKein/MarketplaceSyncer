@@ -68,16 +68,21 @@ namespace Selen.Sites {
             Log.Add("satom: файл успешно загружен");
             //беру первую таблицу
             var ws = workbook.Worksheets.First();
+            //список пропущенных
+            var skip = new List<string>();
             //перебираю карточки товара
             for (int b = 0, i = 2; b<_bus.Count; b++) {
-                var category = GetCategory(b);
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
                 if (_bus[b].amount > 0 &&
                     _bus[b].price > 0 &&
                     _bus[b].images.Count > 0 &&
-                    !_blockedGroupsIds.Contains(_bus[b].group_id) &&
-                    category.Length > 0
+                    !_blockedGroupsIds.Contains(_bus[b].group_id)
                     ) {
+                    var category = GetCategory(b);
+                    if (category.Length == 0) {
+                        skip.Add(_bus[b].name);
+                        continue;
+                    }
                     //наименование
                     ws.Cell(i, 1).Value = _bus[b].name;
                     //цена
@@ -96,6 +101,8 @@ namespace Selen.Sites {
                     ws.Cell(i, 8).Value = String.Format("{0:0.##}", _bus[b].amount);
                     //рубрика
                     ws.Cell(i, 9).Value = category;
+                    //идентификатор рубрики
+                    ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
                     ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1+"<br>"+a2);
                     //идентификатор товара
@@ -108,8 +115,10 @@ namespace Selen.Sites {
                     i++;
                 }
             }
-            workbook.Save();
+            workbook.Save();            
             Log.Add("файл успешно сохранен");
+            File.WriteAllText("..\\satom_skip.log",skip.OrderBy(s => s).Aggregate((a1, a2) => a1+"\n"+a2));
+            Log.Add("файл отчета сформирован");
 
             {
                 //определяю границы данных
@@ -333,7 +342,7 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/svetovye-pribory-avtomobilya-vnutrennie-9116/";
             if (n.Contains("охлажд"))
                 return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
-            if (n.Contains("стеклоподъемник"))
+            if (n.Contains("стеклоподъемник") ||n.Contains("стеклоподъёмник"))
                 return "https://satom.ru/t/steklopodemniki-15907/";
             if (n.Contains("моторчик")) {
                 if(n.Contains("печк")||n.Contains("отопит")||n.Contains("заслонк"))
