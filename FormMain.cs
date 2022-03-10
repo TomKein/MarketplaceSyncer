@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.79.1";
+        string _version = "1.80.1";
 
         DB _db = new DB();
 
@@ -32,6 +32,7 @@ namespace Selen {
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
         Youla _youla = new Youla();
+        Satom sat = new Satom();
 
         int _pageLimitBase = 250;
         bool _saveCookiesBeforeClose;
@@ -204,7 +205,7 @@ namespace Selen {
         //SATOM.RU
         async void buttonSatom_Click(object sender, EventArgs e) {//TODO отключено, настроить
             ChangeStatus(sender, ButtonStates.NoActive);
-            //выгрузка xml через ссылку на товары тиу больше не работает
+            //sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //===========================================
@@ -585,10 +586,11 @@ namespace Selen {
                         string text = table.Rows[0].ItemArray[3] as string;
                         Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
                         //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
-                        if (text.Contains("синхронизация остановлена") ||
-                            time.AddMinutes(5) < DateTime.Now) return;
-                        else
-                            Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
+                        //TODO удалить //!
+                        //if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
+                            return;
+                        //else
+                            //Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
                     } else
                         Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
                     await Task.Delay(61 * 1000);
@@ -1225,6 +1227,7 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                sat.SyncAsync(bus);
 
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();

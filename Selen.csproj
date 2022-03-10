@@ -262,6 +262,7 @@
     <Compile Include="Sites\GdeRu.cs" />
     <Compile Include="Sites\izap24.cs" />
     <Compile Include="Sites\Kupiprodai.cs" />
+    <Compile Include="Sites\Satom.cs" />
     <Compile Include="Sites\Youla.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
