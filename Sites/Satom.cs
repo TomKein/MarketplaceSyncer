@@ -115,9 +115,9 @@ namespace Selen.Sites {
                     i++;
                 }
             }
-            workbook.Save();            
+            workbook.Save();
             Log.Add("файл успешно сохранен");
-            File.WriteAllText("..\\satom_skip.log",skip.OrderBy(s => s).Aggregate((a1, a2) => a1+"\n"+a2));
+            File.WriteAllText("..\\satom_skip.log", skip.OrderBy(s => s).Aggregate((a1, a2) => a1+"\n"+a2));
             Log.Add("файл отчета сформирован");
 
             {
@@ -171,9 +171,9 @@ namespace Selen.Sites {
         private string GetCategory(int b) {
             var g = _bus[b].GroupName().ToLowerInvariant();
             var n = _bus[b].name.ToLowerInvariant();
-            if (n.Contains("решетка ") && (n.Contains("бампер") || n.Contains("радиатор")))
+            if (n.Contains("реш") && (n.Contains("бампер") || n.Contains("радиатор")))
                 return "https://satom.ru/t/reshetki-avtomobilnye-na-bampery-i-radiatory-120/";
-            if (n.Contains("поворотник "))
+            if (n.Contains("поворотник ") || n.StartsWith("поворот")||n.StartsWith("указатель"))
                 return "https://satom.ru/t/svetovye-pribory-avtomobilya-naruzhnye-185/";
             if (n.Contains("бампер "))
                 return "https://satom.ru/t/bampery-17030/";
@@ -185,13 +185,22 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/fonari-18703/";
             if (n.Contains("двигатель "))
                 return "https://satom.ru/t/dvigateli-avtomobilnye-8347/";
+            if (n.Contains("дросс") || 
+                n.Contains("моновпр") ||
+                n.Contains("арбюратор") ||
+                n.StartsWith("инжектор"))
+                return "https://satom.ru/t/drosselnye-zaslonki-9190/";
             if (n.Contains("дверь "))
                 return "https://satom.ru/t/dveri-avtomobilnye-15893/";
             if (n.Contains("динамик ") || n.Contains("динамики ") || n.Contains("абвуфер")||n.Contains("твиттер "))
                 return "https://satom.ru/t/akusticheskie-sistemy-avtomobilnye-9251/";
             if (n.Contains("педаль") || n.Contains("педали"))
                 return "https://satom.ru/t/pedali-avtomobilnye-9143/";
-            if (n.Contains("крыша "))
+            if (n.Contains("крыша ") || 
+                n.Contains("телевиз") ||
+                n.Contains("щиток") ||
+                n.Contains("экран") ||
+                n.Contains("суппорт") && n.Contains("радиат"))
                 return "https://satom.ru/t/detali-kuzova-9088/";
             if (n.Contains("кулиса"))
                 return "https://satom.ru/t/komplektuyushchie-korobki-pereklyucheniya-peredach-kpp-10848/";
@@ -215,15 +224,23 @@ namespace Selen.Sites {
                     return "https://satom.ru/t/zamki-zazhiganiya-avtomobilnye-9104/";
                 return "https://satom.ru/t/zamki-i-klyuchi-avtomobilnye-9076/";
             }
-            if (n.Contains("накладка") || n.Contains("молдинг"))
+            if (n.Contains("накладка") ||
+                n.Contains("накладки")|| 
+                n.Contains("молдинг")|| 
+                n.Contains("надпись")|| 
+                n.Contains("обшивка арки"))
                 return "https://satom.ru/t/nakladki-avtomobilnye-131/";
-            if (n.Contains("багажник"))
+            if (n.Contains("багажник")||n.Contains("спойлер"))
                 return "https://satom.ru/t/kryshki-bagazhnika-i-komplektuyushchie-9077/";
             if (n.Contains("амортизатор ") || n.Contains("стойка "))
                 return "https://satom.ru/t/amortizatory-podveski-9147/";
+            if (n.Contains("амортиза") && n.Contains("опор"))
+                return "https://satom.ru/t/opory-amortizatorov-9149/";
             if (n.Contains("шумоизоляция "))
                 return "https://satom.ru/t/izolyacionnye-materialy-dlya-avtomobilya-9903/";
-            if (n.Contains("магнитола "))
+            if (n.Contains("магнитола ")||
+                n.Contains("чейнджер")||
+                n.StartsWith("дисплей магнитолы"))
                 return "https://satom.ru/t/avtomagnitoly-221/";
             if (n.Contains("бампера "))
                 return "https://satom.ru/t/bampery-i-komplektuyushchie-9084/";
@@ -233,7 +250,7 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/shkivy-na-dvigatel-19315/";
             if (n.Contains("шестерня "))
                 return "https://satom.ru/t/shesterni-dvigatelya-avtomobilya-19188/";
-            if (n.Contains("шатун "))
+            if (n.Contains("шатун"))
                 return "https://satom.ru/t/shatuny-na-dvigatel-avtomobilya-19304/";
             if (n.Contains("цилиндр ")) {
                 if (n.Contains("главный"))
@@ -243,17 +260,19 @@ namespace Selen.Sites {
                 if (n.Contains("тормозной"))
                     return "https://satom.ru/t/tormoznye-cilindry-210/";
             }
-            if (n.Contains("безопасн")) {
-                if (n.Contains("подушк") || n.Contains("airbag"))
-                    return "https://satom.ru/t/sistemy-passivnoy-bezopasnosti-avtomobilya-9224/";
-                if (n.Contains("ремень") || n.Contains("ремн"))
-                    return "https://satom.ru/t/remni-bezopasnosti-9175/";
-            }
-            if (n.Contains("натяжитель"))
+            if (n.StartsWith("руль"))
+                return "https://satom.ru/t/ruli-avtomobilnye-132/";
+            if (n.Contains("безопасн")&&n.Contains("подушк") || n.Contains("airbag"))
+                return "https://satom.ru/t/sistemy-passivnoy-bezopasnosti-avtomobilya-9224/";
+            if ((n.Contains("ремень") || n.Contains("ремн"))&&n.Contains("безопасн"))
+                return "https://satom.ru/t/remni-bezopasnosti-9175/";
+            if (n.Contains("двер"))
+                return "https://satom.ru/t/dveri-avtomobilnye-i-komplektuyushchie-9082/";
+            if (n.Contains("натяжител") || n.StartsWith("ролик"))
                 return "https://satom.ru/t/roliki-i-natyazhiteli-remney-cepey-9206/";
             if (n.Contains("генератор"))
                 return "https://satom.ru/t/generatory-avtomobilnye-398/";
-            if (n.Contains("стартер")||n.Contains("бендикс"))
+            if (n.Contains("стартер")||n.Contains("бендикс")||n.Contains("втягиваю"))
                 return "https://satom.ru/t/startery-i-komplektuyushchie-9105/";
             if (n.Contains("реле ")) {
                 if (n.Contains("блок "))
@@ -266,47 +285,65 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/avtomobilnye-dvernye-ruchki-15914/";
             if (n.Contains("стабилизатор "))
                 return "https://satom.ru/t/stabilizatory-stoyki-stabilizatorov-podveski-9153/";
-            if (n.Contains("коллектор ")) {
-                if (n.Contains("выпускной"))
+            if (n.Contains("антенн"))
+                return "https://satom.ru/t/antenny-avtomobilnye-222/";
+            if (n.Contains("коллектор")) {
+                if (n.Contains("выпускн"))
                     return "https://satom.ru/t/vypusknye-kollektory-avtomobilya-9195/";
-                if (n.Contains("впускной"))
+                if (n.Contains("впускн"))
                     return "https://satom.ru/t/vpusknye-kollektory-9192/";
             }
             if (n.Contains("турбин"))
                 return "https://satom.ru/t/turbiny-turbokompressory-avtomobilnye-158/";
-            if (n.Contains("блок управления")||n.Contains("блок регулировки")||
-                n.Contains("жойстик регулировк")||n.Contains("эбу")||n.Contains("комфорта")) {
-                if (n.Contains("печк") ||n.Contains("отопит")||n.Contains("климат"))
-                    return "https://satom.ru/t/detali-sistemy-otopleniya-ventilyacii-i-kondicionirovaniya-11426/";
-                return "https://satom.ru/t/bloki-upravleniya-avtomobilnye-9101/";
-            }
-            if ((n.Contains("насос ") || n.Contains("поводок ")|| n.Contains("бачок")|| n.Contains("моторчик")|| n.Contains("трапеция")) &&
-                (n.Contains("дворник") || n.Contains("очист") || n.Contains("омывател")))
+            if (n.Contains("жабо") || 
+                n.Contains("дворник") ||
+                n.Contains("ефлектор водяной") ||
+                n.Contains("трапеция") ||
+                n.Contains("омывател") 
+                ||                
+                (n.Contains("насос ") || n.Contains("поводок ")||
+                n.Contains("бачок")|| n.Contains("мотор")|| n.Contains("решетк")) &&
+                (n.Contains("очист") || n.Contains("омывател"))
+                )
                 return "https://satom.ru/t/zapchasti-sistemy-ochistki-okon-i-far-11257/";
             if (n.Contains("насос ") && n.Contains("топлив") || n.Contains("бензонасос "))
                 return "https://satom.ru/t/toplivnye-nasosy-avtomobilnye-9038/";
             if (n.Contains("насос ") && n.Contains("масл"))
                 return "https://satom.ru/t/maslyanye-nasosy-avtomobilnye-9200/";
-            if ((n.Contains("насос ") || n.Contains("шланг")|| n.Contains("трубк")|| n.Contains("бачок")) &&
+            if ((n.Contains("насос ") || n.Contains("шланг")|| n.Contains("комплект")||
+                n.Contains("трубк")|| n.Contains("бачок")||n.Contains("бачка"))
+                &&
                 (n.Contains("гур")||n.Contains("гидроусил")||n.Contains("высокого давления")||
-                n.Contains("низкого давления")||n.Contains("обратк")))
+                n.Contains("низкого давления")||n.Contains("обратк")) || n.Contains("эур"))
                 return "https://satom.ru/t/usiliteli-rulevogo-upravleniya-9127/";
             if (n.Contains("насос ") && n.Contains("водян") || n.Contains("помпа"))
                 return "https://satom.ru/t/nasosy-ohlazhdayushchey-zhidkosti-9202/";
             if ((n.Contains("насос ") ||n.Contains("блок ")) && n.Contains("abs"))
                 return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
+            if (n.Contains("насос в"))
+                return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
             if (n.Contains("абсорбер"))
                 return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
-            if (n.Contains("датчик"))
+            if (n.Contains("датчик")||
+                n.Contains("дмрв")||
+                n.Contains("лямбда")||
+                n.Contains("расходомер"))
                 return "https://satom.ru/t/datchiki-avtomobilnye-9102/";
-            //масло
-            if (n.Contains("кронштейн")||n.Contains("креплени")) {
+            if (n.Contains("гбц ") ||n.Contains("цилиндр") ||n.Contains("масл"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("кронштейн")||
+                n.Contains("креплени")||
+                n.Contains("опора")||
+                n.Contains("площадка ак")||
+                n.StartsWith("заглушк")) {
                 if (n.Contains("кпп"))
                     return "https://satom.ru/t/komplektuyushchie-korobki-pereklyucheniya-peredach-kpp-10848/";
                 if (n.Contains("двс") || n.Contains("двигат"))
                     return "https://satom.ru/t/krepleniya-i-kronshteyny-dvigatelya-avtomobilya-19277/";
                 return "https://satom.ru/t/krepezhnye-elementy-i-zaglushki-avtomobilnye-9182/";
             }
+            if (n.StartsWith("подушка") && n.Contains("дв"))
+                return "https://satom.ru/t/podushki-dvigatelya-15865/";
             if (n.Contains("провод") || n.Contains("шлейф"))
                 return "https://satom.ru/t/provodka-provoda-200/";
             if (n.Contains("форсунк")) {
@@ -320,8 +357,8 @@ namespace Selen.Sites {
                 if (n.Contains("вакуум") ||n.Contains("тормоз"))
                     return "https://satom.ru/t/usiliteli-tormozov-9141/";
             }
-            //полироль
-            if (n.Contains("кнопк") || n.Contains("кнопок"))
+            if (n.Contains("кнопк") || n.Contains("кнопок") ||
+                n.Contains("выключатель")|| n.Contains("трамбл"))
                 return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
             if (n.Contains("стекло ")|| n.Contains("зеркал") || n.Contains("форточк"))
                 return "https://satom.ru/t/stekla-zerkala-avtomobilnye-188/";
@@ -332,36 +369,55 @@ namespace Selen.Sites {
                     return "https://satom.ru/t/transmissiya-sceplenie-legkovyh-avto-194/";
                 if (n.Contains("вакуум"))
                     return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
+                if (n.Contains("тормоз"))
+                    return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
             }
-            if (n.Contains("балка") || n.Contains("моста") || n.Contains("подрамник"))
+            if (n.Contains("балка") || n.Contains("моста") || n.Contains("подрамник")||n.Contains("аздатка"))
                 return "https://satom.ru/t/mosty-i-balki-avtomobilnye-9157/";
-            if (n.Contains("ящик") || n.Contains("бардачок") || n.Contains("вещев")|| 
+            if (n.Contains("ящик") || n.Contains("бардачок") || n.Contains("вещев")||
                 n.Contains("карман")|| n.Contains("часы"))
                 return "https://satom.ru/t/elementy-salona-i-bagazhnogo-otseka-199/";
-            if ((n.Contains("плафон")|| n.Contains("светил")) && n.Contains("салон"))
+            if ((n.Contains("плафон")|| n.Contains("светил")) && 
+                (n.Contains("салон")||n.Contains("багажн")))
                 return "https://satom.ru/t/svetovye-pribory-avtomobilya-vnutrennie-9116/";
-            if (n.Contains("охлажд"))
+            if (n.Contains("охлажд") || n.Contains("вентилят"))
                 return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
             if (n.Contains("стеклоподъемник") ||n.Contains("стеклоподъёмник"))
                 return "https://satom.ru/t/steklopodemniki-15907/";
             if (n.Contains("моторчик")) {
-                if(n.Contains("печк")||n.Contains("отопит")||n.Contains("заслонк"))
+                if (n.Contains("печк")||n.Contains("отопит")||n.Contains("заслонк"))
                     return "https://satom.ru/t/detali-sistemy-otopleniya-ventilyacii-i-kondicionirovaniya-11426/";
                 if (n.Contains("люк")||n.Contains("антен"))
                     return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
             }
-            if (n.Contains("радиатор "))
+            if (n.StartsWith("радиатор ") || n.StartsWith("интеркулер"))
                 return "https://satom.ru/t/radiatory-avtomobilnye-15875/";
+            if (n.Contains("радиатор"))
+                return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
             if (n.Contains("кондиционер"))
                 return "https://satom.ru/t/detali-sistemy-otopleniya-ventilyacii-i-kondicionirovaniya-11426/";
-            if (n.Contains("лючок"))
+            if (n.Contains("лючок") || 
+                n.StartsWith("лонжерон")||
+                n.StartsWith("защита"))
                 return "https://satom.ru/t/detali-kuzova-9088/";
             if (n.Contains("топлив"))
                 return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
-            if (n.Contains("антенн"))
-                return "https://satom.ru/t/antenny-avtomobilnye-222/";
-            if (n.Contains("блок")&&n.Contains("предохранит"))
+            if (n.Contains("блок") && n.Contains("предохранит"))
                 return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
+            if (n.Contains("блок") && n.Contains("розжиг"))
+                return "https://satom.ru/t/bloki-rozzhiga-3178/";
+            if (n.Contains("печк") ||
+                n.Contains("отопит")||
+                n.Contains("климат")||
+                n.Contains("оздухоочистител"))
+                return "https://satom.ru/t/detali-sistemy-otopleniya-ventilyacii-i-kondicionirovaniya-11426/";
+            if (n.Contains("блок ")||
+                n.Contains("жойстик регулировк")||
+                n.Contains("эбу")||
+                n.Contains("модуль")||
+                n.Contains("комфорта")
+                )
+                return "https://satom.ru/t/bloki-upravleniya-avtomobilnye-9101/";
             if (n.Contains("предохранитель"))
                 return "https://satom.ru/t/predohraniteli-avtomobilnye-9097/";
             if (n.Contains("рулев")) {
@@ -375,12 +431,224 @@ namespace Selen.Sites {
             }
             if (n.Contains("переключател"))
                 return "https://satom.ru/t/pereklyuchateli-avtomobilnye-9115/";
-
-
-
-
-
-
+            if (n.Contains("венец"))
+                return "https://satom.ru/t/komplektuyushchie-korobki-pereklyucheniya-peredach-kpp-10848/";
+            if (n.Contains("болт"))
+                return "https://satom.ru/t/krepezhnye-elementy-i-zaglushki-avtomobilnye-9182/";
+            if (n.Contains("тяга"))
+                return "https://satom.ru/t/tyagi-avtomobilnye-9164/";
+            if (n.Contains("суппорт"))
+                return "https://satom.ru/t/tormoznye-supporty-9018/";
+            if (n.Contains("стоп ")&&n.Contains("дополн"))
+                return "https://satom.ru/t/stop-signaly-18734/";
+            if (n.Contains("гофра"))
+                return "https://satom.ru/t/detali-vpusknoy-vypusknoy-sistemy-avtomobilya-191/";
+            if (n.Contains("проклад"))
+                return "https://satom.ru/t/prokladki-dvigatelya-avtomobilya-19207/";
+            if (n.Contains("воздуховод") ||
+                n.Contains("дефлектор")||
+                n.Contains("ресивер возд"))
+                return "https://satom.ru/t/vozduhovody-3671/";
+            if (n.Contains("кулак"))
+                return "https://satom.ru/t/povorotnye-kulaki-9163/";
+            if (n.Contains("диск") ||n.Contains("докатка")) {
+                if (n.Contains("тормоз"))
+                    return "https://satom.ru/t/tormoznye-diski-208/";
+                return "https://satom.ru/t/kolesnye-diski-8361/";
+            }
+            if (n.Contains("сцеплен"))
+                return "https://satom.ru/t/transmissiya-sceplenie-legkovyh-avto-194/";
+            if (n.StartsWith("привод")) {
+                return "https://satom.ru/t/transmissiya-sceplenie-legkovyh-avto-194/";
+            }
+            if (n.Contains("маховик"))
+                return "https://satom.ru/t/mahovik-dvigatelya-avtomobilya-19288/";
+            if (n.StartsWith("мкпп")|| n.StartsWith("акпп"))
+                return "https://satom.ru/t/korobki-pereklyucheniya-peredach-kpp-9225/";
+            if (n.Contains("кпп"))
+                return "https://satom.ru/t/komplektuyushchie-korobki-pereklyucheniya-peredach-kpp-10848/";
+            if (n.Contains("четверть") ||n.Contains("крыло зад") ||n.Contains("морда")||n.Contains("задняя часть"))
+                return "https://satom.ru/t/bokoviny-kuzova-9085/";
+            if (n.Contains("подкрылок")||n.Contains("локер")||n.Contains("одкрылки"))
+                return "https://satom.ru/t/podkrylki-avtomobilnye-7580/";
+            if (n.Contains("крыло")||n.Contains("крыла"))
+                return "https://satom.ru/t/krylya-avtomobilnye-i-komplektuyushchie-9090/";
+            if (n.Contains("патрон"))
+                return "https://satom.ru/t/komplektuyushchie-svetovyh-priborov-avtomobilya-9558/";
+            if (n.Contains("повторитель")||n.Contains("локер"))
+                return "https://satom.ru/t/svetovye-pribory-avtomobilya-naruzhnye-185/";
+            if (n.Contains("сидень"))
+                return "https://satom.ru/t/sidenya-avtomobilnye-9181/";
+            if (n.StartsWith("коленвал"))
+                return "https://satom.ru/t/kolenchatye-valy-avtomobilya-19168/";
+            if (n.Contains("коленвал"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("глушитель"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("при")&&n.Contains("труба"))
+                return "https://satom.ru/t/priemnaya-truba-glushitelya-17051/";
+            if (n.Contains("бензобак")||
+                n.Contains("бака")||
+                n.Contains("горловин"))
+                return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
+            if (n.Contains("бараб")&&n.Contains("торм"))
+                return "https://satom.ru/t/tormoznye-barabany-207/";
+            if (n.Contains("сайлентблок"))
+                return "https://satom.ru/t/saylentbloki-9154/";
+            if (n.Contains("брызговик"))
+                return "https://satom.ru/t/bryzgoviki-avtomobilnye-113/";
+            if (n.Contains("рычаг"))
+                return "https://satom.ru/t/rychagi-podveski-9152/";
+            if (n.Contains("пружин"))
+                return "https://satom.ru/t/pruzhiny-podveski-9150/";
+            if (n.Contains("кардан"))
+                return "https://satom.ru/t/kardannyy-val-dlya-legkovyh-avtomobiley-19087/";
+            if (n.Contains("распредвал "))
+                return "https://satom.ru/t/raspredvaly-i-privody-raspredvala-avtomobilya-19177/";
+            if (n.Contains("фиксаторы") ||n.Contains("фиксаторов"))
+                return "https://satom.ru/t/nabory-instrumentov-1063/";
+            if (n.Contains("вал")&&(n.Contains("пром")||n.Contains("баланс")||n.Contains("кором")) ||
+                n.Contains("ванос"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("патрубок")||n.Contains("трубк")) {
+                if (n.Contains("вент")||n.Contains("возд")||
+                    n.Contains("интеркул")||n.Contains("карт")||
+                    n.Contains("турбо"))
+                    return "https://satom.ru/t/detali-vpusknoy-vypusknoy-sistemy-avtomobilya-191/";
+                if (n.Contains("вакуум"))
+                    return "https://satom.ru/t/transmissiya-sceplenie-legkovyh-avto-194/";
+                if (n.Contains("тнвд"))
+                    return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
+                return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
+            }
+            if (n.Contains("воздухозаборник"))
+                return "https://satom.ru/t/vozduhozaborniki-127/";
+            if (n.Contains("втулк"))
+                return "https://satom.ru/t/vtulki-dlya-podveski-9168/";
+            if (n.Contains("выжимн") && n.Contains("подши"))
+                return "https://satom.ru/t/transmissiya-sceplenie-legkovyh-avto-194/";
+            if (n.Contains("прикуривател"))
+                return "https://satom.ru/t/prikurivateli-avtomobilnye-12047/";
+            if (n.Contains("сигнал") ||
+                n.Contains("клаксон")||
+                n.Contains("сирена")||
+                n.Contains("зуммер"))
+                return "https://satom.ru/t/zvukovye-signaly-klaksony-396/";
+            if (n.Contains("шрус ")||n.Contains("пыльник шрус"))
+                return "https://satom.ru/t/shrus-dlya-legkovyh-avtomobiley-19079/";
+            if (n.Contains("катуш") && n.Contains("зажиг"))
+                return "https://satom.ru/t/katushki-zazhiganiya-avtomobilnye-9110/";
+            if (n.Contains("резонатор"))
+                return "https://satom.ru/t/rezonatory-17065/";
+            if (n.Contains("егр") ||n.Contains("egr"))
+                return "https://satom.ru/t/detali-vpusknoy-vypusknoy-sistemy-avtomobilya-191/";
+            if (n.Contains("ступиц"))
+                return "https://satom.ru/t/stupicy-9156/";
+            if (n.Contains("козыр")&& n.Contains("солнц")||
+                n.Contains("консоль")||
+                n.Contains("часы")||
+                n.Contains("обшивка")||
+                n.Contains("рамка")||
+                n.Contains("одежд")||
+                n.Contains("епельниц")||
+                n.Contains("одголовник")||
+                n.Contains("переходник магнит")||
+                n.Contains("очечник")||
+                n.Contains("одстаканник")||
+                n.Contains("одлокотник")||
+                n.Contains("полка")||
+                n.Contains("решетка")||
+                n.Contains("торпеды")||
+                n.Contains("торпедо"))
+                return "https://satom.ru/t/elementy-salona-i-bagazhnogo-otseka-199/";
+            if (n.Contains("панель") && n.Contains("прибор")||
+                n.StartsWith("дисплей")||
+                n.StartsWith("индикатор"))
+                return "https://satom.ru/t/spidometry-tahometry-paneli-priborov-avtomobilnye-186/";
+            if (n.Contains("катализатор"))
+                return "https://satom.ru/t/kataliticheskie-neytralizatory-katalizatory-9197/";
+            if ((n.Contains("заглушка") ||n.Contains("рамка") || n.Contains("крышка"))
+                && n.Contains("птф"))
+                return "https://satom.ru/t/nakladki-avtomobilnye-131/";
+            if (n.Contains("промыв") ||
+                n.Contains("присадк") || 
+                n.Contains("аскоксовыв") || 
+                n.Contains("риботехнич"))
+                return "https://satom.ru/t/prisadki-avtomobilnye-3653/";
+            if (n.Contains("кожух"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("сапун"))
+                return "https://satom.ru/t/maslouloviteli-sapuny-9040/";
+            if ((n.Contains("возд") || n.Contains("корп")) && n.Contains("фильтр"))
+                return "https://satom.ru/t/filtry-vozdushnye-avtomobilnye-162/";
+            if (n.Contains("термост")||n.Contains("ерморегулятор"))
+                return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
+            if (n.Contains("грм") || 
+                n.Contains("двигателя") || 
+                n.Contains("клапанн")|| 
+                n.Contains("успокоит")|| 
+                n.Contains("поршнев")|| 
+                n.Contains("поддон")|| 
+                n.Contains("распредвала")|| 
+                n.Contains("рышка декоратив")|| 
+                n.Contains("рышка лобов")|| 
+                n.Contains("муфта")|| 
+                n.Contains("двс"))
+                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.StartsWith("клапан")) {
+                if (n.Contains("холостого хода"))
+                    return "https://satom.ru/t/detali-toplivnoy-sistemy-avtomobilya-9013/";
+                return "https://satom.ru/t/detali-vpusknoy-vypusknoy-sistemy-avtomobilya-191/";
+            }
+            if (n.StartsWith("планка ") ||
+                n.StartsWith("дождевик"))
+                return "https://satom.ru/t/detali-kuzova-9088/";
+            if (n.StartsWith("фаркоп"))
+                return "https://satom.ru/t/farkopy-136/";
+            if (n.StartsWith("ус ")||n.Contains("люк"))
+                return "https://satom.ru/t/detali-kuzova-9088/";
+            if (n.Contains("фонар") || n.Contains("фар"))
+                return "https://satom.ru/t/komplektuyushchie-svetovyh-priborov-avtomobilya-9558/";
+            if (n.Contains("оммутатор") ||
+                n.Contains("ммобилайзер"))
+                return "https://satom.ru/t/sistemy-zazhiganiya-avto-9114/";
+            if (n.Contains("скотч"))
+                return "https://satom.ru/t/skotch-upakovochnyy-8693/";
+            if (n.Contains("стрейч") && n.Contains("плен"))
+                return "https://satom.ru/t/plenki-upakovochnye-10730/";
+            if (n.StartsWith("порог"))
+                return "https://satom.ru/t/porogi-avtomobilnye-9087/";
+            if (n.Contains("струна"))
+                return "https://satom.ru/t/avtoinstrument-9354/";
+            if (n.Contains("пламегас"))
+                return "https://satom.ru/t/detali-vpusknoy-vypusknoy-sistemy-avtomobilya-191/";
+            if (n.Contains("катафот"))
+                return "https://satom.ru/t/katafoty-lenty-dlya-konturnoy-markirovki-transportnyh-sredstv-130/";
+            if (n.Contains("фишка") ||
+                n.Contains("разъем")||
+                n.Contains("аккумулят")||
+                n.Contains("круиз")||
+                n.Contains("камера")||
+                n.Contains("резист")||
+                n.Contains("регулятор напряж")||
+                n.Contains("регулятор яркос")||
+                n.Contains("онденсатор")||
+                n.StartsWith("клемма"))
+                return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
+            if (n.Contains("домкрат"))
+                return "https://satom.ru/t/domkraty-podemniki-gidravlicheskie-1034/";
+            if (n.Contains("ключ балонный"))
+                return "https://satom.ru/t/klyuchi-balonnye-1103/";
+            if (n.Contains("плафон")||n.Contains("подсветка"))
+                return "https://satom.ru/t/svetovye-pribory-avtomobilya-naruzhnye-185/";
+            if (n.Contains("ксенон"))
+                return "https://satom.ru/t/ksenonovye-lampy-i-komplekty-128/";
+            if (n.Contains("зажиган"))
+                return "https://satom.ru/t/zamki-zazhiganiya-avtomobilnye-9104/";
+            if (n.Contains("тормоз"))
+                return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
+            if (n.Contains("ремень") || n.Contains("ремн"))
+                return "https://satom.ru/t/remni-bezopasnosti-9175/";
             return "";
         }
     }
