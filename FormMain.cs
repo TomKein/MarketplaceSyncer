@@ -159,9 +159,9 @@ namespace Selen {
             } else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
-        //EUROAUTO.RU
+        //EUROAUTO.RU - ОТКЛЮЧЕНО
         async void EuroAuto_Click(object sender, EventArgs e) {
-            if (DateTime.Now.Hour > 7 && DateTime.Now.Hour % 4 == 0) {
+            if (DateTime.Now.Hour > 24/*7*/ && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 while (base_rescan_need) await Task.Delay(60000);
                 try {
@@ -174,9 +174,9 @@ namespace Selen {
                 }
             }
         }
-        //IZAP24.RU
+        //IZAP24.RU - ОТКЛЮЧЕНО
         async void Izap24_Click(object sender, EventArgs e) { //TODO отключено, исправить ссылки на фото
-            if (DateTime.Now.Hour > 24 && DateTime.Now.Hour % 4 == 0) {
+            if (DateTime.Now.Hour > 24/*4*/ && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 while (base_rescan_need ||
                     (ds == null || ds.Tables.Count == 0))
@@ -205,7 +205,7 @@ namespace Selen {
         //SATOM.RU
         async void buttonSatom_Click(object sender, EventArgs e) {//TODO отключено, настроить
             ChangeStatus(sender, ButtonStates.NoActive);
-            //sat.SyncAsync(bus);
+            sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //===========================================

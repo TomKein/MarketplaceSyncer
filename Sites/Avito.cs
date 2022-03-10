@@ -470,6 +470,7 @@ namespace Selen.Sites {
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
             try {
+                if (DateTime.Now.Minute > 50) return; //ограничитель периода
                 //перехожу в раздел
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
                 if (DateTime.Now.Second % 2 == 0) url += "&s=5";
