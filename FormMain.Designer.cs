@@ -249,7 +249,6 @@ namespace Selen {
             // 
             // button_Satom
             // 
-            this.button_Satom.Enabled = false;
             this.button_Satom.Location = new System.Drawing.Point(5, 213);
             this.button_Satom.Name = "button_Satom";
             this.button_Satom.Size = new System.Drawing.Size(113, 23);

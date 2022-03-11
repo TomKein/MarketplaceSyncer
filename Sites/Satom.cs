@@ -68,8 +68,6 @@ namespace Selen.Sites {
             Log.Add("satom: файл успешно загружен");
             //беру первую таблицу
             var ws = workbook.Worksheets.First();
-            //список пропущенных
-            var skip = new List<string>();
             //перебираю карточки товара
             for (int b = 0, i = 2; b<_bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
@@ -79,10 +77,7 @@ namespace Selen.Sites {
                     !_blockedGroupsIds.Contains(_bus[b].group_id)
                     ) {
                     var category = GetCategory(b);
-                    if (category.Length == 0) {
-                        skip.Add(_bus[b].name);
-                        continue;
-                    }
+                    if (category.Length == 0) continue;
                     //наименование
                     ws.Cell(i, 1).Value = _bus[b].name;
                     //цена
@@ -117,8 +112,6 @@ namespace Selen.Sites {
             }
             workbook.Save();
             Log.Add("файл успешно сохранен");
-            File.WriteAllText("..\\satom_skip.log", skip.OrderBy(s => s).Aggregate((a1, a2) => a1+"\n"+a2));
-            Log.Add("файл отчета сформирован");
 
             {
                 //определяю границы данных
@@ -649,7 +642,7 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
             if (n.Contains("ремень") || n.Contains("ремн"))
                 return "https://satom.ru/t/remni-bezopasnosti-9175/";
-            return "";
+            return "https://satom.ru/t/detali-kuzova-9088/";
         }
     }
 }
