@@ -65,12 +65,14 @@ namespace Selen.Sites {
             if (DateTime.Now.Hour >= _db.GetParamInt("avito.upFromHour") &&
                 DateTime.Now.Hour < _db.GetParamInt("avito.upToHour"))
                 CountToUp = _db.GetParamInt("avito.countToUp");
-            else CountToUp = 0;
+            else
+                CountToUp = 0;
             //сколько новых объявлений подавать каждый час
             if (DateTime.Now.Hour >= _db.GetParamInt("avito.addFromHour") &&
                 DateTime.Now.Hour < _db.GetParamInt("avito.addToHour"))
                 AddCount = _db.GetParamInt("avito.countToAdd");
-            else AddCount = 0;
+            else
+                AddCount = 0;
         }
 
         //удаление черновиков
@@ -94,7 +96,8 @@ namespace Selen.Sites {
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("invalid session id") ||
-                    x.Message.Contains("chrome not reachable")) throw;
+                    x.Message.Contains("chrome not reachable"))
+                    throw;
             }
         }
         //авторизация
@@ -114,8 +117,10 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//a[contains(@href,'reload')]");
                 _dr.ButtonClick("//div[contains(@class,'username')]/div/a");
                 _dr.ButtonClick("//button[@id='reload-button']");
-                if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0) _dr.Refresh("https://www.avito.ru/profile");
-                if (i >= 10) throw new Exception("ошибка входа в личный кабинет");
+                if (_dr.GetElementsCount("//h1[contains(text(),'502')]") > 0)
+                    _dr.Refresh("https://www.avito.ru/profile");
+                if (i >= 10)
+                    throw new Exception("ошибка входа в личный кабинет");
             }
             SaveCookies();
         });
@@ -202,7 +207,8 @@ namespace Selen.Sites {
                 //загружаю новые фото
                 SetImages(b);
                 //нажимаю сохранить, если метод был вызван не из редактирования
-                if (!isEdit) PressOk();
+                if (!isEdit)
+                    PressOk();
                 Log.Add("avito.ru: " + _bus[b].name + " - фотографии обновлены");
             }
         }
@@ -220,9 +226,10 @@ namespace Selen.Sites {
             //определяю марку и модель
             var m = _bus[b].GetNameMarkModel();
             //если не удалось - пропуск
-            if (m == null) return;
+            if (m == null)
+                return;
             //проверяю поле в объявлении
-            if (_dr.GetElementAttribute("//input[@id='params[111075]']","value") == "") {
+            if (_dr.GetElementAttribute("//input[@id='params[111075]']", "value") == "") {
                 //1. заполняю марку
                 _dr.ButtonClick("//input[@id='params[111075]']");
                 string mrk = m[1].Substring(0, 1).ToUpper() + m[1].Substring(1);
@@ -231,7 +238,7 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//div[@data-marker='params[111075]']//div[contains(@class,'root_active')]//span");
                 //2. заполняю модель
                 string mod = m[2].Substring(0, 1).ToUpper() + m[2].Substring(1);
-                _dr.WriteToSelector("//select[@id='params[111076]']",mod+OpenQA.Selenium.Keys.Enter);
+                _dr.WriteToSelector("//select[@id='params[111076]']", mod+OpenQA.Selenium.Keys.Enter);
 
                 //3. заполняю поколение, если доступно (доработать auto.txt)
                 if (_dr.GetElementsCount("//select[@id='params[111078]']/../../*[contains(@class,'withoutValue')]") > 0) {
@@ -242,7 +249,7 @@ namespace Selen.Sites {
                 Log.Add("avito: SetManufacture - заполнено авто - " + _bus[b].name + " [ " + m[1] + "," + m[2] + "," + m[3] + " ]");
             }
             //проверка корректности
-            if(_dr.GetElementsCount("//div[contains(@class,'withoutValue') or contains(@class,'select-error')]") > 0
+            if (_dr.GetElementsCount("//div[contains(@class,'withoutValue') or contains(@class,'select-error')]") > 0
                 || _dr.GetElementsCount("//label[@for='params[111078]']")==0) { //есть поле пустое - ошибка
                 //убираю марку
                 _dr.ButtonClick("//input[@id='params[111075]']/..//div/*");
@@ -279,7 +286,8 @@ namespace Selen.Sites {
             //если появилась кнопка удалить - нажимаю
             _dr.ButtonClick("//button/*[text()='Удалить']");
             //есть кнопка восстановить - объявление уже удалено
-            if (_dr.GetElementsCount("//button[text()='Восстановить']") > 0) return;
+            if (_dr.GetElementsCount("//button[text()='Восстановить']") > 0)
+                return;
             //если объявление удалено окончательно - нужно удалить ссылку из карточки товара
             if (_dr.GetElementsCount("//div[@class='item-view-warning-content']/p[contains(text(),'навсегда')]") > 0 ||
                 _dr.GetElementsCount("//h1[contains(text(),'страницы на нашем сайте нет')]") > 0) {
@@ -308,7 +316,7 @@ namespace Selen.Sites {
                         SetManufacture(b);
                         SetImages(b);
                         //SetDesc(b);
-                        SetDesc(b, minDesc:true);
+                        SetDesc(b, minDesc: true);
                         SetPrice(b);
                         SetAddress();
                         SetPhone();
@@ -343,8 +351,10 @@ namespace Selen.Sites {
                 for (int i = 0; ; i++) {
                     await _dr.NavigateAsync(url, ".title-info-main");
                     url = _dr.GetUrl();
-                    if (!url.Contains("avito.ru/items")) break;
-                    if (i > 9) throw new Exception("ссылка на объявление не найдена!");
+                    if (!url.Contains("avito.ru/items"))
+                        break;
+                    if (i > 9)
+                        throw new Exception("ссылка на объявление не найдена!");
                 }
                 //проверяем ссылку
                 if (url.Contains("https://www.avito.ru/kaluga")) {
@@ -365,9 +375,12 @@ namespace Selen.Sites {
                 if (bn.Contains("диск")) { //заполняю параметры дисков
                     //тип диска
                     var selector = "//option[contains(text(),'Литые')]/..";
-                    if (bn.Contains("штамп")) _dr.WriteToSelector(selector, "шта" + OpenQA.Selenium.Keys.Enter);
-                    else if (bn.Contains("кован")) _dr.WriteToSelector(selector, "ков" + OpenQA.Selenium.Keys.Enter);
-                    else _dr.WriteToSelector(selector, "лит" + OpenQA.Selenium.Keys.Enter);
+                    if (bn.Contains("штамп"))
+                        _dr.WriteToSelector(selector, "шта" + OpenQA.Selenium.Keys.Enter);
+                    else if (bn.Contains("кован"))
+                        _dr.WriteToSelector(selector, "ков" + OpenQA.Selenium.Keys.Enter);
+                    else
+                        _dr.WriteToSelector(selector, "лит" + OpenQA.Selenium.Keys.Enter);
                     //диметр
                     selector = "//option[text()='16.5']/..";
                     _dr.WriteToSelector(selector, _bus[b].GetDiskSize() + OpenQA.Selenium.Keys.Enter);
@@ -440,7 +453,7 @@ namespace Selen.Sites {
             await _dr.NavigateAsync(url, ".profile-tabs");
             int inactive = 0, active = 0, old = 0, archived = 0;
             await Task.Factory.StartNew(() => {
-                var inactiveString = _dr.GetElementText("//button[@data-marker='tabs/inactive']/span/span").Replace(" ","");
+                var inactiveString = _dr.GetElementText("//button[@data-marker='tabs/inactive']/span/span").Replace(" ", "");
                 inactive = inactiveString.Length > 0 ? int.Parse(inactiveString) : 0;
                 var activeString = _dr.GetElementText("//button[@data-marker='tabs/active']/span/span").Replace(" ", "");
                 active = activeString.Length > 0 ? int.Parse(activeString) : 0;
@@ -454,13 +467,17 @@ namespace Selen.Sites {
             //перебираю номера страниц
             for (int i = 0; i < active / 50; i++) {
                 //пропуск страниц
-                if (_rnd.Next(100) > checkPagesProcent) continue;
+                if (_rnd.Next(100) > checkPagesProcent)
+                    continue;
                 //проверить данную страницу
-                if (i < 101) await ParsePage("/active", i + 1);
+                if (i < 101)
+                    await ParsePage("/active", i + 1);
                 //проверить также страницу снятых, если номер в пределах
-                if (i < old / 50) await ParsePage("/old", i + 1);
+                if (i < old / 50)
+                    await ParsePage("/old", i + 1);
                 //проверить также страницу удаленных, если номер в пределах
-                if (i < archived / 50) await ParsePage("/archived", i + 1);
+                if (i < archived / 50)
+                    await ParsePage("/archived", i + 1);
             }
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
             for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
@@ -470,10 +487,12 @@ namespace Selen.Sites {
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
             try {
-                if (DateTime.Now.Minute > 50) return; //ограничитель периода
+                if (DateTime.Now.Minute > 50)
+                    return; //ограничитель периода
                 //перехожу в раздел
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
-                if (DateTime.Now.Second % 2 == 0) url += "&s=5";
+                if (DateTime.Now.Second % 2 == 0)
+                    url += "&s=5";
                 await _dr.NavigateAsync(url, ".profile-tabs");
                 //парсинг объявлений на странице
                 var items = await _dr.FindElementsAsync("//div[contains(@class,'item-body-root')]//a");
@@ -483,8 +502,10 @@ namespace Selen.Sites {
                 var el = await _dr.FindElementsAsync("//div[contains(@class,'price-root')]/span");
                 var prices = el.Select(s => s.Text.Replace(" ", "").TrimEnd('\u20BD')).ToList();
                 //проверка результатов парсинга
-                if (items.Count == 0) throw new Exception("ошибка парсинга: не найдны ссылки на товары");
-                if (items.Count != names.Count || names.Count != prices.Count) throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
+                if (items.Count == 0)
+                    throw new Exception("ошибка парсинга: не найдны ссылки на товары");
+                if (items.Count != names.Count || names.Count != prices.Count)
+                    throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
                 //перебираю найденное
                 for (int i = 0; i < urls.Count(); i++) {
                     //ищу индекс карточки в базе
@@ -492,9 +513,11 @@ namespace Selen.Sites {
                     if (b >= 0) {
                         //проверяю, нужно ли его снять
                         //if (location == "/active" && _bus[b].amount <= 0) Delete(b);
-                        if (_bus[b].amount <= 0 && location != "/archived") await DeleteAsync(b);
+                        if (_bus[b].amount <= 0 && location != "/archived")
+                            await DeleteAsync(b);
                         //проверяю цены
-                        if (_bus[b].price.ToString() != prices[i] && location != "/archived") await EditAsync(b);
+                        if (_bus[b].price.ToString() != prices[i] && location != "/archived")
+                            await EditAsync(b);
                         //если объявление в разделе "архив" или "неопубликованные", но есть на остатках и цена больше пороговой - поднимаю
                         if (CountToUp > 0 &&
                             _bus[b].price >= _priceLevel &&
@@ -509,13 +532,14 @@ namespace Selen.Sites {
                             if (location == "/old") {
                                 _dr.Navigate(_bus[b].avito);
                                 _dr.ButtonClick("//button[@name='start']");
-                                _dr.ButtonClick("//button[@type='submit']/span[text()='Активировать']/..",_delay);
+                                _dr.ButtonClick("//button[@type='submit']/span[text()='Активировать']/..", _delay);
                             }
                             //активирую неопубликованное
                             else if (await UpOfferAsync(b)) {
                                 await Task.Delay(_delay);
                                 await RandomClicksAsync();
-                                if (_editAfterUp) await EditAsync(b);
+                                if (_editAfterUp)
+                                    await EditAsync(b);
                             }
                         }
                     }
@@ -531,13 +555,15 @@ namespace Selen.Sites {
                     var a = _dr.FindElements("//a[not(contains(@href,'/exit'))]").ToList();
                     a[_rnd.Next(a.Count)].Click();
                     Thread.Sleep(_rnd.Next(_delay * 10));
-                } catch (Exception x){
+                } catch (Exception x) {
                     Log.Add("avito.ru: неудачный клик - " + x.Message);
                 }
             }
             if (_rnd.Next(4) == 1) {
-                if (_rnd.Next(3) == 1) _dr._drv.Navigate().Back();
-                if (_rnd.Next(3) == 1) _dr._drv.Navigate().Forward();
+                if (_rnd.Next(3) == 1)
+                    _dr._drv.Navigate().Back();
+                if (_rnd.Next(3) == 1)
+                    _dr._drv.Navigate().Forward();
                 _dr.Navigate("https://avito.ru/profile");
             }
         });
@@ -563,7 +589,8 @@ namespace Selen.Sites {
                     Thread.Sleep(_delay);
                 }
             });
-            if (succ) return true;
+            if (succ)
+                return true;
             return false;
         }
         //выбор статуса
@@ -604,7 +631,13 @@ namespace Selen.Sites {
                 g == "Пластик кузова" ||
                 g == "Зеркала" ||
                 g == "Кронштейны, опоры" ||
-                g == "Тросы автомобильные"
+                g == "Тросы автомобильные"||
+                g == "Подвеска и тормозная система"||
+                g == "Топливная, выхлопная система"||
+                g == "Система охлаждения двигателя"||
+                g == "Система отопления и кондиционирования"||
+                g == "Двигатели"||
+                g == "Детали двигателей"
                 ) {
                 for (int i = 0; i < 5; i++) {
                     if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") > 0)
@@ -612,7 +645,7 @@ namespace Selen.Sites {
                     else break;
                 }
             } else {
-            //включаю Россия
+                //включаю Россия
                 for (int i = 0; i < 5; i++) {
                     if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") == 0)
                         _dr.ButtonClick("//span[text()='Россия']", _delay);
@@ -624,16 +657,18 @@ namespace Selen.Sites {
         private void PressOk(int count = 2) {
             int err = 0;
             for (int i = 0; i < count;) {
-                if (err > 10) throw new Exception("не нажимается кнопка ОК");
+                if (err > 10)
+                    throw new Exception("не нажимается кнопка ОК");
                 _dr.ButtonClick("//button[contains(@data-marker,'button-next')]");
                 //всплывающее окно с ошибкой
                 if (_dr.GetElementsCount("//*[@role='button' and @name='close']") > 0) {
-                    _dr.ButtonClick("//*[@role='button' and @name='close']",15000);
+                    _dr.ButtonClick("//*[@role='button' and @name='close']", 15000);
                     err++;
-                //проверка корректности заполнения марки
+                    //проверка корректности заполнения марки
                 } else if (_dr.GetElementsCount("//div[contains(@class,'withoutValue') or contains(@class,'select-error')]") > 0) {
-                    _dr.ButtonClick("//input[@id='params[111075]']/..//div/*",15000);
-                } else i++;
+                    _dr.ButtonClick("//input[@id='params[111075]']/..//div/*", 15000);
+                } else
+                    i++;
             }
         }
         //загрузка фото
@@ -655,7 +690,8 @@ namespace Selen.Sites {
                         _dr.ButtonClick("//div[contains(@class,'alert-content')]/../*[@role='button']");
                     else
                         break;
-                    if (t > 10) throw new Exception("ошибка загрузки фото!");
+                    if (t > 10)
+                        throw new Exception("ошибка загрузки фото!");
                 }
             }
             cl.Dispose();
@@ -667,7 +703,8 @@ namespace Selen.Sites {
         //создаю описание с дополнением
         public List<string> GetAvitoDesc(int b, bool minDesc = false) {
             List<string> s = _bus[b].DescriptionList(2799, _addDesc);
-            if (!minDesc) s.AddRange(_addDesc2);
+            if (!minDesc)
+                s.AddRange(_addDesc2);
             return s;
         }
         //указываю цену
@@ -693,12 +730,14 @@ namespace Selen.Sites {
                 }
                 //проверяю объявление по ссылке в случайной карточке с положительным остатком checkUrlsCount раз
                 var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
-                if (checkUrlsCount > 0) Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
+                if (checkUrlsCount > 0)
+                    Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
                 for (int i = 0; checkUrlsCount > 0; i++, checkUrlsCount--) {
                     //выбираю случайный индекс
                     var b = _rnd.Next(_bus.Count);
                     //если нет ссылки на авито или нет на остатках - пропускаю
-                    if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0) continue;
+                    if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0)
+                        continue;
                     _dr.Navigate(_bus[b].avito);
                     //не найден заголовок объявления на странице - возможно проблема с интернетом, пока пропускаем
                     if (_dr.GetElementsCount(".title-info-title") == 0) {
@@ -708,13 +747,15 @@ namespace Selen.Sites {
                     //если удалено - восстанавливаю, т.к. есть положительный остаток
                     _dr.ButtonClick("//button[@name='restore']");
                     //если найден элемент "удалено навсегда" - удаляю ссылку из карточки товара (асинхронно без ожидания)
-                    if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0) SaveUrlAsync(b, deleteUrl: true);
+                    if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0)
+                        SaveUrlAsync(b, deleteUrl: true);
                     //проверяю фотографии в объявлении
                     CheckPhotos(b);
                 }
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка при проверке ссылок - " + x.Message);
-                if (x.Message.Contains("timed out")) throw;
+                if (x.Message.Contains("timed out"))
+                    throw;
             }
         });
         //указываю тип товара

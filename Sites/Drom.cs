@@ -385,6 +385,7 @@ namespace Selen.Sites {
                 ((item.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
 
                     && DateTime.Now.Minute < 50 //ограничитель периода
+                    && _bus[i].price > 500
 
                 ) ||
                 !item.description.Contains("далено") && _bus[i].amount <= 0 ||

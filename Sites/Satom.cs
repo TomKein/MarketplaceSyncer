@@ -176,7 +176,7 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/fary-18694/";
             if (n.Contains("фонарь "))
                 return "https://satom.ru/t/fonari-18703/";
-            if (n.Contains("двигатель "))
+            if (n.StartsWith("двигатель "))
                 return "https://satom.ru/t/dvigateli-avtomobilnye-8347/";
             if (n.Contains("дросс") || 
                 n.Contains("моновпр") ||
@@ -189,6 +189,8 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/akusticheskie-sistemy-avtomobilnye-9251/";
             if (n.Contains("педаль") || n.Contains("педали"))
                 return "https://satom.ru/t/pedali-avtomobilnye-9143/";
+            if (n.Contains("термост")||n.Contains("ерморегулятор"))
+                return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
             if (n.Contains("крыша ") || 
                 n.Contains("телевиз") ||
                 n.Contains("щиток") ||
@@ -216,6 +218,11 @@ namespace Selen.Sites {
                 if (n.Contains("зажиган")||n.Contains("рулев"))
                     return "https://satom.ru/t/zamki-zazhiganiya-avtomobilnye-9104/";
                 return "https://satom.ru/t/zamki-i-klyuchi-avtomobilnye-9076/";
+            }
+            if (n.Contains("реле ")) {
+                if (n.Contains("блок "))
+                    return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
+                return "https://satom.ru/t/rele-avtomobilnye-399/";
             }
             if (n.Contains("накладка") ||
                 n.Contains("накладки")|| 
@@ -263,15 +270,10 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/dveri-avtomobilnye-i-komplektuyushchie-9082/";
             if (n.Contains("натяжител") || n.StartsWith("ролик"))
                 return "https://satom.ru/t/roliki-i-natyazhiteli-remney-cepey-9206/";
-            if (n.Contains("генератор"))
+            if (n.StartsWith("генератор"))
                 return "https://satom.ru/t/generatory-avtomobilnye-398/";
             if (n.Contains("стартер")||n.Contains("бендикс")||n.Contains("втягиваю"))
                 return "https://satom.ru/t/startery-i-komplektuyushchie-9105/";
-            if (n.Contains("реле ")) {
-                if (n.Contains("блок "))
-                    return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
-                return "https://satom.ru/t/rele-avtomobilnye-399/";
-            }
             if (n.Contains("ручник")||n.Contains("ручного тормоза"))
                 return "https://satom.ru/t/stoyanochnyy-tormoz-ruchnik-9017/";
             if (n.Contains("ручка "))
@@ -365,7 +367,7 @@ namespace Selen.Sites {
                 if (n.Contains("тормоз"))
                     return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
             }
-            if (n.Contains("балка") || n.Contains("моста") || n.Contains("подрамник")||n.Contains("аздатка"))
+            if (n.Contains("балка") || n.Contains(" моста") || n.Contains("подрамник")||n.Contains("аздатка"))
                 return "https://satom.ru/t/mosty-i-balki-avtomobilnye-9157/";
             if (n.Contains("ящик") || n.Contains("бардачок") || n.Contains("вещев")||
                 n.Contains("карман")|| n.Contains("часы"))
@@ -574,8 +576,6 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/maslouloviteli-sapuny-9040/";
             if ((n.Contains("возд") || n.Contains("корп")) && n.Contains("фильтр"))
                 return "https://satom.ru/t/filtry-vozdushnye-avtomobilnye-162/";
-            if (n.Contains("термост")||n.Contains("ерморегулятор"))
-                return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
             if (n.Contains("грм") || 
                 n.Contains("двигателя") || 
                 n.Contains("клапанн")|| 
