@@ -1227,13 +1227,11 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                PhotoClearAsync();
-                File.WriteAllText("..\\report-товары с фото без остатков.csv", 
-                    bus.Where(w => w.amount<=0 && w.images.Count>0).Select(s => s.name + "\t"+s.images.Count+"\t"+s.updated)
-                    .Aggregate((a1, a2) => a1+"\n"+a2));
-                File.WriteAllText("..\\report-товары с фото без остатков +drom.csv",
-                    bus.Where(w => w.amount<=0 && w.images.Count>0 &&w.drom.Length>5).Select(s => s.name + "\t"+s.images.Count+"\t"+s.updated)
-                    .Aggregate((a1, a2) => a1+"\n"+a2));
+                var y2 = new YoulaXml();
+                y2.GenerateXML();
+
+                //PhotoClearAsync();
+
 
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();
