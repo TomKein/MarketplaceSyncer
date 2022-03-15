@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.80.2";
+        string _version = "1.80.3";
 
         DB _db = new DB();
 
@@ -1186,30 +1186,30 @@ namespace Selen {
                 }
             }
         }
-        //удаление фото из карточек
+        //удаление фото из старых карточек
         async Task PhotoClearAsync() {
             var cnt = await _db.GetParamIntAsync("photosCheckCount");
-            for (int b = 0, i = 0; b < bus.Count && i < cnt; b++) {
-                if (bus[b].amount <= 0 &&
-                    bus[b].drom.Contains("http") &&
-                    bus[b].gde.Contains("http") &&
-                    !bus[b].avito.Contains("http") &&
-                    !bus[b].vk.Contains("http") &&
-                    bus[b].images.Count > 0
-                    ) {
-                    try {
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
-                                    {"id", bus[b].id},
-                                    {"name", bus[b].name},
+            if (cnt==0) return;
+            //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
+            var buschk = bus.Where(w => w.images.Count>0 && w.amount<=0 && w.price>0 && w.remains.Count>0)
+                .OrderBy(o=>DateTime.Parse(o.updated))
+                .ToList();
+            Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка: "+buschk.Count);
+            for (int b = 0; b < cnt && b < buschk.Count; b++) {
+                try {
+                    //пропускаю карточки которые обновлялись в течении месяца
+                    if (DateTime.Now.AddDays(-30) < DateTime.Parse(buschk[b].updated)) continue;
+                    //удаляю фото
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", buschk[b].id},
+                                    {"name", buschk[b].name},
                                     {"images", "[]"}
                                 });
-                        Log.Add(bus[b].name + " [" + b + "] - удалены фото из карточки! (" + bus[b].images.Count + "), остаток - " + bus[b].amount + "]");
-                        bus[b].images.Clear();
-                        await Task.Delay(10);
-                        i++;
-                    } catch (Exception x) {
-                        Log.Add("ошибка при удалении фото из карточки! - " + bus[b].name + " - " + x.Message);
-                    }
+                    Log.Add("PhotoClearAsync: " + buschk[b].name + " - удалены фото из карточки! (" +
+                        buschk[b].images.Count + "), остаток - " + buschk[b].amount + ", updated "+buschk[b].updated);
+                    buschk[b].images.Clear();
+                } catch (Exception x) {
+                    Log.Add("ошибка при удалении фото из карточки! - " + bus[b].name + " - " + x.Message);
                 }
             }
         }
@@ -1227,7 +1227,13 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                sat.SyncAsync(bus);
+                PhotoClearAsync();
+                File.WriteAllText("..\\report-товары с фото без остатков.csv", 
+                    bus.Where(w => w.amount<=0 && w.images.Count>0).Select(s => s.name + "\t"+s.images.Count+"\t"+s.updated)
+                    .Aggregate((a1, a2) => a1+"\n"+a2));
+                File.WriteAllText("..\\report-товары с фото без остатков +drom.csv",
+                    bus.Where(w => w.amount<=0 && w.images.Count>0 &&w.drom.Length>5).Select(s => s.name + "\t"+s.images.Count+"\t"+s.updated)
+                    .Aggregate((a1, a2) => a1+"\n"+a2));
 
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();

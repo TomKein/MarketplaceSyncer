@@ -615,7 +615,7 @@ namespace Selen.Sites {
             var g = _bus[b].GroupName();
             var n = _bus[b].name.ToLowerInvariant();
             //отключаю Россия
-            if (g == "Шины, диски, колеса"||
+            if ((g == "Шины, диски, колеса"||
                 g == "Инструменты" ||
                 g == "ИНСТРУМЕНТЫ (НОВЫЕ)"||
                 g == "Аудио-видеотехника" ||
@@ -637,7 +637,34 @@ namespace Selen.Sites {
                 g == "Система охлаждения двигателя"||
                 g == "Система отопления и кондиционирования"||
                 g == "Двигатели"||
-                g == "Детали двигателей"
+                g == "Детали двигателей") && !_bus[b].IsNew()
+                ||
+                !(g == "Шины, диски, колеса"||
+                g == "Аудио-видеотехника" ||
+                g == "Ручки и замки кузова"||
+                g == "Петли"||
+                g == "Кузовные запчасти"||
+                g == "Пластик кузова"||
+                g == "Зеркала"||
+                g == "Кронштейны, опоры"||
+                g == "Тросы автомобильные"||
+                g == "Датчики"||
+                g == "Генераторы"||
+                g == "Электрика, зажигание"||
+                g == "Блоки управления"||
+                g == "Стартеры"||
+                g == "Топливная, выхлопная система"||
+                g == "Трансмиссия и привод"||
+                g == "Подвеска и тормозная система"||
+                g == "Салон"||
+                g == "Рулевые рейки, рулевое управление"||
+                g == "Система отопления и кондиционирования"||
+                g == "Система охлаждения двигателя"||
+                g == "РАДИАТОРЫ ОХЛАЖДЕНИЯ (НОВЫЕ)"||
+                g == "Двигатели"||
+                g == "Детали двигателей"||
+                g == "Автостекло"||
+                g == "Световые приборы транспорта") && _bus[b].IsNew()
                 ) {
                 for (int i = 0; i < 5; i++) {
                     if (_dr.GetElementsCount("//label[contains(@class,'checkbox-checked-')]/..//*[text()='Россия']") > 0)
@@ -732,23 +759,20 @@ namespace Selen.Sites {
                 var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
                 if (checkUrlsCount > 0)
                     Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
-                for (int i = 0; checkUrlsCount > 0; i++, checkUrlsCount--) {
-                    //выбираю случайный индекс
-                    var b = _rnd.Next(_bus.Count);
-                    //если нет ссылки на авито или нет на остатках - пропускаю
-                    if (!_bus[b].avito.Contains("http") || _bus[b].amount <= 0)
-                        continue;
-                    _dr.Navigate(_bus[b].avito);
-                    //не найден заголовок объявления на странице - возможно проблема с интернетом, пока пропускаем
-                    if (_dr.GetElementsCount(".title-info-title") == 0) {
-                        Log.Add("avito.ru: ошибка загрузки страницы для проверки ссылки " + _bus[b].name + "  --  " + _bus[b].avito);
-                        continue;
+                //ссылки на карточки без остатков с фото и ссылкой на авито, которые нужно проверить на живучесть
+                var urls = _bus.Where(w => w.amount<=0 &&w.images.Count>0 && w.avito.Contains("http")).ToList();
+                Log.Add("avito.ru: ссылок для проверки "+urls.Count+"\n"+urls.Select(s=>s.name).Aggregate((a1,a2)=>a1+"\n"+a2)+"=========\n");
+                //перебираю ссылки
+                for (int b = 0; b<urls.Count; b++) {
+                    var err = false;
+                    try {
+                        _dr.Navigate(_bus[b].avito, ".title-info-title");
+                        if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0)
+                            err=true;
+                    } catch (Exception x) {
+                        err=true;
                     }
-                    //если удалено - восстанавливаю, т.к. есть положительный остаток
-                    _dr.ButtonClick("//button[@name='restore']");
-                    //если найден элемент "удалено навсегда" - удаляю ссылку из карточки товара (асинхронно без ожидания)
-                    if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0)
-                        SaveUrlAsync(b, deleteUrl: true);
+                    if (err) SaveUrlAsync(b, deleteUrl: true);
                     //проверяю фотографии в объявлении
                     CheckPhotos(b);
                 }
@@ -799,7 +823,7 @@ namespace Selen.Sites {
                 case "Шины, диски, колеса":
                     selector = "Шины, диски и колёса";
                     break;
-                case "Автохимия":
+                case "АВТОХИМИЯ":
                     selector = "Автокосметика и автохимия";
                     break;
                 default:

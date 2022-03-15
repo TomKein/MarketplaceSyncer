@@ -264,6 +264,7 @@
     <Compile Include="Sites\Kupiprodai.cs" />
     <Compile Include="Sites\Satom.cs" />
     <Compile Include="Sites\Youla.cs" />
+    <Compile Include="Sites\YoulaXml.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
       <SubType>Form</SubType>
