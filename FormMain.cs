@@ -1228,7 +1228,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 var y2 = new YoulaXml();
-                y2.GenerateXML();
+                y2.GenerateXML(bus);
 
                 //PhotoClearAsync();
 
