@@ -102,10 +102,18 @@ namespace Selen.Sites {
                     ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1+"<br>"+a2);
                     //идентификатор товара
                     ws.Cell(i, 17).Value = _bus[b].id;
-                    //артикул
-                    ws.Cell(i, 22).Value = _bus[b].part??"";
+                    //артикул (id карточки)
+                    ws.Cell(i, 22).Value = _bus[b].id;
                     //статус
                     ws.Cell(i, 39).Value = "опубликован";
+                    //доп. поле состояние
+                    ws.Cell(i, 44).Value = "Состояние";
+                    ws.Cell(i, 45).Value = _bus[b].IsNew()?"Новое":"Б/У";
+                    //артикул
+                    if (_bus[b].part.Length>1) {
+                        ws.Cell(i, 46).Value = "Номер запчасти";
+                        ws.Cell(i, 47).Value = _bus[b].part;
+                    }
                     //следующая строка
                     i++;
                 }
