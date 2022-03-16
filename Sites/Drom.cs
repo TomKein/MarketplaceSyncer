@@ -100,13 +100,13 @@ namespace Selen.Sites {
             });
         }
 
-        void Edit(RootObject b) {
+        void Edit(RootObject b) { //TODO убрать каменты
             _dr.Navigate(b.drom);
-            SetTitle(b);
+            //SetTitle(b);          <<<<<<<<<
             CheckPhotos(b);
-            SetDesc(b);
+            //SetDesc(b);           <<<<<<<<<
             SetPrice(b);
-            SetPart(b);
+            //SetPart(b);           <<<<<<<<<
             //SetWeight(b);
             PressOkButton();
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
@@ -280,6 +280,7 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
         }
         void Up() {
+            if (_dr.GetElementsCount("//a[text()='Купить']") > 0) return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
                 _dr.ButtonClick("//a[contains(@class,'doProlong')]");
                 _dr.ButtonClick("//a[@data-applier='recoverBulletin']");
@@ -385,7 +386,7 @@ namespace Selen.Sites {
                 ((item.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
 
                     && DateTime.Now.Minute < 50 //ограничитель периода
-                    && _bus[i].price > 500
+                    //&& _bus[i].price > 500
 
                 ) ||
                 !item.description.Contains("далено") && _bus[i].amount <= 0 ||

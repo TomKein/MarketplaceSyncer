@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -11,6 +13,27 @@ using Selen.Tools;
 namespace Selen.Sites {
     class YoulaXml {
         string filename = @"..\youla.xml";
+
+        string satomUrl = "https://автотехношик.рф/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
+        string satomFile = @"..\satom_import.xml";
+        XDocument satomYML;
+
+        public YoulaXml() { 
+            //загружаю yml с satom: если файлу больше 6 часов - запрашиваю новый
+            if(File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) < DateTime.Now) {
+                satomYML=XDocument.Load(satomFile);
+            } else {
+                satomYML = XDocument.Load(satomUrl);
+                //byte[] data;
+                //using (WebClient webClient = new WebClient())
+                //    data = webClient.DownloadData(satomUrl);
+                
+                //string str = Encoding.GetEncoding("utf8").GetString(data);
+                //satomYML = XDocument.Parse(str);
+                satomYML.Save(satomFile);
+            }
+        }
+        
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             //количество объявлений в тарифе
