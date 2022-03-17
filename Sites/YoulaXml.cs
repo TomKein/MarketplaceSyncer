@@ -30,7 +30,22 @@ namespace Selen.Sites {
             }
             satomYML = XDocument.Load(satomFile);
         }
-        
+        //получаю прямые ссылки на фото из каталога сатом
+        List<string> GetSatomPhotos(RootObject b) {
+            var list = new List<string>();
+            //проверка каталога xml
+            if (satomYML.Root.Name != "yml_catalog")
+                throw new Exception("GetSatomPhotos: ошибка каталога! - корневой элемент yml_catalog не найден");
+            //ищем товар в каталоге
+            var offer = satomYML.Elements("offer")?
+                .First(w => w.Element("vendorCode").Value == b.id);
+            //получаем фото
+            if (offer != null)
+                list = offer.Elements("picture").Select(s => s.Value).ToList();
+            return list;
+        }
+
+
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             //количество объявлений в тарифе
@@ -70,10 +85,12 @@ namespace Selen.Sites {
                     offer.Add(new XElement("phone", "8 920 899-45-45"));
                     //наименование
                     offer.Add(new XElement("name", b.NameLength(100)));
-                    //изображения - пока только первое
-                    offer.Add(new XElement("picture", b.images.First().url));
+                    //изображения
+                    foreach (var photo in GetSatomPhotos(b)) {
+                        offer.Add(new XElement("picture", photo));
+                    }
                     //описание
-                    offer.Add(new XElement("description", b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1+"\r\n"+a2)));
+                    offer.Add(new XElement("description", "<![CDATA[" + b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1+"\r\n"+a2)+ "]]>"));
                     //имя менеджера
                     offer.Add(new XElement("managerName", "Менеджер 1"));
                     //добавляю элемент offer в контейнер offers
