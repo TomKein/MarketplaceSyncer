@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -14,24 +13,22 @@ namespace Selen.Sites {
     class YoulaXml {
         string filename = @"..\youla.xml";
 
-        string satomUrl = "https://автотехношик.рф/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
+        string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
         string satomFile = @"..\satom_import.xml";
         XDocument satomYML;
 
-        public YoulaXml() { 
-            //загружаю yml с satom: если файлу больше 6 часов - запрашиваю новый
-            if(File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) < DateTime.Now) {
-                satomYML=XDocument.Load(satomFile);
-            } else {
-                satomYML = XDocument.Load(satomUrl);
-                //byte[] data;
-                //using (WebClient webClient = new WebClient())
-                //    data = webClient.DownloadData(satomUrl);
-                
-                //string str = Encoding.GetEncoding("utf8").GetString(data);
-                //satomYML = XDocument.Parse(str);
-                satomYML.Save(satomFile);
+        public YoulaXml() {
+            //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
+            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) > DateTime.Now) {
+                try {
+                    satomYML = XDocument.Load(satomUrl);
+                    satomYML.Save(satomFile);
+                    return;
+                } catch (Exception x) {
+                    Log.Add("YoulaXml: ошибка запроса xml с satom.ru - " + x.Message);
+                }
             }
+            satomYML = XDocument.Load(satomFile);
         }
         
         //генерация xml
