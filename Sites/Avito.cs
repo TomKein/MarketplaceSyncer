@@ -761,7 +761,7 @@ namespace Selen.Sites {
                     Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
                 //ссылки на карточки без остатков с фото и ссылкой на авито, которые нужно проверить на живучесть
                 var urls = _bus.Where(w => w.amount<=0 &&w.images.Count>0 && w.avito.Contains("http")).ToList();
-                Log.Add("avito.ru: ссылок для проверки "+urls.Count+"\n"+urls.Select(s=>s.name).Aggregate((a1,a2)=>a1+"\n"+a2)+"=========\n");
+                Log.Add("avito.ru: ссылок для проверки "+urls.Count/*+"\n"+urls.Select(s=>s.name).Aggregate((a1,a2)=>a1+"\n"+a2)+"=========\n"*/);
                 //перебираю ссылки
                 for (int b = 0; b<urls.Count; b++) {
                     var err = false;

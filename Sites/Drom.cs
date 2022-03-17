@@ -100,17 +100,16 @@ namespace Selen.Sites {
             });
         }
 
-        void Edit(RootObject b) { //TODO убрать каменты
+        void Edit(RootObject b) {
             _dr.Navigate(b.drom);
-            //SetTitle(b);          <<<<<<<<<
+            SetTitle(b);
             CheckPhotos(b);
-            //SetDesc(b);           <<<<<<<<<
+            SetDesc(b);
             SetPrice(b);
-            //SetPart(b);           <<<<<<<<<
+            SetPart(b);
             //SetWeight(b);
             PressOkButton();
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
-            //Thread.Sleep(2000);
             if (b.amount <= 0) {
                 Delete();
             } else Up();

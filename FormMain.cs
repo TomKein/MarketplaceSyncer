@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.80.3";
+        string _version = "1.81.1";
 
         DB _db = new DB();
 
@@ -216,7 +216,7 @@ namespace Selen {
             if (DateTime.Now.Hour < await _db.GetParamIntAsync("syncStartHour")) return;
             if (DateTime.Now.Hour >= await _db.GetParamIntAsync("syncStopHour")) return;
             if (await _db.GetParamBoolAsync("useLiteSync")) await GoLiteSync();
-            if (DateTime.Now.AddHours(-6) > dateTimePicker1.Value) button_BaseGet.PerformClick();
+            if (DateTime.Now.AddHours(-6) > dateTimePicker1.Value || base_rescan_need) button_BaseGet.PerformClick();
         }
         //оптимизированная синхронизации - запрос только последних изменений
         async Task GoLiteSync() {
@@ -348,37 +348,10 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(70) < DateTime.Now)) {
-                    button_Avito.PerformClick();
-                    await AddPartNumsAsync();//добавление артикулов из описания
-                    await CheckArhiveStatusAsync();//проверка архивного статуса
-                    await Task.Delay(60000);
-                    button_Drom.PerformClick();
-                    await Task.Delay(60000);
-                    button_Kupiprodai.PerformClick();
-                    await Task.Delay(60000);
-                    button_Gde.PerformClick();
-                    await Task.Delay(60000);
-                    button_Satom.PerformClick();
-                    await Task.Delay(60000);
-                    button_EuroAuto.PerformClick();
-                    await Task.Delay(60000);
-                    //button_Izap24.PerformClick();
-                    await Task.Delay(60);
-                    button_Vk.PerformClick();
-                    await Task.Delay(60000);
-                    button_Youla.PerformClick();
-                    //нужно подождать конца обновлений объявлений
-                    await WaitButtonsActiveAsync();
-                    button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
-                    //проверка задвоенности наименований карточек товаров
-                    await CheckDublesAsync();//проверка дублей
-                    await CheckMultipleApostropheAsync();//проверка лишних аппострофов
-                    if (await _db.GetParamBoolAsync("articlesClear")) await ArtCheckAsync();//чистка артикулов от лишних символов
-                    await GroupsMoveAsync();//проверка групп
-                    await PhotoClearAsync();//очистка ненужных фото
-                    dateTimePicker1.Value = sync_start;
+                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
                     await SaveBusAsync();
+                    await SyncAllAsync();
+                    dateTimePicker1.Value = sync_start;
                 }
                 Log.Add("business.ru: цикл синхронизации завершен");
                 base_can_rescan = true;
@@ -392,6 +365,39 @@ namespace Selen {
             }
             ChangeStatus(button_BaseGet, ButtonStates.Active);
         }
+        //цепочка обработок
+        private async Task SyncAllAsync() {
+            button_Avito.PerformClick();
+            await AddPartNumsAsync();//добавление артикулов из описания
+            await CheckArhiveStatusAsync();//проверка архивного статуса
+            await Task.Delay(60000);
+            button_Satom.PerformClick();
+            await Task.Delay(60000);
+            button_Vk.PerformClick();
+            await Task.Delay(60000);
+            button_Youla.PerformClick();
+            await Task.Delay(60000);
+            button_Gde.PerformClick();
+            await Task.Delay(60000);
+            button_Kupiprodai.PerformClick();
+            await Task.Delay(60000);
+            button_Drom.PerformClick();
+            //button_EuroAuto.PerformClick();
+            //await Task.Delay(60000);
+            //button_Izap24.PerformClick();
+            //await Task.Delay(60);
+            //нужно подождать конца обновлений объявлений
+            await WaitButtonsActiveAsync();
+            button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
+                                                    //проверка задвоенности наименований карточек товаров
+            await CheckDublesAsync();//проверка дублей
+            await CheckMultipleApostropheAsync();//проверка лишних аппострофов
+            if (await _db.GetParamBoolAsync("articlesClear"))
+                await ArtCheckAsync();//чистка артикулов от лишних символов
+            await GroupsMoveAsync();//проверка групп
+            await PhotoClearAsync();//очистка ненужных фото
+        }
+
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -404,28 +410,11 @@ namespace Selen {
             var tlog = bus.Count + "/" + bus.Count(c => c.images.Count > 0 && c.amount > 0 && c.price > 0);
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog);
             label_Bus.Text = tlog;
-            await AddPartNumsAsync();
             await SaveBusAsync();
-            base_rescan_need = false;
-            //запуск браузеров
-            button_Avito.PerformClick();
-            await Task.Delay(60000);
-            button_Drom.PerformClick();
-            await Task.Delay(60000);
-            button_Kupiprodai.PerformClick();
-            await Task.Delay(60000);
-            button_Vk.PerformClick();
-            await Task.Delay(60000);
-            button_Gde.PerformClick();
-            await Task.Delay(60000);
-            button_EuroAuto.PerformClick();
-            await Task.Delay(60000);
-            //button_Izap24.PerformClick();
-            await Task.Delay(60);
-            button_Youla.PerformClick();
-            await WaitButtonsActiveAsync();
+            await SyncAllAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
             dateTimePicker1.Value = sync_start;
+            base_rescan_need = false;
             base_can_rescan = true;
             ChangeStatus(sender, ButtonStates.Active);
         }
