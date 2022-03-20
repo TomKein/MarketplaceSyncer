@@ -24,6 +24,7 @@ namespace Selen.Sites {
         int _delay;
         int _priceLevel;
         bool _editAfterUp;
+        DateTime _startTime;
 
         public int CountToUp { get; set; }
         public int AddCount { get; set; }
@@ -38,6 +39,7 @@ namespace Selen.Sites {
         //главный цикл синхронизации
         public async Task StartAsync(List<RootObject> bus) {
             Log.Add("avito.ru: начало выгрузки...");
+            _startTime = DateTime.Now;
             GetParams(bus);//            await GenerateXml();
             await AuthAsync();
             await AddAsync();
@@ -177,7 +179,7 @@ namespace Selen.Sites {
                     SetDesc(b);
                     CheckPhotos(b);
                     SetPrice(b);
-                    SetGeo(b);
+                    //SetGeo(b);
                     PressOk();
                 });
             }
@@ -320,7 +322,7 @@ namespace Selen.Sites {
                         SetPrice(b);
                         SetAddress();
                         SetPhone();
-                        SetGeo(b);
+                        //SetGeo(b);
                         PressOk();
                     });
                     try {
@@ -487,8 +489,9 @@ namespace Selen.Sites {
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
             try {
-                if (DateTime.Now.Minute > 50)
-                    return; //ограничитель периода
+                //ограничитель периода в 50 минут
+                if (DateTime.Now > _startTime.AddMinutes(50))
+                    return; 
                 //перехожу в раздел
                 var url = "https://avito.ru/profile/items" + location + "/rossiya?p=" + numPage;
                 if (DateTime.Now.Second % 2 == 0)
@@ -764,23 +767,26 @@ namespace Selen.Sites {
                 Log.Add("avito.ru: ссылок для проверки "+urls.Count);
                 //перебираю ссылки
                 for (; checkUrlsCount > 0; checkUrlsCount--) {
+                    //индекс ссылки для проверки
                     int b = _rnd.Next(urls.Count);
+                    //индекс карточки в бизнес.ру
+                    var i = _bus.FindIndex(f => f == urls[b]);
                     var err = false;
                     try {
-                        _dr.Navigate(_bus[b].avito, ".title-info-title");
+                        _dr.Navigate(urls[b].avito, ".title-info-title");
                         if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0)
                             err=true;
                     } catch (Exception x) {
                         err=true;
                     }
-                    if (err) SaveUrlAsync(b, deleteUrl: true);
+                    if (err) {
+                        SaveUrlAsync(i, deleteUrl: true);
+                        continue; }
                     //проверяю фотографии в объявлении
-                    CheckPhotos(b);
+                    CheckPhotos(i);
                 }
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка при проверке ссылок - " + x.Message);
-                if (x.Message.Contains("timed out"))
-                    throw;
             }
         });
         //указываю тип товара

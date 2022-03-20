@@ -122,22 +122,26 @@ namespace Selen.Sites {
         }
         //редактирование объявления синхронно
         void EditOffer(int b) {
-            _dr.Navigate(_bus[b].kp);
-            SetTitle(b);
-            SetPrice(b);
-            SetDesc(b);
-            //проверка фото
-            var photos = _dr.FindElements("//div[@id='images']/div/span");
-            if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
-                && _bus[b].images.Count > 0) {
-                Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
-                foreach (var photo in photos) {
-                    photo.Click();
-                    Thread.Sleep(1000);
+            try {
+                _dr.Navigate(_bus[b].kp);
+                SetTitle(b);
+                SetPrice(b);
+                SetDesc(b);
+                //проверка фото
+                var photos = _dr.FindElements("//div[@id='images']/div/span");
+                if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
+                    && _bus[b].images.Count > 0) {
+                    Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
+                    foreach (var photo in photos) {
+                        photo.Click();
+                        Thread.Sleep(1000);
+                    }
+                    SetImages(b);
                 }
-                SetImages(b);
+                PressOkButton();
+            } catch (Exception x) {
+                Log.Add("kupiprodai.ru: EditOffer - " + _bus[b].name + " - ошибка обновления! - " + x.Message);
             }
-            PressOkButton();
         }
         //пишу название
         void SetTitle(int b) {
@@ -169,17 +173,16 @@ namespace Selen.Sites {
                     _bus[b].amount > 0 &&
                     _bus[b].price >= 0 &&
                     _bus[b].images.Count > 0) {
-                    var t = Task.Factory.StartNew(() => {
-                        _dr.Navigate("https://vip.kupiprodai.ru/add/");
-                        SetTitle(b);
-                        SetCategory(b);
-                        SetImages(b);
-                        SetDesc(b);
-                        SetPrice(b);
-                        PressOkButton();
-                    });
-                    try {
-                        await t;
+                    try{
+                        await Task.Factory.StartNew(() => {
+                            _dr.Navigate("https://vip.kupiprodai.ru/add/");
+                            SetTitle(b);
+                            SetCategory(b);
+                            SetImages(b);
+                            SetDesc(b);
+                            SetPrice(b);
+                            PressOkButton();
+                        });
                         //сохраняем ссылку
                         await SaveUrlAsync(b);
                         count--;

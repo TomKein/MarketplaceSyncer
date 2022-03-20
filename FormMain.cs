@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.81.1";
+        string _version = "1.81.2";
 
         DB _db = new DB();
 
@@ -367,7 +367,6 @@ namespace Selen {
         }
         //цепочка обработок
         private async Task SyncAllAsync() {
-            button_Avito.PerformClick();
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
             await Task.Delay(60000);
@@ -380,6 +379,8 @@ namespace Selen {
             button_Gde.PerformClick();
             await Task.Delay(60000);
             button_Kupiprodai.PerformClick();
+            await Task.Delay(60000);
+            button_Avito.PerformClick();
             await Task.Delay(60000);
             button_Drom.PerformClick();
             //button_EuroAuto.PerformClick();
