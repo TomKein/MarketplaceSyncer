@@ -69,7 +69,8 @@ namespace Selen.Sites {
             //создаю контейнер offers
             var offers = new XElement("offers");
             //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-            var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
+            //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
+            var bus = _bus.Where(w => w.amount > 0 && w.price > 1000 && !w.youla.Contains("http") && w.images.Count > 0);
             //для каждой карточки
             //foreach (var b in bus.Take(offersLimit)) {
             foreach (var b in bus.Take(10)) {
@@ -84,7 +85,7 @@ namespace Selen.Sites {
                         offer.Add(new XElement(item.Key, item.Value));
                     }
                     //адрес магазина
-                    //offer.Add(new XElement("adress", "Россия, Калуга, Московская улица, 331"));
+                    offer.Add(new XElement("adress", "Россия, Калуга, Московская улица, 331"));
                     //цена
                     offer.Add(new XElement("price", b.price));
                     //телефон
@@ -96,7 +97,8 @@ namespace Selen.Sites {
                         offer.Add(new XElement("picture", photo));
                     }
                     //описание
-                    offer.Add(new XElement("description", "<![CDATA[" + b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1 + "\r\n" + a2) + "]]>"));
+                    var d = b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1 + "\r\n" + a2);
+                    offer.Add(new XElement("description", new XCData(d)));
                     //имя менеджера
                     offer.Add(new XElement("managerName", "Менеджер 1"));
                     //добавляю элемент offer в контейнер offers
@@ -111,6 +113,72 @@ namespace Selen.Sites {
             shop.Add(offers);
             //добавляю shop в корневой элемент yml_catalog
             root.Add(shop);
+            //добавляю root в документ
+            xml.Add(root);
+            //сохраняю файл
+            xml.Save(filename);
+        }
+        public async Task GenerateXML_avito(List<RootObject> _bus) {
+            //количество объявлений в тарифе
+            var offersLimit = await DB._db.GetParamIntAsync("youla.offersLimit");
+            //доп. описание
+            string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
+                    await DB._db.GetParamStrAsync("youla.addDescription"));
+            //время в нужном формате
+            var dt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            //создаю новый xml
+            var xml = new XDocument();
+            //корневой элемент yml_catalog
+            var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
+            //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
+            //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
+            var bus = _bus.Where(w => w.amount > 0 && w.price > 1000 && !w.youla.Contains("http") && w.images.Count > 0);
+            //для каждой карточки
+            //foreach (var b in bus.Take(offersLimit)) {
+            foreach (var b in bus.Take(10)) {
+                try {
+                    //id объявления на юле из ссылки
+                    //var youlaId = b.youla.Split('-').Last();
+                    //элемент offer
+                    //var offer = new XElement("offer", new XAttribute("id", youlaId));
+                    var ad = new XElement("Ad");
+                    //id
+                    ad.Add(new XElement("Id", b.id));
+                    //категория товара
+                    foreach (var item in GetCategory(b)) {
+                        ad.Add(new XElement(item.Key, item.Value));
+                    }
+                    //адрес магазина
+                    ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
+                    //цена
+                    ad.Add(new XElement("Price", b.price));
+                    //телефон
+                    ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
+                    //наименование
+                    ad.Add(new XElement("Title", b.NameLength(100)));
+                    //изображения
+                    var images = new XElement("Images");
+                    foreach (var photo in GetSatomPhotos(b)) {
+                        images.Add(new XElement("Image", new XAttribute("url",photo)));
+                    }
+                    ad.Add(images);
+                    //описание
+                    var d = b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1 + "\r\n" + a2);
+                    ad.Add(new XElement("Description", new XCData(d)));
+                    //имя менеджера
+                    ad.Add(new XElement("ManagerName", "Менеджер 1"));
+                    //добавляю элемент offer в контейнер offers
+                    root.Add(ad);
+                } catch (Exception x) {
+                    Log.Add("GenerateXML: " + b.name + " - " + x.Message);
+                }
+            }
+            //добавяю время генерации
+            //offers.Add(new XElement("generation-date", dt));
+            //добавляю контейнер offers в shop
+            //shop.Add(offers);
+            //добавляю shop в корневой элемент yml_catalog
+            //root.Add(shop);
             //добавляю root в документ
             xml.Add(root);
             //сохраняю файл
@@ -493,7 +561,7 @@ namespace Selen.Sites {
             //если ничего не подошло - категория не описана, пропуск
             if (d.Count == 0) {
                 Log.Add("youla.ru: не описана категория " + b.name);
-                return d;
+                throw new Exception("не найдена категория");
             }
             //указываю главную категорию 
             d.Add("youlaCategoryId", "1");//Запчасти и автотовары
