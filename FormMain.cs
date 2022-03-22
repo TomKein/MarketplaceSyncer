@@ -59,8 +59,8 @@ namespace Selen {
         //========================
         //AVITO.RU
         async void AvitoRu_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
             if (await _db.GetParamBoolAsync("avito.syncEnable")) {
+                ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     await _avito.StartAsync(bus);
@@ -1217,9 +1217,11 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var y2 = new YoulaXml();
-                y2.GenerateXML_avito(bus);
+                //var y2 = new YoulaXml();
+                //await y2.GenerateXML_avito(bus);
 
+                var av = new AvitoXml();
+                await av.GenerateXML(bus);
                 //PhotoClearAsync();
 
 

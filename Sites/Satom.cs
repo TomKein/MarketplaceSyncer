@@ -100,7 +100,7 @@ namespace Selen.Sites {
                         ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
                     ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1+"<br>"+a2)+
-                        "<br><br><div style=\"color:#D3D3D3;font-size:5px\">код на складе:" + _bus[b].id+"</div>";
+                        "<br><br><p style=\"color:#D3D3D3;font-size:5px\">код на складе:" + _bus[b].id+"</p>";
                     //идентификатор товара
                     ws.Cell(i, 17).Value = _bus[b].id;
                     //артикул

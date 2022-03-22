@@ -145,7 +145,7 @@ namespace Selen.Sites {
                     //id
                     ad.Add(new XElement("Id", b.id));
                     //категория товара
-                    foreach (var item in GetCategory(b)) {
+                    foreach (var item in GetCategoryAvito(b)) {
                         ad.Add(new XElement(item.Key, item.Value));
                     }
                     //адрес магазина
@@ -159,7 +159,7 @@ namespace Selen.Sites {
                     //изображения
                     var images = new XElement("Images");
                     foreach (var photo in GetSatomPhotos(b)) {
-                        images.Add(new XElement("Image", new XAttribute("url",photo)));
+                        images.Add(new XElement("Image", new XAttribute("url", photo)));
                     }
                     ad.Add(images);
                     //описание
@@ -173,17 +173,178 @@ namespace Selen.Sites {
                     Log.Add("GenerateXML: " + b.name + " - " + x.Message);
                 }
             }
-            //добавяю время генерации
-            //offers.Add(new XElement("generation-date", dt));
-            //добавляю контейнер offers в shop
-            //shop.Add(offers);
-            //добавляю shop в корневой элемент yml_catalog
-            //root.Add(shop);
             //добавляю root в документ
             xml.Add(root);
             //сохраняю файл
             xml.Save(filename);
         }
+        //категории авито
+        Dictionary<string, string> GetCategoryAvito(RootObject b) {
+            var name = b.name.ToLowerInvariant();
+            var d = new Dictionary<string, string>();
+            //главная категория
+            d.Add("Category", "Запчасти и аксессуары");
+            //добавляю подкатегорию
+            if (name.Contains("магнитола") ||
+                name.StartsWith("динамик") ||
+                name.StartsWith("камера зад") ||
+                name.StartsWith("дисплей инф") ||
+                name.Contains("сабвуфер") ||
+                name.Contains("чейнджер") ||
+                name.Contains("сплиттер") ||
+                name.StartsWith("твиттер")) {
+                d.Add("TypeId", "20");                              //Аудио- и видеотехника          
+            } else if (name.Contains("докатка") ||
+                  name.StartsWith("колесо")) {
+                d.Add("TypeId", "10-045");                          //Шины, диски и колёса / Колёса
+                d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
+                d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
+                d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
+                d.Add("RimBolts", "5");                             //TODO ширина диска, пока 0, добавить определ. из описания
+                d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
+                d.Add("RimType", "Штампованные");                   //тип
+                d.Add("TireType", "Всесезонные");                   //шины
+                d.Add("TireSectionWidth", "115");                   //ширина шины
+                d.Add("TireAspectRatio", "55");                     //соотношение
+            } else if (name.StartsWith("диск") &&
+                (name.Contains("лит") || name.Contains("штам") || name.Contains(" r1"))) {
+                d.Add("TypeId", "10-046");                          //Шины, диски и колёса / Диски
+                d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
+                d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
+                d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
+                d.Add("RimBolts", "5");                             //TODO ширина диска, пока 0, добавить определ. из описания
+                d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
+                d.Add("RimType", b.DiskType());                     //тип
+            } else if (name.StartsWith("колпак")) {
+                d.Add("TypeId", "10-044");                          //Шины, диски и колёса / Колпаки
+            } else if (name.StartsWith("шины")) {
+                d.Add("TypeId", "10-048");                          //Шины, диски и колёса / Шины
+            } else if (name.StartsWith("фонар") ||
+                name.StartsWith("плафон") ||
+                name.StartsWith("корректор") ||
+                name.StartsWith("патрон") ||
+                name.StartsWith("фара") ||
+                name.StartsWith("стоп доп") ||
+                name.StartsWith("поворотник") ||
+                name.StartsWith("повторитель") ||
+                name.StartsWith("патрон повор") ||
+                name.Contains("фонар") &&
+                (name.StartsWith("плата") ||
+                name.StartsWith("провод") ||
+                name.StartsWith("патрон") ||
+                name.StartsWith("крышк")) ||
+                b.GroupName() == "Световые приборы транспорта") {
+                d.Add("TypeId", "11-618");                          //Автосвет
+            } else if (name.StartsWith("активатор") ||
+                  name.StartsWith("актуатор") ||
+                  name.StartsWith("антенн") ||
+                  name.StartsWith("бендикс") ||
+                  name.StartsWith("блок airbag") ||
+                  name.StartsWith("блок bsi") ||
+                  name.StartsWith("блок bsm") ||
+                  name.StartsWith("блок gps") ||
+                  name.StartsWith("блок srs") ||
+                  name.StartsWith("блок ант") ||
+                  name.StartsWith("блок звук") ||
+                  name.StartsWith("блок имм") ||
+                  name.StartsWith("блок кноп") ||
+                  name.StartsWith("блок комф") ||
+                  name.StartsWith("блок корр") ||
+                  name.StartsWith("блок круиз") ||
+                  name.StartsWith("блок курс") ||
+                  name.StartsWith("блок мото") ||
+                  name.StartsWith("блок парк") ||
+                  name.StartsWith("блок подрул") ||
+                  name.StartsWith("блок предох") ||
+                  name.StartsWith("блок примен") ||
+                  name.StartsWith("блок радио") ||
+                  name.StartsWith("блок раз") ||
+                  name.StartsWith("блок рег") ||
+                  name.StartsWith("блок реле") ||
+                  name.StartsWith("блок сигн") ||
+                  name.StartsWith("блок стекло") ||
+                  name.StartsWith("блок управ") ||
+                  name.StartsWith("блок усил") ||
+                  name.StartsWith("блок фильтр") ||
+                  name.StartsWith("блок центр") ||
+                  name.StartsWith("блок электр") ||
+                  name.StartsWith("блок энерго") ||
+                  name.StartsWith("вентилятор") ||
+                  name.StartsWith("втягивающ") ||
+                  name.StartsWith("выключател") ||
+                  name.StartsWith("гнездо") ||
+                  name.StartsWith("датчик") ||
+                  name.StartsWith("джойстик") ||
+                  name.StartsWith("диагностич") ||
+                  name.StartsWith("диодный") ||
+                  name.StartsWith("дисплей") ||
+                  name.StartsWith("дмрв") ||
+                  name.StartsWith("замок заж") ||
+                  name.StartsWith("замок рул") ||
+                  name.StartsWith("зуммер") ||
+                  name.StartsWith("иммобилай") ||
+                  name.StartsWith("индикато") ||
+                  name.StartsWith("интерфей") ||
+                  name.StartsWith("катушка заж") ||
+                  name.StartsWith("клакс") ||
+                  name.StartsWith("клапан") ||
+                  name.StartsWith("клемм") ||
+                  name.StartsWith("кнопк") ||
+                  name.StartsWith("коммутат") ||
+                  name.StartsWith("комплект иммоб") ||
+                  name.StartsWith("комплект эбу") ||
+                  name.StartsWith("корпус блока предохр") ||
+                  name.StartsWith("корпус перекл") ||
+                  name.StartsWith("корпус плоск") ||
+                  name.StartsWith("корпус подрул") ||
+                  name.StartsWith("корпус трамб") ||
+                  name.StartsWith("круиз") ||
+                  name.StartsWith("лямбда") ||
+                  name.StartsWith("модуль") ||
+                  name.StartsWith("мотор вент") ||
+                  name.StartsWith("мотор зад") ||
+                  name.StartsWith("мотор засл") ||
+                  name.StartsWith("мотор отоп") ||
+                  name.StartsWith("мотор пода") ||
+                  name.StartsWith("мотор стекло") ||
+                  name.StartsWith("моторчик") ||
+                  name.StartsWith("насос бачка") ||
+                  name.StartsWith("насос возд") ||
+                  name.StartsWith("насос омыв") ||
+                  name.StartsWith("панель приб") ||
+                  name.StartsWith("переключател") ||
+                  name.StartsWith("подушка безопасности") ||
+                  name.StartsWith("предохранит") ||
+                  name.StartsWith("привод центр") ||
+                  name.StartsWith("прикуриват") ||
+                  name.StartsWith("провод") ||
+                  name.StartsWith("разъем") ||
+                  name.StartsWith("распределитель зажиг") ||
+                  name.StartsWith("расходомер") ||
+                  name.StartsWith("регулятор") ||
+                  name.StartsWith("резистор") ||
+                  name.StartsWith("реле") ||
+                  name.StartsWith("розетка") ||
+                  name.StartsWith("сигнал") ||
+                  name.StartsWith("трамблер") ||
+                  name.StartsWith("усилитель am") ||
+                  name.StartsWith("усилитель ан") ||
+                  name.StartsWith("фишка") ||
+                  name.StartsWith("шлейф") ||
+                  name.StartsWith("эбу") ||
+                  b.GroupName() == "Электрика, зажигание") {
+                d.Add("TypeId", "11-630");                          //Электрооборудование
+            } else if (name.StartsWith("генератор") ||
+                  name.StartsWith("стартер")) {
+                d.Add("TypeId", "16-829");                          //Запчасти / Для автомобилей / Двигатель / Генераторы, стартеры
+            
+            
+            
+            } 
+            //else d.Add("TypeId", "11-621");//Запчасти для ТО
+            return d;
+        }
+
         //категория на юле
         Dictionary<string, string> GetCategory(RootObject b) {
             var name = b.name.ToLowerInvariant();
@@ -584,31 +745,49 @@ namespace Selen.Sites {
         //диаметр диска для выгрузки
         string GetDiskDiam(RootObject b) {
             switch (b.GetDiskSize()) {
-                case "13":return "11500";
-                case "14":return "11501";
-                case "15":return "11502";
-                case "15.5":return "11504";
-                case "16":return "11505";
-                case "16.5":return "11506";
-                case "17":return "11507";
-                case "17.5":return "11508";
-                case "18":return "11509";
-                case "19":return "11510";
-                case "19.5":return "11511";
-                case "20":return "11512";
-                case "21":return "11513";
-                case "22":return "11514";
-                case "23":return "11516";
-            default:
-                   return "11501";
+                case "13":
+                    return "11500";
+                case "14":
+                    return "11501";
+                case "15":
+                    return "11502";
+                case "15.5":
+                    return "11504";
+                case "16":
+                    return "11505";
+                case "16.5":
+                    return "11506";
+                case "17":
+                    return "11507";
+                case "17.5":
+                    return "11508";
+                case "18":
+                    return "11509";
+                case "19":
+                    return "11510";
+                case "19.5":
+                    return "11511";
+                case "20":
+                    return "11512";
+                case "21":
+                    return "11513";
+                case "22":
+                    return "11514";
+                case "23":
+                    return "11516";
+                default:
+                    return "11501";
             }
         }
         //количество отверстий в дисках
         string GetNumHoles(RootObject b) {
             switch (b.GetNumberOfHoles()) {
-                case "4":return "11804";
-                case "5":return "11805";
-                case "6":return "11806";
+                case "4":
+                    return "11804";
+                case "5":
+                    return "11805";
+                case "6":
+                    return "11806";
                 default:
                     return "11804";
             }
@@ -616,16 +795,26 @@ namespace Selen.Sites {
         //расположение отверстий
         string GetDiameterOfHoles(RootObject b) {
             switch (b.GetDiameterOfHoles()) {
-                case "98":return "11810";
-                case "100":return "11811";
-                case "105":return "11812";
-                case "108":return "11813";
-                case "110":return "11814";
-                case "112":return "11815";
-                case "114.3":return "11816";
-                case "115":return "11817";
-                case "118":return "11818";
-                case "120":return "11819";
+                case "98":
+                    return "11810";
+                case "100":
+                    return "11811";
+                case "105":
+                    return "11812";
+                case "108":
+                    return "11813";
+                case "110":
+                    return "11814";
+                case "112":
+                    return "11815";
+                case "114.3":
+                    return "11816";
+                case "115":
+                    return "11817";
+                case "118":
+                    return "11818";
+                case "120":
+                    return "11819";
                 default:
                     return "11811";
             }
@@ -633,18 +822,3 @@ namespace Selen.Sites {
 
     }
 }
-
-//    Общая структура XML-файла:
-
-//<? xml version="1.0" encoding="UTF-8"?>
-//<yml_catalog date = "2017-02-05 17:22" >
-//  < shop >
-//    < offers >
-//       < offer id="">
-//       ...
-//       </offer>
-//       ...     
-//    </offers>
-//   </shop>
-//</yml_catalog>
-

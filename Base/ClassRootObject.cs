@@ -263,9 +263,9 @@ namespace Selen
 
         public string DiskType() {
             var n = name.ToLower();
-            return n.Contains("штамп") ? "Штамповка"
-                                       : n.Contains("кован") ? "Кованый"
-                                                             : "Литой";
+            return n.Contains("штамп") ? "Штампованные"
+                                       : n.Contains("кован") ? "Кованые"
+                                                             : "Литые";
         }
 
         public string GetNumber() {
