@@ -139,7 +139,8 @@ namespace Selen.Sites {
             //if (cnt == 0)  return;
             //список карточек с ссылкой на юлу, отсортированный с самых старых
             var buschk = _bus.Where(w => w.youla.Contains("http"))
-                .OrderBy(o => DateTime.Parse(o.updated))
+                //.OrderBy(o => DateTime.Parse(o.updated))
+                .OrderBy(o => _rnd.Next())
                 .ToList();
             Log.Add("youla.ru: карточек с ссылкой: " + buschk.Count);
             foreach (var b in buschk) {

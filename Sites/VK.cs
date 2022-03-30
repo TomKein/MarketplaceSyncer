@@ -278,6 +278,8 @@ namespace Selen.Sites {
             } catch (Exception ex) {
                 throw ex;
             }
+            if (vkAlb.Count == 0)
+                throw new Exception("vk.com: ошибка - группы не получены");
             f = false;
             //проверяем только группы бу запчасти
             foreach (var group in RootObject.Groups.Where(w => w.parent_id == "205352").Select(s => s.name)) {
