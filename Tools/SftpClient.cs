@@ -34,18 +34,20 @@ namespace Selen.Base {
             }
         }
         //выгрузка FTP
-        private static async Task FtpUploadAsync(string fname) {
+        public static async Task FtpUploadAsync(string fname) {
             System.Net.WebClient ftp = new System.Net.WebClient();
-            ftp.Credentials = new NetworkCredential("forVano", "$drum122"); 
+            ftp.Credentials = new NetworkCredential("u1633438", "HIJv3W71Xmftd61D"); 
             for (int f = 1; f <= 5; f++) {
                 try {
                     await Task.Factory.StartNew(() => {
-                        ftp.UploadFile(new Uri("ftp://31.31.196.233:21/" + fname), "STOR", fname);
-                    }); ;
+                        ftp.UploadFile(new Uri("ftp://31.31.198.99:21/www/avtotehnoshik.tk/" 
+                            + (fname.Contains("\\")? fname.Split('\\').Last():fname)), "STOR", fname);
+                    });
                     Log.Add("SftpClient: "+fname+" - успешно отправлен!");
                     break;
                 } catch (Exception ex) {
-                    Log.Add("SftpClient: " + fname + " - ошибка отправки FTP (" + f + ") - " + ex.Message);
+                    Log.Add("SftpClient: " + fname + " - ошибка отправки FTP (" + f + ") - " 
+                        + ex.Message);
                     await Task.Delay(60000);
                 }
             }

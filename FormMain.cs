@@ -59,11 +59,13 @@ namespace Selen {
         //========================
         //AVITO.RU
         async void AvitoRu_Click(object sender, EventArgs e) {
-            if (await _db.GetParamBoolAsync("avito.syncEnable")) {
+            //if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                    await _avito.StartAsync(bus);
+                var av = new AvitoXml();
+                await av.GenerateXML(bus);
+                //await _avito.StartAsync(bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
@@ -78,7 +80,7 @@ namespace Selen {
                     } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
 
                 }
-            }
+            //}
         }
         //VK.COM
         async void VkCom_Click(object sender, EventArgs e) {
@@ -198,6 +200,8 @@ namespace Selen {
             while (base_rescan_need || bus.Count == 0) await Task.Delay(30000);
             if (await _youla.StartAsync(bus)) {
                 label_Youla.Text = bus.Count(c => c.youla != null && c.youla.Contains("http")).ToString();
+                var youlaXml = new YoulaXml();
+                await youlaXml.GenerateXML_avito(bus);
                 ChangeStatus(sender, ButtonStates.Active);
             } else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -348,7 +352,7 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
+                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 50 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
                     await SaveBusAsync();
                     await SyncAllAsync();
                     dateTimePicker1.Value = sync_start;
@@ -369,6 +373,7 @@ namespace Selen {
         private async Task SyncAllAsync() {
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
+            button_Avito.PerformClick();
             await Task.Delay(60000);
             button_Satom.PerformClick();
             await Task.Delay(60000);
@@ -380,9 +385,8 @@ namespace Selen {
             await Task.Delay(60000);
             button_Kupiprodai.PerformClick();
             await Task.Delay(60000);
-            button_Avito.PerformClick();
-            await Task.Delay(60000);
             button_Drom.PerformClick();
+            await Task.Delay(60000);
             //button_EuroAuto.PerformClick();
             //await Task.Delay(60000);
             //button_Izap24.PerformClick();
@@ -1217,11 +1221,9 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                //var y2 = new YoulaXml();
-                //await y2.GenerateXML_avito(bus);
+                await SftpClient.FtpUploadAsync("auto.json");
 
-                var av = new AvitoXml();
-                await av.GenerateXML(bus);
+
                 //PhotoClearAsync();
 
 

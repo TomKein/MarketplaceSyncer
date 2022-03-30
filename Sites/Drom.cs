@@ -55,7 +55,7 @@ namespace Selen.Sites {
             //сохраняю список товаров
             _bus = bus;
             //получаю номер ссылки в карточке
-            _url = _db.GetParamStr("drom.url");
+            _url = await _db.GetParamStrAsync("drom.url");
             //дополнительное описание
             _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
             Log.Add("drom.ru: начало выгрузки...");

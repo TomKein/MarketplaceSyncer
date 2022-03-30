@@ -42,13 +42,37 @@ namespace Selen.Sites {
             _startTime = DateTime.Now;
             GetParams(bus);//            await GenerateXml();
             await AuthAsync();
-            await AddAsync();
-            await EditAllAsync();
-            await AvitoUpAsync();
-            await RemoveDraftAsync();
-            await CheckUrlsAsync();
+
+            await UpAsync();
+
+//            await AddAsync();
+//            await EditAllAsync();
+            //await AvitoUpAsync();
+
+//            await RemoveDraftAsync();
+//            await CheckUrlsAsync();
             Log.Add("avito.ru: выгрузка завершена");
         }
+
+        async Task UpAsync() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    while (true) {
+                        _dr.Navigate("https://www.avito.ru/profile/items/inactive/rossiya");
+                        var items = _dr.FindElements("//a[contains(@href,'pay_fee?item_id=')]").Select(s=>s.GetAttribute("href")).ToList();
+                        if (items.Count == 0)
+                            return;
+                        foreach (var item in items) {
+                            _dr.Navigate(item);
+                            _dr.ButtonClick("//button[@type='submit']/span[text()='Активировать']/..", 5000);
+                        }
+                    }
+                });
+            } catch (Exception x) {
+                Log.Add("ошибка активации - "+x.Message);
+            }
+        }
+
         //загружаю параметры
         private void GetParams(List<RootObject> bus) {
             _bus = bus;

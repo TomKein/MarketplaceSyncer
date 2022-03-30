@@ -63,21 +63,27 @@ namespace Selen.Sites {
         }
         //авторизация
         async Task AuthAsync() {
-            await Task.Factory.StartNew(() => {
-                if (_dr == null) {
-                    _dr = new Selenium();
-                    LoadCookies();
-                }
-                _dr.Navigate("https://kupiprodai.ru/login");
-                if (_dr.GetElementsCount("//span[@id='nickname']") == 0) {
-                    _dr.WriteToSelector("//input[@name='login']", _db.GetParamStr("kupiprodai.login"));
-                    _dr.WriteToSelector("//input[@name='pass']", _db.GetParamStr("kupiprodai.password"));
-                    _dr.ButtonClick("//input[@value='Войти']");
-                    //если в кабинет не попали - ждем ручной вход
-                    while (_dr.GetElementsCount("//span[@id='nickname']") == 0) Thread.Sleep(30000);
-                }
-                SaveCookies();
-            });
+            try {
+                await Task.Factory.StartNew(() => {
+                    if (_dr == null) {
+                        _dr = new Selenium();
+                        LoadCookies();
+                    }
+                    _dr.Navigate("https://kupiprodai.ru/login");
+                    if (_dr.GetElementsCount("//span[@id='nickname']") == 0) {
+                        _dr.WriteToSelector("//input[@name='login']", _db.GetParamStr("kupiprodai.login"));
+                        _dr.WriteToSelector("//input[@name='pass']", _db.GetParamStr("kupiprodai.password"));
+                        _dr.ButtonClick("//input[@value='Войти']");
+                        //если в кабинет не попали - ждем ручной вход
+                        while (_dr.GetElementsCount("//span[@id='nickname']") == 0)
+                            Thread.Sleep(30000);
+                    }
+                    SaveCookies();
+                });
+            } catch {
+                Log.Add("kupiprodai.ru: ошибка авторизации!");
+                throw;
+            }
         }
         //обновление объявлений
         async Task EditAsync() {
@@ -284,7 +290,7 @@ namespace Selen.Sites {
             var ElementString = _dr.GetElementText("//*[@id='tag_act']/*");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
-            var checkPagesProcent = _db.GetParamInt("kupiprodai.checkPagesProcent");
+            var checkPagesProcent = await _db.GetParamIntAsync("kupiprodai.checkPagesProcent");
             for (int i = 0; i < pageCount; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) >= checkPagesProcent) continue;

@@ -13,8 +13,9 @@ namespace Selen.Sites {
     internal class AvitoXml {
 
         string filename = @"..\avito.xml";
-
-        string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
+        string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
+        //string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
+        //"https://автотехношик.рф/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save"
         string satomFile = @"..\satom_import.xml";
         XDocument satomYML;
 
@@ -23,10 +24,11 @@ namespace Selen.Sites {
             if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) < DateTime.Now) {
                 try {
                     satomYML = XDocument.Load(satomUrl);
-                    if (satomYML.Nodes().Count() > 10000) 
-                        satomYML.Save(satomFile);
-                    else throw new Exception("мало элементов");
-                    return;
+                    if (satomYML.Descendants("offer").Count() > 10000)
+                        satomYML.Save(satomFile + "_");
+                    else
+                        throw new Exception("мало элементов");
+                    //return;
                 } catch (Exception x) {
                     Log.Add("YoulaXml: ошибка запроса xml с satom.ru - " + x.Message);
                 }
@@ -44,11 +46,14 @@ namespace Selen.Sites {
                 .First(w => w.Element("description").Value.Split(':').Last()
                              .Split('<').First().Trim() == b.id);
             //получаем фото
-            if (offer == null)
+            if (offer == null) {
+                if (b.amount < 0)
+                    return new List<string>();
                 throw new Exception("GetSatomPhotos: оффер не найден в каталоге satom");
+            }
             list = offer.Elements("picture").Select(s => s.Value).ToList();
             //проверка наличия фото
-            if (list.Count == 0)
+            if (list.Count == 0 && b.amount>0)
                 throw new Exception("GetSatomPhotos: фото не найдены в каталоге satom");
             return list;
         }
@@ -56,62 +61,78 @@ namespace Selen.Sites {
 
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
-            //количество объявлений в тарифе
-            var offersLimit = await DB._db.GetParamIntAsync("avito.offersLimit");
-            //доп. описание
-            string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    await DB._db.GetParamStrAsync("avito.addDescription"));
-            string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
-                    await DB._db.GetParamStrAsync("avito.addDescription2"));
-            //создаю новый xml
-            var xml = new XDocument();
-            //корневой элемент yml_catalog
-            var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
-            //список карточек с положительным остатком и ценой, у которых есть фотографии
-            //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
-            var bus = _bus.Where(w => w.amount > 0 && w.price > 500 && !w.youla.Contains("http") && w.images.Count > 0);
-            //для каждой карточки
-            foreach (var b in bus.Take(offersLimit)) {
-                try {
-                    var ad = new XElement("Ad");
-                    //id
-                    ad.Add(new XElement("Id", b.id));
-                    //категория товара
-                    foreach (var item in GetCategoryAvito(b)) {
-                        ad.Add(new XElement(item.Key, item.Value));
-                    }
-                    //адрес магазина
-                    ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
-                    //цена
-                    ad.Add(new XElement("Price", b.price));
-                    //телефон
-                    ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
-                    //наименование
-                    ad.Add(new XElement("Title", b.NameLength(100)));
-                    //изображения
-                    var images = new XElement("Images");
-                    foreach (var photo in GetSatomPhotos(b)) {
-                        images.Add(new XElement("Image", new XAttribute("url", photo)));
-                    }
-                    ad.Add(images);
-                    //описание
-                    var d = b.DescriptionList(2990, _addDesc);
-                    d.AddRange(_addDesc2);
-                    ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
-                    //имя менеджера
-                    ad.Add(new XElement("ManagerName", "Менеджер 1"));
-                    //добавляю элемент offer в контейнер offers
-                    ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
+            await Task.Factory.StartNew(() => {
+                //количество объявлений в тарифе
+                var offersLimit = DB._db.GetParamInt("avito.offersLimit");
+                //ценовой порог
+                var priceLevel = DB._db.GetParamInt("avito.priceLevel");
+                //доп. описание
+                string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
+                    DB._db.GetParamStr("avito.addDescription"));
+                string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
+                        DB._db.GetParamStr("avito.addDescription2"));
+                //создаю новый xml
+                var xml = new XDocument();
+                //корневой элемент yml_catalog
+                var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
+                //список карточек с положительным остатком и ценой, у которых есть фотографии
+                var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
+                && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now));
+                Log.Add("найдено " + bus.Count() + " потенциальных объявлений");
+                //для каждой карточки
+                foreach (var b in bus) {
+                    try {
+                        var ad = new XElement("Ad");
+                        //id
+                        ad.Add(new XElement("Id", b.id));
+                        //категория товара
+                        foreach (var item in GetCategoryAvito(b)) {
+                            ad.Add(new XElement(item.Key, item.Value));
+                        }
+                        //изображения
+                        var images = new XElement("Images");
+                        foreach (var photo in GetSatomPhotos(b)) {
+                            images.Add(new XElement("Image", new XAttribute("url", photo)));
+                        }
+                        ad.Add(images);
+                        //если надо снять
+                        if (b.amount <= 0) {
+                            ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
+                        }
+                        //адрес магазина
+                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
+                        //цена
+                        ad.Add(new XElement("Price", b.price));
+                        //телефон
+                        ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
+                        //наименование
+                        ad.Add(new XElement("Title", b.NameLength(100)));
+                        //описание
+                        var d = b.DescriptionList(2990, _addDesc);
+                        d.AddRange(_addDesc2);
+                        ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
+                        //имя менеджера
+                        ad.Add(new XElement("ManagerName", "Менеджер 1"));
+                        //добавляю элемент offer в контейнер offers
+                        ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
 
-                    root.Add(ad);
-                } catch (Exception x) {
-                    Log.Add("GenerateXML: " + b.name + " - " + x.Message);
+                        root.Add(ad);
+                        if (--offersLimit == -1000)
+                            break;
+                    } catch (Exception x) {
+                        Log.Add("GenerateXML: " + offersLimit + " - " + b.name + " - " + x.Message);
+                    }
                 }
-            }
-            //добавляю root в документ
-            xml.Add(root);
-            //сохраняю файл
-            xml.Save(filename);
+                Log.Add("выгружено " + (8000 - offersLimit));
+                //добавляю root в документ
+                xml.Add(root);
+                //сохраняю файл
+                xml.Save(filename);
+            });
+            //если размер файла в порядке
+            if(new FileInfo(filename).Length > 26000000)
+            //отправляю файл на сервер
+            await SftpClient.FtpUploadAsync(filename);
         }
         //категории авито
         Dictionary<string, string> GetCategoryAvito(RootObject b) {
@@ -168,13 +189,13 @@ namespace Selen.Sites {
                 (name.StartsWith("шкив") || name.Contains("трубк") || name.Contains("шланг")) && name.Contains("гур") ||
                 name.StartsWith("крышка бачка гур") ||
                 name.StartsWith("карданчик рул") ||
-                name.Contains("кардан")&&name.Contains("рул") ||
+                name.Contains("кардан") && name.Contains("рул") ||
                 name.StartsWith("вал рул") ||
                 name.StartsWith("колонка рулевая") ||
                 name.StartsWith("рулевой вал") ||
                 name.StartsWith("рулевой ред") ||
                 name.StartsWith("рулевая колонка") ||
-                name.Contains("рулевая")&&name.Contains("тяга") ||
+                name.Contains("рулевая") && name.Contains("тяга") ||
                 name.StartsWith("руль ") ||
                 name.StartsWith("радиатор гур")) {
                 d.Add("TypeId", "11-624");                              //Рулевое управление
@@ -239,7 +260,7 @@ namespace Selen.Sites {
                 name.StartsWith("лючок бензобака") ||
                 name.StartsWith("панель передняя") ||
                 name.StartsWith("задняя панель") ||
-                name.StartsWith("рамка")&&name.Contains("двери") ||
+                name.StartsWith("рамка") && name.Contains("двери") ||
                 name.StartsWith("рамка радиато") ||
                 name.StartsWith("лючок топл") ||
                 name.StartsWith("бачок") && name.Contains("омывателя") ||
@@ -268,9 +289,9 @@ namespace Selen.Sites {
                 name.StartsWith("диффузор") ||
                 name.StartsWith("бачок расширительный") ||
                 name.StartsWith("привод заслонки") ||
-                name.StartsWith("трубка")&&name.Contains("охла") ||
+                name.StartsWith("трубка") && name.Contains("охла") ||
                 name.StartsWith("трубка конд") ||
-                name.StartsWith("фланец")&&name.Contains("охлаждения") ||
+                name.StartsWith("фланец") && name.Contains("охлаждения") ||
                 name.StartsWith("сервопривод заслонки") ||
                 name.StartsWith("шкив помпы") ||
                 name.StartsWith("моторчик засл")) {
@@ -295,7 +316,7 @@ namespace Selen.Sites {
                 d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
                 d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
                 d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
-                d.Add("RimBolts", "5");                             //TODO ширина диска, пока 0, добавить определ. из описания
+                d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
                 d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
                 d.Add("RimType", "Штампованные");                   //тип
                 d.Add("TireType", "Всесезонные");                   //шины
@@ -307,7 +328,7 @@ namespace Selen.Sites {
                 d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
                 d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
                 d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
-                d.Add("RimBolts", "5");                             //TODO ширина диска, пока 0, добавить определ. из описания
+                d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
                 d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
                 d.Add("RimType", b.DiskType());                     //тип
             } else if (name.StartsWith("колпак")) {
@@ -442,9 +463,9 @@ namespace Selen.Sites {
                   name.StartsWith("вещево") ||
                   name.StartsWith("ковер") ||
                   name.StartsWith("ручник") ||
-                  name.StartsWith("рычаг")&&name.Contains("кпп") ||
-                  name.StartsWith("рычаг")&&name.Contains("тормоз") ||
-                  name.StartsWith("рычаг")&&name.Contains("руля") ||
+                  name.StartsWith("рычаг") && name.Contains("кпп") ||
+                  name.StartsWith("рычаг") && name.Contains("тормоз") ||
+                  name.StartsWith("рычаг") && name.Contains("руля") ||
                   name.StartsWith("крышка блока предохра") ||
                   name.Contains("торпедо") ||
                   name.Contains("крышка кулис") ||
@@ -458,7 +479,7 @@ namespace Selen.Sites {
                   name.StartsWith("педали") ||
                   name.Contains("корпус подрулевых") ||
                   name.Contains("козырек солнц") ||
-                  name.Contains("регулятор")&&name.Contains("ремня") ||
+                  name.Contains("регулятор") && name.Contains("ремня") ||
                   name.StartsWith("дефлектор") ||
                   name.StartsWith("сиденье") ||
                   name.StartsWith("сиденья") ||
@@ -551,14 +572,13 @@ namespace Selen.Sites {
             } else if (name.StartsWith("молдинг") ||
                 name.StartsWith("бархотк") ||
                 name.StartsWith("декоративная крышка") ||
-                name.StartsWith("накладк")||
+                name.StartsWith("накладк") ||
                 name.StartsWith("эмблема")) {
                 d.Add("TypeId", "16-822");                          //Молдинги, накладки
             } else if (name.StartsWith("брызговик") ||
                  name.StartsWith("накладк")) {
                 d.Add("TypeId", "16-807");                          //Брызговики
-            } else if (name.Contains("блок abs") ||
-                 name.StartsWith("суппорт") ||
+            } else if (name.StartsWith("суппорт") ||
                  name.StartsWith("барабан тор") ||
                  name.StartsWith("бачок торм") ||
                  name.StartsWith("крышка бачка торм") ||
@@ -569,6 +589,7 @@ namespace Selen.Sites {
                  name.StartsWith("усилитель торм") ||
                  name.StartsWith("усилитель вакуум") ||
                  name.StartsWith("распределитель торм") ||
+                 name.Contains("abs") && (name.StartsWith("насос") || name.StartsWith("блок")) ||
                  name.StartsWith("диск торм") ||
                  name.StartsWith("скоба") && name.Contains("суппор")) {
                 d.Add("TypeId", "11-628");                          //Тормозная система
@@ -601,8 +622,8 @@ namespace Selen.Sites {
                 name.StartsWith("хром решетки радиа")
                 ) {
                 d.Add("TypeId", "16-825");                          //Решетка радиатора
-            } else if (name.StartsWith("защита")||
-                name.Contains("экран")&&name.Contains("тепл") ||
+            } else if (name.StartsWith("защита") ||
+                name.Contains("экран") && name.Contains("тепл") ||
                 name.StartsWith("щиток ") ||
                 name.StartsWith("тормозной щит") ||
                 name.StartsWith("пыльник")) {
@@ -614,13 +635,13 @@ namespace Selen.Sites {
             } else if (name.StartsWith("крыша ")) {
                 d.Add("TypeId", "16-817");                          //Крыша
             } else if (name.StartsWith("привод ") ||
-                name.Contains("вал карданный")){
+                name.Contains("вал карданный")) {
                 d.Add("TypeId", "11-629");                           //Трансмиссия и привод
             } else if (name.StartsWith("турбина ")) {
                 d.Add("TypeId", "16-842");                           //Турбины, компрессоры
             } else if (b.GroupName() == "АВТОХИМИЯ") {
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
-            } 
+            }
             //else d.Add("TypeId", "11-621");//Запчасти для ТО
 
             if (d.Count > 0)
