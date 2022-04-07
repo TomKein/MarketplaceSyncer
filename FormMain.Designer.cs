@@ -32,7 +32,6 @@ namespace Selen {
             this.logBox = new System.Windows.Forms.RichTextBox();
             this.button_PriceLevelsReport = new System.Windows.Forms.Button();
             this.button_Vk = new System.Windows.Forms.Button();
-            this.ds = new System.Data.DataSet();
             this.checkBox_sync = new System.Windows.Forms.CheckBox();
             this.label_Bus = new System.Windows.Forms.Label();
             this.label_Vk = new System.Windows.Forms.Label();
@@ -64,7 +63,6 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            ((System.ComponentModel.ISupportInitialize)(this.ds)).BeginInit();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -136,10 +134,6 @@ namespace Selen {
             this.button_Vk.UseVisualStyleBackColor = true;
             this.button_Vk.Click += new System.EventHandler(this.VkCom_Click);
             // 
-            // ds
-            // 
-            this.ds.DataSetName = "NewDataSet";
-            // 
             // checkBox_sync
             // 
             this.checkBox_sync.AutoSize = true;
@@ -173,7 +167,7 @@ namespace Selen {
             // timer_sync
             // 
             this.timer_sync.Enabled = true;
-            this.timer_sync.Interval = 300000;
+            this.timer_sync.Interval = 200000;
             this.timer_sync.Tick += new System.EventHandler(this.timer_sync_Tick);
             // 
             // label_Drom
@@ -490,7 +484,6 @@ namespace Selen {
             this.Text = "Синхронизация бизнес.ру ";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.FormMain_Load);
-            ((System.ComponentModel.ISupportInitialize)(this.ds)).EndInit();
             this.panel_Buttons.ResumeLayout(false);
             this.panel_Buttons.PerformLayout();
             this.panel_bottom.ResumeLayout(false);
@@ -512,7 +505,6 @@ namespace Selen {
         private System.Windows.Forms.RichTextBox logBox;
         private System.Windows.Forms.Button button_PriceLevelsReport;
         private System.Windows.Forms.Button button_Vk;
-        private System.Data.DataSet ds;
         private System.Windows.Forms.CheckBox checkBox_sync;
         private System.Windows.Forms.Label label_Bus;
         private System.Windows.Forms.Label label_Vk;

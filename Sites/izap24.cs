@@ -9,13 +9,14 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace Selen.Sites {
     class Izap24 {
         //список товаров
         List<RootObject> _bus = null;
         //товары тиу
-        DataSet _ds = null;
+        XDocument _ds = null;
         //файл выгрузки
         string _fexp = "iz_export.csv";
         //файл ошибок
@@ -50,10 +51,10 @@ namespace Selen.Sites {
             "1721460",  //"КОВРИКИ (НОВЫЕ)"
         };
         //старт выгрузки
-        public async Task SyncAsync(List<RootObject> bus, DataSet ds) {
+        public async Task SyncAsync(List<RootObject> bus) {
             _bus = bus;
-            _ds = ds;
-            if (_ds.Tables["offer"].Rows.Count == 0) return;//check datatable rows count (not empty)            
+            _ds = XDocument.Load(@"..\satom_import.xml");
+            //if (_ds..Tables["offer"].Rows.Count == 0) return;//check datatable rows count (not empty)            
             await CreateCsvAsync();
             await Task.Factory.StartNew(() => {
                 SftpClient.Upload(_fexp);

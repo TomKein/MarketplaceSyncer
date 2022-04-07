@@ -42,15 +42,13 @@ namespace Selen.Sites {
             _startTime = DateTime.Now;
             GetParams(bus);//            await GenerateXml();
             await AuthAsync();
-
-            await UpAsync();
-
-//            await AddAsync();
-//            await EditAllAsync();
-            //await AvitoUpAsync();
+            await CheckUrlsAsync();
+            //await UpAsync();
+            //await AddAsync();
+            await EditAllAsync();
+            await AvitoUpAsync();
 
 //            await RemoveDraftAsync();
-//            await CheckUrlsAsync();
             Log.Add("avito.ru: выгрузка завершена");
         }
 
@@ -183,13 +181,13 @@ namespace Selen.Sites {
         private async Task EditAsync(int b) {
             if (_bus[b].price > 0) {  //защита от нулевой цены в базе
                 await ChechAuthAsync();
-                await UnDeleteAsync(b);
+                //await UnDeleteAsync(b);
                 var url = "https://www.avito.ru/items/edit/" + _bus[b].avito.Replace("/", "_").Split('_').Last();
                 try {
-                    await _dr.NavigateAsync(url, "//button[contains(@data-marker,'button-next')]");
+                    await _dr.NavigateAsync(url, "//button[contains(@data-marker,'button-next')]",tryCount:1);
                 } catch (Exception x) {
                     if (_dr.GetElementText("//h1").Contains("на нашем сайте нет") || //если в заголовке указано что объявления нет на сайте
-                        _dr.GetElementsCount("//p[contains(text(),'удалили это объявление')]") > 0) {//сообщение, что оно удалено
+                        _dr.GetElementsCount("//p[contains(text(),'удалили объявление')]") > 0) {//сообщение, что оно удалено
                         await SaveUrlAsync(b, deleteUrl: true);
                         Log.Add("avito.ru: " + _bus[b].name + " - ссылка на объявление удалена из карточки!");
                         return;
@@ -499,16 +497,16 @@ namespace Selen.Sites {
                 if (i < 101)
                     await ParsePage("/active", i + 1);
                 //проверить также страницу снятых, если номер в пределах
-                if (i < old / 50)
-                    await ParsePage("/old", i + 1);
+                //if (i < old / 50)
+                  //  await ParsePage("/old", i + 1);
                 //проверить также страницу удаленных, если номер в пределах
-                if (i < archived / 50)
-                    await ParsePage("/archived", i + 1);
+                //if (i < archived / 50)
+                    //await ParsePage("/archived", i + 1);
             }
             //проход страниц неактивных и архивных объявлений будет последовательным, пока не кончатся страницы или количество для подъема
-            for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
-            for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
-            for (int i = 0; i <= archived / 50 && CountToUp > 0; i+=10) { await ParsePage("/archived", i + 1); }
+            //for (int i = 0; i <= old / 50 && CountToUp > 0; i++) { await ParsePage("/old", i + 1); }
+            //for (int i = 0; i <= inactive / 50 && CountToUp > 0; i++) { await ParsePage("/inactive", i + 1); }
+            //for (int i = 0; i <= archived / 50 && CountToUp > 0; i+=10) { await ParsePage("/archived", i + 1); }
         }
         //проверка объявлений на странице
         private async Task ParsePage(string location, int numPage) {
@@ -534,7 +532,7 @@ namespace Selen.Sites {
                 if (items.Count != names.Count || names.Count != prices.Count)
                     throw new Exception("ошибка парсинга: не соответствует количество ссылок и цен");
                 //перебираю найденное
-                for (int i = 0; i < urls.Count(); i++) {
+                for (int i = 0; i < urls.Count; i++) {
                     //ищу индекс карточки в базе
                     var b = _bus.FindIndex(f => f.avito.Contains(ids[i]));
                     if (b >= 0) {
@@ -786,28 +784,27 @@ namespace Selen.Sites {
                 var checkUrlsCount = _db.GetParamInt("avito.checkUrlsCount");
                 if (checkUrlsCount > 0)
                     Log.Add("avito.ru: проверяю " + checkUrlsCount + " ссылок");
-                //ссылки на карточки без остатков с фото и ссылкой на авито, которые нужно проверить на живучесть
-                var urls = _bus.Where(w => w.amount<=0 &&w.images.Count>0 && w.avito.Contains("http")).ToList();
-                Log.Add("avito.ru: ссылок для проверки "+urls.Count);
+                //ссылки на карточки с ссылкой на авито, которые нужно проверить на живучесть
+                var busToChk = _bus.Where(w => w.avito.Contains("http")).OrderBy(o=>_rnd.Next()).ToList();
+                Log.Add("avito.ru: ссылок для проверки " + busToChk.Count);
                 //перебираю ссылки
-                for (; checkUrlsCount > 0; checkUrlsCount--) {
-                    //индекс ссылки для проверки
-                    int b = _rnd.Next(urls.Count);
+                for (int b=0; b<busToChk.Count && checkUrlsCount > 0; b++) {
                     //индекс карточки в бизнес.ру
-                    var i = _bus.FindIndex(f => f == urls[b]);
+                    var i = _bus.FindIndex(f => f == busToChk[b]);
                     var err = false;
                     try {
-                        _dr.Navigate(urls[b].avito, ".title-info-title");
-                        if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда')]") > 0)
+                        _dr.Navigate(busToChk[b].avito, ".title-info-title", tryCount:1);
+                        if (_dr.GetElementsCount("//p[contains(text(),'объявление навсегда') or contains(text(),'удалили объявление')]") > 0)
                             err=true;
                     } catch (Exception x) {
                         err=true;
                     }
                     if (err) {
                         SaveUrlAsync(i, deleteUrl: true);
-                        continue; }
+                        checkUrlsCount--;
+                    }
                     //проверяю фотографии в объявлении
-                    CheckPhotos(i);
+                    //CheckPhotos(i);
                 }
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка при проверке ссылок - " + x.Message);

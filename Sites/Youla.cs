@@ -114,7 +114,7 @@ namespace Selen.Sites {
                     await EditAsync();
                     await CheckUrlsAsync();
                     //await AddAsync();
-                    //await ParseAsync();
+                    await ParseAsync();
                     //await ActivateAsync();
                     Log.Add("youla.ru: выгрузка завершена");
                     return true;
@@ -134,10 +134,9 @@ namespace Selen.Sites {
         }
 
         async Task CheckUrlsAsync() {
-            //var cnt = await _db.GetParamIntAsync("youlaCheckUrlsCount");
-            var cnt = 2;
-            //if (cnt == 0)  return;
-            //список карточек с ссылкой на юлу, отсортированный с самых старых
+            var cnt = await _db.GetParamIntAsync("youla.CheckUrlsCount");
+            if (cnt == 0)  return;
+            //список карточек с ссылкой на юлу
             var buschk = _bus.Where(w => w.youla.Contains("http"))
                 //.OrderBy(o => DateTime.Parse(o.updated))
                 .OrderBy(o => _rnd.Next())
@@ -432,7 +431,7 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            if (DateTime.Now.Hour % 25 != 0) return; //todo проверка кабинета отключена
+            if (DateTime.Now.Hour % 23 != 0) return;
             await _dr.NavigateAsync("https://youla.ru/pro");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
@@ -450,8 +449,10 @@ namespace Selen.Sites {
                 ids.AddRange(await ParsePageAsync2(i));
                 Log.Add("youla.ru: страница "+i+", найдено расхождений - "+ids.Count);
             }
+            n = 0;
             foreach (var b in ids) {
-                EditOffer(b);
+                await EditOfferAsync(b);
+                Log.Add((++n).ToString());
             }
             Log.Add("youla.ru: проверка кабинета завершена!");
         }

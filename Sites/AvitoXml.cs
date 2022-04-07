@@ -132,10 +132,10 @@ namespace Selen.Sites {
             //если размер файла в порядке
             if(new FileInfo(filename).Length > 26000000)
             //отправляю файл на сервер
-            await SftpClient.FtpUploadAsync(filename);
+                await SftpClient.FtpUploadAsync(filename);
         }
         //категории авито
-        Dictionary<string, string> GetCategoryAvito(RootObject b) {
+        public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
             var name = b.name.ToLowerInvariant();
             var d = new Dictionary<string, string>();
             if (name.StartsWith("фиксаторы") ||
@@ -221,7 +221,7 @@ namespace Selen.Sites {
                 name.StartsWith("замок люч") ||
                 name.Contains("часть замка") ||
                 name.StartsWith("замок пер") ||
-                name.StartsWith("центрального замка") ||
+                name.Contains("централь") && name.Contains("замка") ||
                 name.StartsWith("замок стек") ||
                 name.StartsWith("личинка ") ||
                 name.StartsWith("комплект замка") ||
@@ -551,6 +551,7 @@ namespace Selen.Sites {
                    name.StartsWith("трубка карт") ||
                    name.StartsWith("трубка егр") ||
                    name.StartsWith("моновпрыск") ||
+                   name.StartsWith("тнвд") ||
                    name.Contains("коллектора") ||
                    name.StartsWith("бензобак")) {
                 d.Add("TypeId", "11-627");                          //Топливная и выхлопная системы
@@ -647,7 +648,7 @@ namespace Selen.Sites {
             if (d.Count > 0)
                 d.Add("Category", "Запчасти и аксессуары"); //главная категория
             else
-                throw new Exception("avitoxml: " + b.name + " - не описана категория");
+                throw new Exception("категория не определена!");
             return d;
         }
     }

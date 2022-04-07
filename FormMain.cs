@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.82";
+        string _version = "1.83";
 
         DB _db = new DB();
 
@@ -63,9 +63,9 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
-                var av = new AvitoXml();
-                await av.GenerateXML(bus);
-                //await _avito.StartAsync(bus);
+                    var av = new AvitoXml();
+                    await _avito.StartAsync(bus);
+                    await av.GenerateXML(bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
@@ -120,29 +120,12 @@ namespace Selen {
         //KUPIPRODAI.RU
         async void KupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            for (int i = 0; ; i++) {
-                try {
-                    while (base_rescan_need) await Task.Delay(30000);
-                    await _kupiprodai.StartAsync(bus);
-                    label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
-                    ChangeStatus(sender, ButtonStates.Active);
-                    break;
-                } catch (Exception x) {
-                    Log.Add("kupiprodai.ru: ошибка синхронизации! - " + x.Message + " - " + x.InnerException.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        _kupiprodai.Quit();
-                        await Task.Delay(60000);
-                    }
-                    if (i > 5) {
-                        Log.Add("kupiprodai.ru: ошибка! превышено количество попыток!");
-                        ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                        break;
-                    }
-                }
-            }
+            while (base_rescan_need) await Task.Delay(30000);
+            if (await _kupiprodai.StartAsync(bus)) 
+               ChangeStatus(sender, ButtonStates.Active);
+            else
+               ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
         }
         async void KupiprodaiRuAdd_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -180,12 +163,11 @@ namespace Selen {
         async void Izap24_Click(object sender, EventArgs e) { //TODO отключено, исправить ссылки на фото
             if (DateTime.Now.Hour > 24/*4*/ && DateTime.Now.Hour % 4 == 0) {
                 ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need ||
-                    (ds == null || ds.Tables.Count == 0))
+                while (base_rescan_need)
                     await Task.Delay(60000);
                 try {
                     Log.Add("izap24.ru: начинаю выгрузку...");
-                    await _izap24.SyncAsync(bus, ds);
+                    await _izap24.SyncAsync(bus);
                     Log.Add("izap24.ru: выгрузка ок!");
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
@@ -416,10 +398,10 @@ namespace Selen {
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog);
             label_Bus.Text = tlog;
             await SaveBusAsync();
+            base_rescan_need = false;
             await SyncAllAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
             dateTimePicker1.Value = sync_start;
-            base_rescan_need = false;
             base_can_rescan = true;
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -1143,6 +1125,7 @@ namespace Selen {
                 //запрашиваю товары из документов "Оприходования"
                 var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
                         {"limit", _pageLimitBase.ToString()},
+                        {"updated[from]", DateTime.Now.AddHours(-10).ToString("dd.MM.yyyy")},
                         {"page", i.ToString()},
                     });
                 //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
@@ -1221,7 +1204,9 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await SftpClient.FtpUploadAsync("auto.json");
+                ChangePostingsPrices();
+
+                //_avito.StartAsync(bus);
 
 
                 //PhotoClearAsync();

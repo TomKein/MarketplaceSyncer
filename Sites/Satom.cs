@@ -52,11 +52,14 @@ namespace Selen.Sites {
                 try {
                     _bus = bus;
                     GenerateXlsx();
-                    SftpClient.Upload(_fexp);
                 } catch (Exception x) {
                     Log.Add("satom: ошибка выгрузки - "+x.Message);
                 }
             });
+            //если размер файла в порядке
+            if (new FileInfo(_fexp).Length > 1200000)
+                //отправляю файл на сервер
+                await SftpClient.FtpUploadAsync(_fexp);
         }
 
         public void GenerateXlsx() {
@@ -107,9 +110,12 @@ namespace Selen.Sites {
                     ws.Cell(i, 22).Value = _bus[b].part??"";
                     //статус
                     ws.Cell(i, 39).Value = "опубликован";
-                    //доп. поле состояние
-                    ws.Cell(i, 44).Value = "Состояние";
-                    ws.Cell(i, 45).Value = _bus[b].IsNew()?"Новое":"Б/У";
+                    //состояние
+                    ws.Cell(i, 44).Value = "Состояние"; 
+                    ws.Cell(i, 45).Value = _bus[b].IsNew()?"новый": "б/у";
+                    //тип
+                    ws.Cell(i, 51).Value = "Тип по изготовителю";
+                    ws.Cell(i, 52).Value = _bus[b].IsOrigin()? "оригинал" : "аналог";
                     //артикул
                     if (!String.IsNullOrEmpty(_bus[b].part)) {
                         ws.Cell(i, 46).Value = "Номер запчасти";
