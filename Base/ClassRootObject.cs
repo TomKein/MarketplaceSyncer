@@ -262,7 +262,7 @@ namespace Selen
         }
 
         public string DiskType() {
-            var n = name.ToLower();
+            var n = name.ToLower() + description.ToLower();
             return n.Contains("штамп") ? "Штампованные"
                                        : n.Contains("кован") ? "Кованые"
                                                              : "Литые";

@@ -431,7 +431,8 @@ namespace Selen.Sites {
         }
         //проверка объявлений (парсинг кабинета)
         async Task ParseAsync() {
-            if (DateTime.Now.Hour % 23 != 0) return;
+            var interval = await _db.GetParamIntAsync("youla.catalogCheckInterval");
+            if (interval ==0 || DateTime.Now.Hour==0 || DateTime.Now.Hour % interval != 0) return;
             await _dr.NavigateAsync("https://youla.ru/pro");
             //строка с количеством объявлений
             var span = _dr.GetElementText("//span[contains(@data-test-block,'TotalCount')]");
@@ -440,8 +441,6 @@ namespace Selen.Sites {
             //число количество страниц
             var n = str.Length == 0 ? 0 : int.Parse(str) / 20;
             //пробегаюсь по страницам
-            //for (int i = 1; i < n && _rnd.Next(100) > 5; i += _rnd.Next(1, 3)) {
-
             var ids = new List<int>();
             for (int i = 1; i <= n+1; i++) {
                 if (_dr.GetElementsCount("//span[@data-test-id='B2BPaginationPageNumber-" + i + "']") == 0)

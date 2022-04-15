@@ -44,7 +44,7 @@ namespace Selen.Tools {
             }
         }
 
-        public bool Navigate(string url, string check=null, int tryCount=3) {
+        public void Navigate(string url, string check = null, int tryCount = 3) {
             for (int i = 0; i < tryCount; i++) {
                 try {
                     if (i > 0) {
@@ -54,13 +54,14 @@ namespace Selen.Tools {
                     _drv.Navigate().GoToUrl(url);
                     ConfirmAlert();
                     if (String.IsNullOrEmpty(check) ||
-                        GetElementsCount(check) > 0) return true;
-                    Log.Add("selenium: неудачная попытка загрузки страницы ("+(i+1)+") - "+url+" - элемент не найден!");
+                        GetElementsCount(check) > 0)
+                        return;
+                    Log.Add("selenium: неудачная попытка загрузки страницы (" + (i + 1) + ") - " + url + " - элемент не найден!");
                 } catch (Exception x) {
-                    Log.Add("selenium: неудачная попытка загрузки страницы ("+(i+1)+") - "+url+" - " +x.Message);
+                    Log.Add("selenium: неудачная попытка загрузки страницы (" + (i + 1) + ") - " + url + " - " + x.Message);
                 }
             }
-            return false;
+            throw new Exception("selenium: ошибка браузера! - не удается загрузить страницу " + url + " - timed out!");
         }
 
         public async Task NavigateAsync(string url, string check = null, int tryCount = 3) {

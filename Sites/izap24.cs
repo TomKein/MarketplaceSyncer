@@ -8,19 +8,19 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
     class Izap24 {
+        string _l = "izap24: ";
         //список товаров
-        List<RootObject> _bus = null;
-        //товары тиу
-        XDocument _ds = null;
+        List<RootObject> _bus;
         //файл выгрузки
-        string _fexp = "iz_export.csv";
+        string _fexp = @"..\iz_export.csv";
         //файл ошибок
-        string _ferr = "iz_errors.csv";
+        string _ferr = @"..\iz_errors.csv";
+        //каталог сатом
+        XDocument satomYML;
         //блокируемые группы
         string[] _blockedGroupsIds = new[] {
             "2060149",    //"РАЗБОРКА (ЧЕРНОВИКИ)" 
@@ -51,88 +51,105 @@ namespace Selen.Sites {
             "1721460",  //"КОВРИКИ (НОВЫЕ)"
         };
         //старт выгрузки
-        public async Task SyncAsync(List<RootObject> bus) {
-            _bus = bus;
-            _ds = XDocument.Load(@"..\satom_import.xml");
-            //if (_ds..Tables["offer"].Rows.Count == 0) return;//check datatable rows count (not empty)            
-            await CreateCsvAsync();
-            await Task.Factory.StartNew(() => {
-                SftpClient.Upload(_fexp);
-                SftpClient.Upload(_ferr);
-                //отправка прайса по почте, если потребуется
-                //SmtpMailClient.SendAsync(_fexp,"izap24-ilnur@mail.ru");
-            });
-        }
-        //формирую файл выгрузки
-        private async Task CreateCsvAsync() {
+        public async Task<bool> SyncAsync(List<RootObject> bus) {
+            //интервал проверки
+            var uploadInterval = DB._db.GetParamInt("izap24.uploadInterval");
+            if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
+                return true;
+            Log.Add(_l + "начало выгрузки...");
             try {
+                _bus = bus;
+                satomYML = XDocument.Load(@"..\satom_import.xml");
+                //проверка каталога xml
+                if (satomYML.Root.Name != "yml_catalog")
+                    throw new Exception("корневой элемент каталога satom не найден!");
+                if (satomYML.Descendants("offer").Count() < 10000)
+                    throw new Exception("количество элементов в каталоге satom меньше 10000");
+                await CreateCsvAsync();
+                await SftpClient.FtpUploadAsync(_fexp);
+                await SftpClient.FtpUploadAsync(_ferr);
+                //SmtpMailClient.SendAsync(_fexp,"izap24-ilnur@mail.ru");
+                Log.Add(_l + "выгрузка успешно завершена");
+                return true;
+            } catch (Exception x) {
+                Log.Add(_l + "ошибка выгрузки! - " + x.Message);
+                return false;
+            }
+        }
+        //формирование файла выгрузки
+        private async Task CreateCsvAsync() {
+            await Task.Factory.StartNew(() => {
                 //получаю список товаров
                 var offers = _bus.Where(w =>
-                    w.images.Count>0 &&                             //есть фото
+                    w.images.Count > 0 &&                           //есть фото
                     w.amount > 0 &&                                 //с положительным остатком
                     w.price > 0 &&                                  //с положительной ценой
                     !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
                     !w.archive &&                                   //товар не в архиве
                     !w.IsNew())                                     //и товар НЕ новый
-                    .OrderByDescending(o=>int.Parse(o.id));         //сортировка от новых к старым товарам
+                    .OrderByDescending(o => int.Parse(o.id));       //сортировка от новых к старым товарам
                 var n = 0;                                          //счетчик позиций
                 var e = 0;                                          //счетчик ошибок
                 StringBuilder s = new StringBuilder();              //строка для выгрузки
                 StringBuilder err = new StringBuilder();            //строка для ошибок
-                RootObject.ResetAutos();                            //перечитываю список моделей
+                RootObject.ResetAutos();                            //обновляю список моделей
                 File.Delete(_ferr);                                 //затираю файл ошибок
                 s.AppendLine("ID_EXT;Name;Mark;Model;Price;OriginalNumber;Description;PhotoUrls"); //первая строка выгрузки
                 foreach (var offer in offers) {
-                    var m = await offer.GetNameMarkModelAsync();    //определяю марку и модель авто
-                    if (m==null) {
-                        err.Append(offer.name).AppendLine(";не определена марка или модель");
-                        e++; continue;
+                    var m = offer.GetNameMarkModel();               //определяю марку и модель авто
+                    if (m == null) {
+                        err.Append(offer.name).AppendLine(";не определена марка/модель");
+                        e++;
+                        continue;
                     }
-                    s.Append(offer.id).Append(";");                 //ID_EXT
-                    s.Append(m[0]).Append(";");                     //name
-                    s.Append(m[1]).Append(";");                     //mark
-                    s.Append(m[2]).Append(";");                     //model
-                    s.Append(offer.price.ToString("0")).Append(";");//price
-                    s.Append(offer.part).Append(";");               //part
+                    //получаю фото с сатома и проверяю количество
+                    var photoUrls = GetSatomPhotos(offer);
+                    if (photoUrls.Count == 0) {
+                        err.Append(offer.name).AppendLine(";не найдены фото");
+                        e++;
+                        continue;
+                    }
+                    s.Append(offer.id).Append(";");                     //ID_EXT
+                    s.Append(m[0]).Append(";");                         //name
+                    s.Append(m[1]).Append(";");                         //mark
+                    s.Append(m[2]).Append(";");                         //model
+                    s.Append(offer.price.ToString("0")).Append(";");    //price
+                    s.Append(offer.part).Append(";");                   //part
                     var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
                                     .Groups[1].Value;
-                    s.Append(desc).Append(";");                     //desc
-                    //получаю ссылки на фотографии товаров из каталога tiu.ru
-                    var urls = new StringBuilder();
-                    GetPhtotoUrls(offer, urls);
-                    s.AppendLine(urls.ToString());                  //photos
+                    s.Append(desc).Append(";");                         //desc
+                    s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos
                     n++;
-                    if (n % 500 == 0) Log.Add("izap24.ru: выгружено " + n + " товаров");
+                    if (n % 500 == 0)
+                        Log.Add(_l + "выгружено товаров " + n);
                 }
-                Log.Add("izap24.ru: всего выгружено " + n + " товаров");
+                Log.Add(_l + "всего успешно выгружено товаров" + n);
                 File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
-                Log.Add("izap24.ru: пропущено " + e + " товаров");
+                Log.Add(_l + "пропущено " + e + " товаров");
                 File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
-            } catch (Exception x) {
-                Log.Add("izap24: ошибка формирование выгрузки" + x.Message);
-            }
+            });
         }
-
-        private void GetPhtotoUrls(RootObject offer, StringBuilder urls) {
+        List<string> GetSatomPhotos(RootObject b) {
+            var list = new List<string>();
             try {
-                //TODO тиу больше не работает, нужно заменить ссылки
-                //var tiuId = offer.tiu.Split('/').Last();        //ищу id товара в каталоге tiu
-                //if (tiuId.Length > 0) {
-                //    //ищу запись в таблице offer с таким id - нахожу соответствующий ключ id к таблице picture
-                //    var idRow = _ds.Tables["offer"].Select("id = '" + tiuId + "'");
-                //    if (idRow.Length == 0) Log.Add("ошибка! товар с id = " + tiuId + " - не найден в каталоге тиу!");
-                //    else {
-                //        var id = idRow[0]["offer_id"]; //беру поле offer_id из первой найденной строки
-                //        var image_rows = _ds.Tables["picture"].Select("offer_id = '" + id.ToString() + "'"); //все строки со ссылками на фото
-                //        for (int i = 0; i < image_rows.Length; i++) { //собираю строку со ссылками для выгрузки
-                //            urls.Append(image_rows[i]["picture_Text"].ToString());
-                //            if (i < image_rows.Length - 1) urls.Append(",");
-                //        }
-                //    }
-                //}
+                //ищем товар в каталоге
+                var offer = satomYML.Descendants("offer")
+                    .First(w => w.Element("description").Value.Split(':').Last()
+                                 .Split('<').First().Trim() == b.id);
+                //получаем фото
+                if (offer == null) {
+                    if (b.amount < 0)
+                        return list;
+                    throw new Exception("оффер не найден в каталоге satom");
+                }
+                list = offer.Elements("picture").Select(s => s.Value).ToList();
+                //проверка наличия фото
+                if (list.Count == 0 && b.amount > 0)
+                    throw new Exception("найдено 0 фото");
             } catch (Exception x) {
-                Log.Add("izap24: ошибка поиска фотографий в каталоге тиу! - " + x.Message);
+                Log.Add(_l + "ошибка поиска в каталоге сатом! - " + x.Message);
             }
+            return list;
         }
     }
 }

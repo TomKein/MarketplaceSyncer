@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.83";
+        string _version = "1.84";
 
         DB _db = new DB();
 
@@ -159,22 +159,14 @@ namespace Selen {
                 }
             }
         }
-        //IZAP24.RU - ОТКЛЮЧЕНО
-        async void Izap24_Click(object sender, EventArgs e) { //TODO отключено, исправить ссылки на фото
-            if (DateTime.Now.Hour > 24/*4*/ && DateTime.Now.Hour % 4 == 0) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need)
-                    await Task.Delay(60000);
-                try {
-                    Log.Add("izap24.ru: начинаю выгрузку...");
-                    await _izap24.SyncAsync(bus);
-                    Log.Add("izap24.ru: выгрузка ок!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    Log.Add("izap24.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                }
-            }
+        //IZAP24.RU
+        async void Izap24_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need) await Task.Delay(60000);
+            if (await _izap24.SyncAsync(bus))
+                ChangeStatus(sender, ButtonStates.Active);
+            else 
+                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //YOULA.RU
         async void Youla_Click(object sender, EventArgs e) {
@@ -371,8 +363,8 @@ namespace Selen {
             await Task.Delay(60000);
             //button_EuroAuto.PerformClick();
             //await Task.Delay(60000);
-            //button_Izap24.PerformClick();
-            //await Task.Delay(60);
+            button_Izap24.PerformClick();
+            await Task.Delay(60000);
             //нужно подождать конца обновлений объявлений
             await WaitButtonsActiveAsync();
             button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
@@ -562,11 +554,10 @@ namespace Selen {
                         string text = table.Rows[0].ItemArray[3] as string;
                         Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
                         //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
-                        //TODO удалить //!
-                        //if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
+                        if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
                             return;
-                        //else
-                            //Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
+                        else
+                            Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
                     } else
                         Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
                     await Task.Delay(61 * 1000);

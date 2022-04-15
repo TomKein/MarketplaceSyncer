@@ -222,7 +222,13 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//div[@data-name='wheelDiameter']//div[contains(@class,'chosen-container-single')]");
                 _dr.WriteToSelector("//div[@data-name='wheelDiameter']//input", b.GetDiskSize() + OpenQA.Selenium.Keys.Enter);
                 _dr.WriteToSelector("//input[@name='quantity']", "1");
-                _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", b.DiskType() + OpenQA.Selenium.Keys.Enter);
+                string dtype;
+                switch (b.DiskType()) {
+                    case "Литые": dtype = "Литой";break;
+                    case "Кованые": dtype = "Кованый";break;
+                    default: dtype = "Литой"; break;
+                }
+                _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", dtype + OpenQA.Selenium.Keys.Enter);
             }
         }
         void SetOptions(RootObject b) {

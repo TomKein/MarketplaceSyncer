@@ -112,7 +112,7 @@ namespace Selen.Sites {
                         d.AddRange(_addDesc2);
                         ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
                         //имя менеджера
-                        ad.Add(new XElement("ManagerName", "Менеджер 1"));
+                        ad.Add(new XElement("ManagerName", "Менеджер"));
                         //добавляю элемент offer в контейнер offers
                         ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
 
@@ -310,7 +310,9 @@ namespace Selen.Sites {
                 name.Contains("сплиттер") ||
                 name.StartsWith("твиттер")) {
                 d.Add("TypeId", "20");                              //Аудио- и видеотехника          
-            } else if (name.Contains("докатка") ||
+            } else if(name.StartsWith("диск торм")) {
+                d.Add("TypeId", "11-628");                          //Тормозная система
+            } else  if (name.Contains("докатка") ||
                   name.StartsWith("колесо")) {
                 d.Add("TypeId", "10-045");                          //Шины, диски и колёса / Колёса
                 d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
@@ -521,7 +523,7 @@ namespace Selen.Sites {
                    name.StartsWith("воздухозаборник") ||
                    name.StartsWith("глушитель") ||
                    name.StartsWith("горловина") ||
-                   name.StartsWith("заслонка дросс") ||
+                   name.Contains("заслонка") && name.Contains("дроссел") ||
                    name.StartsWith("корпус воздуш") ||
                    name.StartsWith("крышка корпуса фильтра") ||
                    name.StartsWith("инжектор") ||
@@ -591,7 +593,6 @@ namespace Selen.Sites {
                  name.StartsWith("усилитель вакуум") ||
                  name.StartsWith("распределитель торм") ||
                  name.Contains("abs") && (name.StartsWith("насос") || name.StartsWith("блок")) ||
-                 name.StartsWith("диск торм") ||
                  name.StartsWith("скоба") && name.Contains("суппор")) {
                 d.Add("TypeId", "11-628");                          //Тормозная система
             } else if (name.StartsWith("болт") ||

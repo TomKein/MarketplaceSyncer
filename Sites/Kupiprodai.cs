@@ -20,22 +20,23 @@ namespace Selen.Sites {
         string[] _addDesc;          //дополнительное описание
         List<RootObject> _bus;      //ссылка на товары
         Random _rnd = new Random(); //генератор случайных чисел
+        string _l = "kupiprodai.ru: "; //для записи в лог
         //конструктор
         public Kupiprodai() {
             _db = DB._db;
         }
         //загрузка кукис
         public void LoadCookies() {
-            if (_dr != null && 
-                _dr.Navigate("https://kupiprodai.ru/404", tryCount:1)) {
+            if (_dr != null) {
+                _dr.Navigate("https://kupiprodai.ru/404", tryCount: 1);
                 var c = _db.GetParamStr("kupiprodai.cookies");
                 _dr.LoadCookies(c);
             }
         }
         //сохранение кукис
         public void SaveCookies() {
-            if (_dr != null && 
-                _dr.Navigate("https://vip.kupiprodai.ru/", tryCount: 1)) {
+            if (_dr != null) {
+                _dr.Navigate("https://vip.kupiprodai.ru/", tryCount: 1);
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
                     _db.SetParam("kupiprodai.cookies", c);
@@ -48,7 +49,7 @@ namespace Selen.Sites {
         }
         //старт главного цикла синхронизации
         public async Task<bool> StartAsync(List<RootObject> bus) {
-            Log.Add("kupiprodai.ru: начало выгрузки...");
+            Log.Add(_l + "начало выгрузки...");
             try {
                 _bus = bus;
                 _url = await _db.GetParamStrAsync("kupiprodai.url");
@@ -60,16 +61,17 @@ namespace Selen.Sites {
                 await ParseAsync();
                 await CheckUrls();
             } catch (Exception x) {
-                Log.Add("kupiprodai.ru: ошибка синхронизации! - " + x.Message);
+                Log.Add(_l + "ошибка синхронизации! - " + x.Message);
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
                     _dr.Quit();
+                    _dr = null;
                 }
                 return false;
             }
-            Log.Add("kupiprodai.ru: выгрузка успешно завершена");
+            Log.Add(_l + "выгрузка успешно завершена");
             return true;
         }
         //авторизация
@@ -79,21 +81,21 @@ namespace Selen.Sites {
                     _dr = new Selenium();
                     LoadCookies();
                 }
-                //если в кабинет не попали - ждем ручной вход
-                if (!_dr.Navigate("https://kupiprodai.ru/login", "//span[@id='nickname']")) {
+                _dr.Navigate("https://kupiprodai.ru/login");
+                if (_dr.GetElementsCount("//span[@id='nickname']") == 0) {
                     _dr.WriteToSelector("//input[@name='login']", _db.GetParamStr("kupiprodai.login"));
                     _dr.WriteToSelector("//input[@name='pass']", _db.GetParamStr("kupiprodai.password"));
                     _dr.ButtonClick("//input[@value='Войти']");
-                    for (int i = 0; i < 10; i++) {
-                        if (_dr.GetElementsCount("//span[@id='nickname']") > 0) { 
-                            SaveCookies();
+                    //если в кабинет не попали - ждем ручной вход
+                    for (int i = 0; i < 30; i++) {
+                        if (_dr.GetElementsCount("//span[@id='nickname']") > 0)
                             return;
-                        }
-                        Log.Add("kupiprodai.ru: ожидаю вход ("+ i + ")");
-                        Thread.Sleep(60000);
+                        Log.Add(_l + "ожидаю вход");
+                        Thread.Sleep(30000);
                     }
-                    throw new Exception("kupiprodai.ru: ошибка авторизации!");
+                    throw new Exception("превышено ожидание авторизации");
                 }
+                SaveCookies();
             });
         }
         //обновление объявлений
@@ -125,10 +127,12 @@ namespace Selen.Sites {
                     _bus[b].kp = " ";
                     Thread.Sleep(3000);
                     //TODO добавить проверку удаления
-                    Log.Add("kupiprodai.ru: " + _bus[b].name + " - объявление удалено");
+                    Log.Add(_l + _bus[b].name + " - объявление удалено");
                 });
             } catch (Exception x) {
-                Log.Add("kupiprodai.ru: ошибка удаления! - " + _bus[b].name + " - " + x.Message);
+                if (x.Message.Contains("timed out"))
+                    throw;
+                Log.Add(_l + "ошибка удаления! - " + _bus[b].name + " - " + x.Message);
             }
         }
         //редактирование объявления асинхронно
@@ -148,7 +152,7 @@ namespace Selen.Sites {
                 var photos = _dr.FindElements("//div[@id='images']/div/span");
                 if (photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)
                     && _bus[b].images.Count > 0) {
-                    Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю фотографии");
+                    Log.Add(_l + _bus[b].name + " - обновляю фотографии");
                     foreach (var photo in photos) {
                         photo.Click();
                         Thread.Sleep(1000);
@@ -157,7 +161,9 @@ namespace Selen.Sites {
                 }
                 PressOkButton();
             } catch (Exception x) {
-                Log.Add("kupiprodai.ru: EditOffer - " + _bus[b].name + " - ошибка обновления! - " + x.Message);
+                if (x.Message.Contains("timed out"))
+                    throw;
+                Log.Add(_l + "ошибка редактирования - " + _bus[b].name + " - " + x.Message);
             }
         }
         //пишу название
@@ -203,9 +209,11 @@ namespace Selen.Sites {
                         //сохраняем ссылку
                         await SaveUrlAsync(b);
                         count--;
-                        Log.Add("kupiprodai.ru: " + _bus[b].name + " - объявление добавлено, осталось " + count);
-                    } catch (Exception e) {
-                        Log.Add("kupiprodai.ru: ошибка добавления! - " + _bus[b].name + " - " + e.Message);
+                        Log.Add(_l + _bus[b].name + " - объявление добавлено, осталось " + count);
+                    } catch (Exception x) {
+                        if (x.Message.Contains("timed out"))
+                            throw;
+                        Log.Add(_l + "ошибка добавления! - " + _bus[b].name + " - " + x.Message);
                         break;
                     }
                 }
@@ -275,7 +283,7 @@ namespace Selen.Sites {
                     Thread.Sleep(100);
                     _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "kp_" + u + ".jpg ");
                 } catch (Exception x) {
-                    Log.Add("kupiprodai.ru: ошибка загрузки фото! - " + _bus[b].name + " - " + x.Message);
+                    Log.Add(_l + "ошибка загрузки фото! - " + _bus[b].name + " - " + x.Message);
                     Thread.Sleep(3000);
                 }
             }
@@ -312,36 +320,32 @@ namespace Selen.Sites {
         }
         //парсинг отдельной страницы
         async Task ParsePage(int p) {
-            try {
-                await Task.Factory.StartNew(() => {
-                    _dr.Navigate("https://vip.kupiprodai.ru/active/page" + p);
-                    var items = _dr.FindElements("//div[@class='grd_act']/a[1]");
-                    var names = items.Select(s => s.Text).ToList();
-                    var urls = items.Select(s => s.GetAttribute("href")).ToList();
-                    var ids = urls.Select(s => s.Split('_').Last()).ToList();
-                    var prices = _dr.FindElements("//div[@class='price']").Select(s => s.Text).ToList();
-                    if (items.Count != names.Count() ||
-                        items.Count != ids.Count() ||
-                        items.Count != urls.Count() ||
-                        items.Count != prices.Count())
-                        throw new Exception("kupiprodai.ru: ошибка парсинга! - количество элементов не совпадает!");
-                    for (int i = 0; i < items.Count; i++) {
-                        var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
-                        if (b == -1) {
-                            _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
-                        } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "")
+            await Task.Factory.StartNew(() => {
+                _dr.Navigate("https://vip.kupiprodai.ru/active/page" + p);
+                var items = _dr.FindElements("//div[@class='grd_act']/a[1]");
+                var names = items.Select(s => s.Text).ToList();
+                var urls = items.Select(s => s.GetAttribute("href")).ToList();
+                var ids = urls.Select(s => s.Split('_').Last()).ToList();
+                var prices = _dr.FindElements("//div[@class='price']").Select(s => s.Text).ToList();
+                if (items.Count != names.Count() ||
+                    items.Count != ids.Count() ||
+                    items.Count != urls.Count() ||
+                    items.Count != prices.Count())
+                    throw new Exception("ошибка парсинга! - количество элементов не совпадает!");
+                for (int i = 0; i < items.Count; i++) {
+                    var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
+                    if (b == -1) {
+                        _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
+                    } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "")
 
-                                        && DateTime.Now.Minute < 45 //ограничение периода
+                                    && DateTime.Now.Minute < 45 //ограничение периода
 
-                        ||
-                                  !_bus[b].name.Contains(names[i])) {
-                            EditOffer(b);
-                        }
+                    ||
+                              !_bus[b].name.Contains(names[i])) {
+                        EditOffer(b);
                     }
-                });
-            } catch (Exception x) {
-                Log.Add("kupiprodai.ru: ошибка парсинга страницы - " + x.Message);
-            }
+                }
+            });
         }
         //проверка случайных ссылок
         async Task CheckUrls() {
@@ -366,14 +370,16 @@ namespace Selen.Sites {
                             !_bus[b].name.Contains(name) ||
                             _bus[b].price != price ||
                             photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
-                            Log.Add("kupiprodai.ru: " + _bus[b].name + " - обновляю объявление");
+                            Log.Add(_l + _bus[b].name + " - обновляю объявление");
                             EditOffer(b);
                         }
                         i++;
                     }
                 });
             } catch (Exception x) {
-                Log.Add("kupiprodai.ru: ошибка при проверке ссылок - " + x.Message);
+                if (x.Message.Contains("timed out"))
+                    throw;
+                Log.Add(_l+"ошибка при проверке ссылок - " + x.Message);
             }
         }
     }

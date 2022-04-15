@@ -120,6 +120,9 @@ namespace Selen.Sites {
         }
         public async Task GenerateXML_avito(List<RootObject> _bus) {
             await Task.Factory.StartNew(() =>{
+                //интервал проверки
+                var uploadInterval = DB._db.GetParamInt("youla.uploadInterval");
+                if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0) return;
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("youla.offersLimit");
                 //доп. описание

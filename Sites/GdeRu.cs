@@ -218,7 +218,7 @@ namespace Selen.Sites {
         //выкладываю объявления
         public async Task AddAsync() {
             var count = await _db.GetParamIntAsync("gde.addCount");
-            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
+            for (int b = _bus.Count - 1; b > -1 && count > 0 && DateTime.Now.Minute < 50; b--) {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
                      !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                      _bus[b].amount > 0 &&
@@ -344,7 +344,7 @@ namespace Selen.Sites {
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
             var checkPagesProcent = await _db.GetParamIntAsync("gde.checkPagesProcent");
-            for (int i = 0; i < pageCount; i++) {
+            for (int i = 0; i < pageCount && DateTime.Now.Minute < 50; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) > checkPagesProcent) continue;
                 await ParsePage(i + 1);
@@ -363,15 +363,11 @@ namespace Selen.Sites {
                         names.Count != ids.Count) {
                         throw new Exception("количество элементов не совпадает!");
                     }
-                    for (int i = 0; i < ids.Count; i++) {
+                    for (int i = 0; i < ids.Count && DateTime.Now.Minute < 50; i++) {
                         var b = _bus.FindIndex(f => f.gde.Contains(ids[i]));
                         if (b == -1) {
                             _dr.Navigate("https://kaluga.gde.ru/cabinet/item/delete?id=" + ids[i]);
-                        } else if (_bus[b].price.ToString() != prices[i]
-
-                                        && DateTime.Now.Minute < 45 //ограничение периода
-
-                        ||
+                        } else if (_bus[b].price.ToString() != prices[i] ||
                                   !_bus[b].name.Contains(names[i])) {
                             EditOffer(b);
                         }
