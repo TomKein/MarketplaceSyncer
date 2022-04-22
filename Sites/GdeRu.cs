@@ -222,7 +222,7 @@ namespace Selen.Sites {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
                      !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                      _bus[b].amount > 0 &&
-                     _bus[b].price >= 0 &&
+                     _bus[b].price > 0 &&
                      _bus[b].images.Count > 0) {
                     try {
                         await Task.Factory.StartNew(() => {

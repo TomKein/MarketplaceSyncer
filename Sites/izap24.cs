@@ -53,7 +53,7 @@ namespace Selen.Sites {
         //старт выгрузки
         public async Task<bool> SyncAsync(List<RootObject> bus) {
             //интервал проверки
-            var uploadInterval = DB._db.GetParamInt("izap24.uploadInterval");
+                var uploadInterval = await DB._db.GetParamIntAsync("izap24.uploadInterval");
             if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                 return true;
             Log.Add(_l + "начало выгрузки...");

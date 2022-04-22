@@ -11,6 +11,7 @@ using Selen.Tools;
 
 namespace Selen.Sites {
     class YoulaXml {
+        string _l = "youlaXml: ";
         string filename = @"..\youla.xml";
 
         string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
@@ -136,8 +137,9 @@ namespace Selen.Sites {
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
                 //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
-                var bus = _bus.Where(w => w.amount > 0 && w.price > priceLevel && !w.youla.Contains("http") && w.images.Count > 0);
+                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && !w.youla.Contains("http") && w.images.Count > 0);
                 //для каждой карточки
+                int i=0;
                 foreach (var b in bus) {
                     try {
                         //id объявления на юле из ссылки
@@ -168,24 +170,38 @@ namespace Selen.Sites {
                         //описание
                         var d = b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1 + "\r\n" + a2);
                         ad.Add(new XElement("Description", new XCData(d)));
+
+
+                        ////состояние
+                        //ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
+                        ////доступность
+                        //ad.Add(new XElement("Availability", "В наличии"));
+                        ////номер запчасти
+                        //if (!string.IsNullOrEmpty(b.part))
+                        //    ad.Add(new XElement("OEM", b.part));
+                        ////оригинальность
+                        //ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
+
+
                         //имя менеджера
                         ad.Add(new XElement("ManagerName", "Менеджер 1"));
                         //добавляю элемент offer в контейнер offers
                         root.Add(ad);
                         //ограничение позиций
-                        if (--offersLimit == 0)
+                        if (++i >= offersLimit)
                             break;
                     } catch (Exception x) {
-                        Log.Add("GenerateXML: " + offersLimit + " - " + b.name + " - " + x.Message);
+                        Log.Add(_l + i + " - " + b.name + " - " + x.Message);
                     }
                 }
+                Log.Add("выгружено " + i);
                 //добавляю root в документ
                 xml.Add(root);
                 //сохраняю файл
                 xml.Save(filename);
             });
             //если размер файла в порядке
-            if (new FileInfo(filename).Length > 1900000)
+            if (new FileInfo(filename).Length > 7900000)
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }

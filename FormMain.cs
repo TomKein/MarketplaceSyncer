@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.84";
+        string _version = "1.85";
 
         DB _db = new DB();
 
@@ -208,7 +208,7 @@ namespace Selen {
                 var lastTime = await _db.GetParamStrAsync("liteScanTime");
                 //запросим новые/измененные карточки товаров
                 string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
-                            {"archive", "0"},
+                            //{"archive", "0"},
                             {"type", "1"},
                             //{"limit", pageLimitBase.ToString()},
                             //{"page", i.ToString()},
@@ -375,6 +375,7 @@ namespace Selen {
                 await ArtCheckAsync();//чистка артикулов от лишних символов
             await GroupsMoveAsync();//проверка групп
             await PhotoClearAsync();//очистка ненужных фото
+            await ArchivateAsync();//архивирование старых карточек
         }
 
         //полный скан базы бизнес.ру
@@ -539,7 +540,7 @@ namespace Selen {
             _writeLog = await _db.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             _saveCookiesBeforeClose = await _db.GetParamBoolAsync("saveCookiesBeforeClose");
-            await CheckMultiRunAsync();
+            //await CheckMultiRunAsync();
             await LoadBusJSON();
         }
         //проверка на параллельный запуск
@@ -1191,18 +1192,49 @@ namespace Selen {
                 Log.Add("позиций фото, положительным остатком и ценой " + price + "+ : " + x);
             }
         }
+        //архивирование старых карточек
+        async Task ArchivateAsync() {
+            var cnt = await _db.GetParamIntAsync("archivateCount");
+            if (cnt == 0)
+                return;
+            //список карточек без фото, без остатка, отсортированный с самых старых
+            var buschk = bus.Where(w => w.images.Count == 0 && w.amount == 0)
+                .OrderBy(o => DateTime.Parse(o.updated))
+                .ToList();
+            Log.Add("ArchivateAsync: карточек без фото и остатка: " + buschk.Count);
+            for (int b = 0; b < cnt && b < buschk.Count; b++) {
+                try {
+                    //пропускаю карточки которые обновлялись в течении полугода
+                    if (DateTime.Now.AddMonths(-6) < DateTime.Parse(buschk[b].updated))
+                        continue;
+                    //архивирую карточку
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", buschk[b].id},
+                                    {"name", buschk[b].name},
+                                    {"archive", "1"}
+                                });
+                    Log.Add("ArchivateAsync: " + buschk[b].name + " - карточка перемещена в архив! (фото " +
+                        buschk[b].images.Count + ", остаток " + buschk[b].amount + ", updated " + buschk[b].updated+")");
+                    buschk[b].archive = true;
+                } catch (Exception x) {
+                    Log.Add("ошибка архивирования карточки! - " + bus[b].name + " - " + x.Message);
+                }
+            }
+        }
+
         //метод для тестов
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                ChangePostingsPrices();
+
+                var youlaXml = new YoulaXml();
+                await youlaXml.GenerateXML_avito(bus);
+                await ArchivateAsync();
+
+                //var av = new AvitoXml();
+                //await av.GenerateXML(bus);
 
                 //_avito.StartAsync(bus);
-
-
-                //PhotoClearAsync();
-
-
 
                 //if (_avito._dr!=null)_avito._dr.ScreenShot();
                 //if (_drom._dr != null) _drom._dr.ScreenShot();
