@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.85";
+        string _version = "1.86";
 
         DB _db = new DB();
 
@@ -1227,9 +1227,14 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
 
-                var youlaXml = new YoulaXml();
-                await youlaXml.GenerateXML_avito(bus);
-                await ArchivateAsync();
+                var l = bus.Where(w => w.amount > 0 && w.price > 0 && w.images.Count == 0 && w.drom.StartsWith("http"));
+                foreach (var item in l) {
+                    Log.Add(item.name + " - нет фото");
+                }
+
+                //var youlaXml = new YoulaXml();
+                //await youlaXml.GenerateXML_avito(bus);
+                //await ArchivateAsync();
 
                 //var av = new AvitoXml();
                 //await av.GenerateXML(bus);

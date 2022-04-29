@@ -64,6 +64,7 @@ namespace Selen.Sites {
             await EditAsync();
             await AddAsync();
             await CheckAsync();
+            await GetDromPhotos();
             Log.Add("drom.ru: выгрузка завершена");
         }
         async Task AuthAsync() {
@@ -423,6 +424,89 @@ namespace Selen.Sites {
                 });
             }
             return drom;
+        }
+        //добавляем фото с дром в карточки товаров
+        async Task GetDromPhotos() {
+            //если загрузка фотографий включена в настройках
+            if (await _db.GetParamBoolAsync("loadPhotosFromDromToBusiness")) {
+                //перебираю карточки товара
+                for (int b = 0; b < _bus.Count; b++) {
+                    //если есть ссылка на дром, нет фото, остаток и цена положительные
+                    if (_bus[b].drom.StartsWith("http") && _bus[b].images.Count == 0 && _bus[b].amount > 0 && _bus[b].price > 0) {
+                        var imgUrls = new List<string>();
+                        try {
+                            await Task.Factory.StartNew(() => {
+                                Log.Add("drom.ru: " + _bus[b].name + " нет фотографий в карточке!");
+                                _dr.Navigate(_bus[b].drom);
+                                //получаю количество фотографий 
+                                var imgCount = _dr.GetElementsCount("//div[@class='grid-item-wrapper']/img[contains(@src,'drom.ru')]");
+                                //перехожу на страницу объявления
+                                PressOkButton();
+                                //открываю фото в полный размер, чтобы получить ссылки на полноразмерные фото
+                                _dr.ButtonClick("//a[@target='_blank' and contains(@class,'image')]");
+                                //прокручиваю фотографии, т.к. в разметке ссылки только на 3 фотографии
+                                for (int i = 0; i < imgCount; i++) {
+                                    //получаю ссылки на фото
+                                    var url = _dr._drv.FindElements(By.XPath("//img[@class='pswp__img']")).Select(s=>s.GetAttribute("src"));
+                                    //добавляю в список
+                                    imgUrls.AddRange(url);
+                                    //пролистываю на следующее фото
+                                    _dr.ButtonClick("//button[contains(@class,'button--arrow--right')]",sleep:5000);
+                                }
+                                //очищаю список от повторов
+                                imgUrls = imgUrls.Distinct().OrderBy(a=>a).ToList();
+                            });
+                            //если ссылки на фото найдены
+                            if (imgUrls.Count > 0) {
+                                //прикрепляю главное фото
+                                _bus[b].images.Add(new Image() {
+                                    name = "0",
+                                    url = imgUrls[0]
+                                });
+                                //сериализую в строку
+                                var images = JsonConvert.SerializeObject(_bus[b].images);
+                                //прикрепляю в карточку товара в бизнес.ру
+                                var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", _bus[b].id},
+                                    {"name", _bus[b].name},
+                                    {"images", images}
+                                });
+                                Thread.Sleep(5000);
+                                //запрашиваю карточку
+                                s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>() {
+                                    {"id", _bus[b].id},
+                                    {"name", _bus[b].name},
+                                    {"with_additional_fields", "1"}
+                                });
+                                //проверяю главное фото
+                                var biz = JsonConvert.DeserializeObject<RootObject[]>(s);
+                                if (biz[0].images[0].name != _bus[b].images[0].name)
+                                    throw new Exception("главное фото не совпадает!");
+                                //обновляю ссылку на фото
+                                _bus[b].images = biz[0].images;
+                                //загружаю остальные фотографии
+                                for (int i = 1; i < imgUrls.Count; i++) {
+                                    _bus[b].images.Add(new Image() {
+                                        name = i.ToString(),
+                                        url = imgUrls[i]
+                                    });
+                                }
+                                images = JsonConvert.SerializeObject(_bus[b].images);
+                                //прикрепляю в карточку товара в бизнес.ру
+                                s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", _bus[b].id},
+                                    {"name", _bus[b].name},
+                                    {"images", images}
+                                });
+                                Log.Add("drom.ru: "+ imgUrls.Count + " фото обновлено!");
+                            } else
+                                throw new Exception("сылки не найдены!!");
+                        } catch (Exception x) {
+                            Log.Add("drom.ru: " + _bus[b].name + " - ошибка загрузки фотографий - " + x.Message);
+                        }
+                    }
+                }
+            }
         }
     }
 }
