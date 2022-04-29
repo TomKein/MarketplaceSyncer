@@ -145,19 +145,25 @@ namespace Selen.Sites {
             foreach (var b in buschk) {
                 try {
                     //проверяю объявление
-                    await _dr.NavigateAsync(b.youla);
-                    Thread.Sleep(5000);
-                    //если есть кнопка снять с публикации, значит объявление еще активно, пропускаем
-                    if (_dr.GetElementsCount("//button/span[text()='Снять с публикации']") > 0)
-                        continue;
-                    //иначе удаляю, чтобы подать через автозагрузку
-                    _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']", 5000);
-                    //кнопка удалить
-                    _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
-                    //кнопка другая причина
-                    _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 10000);
-                    Log.Add("youla.ru: " + b.name + " - объявление удалено");
-                    b.youla="";
+                    var t = Task.Factory.StartNew<bool>(() => { 
+                        _dr.Navigate(b.youla);
+                        Thread.Sleep(5000);
+                        //если есть кнопка снять с публикации, значит объявление еще активно, пропускаем
+                        if (_dr.GetElementsCount("//button/span[text()='Снять с публикации']") > 0)
+                          return true;
+                        return false;
+                    });
+                    if (await t) continue;
+                    await Task.Factory.StartNew(() => { 
+                        //иначе удаляю, чтобы подать через автозагрузку
+                        _dr.ButtonClick("//button[@data-test-action='ProductDeleteClick']", 5000);
+                        //кнопка удалить
+                        _dr.ButtonClick("//button[@data-test-action='ConfirmModalApply']", 5000);
+                        //кнопка другая причина
+                        _dr.ButtonClick("//button[@data-test-action='ArchivateClick']", 10000);
+                        Log.Add("youla.ru: " + b.name + " - объявление удалено");
+                        b.youla="";
+                    });
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", b.id},
                                     {"name", b.name},

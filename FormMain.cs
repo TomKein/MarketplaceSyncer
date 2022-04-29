@@ -540,30 +540,32 @@ namespace Selen {
             _writeLog = await _db.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
             _saveCookiesBeforeClose = await _db.GetParamBoolAsync("saveCookiesBeforeClose");
-            //await CheckMultiRunAsync();
+            await CheckMultiRunAsync();
             await LoadBusJSON();
         }
         //проверка на параллельный запуск
         async Task CheckMultiRunAsync() {
-            while (true) {
-                try {
-                    //запрашиваю последнюю запись из лога
-                    DataTable table = await _db.GetLogAsync("", 1);
-                    //если запись получена
-                    if (table.Rows.Count > 0) {
-                        DateTime time = (DateTime)table.Rows[0].ItemArray[1];
-                        string text = table.Rows[0].ItemArray[3] as string;
-                        Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
-                        //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
-                        if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
-                            return;
-                        else
-                            Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
-                    } else
-                        Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
-                    await Task.Delay(61 * 1000);
-                } catch (Exception x) {
-                    Log.Add("ошибка при контроле параллельных запусков - " + x.Message, false);
+            if (await _db.GetParamBoolAsync("checkMultiRun")) {
+                while (true) {
+                    try {
+                        //запрашиваю последнюю запись из лога
+                        DataTable table = await _db.GetLogAsync("", 1);
+                        //если запись получена
+                        if (table.Rows.Count > 0) {
+                            DateTime time = (DateTime) table.Rows[0].ItemArray[1];
+                            string text = table.Rows[0].ItemArray[3] as string;
+                            Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
+                            //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
+                            if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
+                                return;
+                            else
+                                Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
+                        } else
+                            Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
+                        await Task.Delay(61 * 1000);
+                    } catch (Exception x) {
+                        Log.Add("ошибка при контроле параллельных запусков - " + x.Message, false);
+                    }
                 }
             }
         }
