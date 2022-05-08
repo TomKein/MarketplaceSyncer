@@ -77,7 +77,9 @@ namespace Selen.Sites {
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
-                && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now));
+                                      && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
+                              .OrderByDescending(o => o.price);
+                
                 Log.Add(_l+"найдено " + bus.Count() + " потенциальных объявлений");
                 //для каждой карточки
                 int i=0;
@@ -134,7 +136,7 @@ namespace Selen.Sites {
                 xml.Save(filename);
             });
             //если размер файла в порядке
-            if(new FileInfo(filename).Length > 26000000)
+            if(new FileInfo(filename).Length > await DB._db.GetParamIntAsync("avito.xmlMinSize"))
             //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }

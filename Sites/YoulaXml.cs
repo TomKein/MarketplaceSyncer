@@ -120,10 +120,11 @@ namespace Selen.Sites {
             xml.Save(filename);
         }
         public async Task GenerateXML_avito(List<RootObject> _bus) {
-            await Task.Factory.StartNew(() =>{
+            var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB._db.GetParamInt("youla.uploadInterval");
-                if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0) return;
+                if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
+                    return false;
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("youla.offersLimit");
                 //доп. описание
@@ -136,16 +137,12 @@ namespace Selen.Sites {
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-                //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
-                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && !w.youla.Contains("http") && w.images.Count > 0);
+                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && !w.youla.Contains("http") && w.images.Count > 0)
+                              .OrderByDescending(o=>o.price);
                 //для каждой карточки
-                int i=0;
+                int i = 0;
                 foreach (var b in bus) {
                     try {
-                        //id объявления на юле из ссылки
-                        //var youlaId = b.youla.Split('-').Last();
-                        //элемент offer
-                        //var offer = new XElement("offer", new XAttribute("id", youlaId));
                         var ad = new XElement("Ad");
                         //id
                         ad.Add(new XElement("Id", b.id));
@@ -170,19 +167,15 @@ namespace Selen.Sites {
                         //описание
                         var d = b.DescriptionList(2990, _addDesc).Aggregate((a1, a2) => a1 + "\r\n" + a2);
                         ad.Add(new XElement("Description", new XCData(d)));
-
-
-                        ////состояние
-                        //ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
-                        ////доступность
-                        //ad.Add(new XElement("Availability", "В наличии"));
-                        ////номер запчасти
-                        //if (!string.IsNullOrEmpty(b.part))
-                        //    ad.Add(new XElement("OEM", b.part));
-                        ////оригинальность
-                        //ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
-
-
+                        //состояние
+                        ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
+                        //доступность
+                        ad.Add(new XElement("Availability", "В наличии"));
+                        //номер запчасти
+                        if (!string.IsNullOrEmpty(b.part))
+                            ad.Add(new XElement("OEM", b.part));
+                        //оригинальность
+                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //имя менеджера
                         ad.Add(new XElement("ManagerName", "Менеджер 1"));
                         //добавляю элемент offer в контейнер offers
@@ -194,16 +187,18 @@ namespace Selen.Sites {
                         Log.Add(_l + i + " - " + b.name + " - " + x.Message);
                     }
                 }
-                Log.Add("выгружено " + i);
+                Log.Add(_l+"выгружено " + i);
                 //добавляю root в документ
                 xml.Add(root);
                 //сохраняю файл
                 xml.Save(filename);
+                return true;
             });
-            //если размер файла в порядке
-            if (new FileInfo(filename).Length > 7900000)
+            //если файл сгенерирован и его размер ок
+            if (await gen && new FileInfo(filename).Length > await DB._db.GetParamIntAsync("youla.xmlMinSize")) { 
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
+            }
         }
         //категория на юле
         Dictionary<string, string> GetCategory(RootObject b) {

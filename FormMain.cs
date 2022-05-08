@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.86";
+        string _version = "1.87";
 
         DB _db = new DB();
 
@@ -59,12 +59,12 @@ namespace Selen {
         //========================
         //AVITO.RU
         async void AvitoRu_Click(object sender, EventArgs e) {
-            //if (await _db.GetParamBoolAsync("avito.syncEnable")) {
+            if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
                     while (base_rescan_need) await Task.Delay(30000);
                     var av = new AvitoXml();
-                    await _avito.StartAsync(bus);
+                    //await _avito.StartAsync(bus);
                     await av.GenerateXML(bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
@@ -80,7 +80,7 @@ namespace Selen {
                     } else ChangeStatus(sender, ButtonStates.ActiveWithProblem);
 
                 }
-            //}
+            }
         }
         //VK.COM
         async void VkCom_Click(object sender, EventArgs e) {
@@ -326,7 +326,7 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 50 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
+                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
                     await SaveBusAsync();
                     await SyncAllAsync();
                     dateTimePicker1.Value = sync_start;
@@ -573,7 +573,8 @@ namespace Selen {
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() => await Task.Factory.StartNew(async () => {
             try {
-                for (int i = DateTime.Now.Second, cnt = 0; i < bus.Count && cnt < 2; i += 30) {
+                var count = _db.GetParamInt("checkDublesCount");
+                for (int i = DateTime.Now.Second, cnt = 0; i < bus.Count && cnt < count; i += 30) {
                     //название без кавычек
                     var tmpName = bus[i].name.TrimEnd(new[] { '`', ' ', '\'', '.' });
                     //признак дублирования
@@ -1199,8 +1200,8 @@ namespace Selen {
             var cnt = await _db.GetParamIntAsync("archivateCount");
             if (cnt == 0)
                 return;
-            //список карточек без фото, без остатка, отсортированный с самых старых
-            var buschk = bus.Where(w => w.images.Count == 0 && w.amount == 0)
+            //список не архивных карточек без фото, без остатка, отсортированный с самых старых
+            var buschk = bus.Where(w => w.images.Count == 0 && w.amount == 0 && !w.archive)
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("ArchivateAsync: карточек без фото и остатка: " + buschk.Count);
