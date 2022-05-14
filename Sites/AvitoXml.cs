@@ -121,9 +121,21 @@ namespace Selen.Sites {
                         ad.Add(new XElement("ManagerName", "Менеджер"));
                         //добавляю элемент offer в контейнер offers
                         ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
-
+                        //состояние
+                        ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
+                        //доступность
+                        ad.Add(new XElement("Availability", "В наличии"));
+                        //номер запчасти
+                        if (!string.IsNullOrEmpty(b.part))
+                            ad.Add(new XElement("OEM", b.part));
+                        //оригинальность
+                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
+                        //добавляю объявление в дерево
                         root.Add(ad);
-                        if (++i > offersLimit)
+                        //считаем только объявления с остатком
+                        if (b.amount > 0)
+                            i++;
+                        if (i >= offersLimit)
                             break;
                     } catch (Exception x) {
                         Log.Add(_l+ i + " - " + b.name + " - " + x.Message);
