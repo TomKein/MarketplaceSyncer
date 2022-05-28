@@ -264,7 +264,6 @@
     <Compile Include="Sites\izap24.cs" />
     <Compile Include="Sites\Kupiprodai.cs" />
     <Compile Include="Sites\Satom.cs" />
-    <Compile Include="Sites\Youla.cs" />
     <Compile Include="Sites\YoulaXml.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
@@ -275,9 +274,7 @@
     </Compile>
     <Compile Include="Sites\AbstractSite.cs" />
     <Compile Include="Base\ClassRootObject.cs" />
-    <Compile Include="Sites\Avito.cs" />
     <Compile Include="Sites\Drom.cs" />
-    <Compile Include="Sites\EuroAuto.cs" />
     <Compile Include="Sites\Offer.cs" />
     <Compile Include="Sites\VK.cs" />
     <Compile Include="Tools\ButtonStates.cs" />

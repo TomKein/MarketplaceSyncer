@@ -39,12 +39,12 @@ namespace Selen.Sites {
             await GetAlbumsVKAsync();
             if (vkAlb.Count == 0)
                 return;
-            await AddVKAsync();
             if (DateTime.Now.Hour % _catalogCheckInterval != 0)
                 return;
             await GetVKAsync();
             await CheckVKAsync();
             await CheckBusAsync();
+            await AddVKAsync();
         }
         //проверка изменений в бизнес.ру
         async Task EditAsync() {

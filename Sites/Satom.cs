@@ -23,24 +23,9 @@ namespace Selen.Sites {
             "75573",    //"УСЛУГИ"
             "209277",   //"ЗАКАЗЫ"
             "430926",   //"МАСЛА"
-            "491841",   //"ИНСТРУМЕНТЫ (НОВЫЕ)"
-            "506517",   //"НАКЛЕЙКИ"
-            "496105",   //"ЗАРЯДНЫЕ УСТРОЙСТВА"
-            "1721460",  //"КОВРИКИ (НОВЫЕ)"
-            "490003",   //"ДОМКРАТЫ"
-            "473940",   //"ТРОСЫ БУКСИРОВОЧНЫЕ"
-            "467920",   //"ОЧИСТИТЕЛИ, ПОЛИРОЛИ"
             "460974",   //"АКСЕССУАРЫ"
-            "452852",   //"ПРОВОДА ПРИКУРИВАНИЯ"
-            "452386",   //"АРОМАТИЗАТОРЫ"
-            "451921",   //"КОМПРЕССОРЫ"
-            "451920",   //"КАНИСТРЫ"
             "451919",   //"ЩЕТКИ, ПЕРЧАТКИ"
-            "450171",   //"ХОМУТЫ, СТЯЖКИ"
-            "449585",   //"ГЕРМЕТИКИ"
             "439231",   //"АККУМУЛЯТОРЫ"
-            "436634",   //"ЖИДКОСТИ, СМАЗКИ"
-            "434159",   //"ДВОРНИКИ, ЩЕТКИ"
             "289732",   //"АВТОХИМИЯ"
         };
         public Satom() {
@@ -72,7 +57,7 @@ namespace Selen.Sites {
             //беру первую таблицу
             var ws = workbook.Worksheets.First();
             //перебираю карточки товара
-            for (int b = 0, i = 2; b<_bus.Count; b++) {
+            for (int b = 0, i = 2; b < _bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
                 if (_bus[b].amount > 0 &&
                     _bus[b].price > 0 &&
@@ -80,7 +65,8 @@ namespace Selen.Sites {
                     !_blockedGroupsIds.Contains(_bus[b].group_id)
                     ) {
                     var category = GetCategory(b);
-                    if (category.Length == 0) continue;
+                    if (category.Length == 0)
+                        continue;
                     //наименование
                     ws.Cell(i, 1).Value = _bus[b].name;
                     //цена
@@ -92,7 +78,7 @@ namespace Selen.Sites {
                                         : _bus[b].measure_id == "13" ? "компл."
                                         : "шт.";
                     //ссылка на фото
-                    ws.Cell(i, 5).Value = _bus[b].images.Select(s => s.url).Aggregate((a1, a2) => a1+","+a2);
+                    ws.Cell(i, 5).Value = _bus[b].images.Select(s => s.url).Aggregate((a1, a2) => a1 + "," + a2);
                     //наличие
                     ws.Cell(i, 7).Value = "+";
                     //количество
@@ -100,22 +86,22 @@ namespace Selen.Sites {
                     //рубрика
                     ws.Cell(i, 9).Value = category;
                     //идентификатор рубрики
-                        ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
+                    ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
-                    ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1+"<br>"+a2)+
-                        "<br><br><p style=\"color:#D3D3D3;font-size:5px\">код на складе:" + _bus[b].id+"</p>";
+                    ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
+                        "<br><br><p style=\"color:#D3D3D3;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
                     //идентификатор товара
                     ws.Cell(i, 17).Value = _bus[b].id;
                     //артикул
-                    ws.Cell(i, 22).Value = _bus[b].part??"";
+                    ws.Cell(i, 22).Value = _bus[b].part ?? "";
                     //статус
                     ws.Cell(i, 39).Value = "опубликован";
                     //состояние
-                    ws.Cell(i, 44).Value = "Состояние"; 
-                    ws.Cell(i, 45).Value = _bus[b].IsNew()?"новый": "б/у";
+                    ws.Cell(i, 44).Value = "Состояние";
+                    ws.Cell(i, 45).Value = _bus[b].IsNew() ? "новый" : "б/у";
                     //тип
                     ws.Cell(i, 51).Value = "Тип по изготовителю";
-                    ws.Cell(i, 52).Value = _bus[b].IsOrigin()? "оригинал" : "аналог";
+                    ws.Cell(i, 52).Value = _bus[b].IsOrigin() ? "оригинал" : "аналог";
                     //артикул
                     if (!String.IsNullOrEmpty(_bus[b].part)) {
                         ws.Cell(i, 46).Value = "Номер запчасти";
@@ -127,58 +113,15 @@ namespace Selen.Sites {
             }
             workbook.Save();
             Log.Add("файл успешно сохранен");
-
-            {
-                //определяю границы данных
-                //var range = ws.RangeUsed();
-                //количество столбцов
-                //var colCount = range.ColumnCount();
-                //количесвто строк
-                //var rowCount = range.RowCount();
-                //Log.Add("satom: rowCount:" +rowCount + " colCount:"+colCount);
-                //перебираю строки, чтобы заменить идентификаторы tiu на идентификаторы business
-                //for (int b = 2; i <= rowCount/1000; i++) {
-                //    //наименование позиции
-                //    var name = ws.Cell(i, 1).GetString();
-                //    //цена
-                //    var price = ws.Cell(i, 2).GetString();
-                //    //ищем карточки товара
-                //    List<RootObject> bus = _bus.Where(b => b.name==name).ToList();
-                //    //если нашли 1
-                //    if (bus.Count == 1) {
-                //        //нет на остатках - удаляем строку
-                //        if (bus[0].amount <= 0) {
-                //            Log.Add("satom: "+i+" УДАЛЯЮ СТРОКУ, нет на остатках - " + ws.Row(i).ToString() + " - " + bus[0].name);
-                //            ws.Row(i).Delete();
-                //            i--;
-                //            rowCount--;
-                //            continue;
-                //        } else {
-                //            if (bus[0].price.ToString() != price) {
-                //                Log.Add("satom: "+i+" МЕНЯЮ ЦЕНУ - " + name + " старая: " + price + " - новая: " + bus[0].price);
-                //                ws.Cell(i, 2).Value = bus[0].price.ToString();
-                //            }
-                //            //меняю id
-                //            ws.Cell(i, 17).Value = bus[0].id;
-                //            //заполняю количество на остатках
-                //            ws.Cell(i, 8).Value = String.Format("{0:0.##}", bus[0].amount);
-                //            //фото
-                //            ws.Cell(i, 5).Value = bus[0].images.Select(s => s.url).Aggregate((a, b) => a+","+b);
-                //        }
-                //    } else {
-                //        Log.Add("satom: "+i+" УДАЛЯЮ СТРОКУ, cnt="+bus.Count+" - " + name);
-                //        ws.Row(i).Delete();
-                //        i--;
-                //        rowCount--;
-                //    }
-
-                //}
-            }
         }
         //определение категории на сатоме
         private string GetCategory(int b) {
             var g = _bus[b].GroupName().ToLowerInvariant();
             var n = _bus[b].name.ToLowerInvariant();
+            if (g.StartsWith("инструменты"))
+                return "https://satom.ru/t/avtoinstrument-9354/";
+            if (n.StartsWith("стекло ") || n.StartsWith("зеркал") || n.StartsWith("форточк"))
+                return "https://satom.ru/t/stekla-zerkala-avtomobilnye-188/";
             if (n.Contains("реш") && (n.Contains("бампер") || n.Contains("радиатор")))
                 return "https://satom.ru/t/reshetki-avtomobilnye-na-bampery-i-radiatory-120/";
             if (n.Contains("поворотник ") || n.StartsWith("поворот")||n.StartsWith("указатель"))
@@ -370,8 +313,6 @@ namespace Selen.Sites {
             if (n.Contains("кнопк") || n.Contains("кнопок") ||
                 n.Contains("выключатель")|| n.Contains("трамбл"))
                 return "https://satom.ru/t/zapchasti-dlya-avtomobilnogo-elektrooborudovaniya-11389/";
-            if (n.Contains("стекло ")|| n.Contains("зеркал") || n.Contains("форточк"))
-                return "https://satom.ru/t/stekla-zerkala-avtomobilnye-188/";
             if (n.Contains("бачок")) {
                 if (n.Contains("расшири"))
                     return "https://satom.ru/t/detali-sistemy-ohlazhdeniya-avtomobilya-205/";
@@ -382,7 +323,7 @@ namespace Selen.Sites {
                 if (n.Contains("тормоз"))
                     return "https://satom.ru/t/detali-tormoznoy-sistemy-avtomobilya-9217/";
             }
-            if (n.Contains("балка") || n.Contains(" моста") || n.Contains("подрамник")||n.Contains("аздатка"))
+            if (n.StartsWith("балка") || n.Contains(" моста") || n.Contains("подрамник")||n.Contains("аздатка"))
                 return "https://satom.ru/t/mosty-i-balki-avtomobilnye-9157/";
             if (n.Contains("ящик") || n.Contains("бардачок") || n.Contains("вещев")||
                 n.Contains("карман")|| n.Contains("часы"))

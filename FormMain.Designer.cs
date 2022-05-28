@@ -53,7 +53,6 @@ namespace Selen {
             this.label_Cdek = new System.Windows.Forms.Label();
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
-            this.button_EuroAuto = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
             this.button_Youla = new System.Windows.Forms.Button();
             this.button_Izap24 = new System.Windows.Forms.Button();
@@ -211,7 +210,7 @@ namespace Selen {
             // 
             this.label_Youla.AutoSize = true;
             this.label_Youla.Enabled = false;
-            this.label_Youla.Location = new System.Drawing.Point(120, 321);
+            this.label_Youla.Location = new System.Drawing.Point(120, 296);
             this.label_Youla.Name = "label_Youla";
             this.label_Youla.Size = new System.Drawing.Size(16, 13);
             this.label_Youla.TabIndex = 85;
@@ -312,7 +311,7 @@ namespace Selen {
             // label_Cdek
             // 
             this.label_Cdek.AutoSize = true;
-            this.label_Cdek.Location = new System.Drawing.Point(120, 296);
+            this.label_Cdek.Location = new System.Drawing.Point(120, 271);
             this.label_Cdek.Name = "label_Cdek";
             this.label_Cdek.Size = new System.Drawing.Size(16, 13);
             this.label_Cdek.TabIndex = 122;
@@ -338,16 +337,6 @@ namespace Selen {
             this.button_Settings.UseVisualStyleBackColor = true;
             this.button_Settings.Click += new System.EventHandler(this.button_SettingsFormOpen_Click);
             // 
-            // button_EuroAuto
-            // 
-            this.button_EuroAuto.Location = new System.Drawing.Point(5, 265);
-            this.button_EuroAuto.Name = "button_EuroAuto";
-            this.button_EuroAuto.Size = new System.Drawing.Size(113, 23);
-            this.button_EuroAuto.TabIndex = 145;
-            this.button_EuroAuto.Text = "EuroAuto.ru";
-            this.button_EuroAuto.UseVisualStyleBackColor = true;
-            this.button_EuroAuto.Click += new System.EventHandler(this.EuroAuto_Click);
-            // 
             // panel_Buttons
             // 
             this.panel_Buttons.AutoSize = true;
@@ -356,7 +345,6 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.checkBox_sync);
             this.panel_Buttons.Controls.Add(this.button_Izap24);
             this.panel_Buttons.Controls.Add(this.dateTimePicker1);
-            this.panel_Buttons.Controls.Add(this.button_EuroAuto);
             this.panel_Buttons.Controls.Add(this.button_Drom);
             this.panel_Buttons.Controls.Add(this.button_BaseGet);
             this.panel_Buttons.Controls.Add(this.button_Avito);
@@ -382,7 +370,7 @@ namespace Selen {
             // 
             // button_Youla
             // 
-            this.button_Youla.Location = new System.Drawing.Point(5, 317);
+            this.button_Youla.Location = new System.Drawing.Point(5, 292);
             this.button_Youla.Name = "button_Youla";
             this.button_Youla.Size = new System.Drawing.Size(113, 23);
             this.button_Youla.TabIndex = 148;
@@ -392,7 +380,7 @@ namespace Selen {
             // 
             // button_Izap24
             // 
-            this.button_Izap24.Location = new System.Drawing.Point(4, 291);
+            this.button_Izap24.Location = new System.Drawing.Point(4, 266);
             this.button_Izap24.Name = "button_Izap24";
             this.button_Izap24.Size = new System.Drawing.Size(114, 23);
             this.button_Izap24.TabIndex = 147;
@@ -526,7 +514,6 @@ namespace Selen {
         private System.Windows.Forms.Label label_Cdek;
         private System.Windows.Forms.Button button_SaveCookie;
         private System.Windows.Forms.Button button_Settings;
-        private System.Windows.Forms.Button button_EuroAuto;
         private System.Windows.Forms.Panel panel_Buttons;
         private System.Windows.Forms.Panel panel_bottom;
         private System.Windows.Forms.Panel panel_Filter;

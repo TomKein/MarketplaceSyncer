@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.88";
+        string _version = "1.89";
 
         DB _db = new DB();
 
@@ -26,12 +26,9 @@ namespace Selen {
 
         VK _vk = new VK();
         Drom _drom = new Drom();
-        Avito _avito = new Avito();
-        EuroAuto _euroAuto = new EuroAuto();
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
-        Youla _youla = new Youla();
         Satom sat = new Satom();
 
         int _pageLimitBase = 250;
@@ -65,22 +62,10 @@ namespace Selen {
                     while (base_rescan_need)
                         await Task.Delay(30000);
                     var av = new AvitoXml();
-                    //await _avito.StartAsync(bus);
                     await av.GenerateXML(bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
-                    if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                        Log.Add("avito.ru: ошибка браузера, перезапуск через 1 минуту...");
-                        await Task.Delay(60000);
-                        _avito.Quit();
-                        AvitoRu_Click(sender, e);
-                    } else
-                        ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-
                 }
             }
         }
@@ -151,22 +136,6 @@ namespace Selen {
             } else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
-        //EUROAUTO.RU - ОТКЛЮЧЕНО
-        async void EuroAuto_Click(object sender, EventArgs e) {
-            if (DateTime.Now.Hour > 24/*7*/ && DateTime.Now.Hour % 4 == 0) {
-                ChangeStatus(sender, ButtonStates.NoActive);
-                while (base_rescan_need)
-                    await Task.Delay(60000);
-                try {
-                    await _euroAuto.SyncAsync(bus);
-                    Log.Add("euroauto.ru: выгрузка ок!");
-                    ChangeStatus(sender, ButtonStates.Active);
-                } catch (Exception x) {
-                    Log.Add("euroauto.ru: ошибка выгрузки! - " + x.Message + x.InnerException.Message);
-                    ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-                }
-            }
-        }
         //IZAP24.RU
         async void Izap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -182,17 +151,15 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || bus.Count == 0)
                 await Task.Delay(30000);
-            //if (await _youla.StartAsync(bus)) {
-            //label_Youla.Text = bus.Count(c => c.youla != null && c.youla.Contains("http")).ToString();
             var youlaXml = new YoulaXml();
             await youlaXml.GenerateXML_avito(bus);
             ChangeStatus(sender, ButtonStates.Active);
-            //} else
-              //  ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //SATOM.RU
         async void buttonSatom_Click(object sender, EventArgs e) {//TODO отключено, настроить
             ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need || bus.Count == 0)
+                await Task.Delay(30000);
             sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -588,7 +555,6 @@ namespace Selen {
                 }
             }
         }
-
         // поиск и исправление дубликатов названий
         private async Task CheckDublesAsync() {
             try {
@@ -879,7 +845,7 @@ namespace Selen {
                 }
             }
         }
-
+        //контроль архивного статуса на карточках с положительным остатком
         async Task CheckArhiveStatusAsync() {
             try {
                 foreach (var item in bus.Where(w => w.amount > 0 && w.archive)) {
@@ -899,7 +865,6 @@ namespace Selen {
         //пока не активируются все кнопки ожидаем 20 сек
         async Task WaitButtonsActiveAsync() {
             while (!(
-                button_EuroAuto.Enabled &&
                 button_Drom.Enabled &&
                 button_Vk.Enabled &&
                 button_Kupiprodai.Enabled &&
@@ -989,9 +954,7 @@ namespace Selen {
         private void button_SaveCookie_Click(object sender, EventArgs e) {
             _kupiprodai.SaveCookies();
             _drom.SaveCookies();
-            _avito.SaveCookies();
             _gde.SaveCookies();
-            _youla.SaveCookies();
         }
         //статус контрола
         void ChangeStatus(object sender, ButtonStates buttonState) {
@@ -1072,15 +1035,11 @@ namespace Selen {
             if (_saveCookiesBeforeClose) {
                 _gde?.SaveCookies();
                 _drom?.SaveCookies();
-                _avito?.SaveCookies();
                 _kupiprodai?.SaveCookies();
-                _youla?.SaveCookies();
             }
             _gde?.Quit();
             _drom?.Quit();
-            _avito?.Quit();
             _kupiprodai?.Quit();
-            _youla?.Quit();
         }
         //удаление временных файлов
         void ClearTempFiles() {

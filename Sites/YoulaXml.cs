@@ -39,7 +39,7 @@ namespace Selen.Sites {
                 throw new Exception("GetSatomPhotos: ошибка чтения каталога satom! - корневой элемент не найден");
             //ищем товар в каталоге
             var offer = satomYML.Descendants("offer")?
-                .First(w => w.Element("description").Value.Split(':').Last()
+                .First(w => w.Element("description")?.Value?.Split(':').Last()
                              .Split('<').First().Trim() == b.id);
             //получаем фото
             if (offer == null)
@@ -70,16 +70,12 @@ namespace Selen.Sites {
             //создаю контейнер offers
             var offers = new XElement("offers");
             //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-            //var bus = _bus.Where(w => w.amount > 0 && w.price > 0 && w.youla.Contains("http") && w.images.Count > 0);
-            var bus = _bus.Where(w => w.amount > 0 && w.price > 1000 && !w.youla.Contains("http") && w.images.Count > 0);
+            var bus = _bus.Where(w => w.amount > 0 && w.price > 1000 && w.images.Count > 0);
             //для каждой карточки
             //foreach (var b in bus.Take(offersLimit)) {
             foreach (var b in bus.Take(10)) {
                 try {
-                    //id объявления на юле из ссылки
-                    //var youlaId = b.youla.Split('-').Last();
                     //элемент offer
-                    //var offer = new XElement("offer", new XAttribute("id", youlaId));
                     var offer = new XElement("offer", new XAttribute("id", b.id));
                     //категория товара
                     foreach (var item in GetCategory(b)) {
@@ -137,7 +133,7 @@ namespace Selen.Sites {
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && !w.youla.Contains("http") && w.images.Count > 0)
+                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && w.images.Count > 0)
                               .OrderByDescending(o=>o.price);
                 //для каждой карточки
                 int i = 0;

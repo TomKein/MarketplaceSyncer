@@ -300,7 +300,7 @@ namespace Selen
         }
         //получаем диаметр отверстий на диске из описания
         public string GetDiameterOfHoles() {
-            var pattern = @"\d\s*(?:\*|x|х)\s*([0-9]+)(?:<|\ |m|м|.|,)";
+            var pattern = @"\d\s*(?:\*|x|х)\s*([0-9]+\.*[0-9]*)\s*(?:<|\ |m|м|.|,)";
             var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
             if (string.IsNullOrEmpty(number)) number = "100";
             return number;
