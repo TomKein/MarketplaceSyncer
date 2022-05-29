@@ -89,7 +89,7 @@ namespace Selen.Sites {
                     ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
                     ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
-                        "<br><br><p style=\"color:#D3D3D3;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
+                        "<br><br><p style=\"color:#DDDDDD;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
                     //идентификатор товара
                     ws.Cell(i, 17).Value = _bus[b].id;
                     //артикул
@@ -102,6 +102,30 @@ namespace Selen.Sites {
                     //тип
                     ws.Cell(i, 51).Value = "Тип по изготовителю";
                     ws.Cell(i, 52).Value = _bus[b].IsOrigin() ? "оригинал" : "аналог";
+
+                    //Производитель
+                    var m = _bus[b].GetManufacture();
+                    if (m != null) {
+                        ws.Cell(i, 53).Value = "Производитель";
+                        ws.Cell(i, 54).Value = m;
+                    } else {
+                        Log.Add("satom: " + _bus[b].name + " - производитель не определен!");
+                    }
+                    //Марка/Модель/Серия
+                    var mm = _bus[b].GetNameMarkModel();
+                    if (mm != null) {
+                        ws.Cell(i,55).Value = "Марка авто";
+                        ws.Cell(i,56).Value = mm[1];
+                        ws.Cell(i,57).Value = "Модель авто";
+                        ws.Cell(i,58).Value = mm[2];
+                        ws.Cell(i,59).Value = "Серия авто";
+                        ws.Cell(i,60).Value = mm[3];
+                    } else {
+                        Log.Add("satom: " + _bus[b].name + " - марка не определена!");
+                    }
+                    //Вид...
+
+
                     //артикул
                     if (!String.IsNullOrEmpty(_bus[b].part)) {
                         ws.Cell(i, 46).Value = "Номер запчасти";

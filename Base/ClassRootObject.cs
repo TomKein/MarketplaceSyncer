@@ -308,17 +308,22 @@ namespace Selen
         //производители
         private static string[] manufactures;
         public string GetManufacture() {
+            ResetManufactures();
             var n = (name + " | " + Regex.Replace(description ?? "", "<[^>]+>", " "))
                 .ToUpperInvariant()
                 .Replace("\n", " ").Replace("\r", " ")
                 .Replace(".", " ").Replace(",", " ")
+                .Replace("\\", " ").Replace("/", " ")
                 .Replace("(", " ").Replace(")", " ")
                 .Replace(":", " ").Replace(")", " ")
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim());
-            var man = manufactures.Where(w => n.Contains(w));
-            if (man.Any()) return man.First();
-            return "";
+                .Select(s => s.Trim()).ToList();
+            return manufactures.LastOrDefault(                             //ищем производителя, для этого
+                                    man => man.Split(':')                   //каждого делим на массив синонимов по ':'
+                                              .Select(s => n.Contains(s))   //проверяем каждый синоним на вхождение в описание
+                                              .Any(w => w))                 //есть совпадение? подходит
+                              ?.Split(':')                                  //если нашли строку с производителем, снова делим по ':'
+                               .First();                                    //берем первый элемент
         }
         //определяю название запчасти, марку и модель из описания
         private static string[] _autos;
@@ -373,7 +378,8 @@ namespace Selen
         }
         //перечитать из таблицы настроек
         public static void ResetManufactures() {
-            manufactures = DB._db.GetParamStr("manufactures").Split(',');
+            if (manufactures == null || DateTime.Now.Ticks%10000 == 0)
+                manufactures = DB._db.GetParamStr("manufactures").Split(',');
         }
     }
 }
