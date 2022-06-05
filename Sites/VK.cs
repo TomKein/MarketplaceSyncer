@@ -222,9 +222,10 @@ namespace Selen.Sites {
             }
             Log.Add("vk.com: получено " + vkMark.Count + " товаров");
         });
-        //проверка объявлений на вк
+        //проверка каталога объявлений на вк
         async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
-            for (int i = 0; i < vkMark.Count; i++) {
+            var cnt = _db.GetParamInt("vk.catalogDeleteCount");
+            for (int i = 0; i < vkMark.Count && cnt>0; i++) {
                 //для каждого товара поищем индекс в базе карточек товаров
                 int b = _bus.FindIndex(t => t.vk.Split('_').Last() == vkMark[i].Id.ToString());
                 //если не найден индекс или нет на остатках, количество фото не совпадает или есть дубли - удаляю объявление
@@ -232,12 +233,15 @@ namespace Selen.Sites {
                     _bus[b].amount <= 0 ||
                     vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count) ||
                     vkMark.Count(c => c.Title == vkMark[i].Title) > 1) {
-                    try {
-                        _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
-                        Log.Add("vk.com: " + vkMark[i].Title + " - удалено!");
-                        Thread.Sleep(1000);
-                    } catch (Exception x) {
-                        Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
+                    if (cnt > 0) {
+                        try {
+                            _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
+                            Log.Add("vk.com: " + vkMark[i].Title + " - удалено!");
+                            cnt--;
+                            Thread.Sleep(1000);
+                        } catch (Exception x) {
+                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
+                        }
                     }
                     //если изменилась цена, наименование или карточка товара - редактирую
                 } else if (_bus[b].price != vkMark[i].Price.Amount / 100

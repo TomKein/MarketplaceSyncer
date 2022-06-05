@@ -458,8 +458,8 @@ namespace Selen.Sites {
                 return "https://satom.ru/t/kolenchatye-valy-avtomobilya-19168/";
             if (n.Contains("коленвал"))
                 return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
-            if (n.Contains("глушитель"))
-                return "https://satom.ru/t/detali-dvigatelya-avtomobilya-193/";
+            if (n.Contains("глушител"))
+                return "https://satom.ru/t/glushiteli-avtomobilnye-9194/";
             if (n.Contains("при")&&n.Contains("труба"))
                 return "https://satom.ru/t/priemnaya-truba-glushitelya-17051/";
             if (n.Contains("бензобак")||
