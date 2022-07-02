@@ -11,12 +11,12 @@ using System.Xml.Linq;
 
 namespace Selen.Sites {
     internal class AvitoXml {
-        string _l = "avitoXml: ";
-        string filename = @"..\avito.xml";
-        string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
+        readonly string _l = "avitoXml: ";
+        readonly string filename = @"..\avito.xml";
+        readonly string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
         //string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
         //"https://автотехношик.рф/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save"
-        string satomFile = @"..\satom_import.xml";
+        readonly string satomFile = @"..\satom_import.xml";
         XDocument satomYML;
 
         public AvitoXml() {
@@ -538,6 +538,7 @@ namespace Selen.Sites {
                   name.Contains("кожух рул") ||
                   name.StartsWith("подушка безопасности") ||
                   name.StartsWith("ремень безопасности") ||
+                  name.StartsWith("airbag") ||
                   name.StartsWith("ремень задний") ||
                   name.StartsWith("ремни безопасности") ||
                   name.StartsWith("вещево") ||
@@ -564,6 +565,7 @@ namespace Selen.Sites {
                   name.Contains("козырек солнц") ||
                   name.Contains("регулятор") && name.Contains("ремня") ||
                   name.StartsWith("дефлектор") ||
+                  name.StartsWith("диван") ||
                   name.StartsWith("сиденье") ||
                   name.StartsWith("сиденья") ||
                   name.StartsWith("подголовник") ||
@@ -667,6 +669,7 @@ namespace Selen.Sites {
                    name.StartsWith("моновпрыск") ||
                    name.StartsWith("фильтр паров топлива") ||
                    name.StartsWith("рампа топливная") ||
+                   name.StartsWith("ремонтная площадка") ||
                    name.StartsWith("насос вторичного воздуха") ||
                    name.StartsWith("трубки вентиляции картера") ||
                    name.StartsWith("потенциометр дроссельной заслонки") ||

@@ -32,7 +32,7 @@ namespace Selen.Sites {
 
         }
         //старт выгрузки
-        public async void SyncAsync(List<RootObject> bus) {
+        public async Task SyncAsync(List<RootObject> bus) {
             await Task.Factory.StartNew(() => {
                 try {
                     _bus = bus;

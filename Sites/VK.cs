@@ -41,10 +41,10 @@ namespace Selen.Sites {
                 return;
             if (DateTime.Now.Hour % _catalogCheckInterval != 0)
                 return;
+            await AddVKAsync();
             await GetVKAsync();
             await CheckVKAsync();
             await CheckBusAsync();
-            await AddVKAsync();
         }
         //проверка изменений в бизнес.ру
         async Task EditAsync() {
@@ -231,8 +231,9 @@ namespace Selen.Sites {
                 //если не найден индекс или нет на остатках, количество фото не совпадает или есть дубли - удаляю объявление
                 if (b == -1 ||
                     _bus[b].amount <= 0 ||
-                    vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count) ||
-                    vkMark.Count(c => c.Title == vkMark[i].Title) > 1) {
+                    vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count) 
+                    //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1
+                    ) {
                     if (cnt > 0) {
                         try {
                             _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);

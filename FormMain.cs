@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.91";
+        string _version = "1.93";
 
         DB _db = new DB();
 
@@ -156,11 +156,11 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //SATOM.RU
-        async void buttonSatom_Click(object sender, EventArgs e) {//TODO отключено, настроить
+        async void buttonSatom_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (base_rescan_need || bus.Count == 0)
                 await Task.Delay(30000);
-            sat.SyncAsync(bus);
+            await sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //===========================================

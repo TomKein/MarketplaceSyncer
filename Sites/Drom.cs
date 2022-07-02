@@ -366,7 +366,7 @@ namespace Selen.Sites {
                             var drom = ParsePage(_rnd.Next(1, pages));
                             CheckPage(drom);
                         } catch {
-                            i--;
+                            //i--;
                             _dr.Refresh();
                             Thread.Sleep(10000);
                         }
