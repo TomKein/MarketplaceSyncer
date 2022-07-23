@@ -259,8 +259,7 @@ namespace Selen.Sites {
             cl.Dispose();
         }
         void SetPart(RootObject b) {
-            if (!string.IsNullOrEmpty(b.part))
-                _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.part.Split(',').First());
+            _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.part?.Split(',').First() + OpenQA.Selenium.Keys.Tab);
         }
         void PressOkButton() {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");

@@ -212,7 +212,10 @@ namespace Selen.Sites {
             _dr.Navigate("https://kaluga.gde.ru/cabinet/ads/index/status/notactive");
             var items = _dr.FindElements(".title a");
             var names = items.Select(s => s.Text).ToList();
-            if (names.Exists(s => s == _bus[b].name)) return true;
+            if (names.Exists(s => s == _bus[b].name)) {
+                Log.Add("gde.ru: "+_bus[b].name+" - объявление в неактивных!");
+                return true;
+            }
             return false;
         }
         //выкладываю объявления

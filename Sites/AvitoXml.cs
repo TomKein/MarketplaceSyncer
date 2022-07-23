@@ -19,16 +19,18 @@ namespace Selen.Sites {
         readonly string satomFile = @"..\satom_import.xml";
         XDocument satomYML;
 
-        public AvitoXml() {
+        public void GetSatomXml() {
             //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
-            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) < DateTime.Now) {
+            var period = DB._db.GetParamInt("satomRequestPeriod");
+            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
                 try {
+                    Log.Add(_l + "запрашиваю новый каталог xml с satom...");
                     satomYML = XDocument.Load(satomUrl);
                     if (satomYML.Descendants("offer").Count() > 10000)
                         satomYML.Save(satomFile + "_");
                     else
                         throw new Exception("мало элементов");
-                    //return;
+                    Log.Add(_l + "каталог получен");
                 } catch (Exception x) {
                     Log.Add(_l+"ошибка запроса xml с satom.ru - " + x.Message);
                 }
@@ -57,11 +59,11 @@ namespace Selen.Sites {
                 throw new Exception("фото не найдены в каталоге satom");
             return list;
         }
-
-
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             await Task.Factory.StartNew(() => {
+                //загружаю xml с satom
+                GetSatomXml();
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("avito.offersLimit");
                 //ценовой порог

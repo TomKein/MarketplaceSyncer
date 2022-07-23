@@ -112,6 +112,7 @@
             this.Controls.Add(this.panel_Common);
             this.Name = "FormSettings";
             this.Text = "Настройки";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FormSettings_FormClosed);
             this.Load += new System.EventHandler(this.FormSettings_Load);
             this.panel_Common.ResumeLayout(false);
             this.panel_DataGrid.ResumeLayout(false);

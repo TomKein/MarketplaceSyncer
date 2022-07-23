@@ -65,5 +65,8 @@ namespace Selen {
         private void textBox_Search_TextChanged(object sender, EventArgs e) {
             GridFillAsync();
         }
+        private async void FormSettings_FormClosed(object sender, FormClosedEventArgs e) {
+            Log.Level = await _db.GetParamIntAsync("logSize");
+        }
     }
 }

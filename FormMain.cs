@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.93";
+        string _version = "1.94";
 
         DB _db = new DB();
 
@@ -987,11 +987,12 @@ namespace Selen {
         //============
         public void ToLogBox(string s) {
             if (textBox_LogFilter.Text.Length == 0 || s.Contains(textBox_LogFilter.Text))
-                try {//lock
-                    if (logBox.InvokeRequired)
-                        logBox.Invoke(new Action<string>((a) => logBox.Text += a), s + "\n");
-                    else
-                        logBox.Text += s + "\n";
+                try {
+                    logBox.Invoke(new Action<string>((a) => {
+                        var t = logBox.Lines.Length > Log.Level ? logBox.Text.Substring(logBox.Text.Length / 10)
+                                                                : logBox.Text;
+                        logBox.Text = t + a;
+                    }), s + "\n");
                 } catch (Exception x) {
                     Console.WriteLine(x.Message);
                     Console.ReadLine();
