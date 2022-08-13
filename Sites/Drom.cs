@@ -60,11 +60,11 @@ namespace Selen.Sites {
             _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
             Log.Add("drom.ru: начало выгрузки...");
             await AuthAsync();
+            await GetDromPhotos();
             await UpAsync();
             await EditAsync();
             await AddAsync();
             await CheckAsync();
-            await GetDromPhotos();
             Log.Add("drom.ru: выгрузка завершена");
         }
         async Task AuthAsync() {
@@ -105,15 +105,15 @@ namespace Selen.Sites {
             _dr.Navigate(b.drom);
             SetTitle(b);
             CheckPhotos(b);
-            SetDesc(b);
             SetPrice(b);
+            SetDesc(b);
             SetPart(b);
             //SetWeight(b);
             PressOkButton();
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
             if (b.amount <= 0) {
                 Delete();
-            } else Up();
+            } else Up(b);
         }
         //проверка фотографий в объявлении
         private void CheckPhotos(RootObject b) {
@@ -195,15 +195,12 @@ namespace Selen.Sites {
 
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl().Split('-').Last().Split('.').First();
-
             _bus[b].drom = _dromUrlStart + new_id + "/edit";
-
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                 {"id", _bus[b].id},
                 {"name", _bus[b].name},
                 {_url, _bus[b].drom}
             });
-            await Task.Delay(2000);
         }
         void SetAudioSize(RootObject b) {
             if (b.GroupName() == "Аудио-видеотехника") {
@@ -284,7 +281,7 @@ namespace Selen.Sites {
             } else
                 _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
         }
-        void Up() {
+        void Up(RootObject b) {
             if (_dr.GetElementsCount("//a[text()='Купить']") > 0) return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
                 _dr.ButtonClick("//a[contains(@class,'doProlong')]");
@@ -293,6 +290,15 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//a[@data-applier='prolongBulletin']");
                 PressServiseSubmitButton();
                 _dr.ButtonClick("//a[contains(@href,'publish')]");
+                if (_dr.GetElementsCount("//h2[contains(text(),'нельзя продлить')]") > 0) {
+                    Log.Add("drom.ru: " + b.name + "+ - ошибка, объявление нельзя восстановить, удаляю ссылку!");
+                    b.drom = "";
+                    Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                        {"id", b.id},
+                        {"name", b.name},
+                        {_url, b.drom}
+                    });
+                }
             }
         }
         //подъем объявлений

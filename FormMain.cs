@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.95";
+        string _version = "1.96";
 
         DB _db = new DB();
 
@@ -1016,9 +1016,9 @@ namespace Selen {
             try {
                 DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, Log.Level);
                 if (table.Rows.Count > 0)
-                    logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a);
+                    logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a)+"\n";
                 else
-                    logBox.Text = "по заданному фильтру ничего не найдено!";
+                    logBox.Text = "по заданному фильтру ничего не найдено!\n";
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
