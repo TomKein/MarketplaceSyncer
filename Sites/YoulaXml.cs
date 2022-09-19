@@ -48,6 +48,8 @@ namespace Selen.Sites {
             //проверка наличия фото
             if (list.Count == 0)
                 throw new Exception("GetSatomPhotos: фото не найдены в каталоге satom");
+            //сортировка фото - первое остается, остальные разворачиваем
+            list.Reverse(1, list.Count - 1);
             return list;
         }
 

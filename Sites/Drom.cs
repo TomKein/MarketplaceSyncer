@@ -74,8 +74,8 @@ namespace Selen.Sites {
                     _dr = new Selenium();
                     LoadCookies();
                 }
-                _dr.Navigate("http://baza.drom.ru/personal/all/bulletins");
-                if (_dr.GetElementsCount("//div[@class='personal-box']") == 0) {//если элементов в левой панели нет
+                _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
+                if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
                     _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
                     _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
                     _dr.ButtonClick("#signbutton"); //жмем кнопку входа
@@ -106,6 +106,7 @@ namespace Selen.Sites {
             SetTitle(b);
             CheckPhotos(b);
             SetPrice(b);
+            SetOptions(b);
             SetDesc(b);
             SetPart(b);
             //SetWeight(b);
@@ -230,13 +231,23 @@ namespace Selen.Sites {
             }
         }
         void SetOptions(RootObject b) {
-            if (b.IsNew()) _dr.ButtonClick("//label[text()='Новый']"); //новый или б/у
-            else _dr.ButtonClick("//label[text()='Б/у']");
-
-            if (b.IsOrigin()) _dr.ButtonClick("//label[text()='Оригинал']"); //аналог или оригинал
-            else _dr.ButtonClick("//label[text()='Аналог']");
-
-            _dr.ButtonClick("//label[text()='В наличии']"); //кнопка в наличии
+            //новый/бу - если товар новый, но цвет кнопки не серый, значит надо нажать
+            if (b.IsNew()) {
+                if (!_dr.GetElementCSSValue("//label[text()='Новый']", "background").Contains("224, 224"))
+                    _dr.ButtonClick("//label[text()='Новый']");
+            } else 
+                if (!_dr.GetElementCSSValue("//label[text()='Б/у']", "background").Contains("224, 224"))
+                    _dr.ButtonClick("//label[text()='Б/у']");
+            //аналог или оригинал
+            if (b.IsOrigin()) {
+                if (!_dr.GetElementCSSValue("//label[text()='Оригинал']", "background").Contains("224, 224"))
+                    _dr.ButtonClick("//label[text()='Оригинал']");
+            } else 
+                if (!_dr.GetElementCSSValue("//label[text()='Аналог']", "background").Contains("224, 224"))
+                    _dr.ButtonClick("//label[text()='Аналог']");
+            //наличие
+            if (!_dr.GetElementCSSValue("//label[text()='В наличии']", "background").Contains("224, 224"))
+                _dr.ButtonClick("//label[text()='В наличии']"); 
         }
         void SetImages(RootObject b) {
             WebClient cl = new WebClient();

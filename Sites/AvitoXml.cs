@@ -68,6 +68,8 @@ namespace Selen.Sites {
             //проверка наличия фото
             if (list.Count == 0 && b.amount>0)
                 throw new Exception("фото не найдены в каталоге satom");
+            //сортировка фото - первое остается, остальные разворачиваем
+            list.Reverse(1, list.Count - 1);
             return list;
         }
         //генерация xml
@@ -217,7 +219,9 @@ namespace Selen.Sites {
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
                 name.StartsWith("подшипник ступичный") ||
-                name.StartsWith("Подшипник выжимной") ||
+                name.StartsWith("Подшипник выжимной") || 
+                name.StartsWith("фланец") && name.Contains("раздат") ||
+                name.StartsWith("фланец") && name.Contains("кардан") ||
                 name.StartsWith("шарнир штока кпп") ||
                 name.StartsWith("фильтр акпп") ||
                 name.StartsWith("шрус") ||
@@ -303,6 +307,7 @@ namespace Selen.Sites {
                  name.StartsWith("направляющ")||
                  name.StartsWith("пыльник") ||
                  name.StartsWith("буфер")||
+                 name.StartsWith("боковина") ||
                  name.StartsWith("наполнитель")||
                  name.StartsWith("абсорбер")
                 ) && name.Contains("бампер")) {
@@ -340,6 +345,7 @@ namespace Selen.Sites {
                 name.StartsWith("лючок топл") ||
                 name.StartsWith("спойлер") ||
                 name.StartsWith("бачок") && name.Contains("омывателя") ||
+                name.StartsWith("распор") && name.Contains("стак") ||
                 name.StartsWith("амортизатор крыш")) {
                 d.Add("TypeId", "16-819");                              //Кузов по частям
             } else if (name.StartsWith("блок управления печкой") ||
@@ -374,11 +380,14 @@ namespace Selen.Sites {
                 name.StartsWith("привод заслонки") ||
                 name.StartsWith("трубка") && name.Contains("охла") ||
                 name.StartsWith("трубка конд") ||
-                name.StartsWith("фланец") && name.Contains("охлаждения") ||
-                name.StartsWith("фланец") && name.Contains("вентиляции") ||
+                name.StartsWith("фланец") && 
+                    (name.Contains("охлажден") ||
+                     name.Contains("вентиляц")) ||
                 name.StartsWith("решет") && name.Contains("моторчик") ||
-                name.StartsWith("сервопривод заслонки") ||
-                name.StartsWith("сервопривод отопителя") ||
+                name.StartsWith("сервопривод") && 
+                    (name.Contains("заслонк") ||
+                     name.Contains("отопит") ||
+                     name.Contains("печк")) ||
                 name.StartsWith("мотор охлаждения") ||
                 name.StartsWith("насос охлаждения") ||
                 name.StartsWith("крыльчатка охлаждения") ||
@@ -433,7 +442,8 @@ namespace Selen.Sites {
                 d.Add("RimType", b.DiskType());                     //тип
             } else if (name.StartsWith("колпак")) {
                 d.Add("TypeId", "10-044");                          //Шины, диски и колёса / Колпаки
-            } else if (name.StartsWith("шины")) {
+            } else if (name.StartsWith("шины")||
+                       name.StartsWith("резина")) {
                 d.Add("TypeId", "10-048");                          //Шины, диски и колёса / Шины
             } else if (name.StartsWith("фонар") ||
                 name.StartsWith("плафон") ||
@@ -550,6 +560,7 @@ namespace Selen.Sites {
                   name.StartsWith("фишка") ||
                   name.Contains("панель") && name.Contains("прибор") ||
                   name.StartsWith("шлейф") ||
+                  name.Contains("контактная") && name.Contains("группа") ||
                   name.StartsWith("расходомер") ||
                   name.StartsWith("эбу") ||
                   b.GroupName() == "Электрика, зажигание") {
@@ -637,7 +648,8 @@ namespace Selen.Sites {
                   name.StartsWith("шкив генератора") ||
                   name.StartsWith("диодный") ||
                   name.StartsWith("бендикс") ||
-                  name.StartsWith("стартер")) {
+                  name.StartsWith("стартер") ||
+                  name.StartsWith("щетки стартера")) {
                 d.Add("TypeId", "16-829");                          // Генераторы, стартеры
             } else if (name.StartsWith("амортизатор") ||
                   name.StartsWith("кулак") ||
@@ -687,14 +699,13 @@ namespace Selen.Sites {
                    name.StartsWith("трубки тнвд") ||
                    name.StartsWith("трубка карт") ||
                    name.StartsWith("трубка егр") ||
-                   name.StartsWith("корпус топливного фильтра") ||
+                   name.Contains("фильтр") && name.Contains("топлив") ||
                    name.StartsWith("крышка") && name.Contains("воздушного") ||
                    name.StartsWith("площадка") && name.Contains("приемной трубы") ||
                    name.StartsWith("потенциометр") && name.Contains("заслонки") ||
                    name.StartsWith("шланг") && name.Contains("картер") ||
                    name.StartsWith("бачок вакуумный") ||
                    name.StartsWith("моновпрыск") ||
-                   name.StartsWith("фильтр паров топлива") ||
                    name.StartsWith("рампа топливная") ||
                    name.StartsWith("ремонтная площадка") ||
                    name.StartsWith("насос вторичного воздуха") ||
@@ -742,7 +753,6 @@ namespace Selen.Sites {
                  name.StartsWith("накладк")) {
                 d.Add("TypeId", "16-807");                          //Брызговики
             } else if (name.StartsWith("суппорт") ||
-                 name.StartsWith("барабан тор") ||
                  name.StartsWith("бачок торм") ||
                  name.StartsWith("крышка бачка торм") ||
                  name.StartsWith("пластины бараб") ||
@@ -754,6 +764,9 @@ namespace Selen.Sites {
                  name.StartsWith("трубк") && (name.Contains("тормоз") || name.Contains("вакуум")) ||
                  name.StartsWith("усилитель торм") ||
                  name.StartsWith("усилитель вакуум") ||
+                 name.Contains("барабан") && name.Contains("тормоз")||
+                 name.StartsWith("бачок гтц") ||
+                 name.StartsWith("штуцер прокачки") ||
                  name.StartsWith("распределитель торм") ||
                  name.Contains("abs") && (name.StartsWith("насос") || name.StartsWith("блок")) ||
                  name.StartsWith("скоба") && name.Contains("суппор")) {

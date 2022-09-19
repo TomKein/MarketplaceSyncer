@@ -210,6 +210,12 @@ namespace Selen.Tools {
             var el = FindElements(s);
             return el.Count > 0 ? el.First().GetAttribute(attr) : "";
         }
+        public string GetElementCSSValue(string s, string css) {
+            var el = FindElements(s);
+            return el.Count > 0 ? el.First().GetCssValue(css) : "";
+        }
+
+        
 
         public string SaveCookies(string name=null) {
             var json = "";
