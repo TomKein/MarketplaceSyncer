@@ -188,8 +188,12 @@ namespace Selen.Sites {
                 name.StartsWith("клапан газорасп") ||
                 name.StartsWith("крышка дв") ||
                 name.Contains("лобовая") && name.Contains("крышка") ||
+                name.Contains("ось") && name.Contains("коромыс") ||
+                name.Contains("коромысл") && name.Contains("клапан") ||
+                name.Contains("натяж") && (name.Contains("планк") || name.Contains("башмак"))||
                 name.StartsWith("крышка лоб") ||
                 name.StartsWith("натяжитель") ||
+                name.StartsWith("балансир") ||
                 name.StartsWith("клапан выпуск") ||
                 name.StartsWith("крышка сапуна") ||
                 name.StartsWith("муфта vvti") ||
@@ -212,9 +216,11 @@ namespace Selen.Sites {
                 name.StartsWith("механизм селектора") ||
                 name.StartsWith("селектор акпп") ||
                 name.StartsWith("механизм кулисы") ||
-                name.StartsWith("редуктор заднего моста") ||
+                name.StartsWith("редуктор") && name.Contains("моста") ||
+                name.StartsWith("корпус") && name.Contains("кпп") ||
                 name.Contains("выжимной") ||
                 name.StartsWith("корзина") ||
+                name.StartsWith("гидроблок") ||
                 name.StartsWith("переделка с акпп") ||
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
@@ -222,7 +228,9 @@ namespace Selen.Sites {
                 name.StartsWith("Подшипник выжимной") || 
                 name.StartsWith("фланец") && name.Contains("раздат") ||
                 name.StartsWith("фланец") && name.Contains("кардан") ||
+                name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("акпп")) ||
                 name.StartsWith("шарнир штока кпп") ||
+                name.StartsWith("крышка разда") ||
                 name.StartsWith("фильтр акпп") ||
                 name.StartsWith("шрус") ||
                 name.StartsWith("цапфа") ||
@@ -396,7 +404,8 @@ namespace Selen.Sites {
                 name.StartsWith("терморегулятор") ||
                 name.StartsWith("шкив помпы") ||
                 name.StartsWith("вентиляционный дефлектор") ||
-                name.StartsWith("заслонка воздушная") ||
+                name.StartsWith("заслонка воздушная") || 
+                name.StartsWith("теплообменник") ||
                 name.StartsWith("моторчик засл")) {
                 d.Add("TypeId", "16-521");                              //Система охлаждения
             } else if (name.StartsWith("корпус маслянн") ||
@@ -406,6 +415,7 @@ namespace Selen.Sites {
                  name.StartsWith("втулка масл") ||
                  name.StartsWith("корпус регулятора масла") ||
                  name.StartsWith("крышка заливная") ||
+                 name.StartsWith("щуп акпп") ||
                  name.Contains("масля")) {
                 d.Add("TypeId", "16-836");                              //Масляный насос, система смазки
             } else if (name.Contains("магнитола") ||
@@ -714,6 +724,7 @@ namespace Selen.Sites {
                    name.StartsWith("труба соединительная") ||
                    name.StartsWith("насадка глушителя") ||
                    name.StartsWith("обратный клапан") ||
+                   name.StartsWith("фланец") && (name.Contains("карб") || name.Contains("монов")) ||
                    name.StartsWith("тнвд") ||
                    name.Contains("коллектора") ||
                    name.StartsWith("бензобак")) {
@@ -764,7 +775,7 @@ namespace Selen.Sites {
                  name.StartsWith("трубк") && (name.Contains("тормоз") || name.Contains("вакуум")) ||
                  name.StartsWith("усилитель торм") ||
                  name.StartsWith("усилитель вакуум") ||
-                 name.Contains("барабан") && name.Contains("тормоз")||
+                 name.Contains("тормоз") && (name.Contains("барабан") || name.Contains("механизм")) ||
                  name.StartsWith("бачок гтц") ||
                  name.StartsWith("штуцер прокачки") ||
                  name.StartsWith("распределитель торм") ||
