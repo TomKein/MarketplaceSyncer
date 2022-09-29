@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using ClosedXML.Excel;
 using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
+using OfficeOpenXml;
 
 namespace Selen.Sites {
     internal class Satom {
@@ -52,10 +51,19 @@ namespace Selen.Sites {
             //готовлю файл
             File.Copy(_ftmp, _fexp, overwrite: true);
             Log.Add("satom: шаблон скопирован");
-            var workbook = new XLWorkbook(_fexp);
+
+
+            var fileInfo = new FileInfo(_fexp);
+            var excelPackage = new ExcelPackage(fileInfo);
+
+
             Log.Add("satom: файл успешно загружен");
             //беру первую таблицу
-            var ws = workbook.Worksheets.First();
+
+
+            var ws = excelPackage.Workbook.Worksheets.First();
+
+
             //перебираю карточки товара
             for (int b = 0, i = 2; b < _bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
@@ -68,58 +76,58 @@ namespace Selen.Sites {
                     if (category.Length == 0)
                         continue;
                     //наименование
-                    ws.Cell(i, 1).Value = _bus[b].name;
+                    ws.Cells[i, 1].Value = _bus[b].name;
                     //цена
-                    ws.Cell(i, 2).Value = _bus[b].price;
+                    ws.Cells[i, 2].Value = _bus[b].price;
                     //валюта
-                    ws.Cell(i, 3).Value = "RUR";
+                    ws.Cells[i, 3].Value = "RUR";
                     //ед. измерения
-                    ws.Cell(i, 4).Value = _bus[b].measure_id == "11" ? "пара"
+                    ws.Cells[i, 4].Value = _bus[b].measure_id == "11" ? "пара"
                                         : _bus[b].measure_id == "13" ? "компл."
                                         : "шт.";
                     //ссылка на фото
-                    ws.Cell(i, 5).Value = _bus[b].images.Select(s => s.url).Aggregate((a1, a2) => a1 + "," + a2);
+                    ws.Cells[i, 5].Value = _bus[b].images.Select(s => s.url).Aggregate((a1, a2) => a1 + "," + a2);
                     //наличие
-                    ws.Cell(i, 7).Value = "+";
+                    ws.Cells[i, 7].Value = "+";
                     //количество
-                    ws.Cell(i, 8).Value = String.Format("{0:0.##}", _bus[b].amount);
+                    ws.Cells[i, 8].Value = String.Format("{0:0.##}", _bus[b].amount);
                     //рубрика
-                    ws.Cell(i, 9).Value = category;
+                    ws.Cells[i, 9].Value = category;
                     //идентификатор рубрики
-                    ws.Cell(i, 10).Value = category.TrimEnd('/').Split('-').Last();
+                    ws.Cells[i, 10].Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
-                    ws.Cell(i, 11).Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
+                    ws.Cells[i, 11].Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
                         "<br><br><p style=\"color:#DDDDDD;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
                     //идентификатор товара
-                    ws.Cell(i, 17).Value = _bus[b].id;
+                    ws.Cells[i, 17].Value = _bus[b].id;
                     //артикул
-                    ws.Cell(i, 22).Value = _bus[b].part ?? "";
+                    ws.Cells[i, 22].Value = _bus[b].part ?? "";
                     //статус
-                    ws.Cell(i, 39).Value = "опубликован";
+                    ws.Cells[i, 39].Value = "опубликован";
                     //состояние
-                    ws.Cell(i, 44).Value = "Состояние";
-                    ws.Cell(i, 45).Value = _bus[b].IsNew() ? "новый" : "б/у";
+                    ws.Cells[i, 44].Value = "Состояние";
+                    ws.Cells[i, 45].Value = _bus[b].IsNew() ? "новый" : "б/у";
                     //тип
-                    ws.Cell(i, 51).Value = "Тип по изготовителю";
-                    ws.Cell(i, 52).Value = _bus[b].IsOrigin() ? "оригинал" : "аналог";
+                    ws.Cells[i, 51].Value = "Тип по изготовителю";
+                    ws.Cells[i, 52].Value = _bus[b].IsOrigin() ? "оригинал" : "аналог";
 
                     //Производитель
                     var m = _bus[b].GetManufacture();
                     if (m != null) {
-                        ws.Cell(i, 53).Value = "Производитель";
-                        ws.Cell(i, 54).Value = m;
+                        ws.Cells[i, 53].Value = "Производитель";
+                        ws.Cells[i, 54].Value = m;
                     } else {
                         Log.Add("satom: " + _bus[b].name + " - производитель не определен!");
                     }
                     //Марка/Модель/Серия
                     var mm = _bus[b].GetNameMarkModel();
                     if (mm != null) {
-                        ws.Cell(i,55).Value = "Марка авто";
-                        ws.Cell(i,56).Value = mm[1];
-                        ws.Cell(i,57).Value = "Модель авто";
-                        ws.Cell(i,58).Value = mm[2];
-                        ws.Cell(i,59).Value = "Серия авто";
-                        ws.Cell(i,60).Value = mm[3];
+                        ws.Cells[i,55].Value = "Марка авто";
+                        ws.Cells[i,56].Value = mm[1];
+                        ws.Cells[i,57].Value = "Модель авто";
+                        ws.Cells[i,58].Value = mm[2];
+                        ws.Cells[i,59].Value = "Серия авто";
+                        ws.Cells[i,60].Value = mm[3];
                     } else {
                         Log.Add("satom: " + _bus[b].name + " - марка не определена!");
                     }
@@ -128,14 +136,14 @@ namespace Selen.Sites {
 
                     //артикул
                     if (!String.IsNullOrEmpty(_bus[b].part)) {
-                        ws.Cell(i, 46).Value = "Номер запчасти";
-                        ws.Cell(i, 47).Value = _bus[b].part;
+                        ws.Cells[i, 46].Value = "Номер запчасти";
+                        ws.Cells[i, 47].Value = _bus[b].part;
                     }
                     //следующая строка
                     i++;
                 }
             }
-            workbook.Save();
+            excelPackage.Save();
             Log.Add("файл успешно сохранен");
         }
         //определение категории на сатоме
