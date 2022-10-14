@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.99";
+        string _version = "1.101";
 
         DB _db = new DB();
 
@@ -1219,8 +1219,24 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                var img = new List<Image>() {
+                                    new Image() {
+                                       name = "1.jpg",
+                                        url = "https://static.baza.drom.ru/drom/1513339810647_default" }
+                                };
+                var images = JsonConvert.SerializeObject(img);
+                var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                                    {"id", "554634"},
+                                    {"name", "Крыло правое Chevrolet Lanos"},
+                                    {"images", images}
+                                });
 
-                await CheckDublesAsync();
+
+
+
+                Log.Add("TEST: "+s);
+
+                //await CheckDublesAsync();
 
                 //var youlaXml = new YoulaXml();
                 //await youlaXml.GenerateXML_avito(bus);

@@ -130,7 +130,7 @@ namespace Selen {
                         //todo добавить параметр в настройки
                         Thread.Sleep(100);
                         flag = false;
-                        return JsonConvert.SerializeObject(rr.result);
+                        return rr != null ? JsonConvert.SerializeObject(rr.result) : "";
                     } 
                     Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
                     await RepairAsync();
