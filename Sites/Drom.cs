@@ -141,6 +141,8 @@ namespace Selen.Sites {
         }
 
         void Delete() {
+            //переход на страницу объявления, если он нужен
+            _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
             if (_dr.GetElementsCount("//a[contains(@class,'doDelete')]") > 0) {
                 Log.Add("drom.ru: удаляю объявление...");
                 _dr.ButtonClick("//a[contains(@class,'doDelete')]");
