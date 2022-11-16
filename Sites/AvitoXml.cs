@@ -57,17 +57,22 @@ namespace Selen.Sites {
             if (tmp?.Count() > 0) offer = tmp.First();
             //получаем фото
             if (offer == null) {
-                if (b.amount < 0)
-                    return new List<string>();
-                throw new Exception("оффер не найден в каталоге satom");
+                //if (b.amount < 0)
+                //    return new List<string>();
+                //throw new Exception("оффер не найден в каталоге satom");
+                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
+                return b.images.Select(s => s.url).ToList();
             }
             var list = offer.Elements("picture")
                             .Select(s => s.Value)
                             .Take(10)
                             .ToList();
             //проверка наличия фото
-            if (list.Count == 0 && b.amount>0)
-                throw new Exception("фото не найдены в каталоге satom");
+            if (list.Count == 0 && b.amount > 0)
+                //throw new Exception("фото не найдены в каталоге satom");
+                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
+                return b.images.Select(s=>s.url).ToList();
+
             //сортировка фото - первое остается, остальные разворачиваем
             list.Reverse(1, list.Count - 1);
             return list;
@@ -96,6 +101,11 @@ namespace Selen.Sites {
                               .OrderByDescending(o => o.price);
                 
                 Log.Add(_l+"найдено " + bus.Count() + " потенциальных объявлений");
+
+                //цена замены фото
+                var imagePrice = DB._db.GetParamInt("avito.photoChangePrice");
+                if (imagePrice < 1000000) DB._db.SetParam("avito.photoChangePrice", (imagePrice / 5 + imagePrice).ToString());
+
                 //для каждой карточки
                 int i=0;
                 foreach (var b in bus) {
@@ -109,9 +119,17 @@ namespace Selen.Sites {
                         }
                         //изображения
                         var images = new XElement("Images");
-                        foreach (var photo in GetSatomPhotos(b)) {
-                            images.Add(new XElement("Image", new XAttribute("url", photo)));
+                        
+                        if (b.price < imagePrice) {
+                            foreach (var photo in b.images.Take(10)) {
+                                images.Add(new XElement("Image", new XAttribute("url", photo.url)));
+                            }
+                        } else {
+                            foreach (var photo in GetSatomPhotos(b)) {
+                                images.Add(new XElement("Image", new XAttribute("url", photo)));
+                            }
                         }
+
                         ad.Add(images);
                         //если надо снять
                         if (b.amount <= 0) {

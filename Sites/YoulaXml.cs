@@ -54,7 +54,7 @@ namespace Selen.Sites {
         }
 
 
-        //генерация xml
+        //генерация xml - не ипользуется
         public async Task GenerateXML(List<RootObject> _bus) {
             //количество объявлений в тарифе
             var offersLimit = await DB._db.GetParamIntAsync("youla.offersLimit");
