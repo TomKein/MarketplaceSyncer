@@ -47,28 +47,26 @@ namespace Selen.Sites {
             await CheckBusAsync();
         }
         //проверка изменений в бизнес.ру
-        async Task EditAsync() {
+        async Task EditAsync() => await Task.Factory.StartNew(() => {
             for (int b = 0; b < _bus.Count; b++) {
                 if (_bus[b].IsTimeUpDated() &&
                     _bus[b].vk != null &&
                     _bus[b].vk.Contains("http")) {
                     if (_bus[b].amount <= 0) {
-                        await Task.Factory.StartNew(() => {
-                            var id = long.Parse(_bus[b].vk.Split('_').Last());
-                            _vk.Markets.Delete(-_marketId, id);
-                            _bus[b].vk = "";
-                        });
-                        await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                        var id = long.Parse(_bus[b].vk.Split('_').Last());
+                        _vk.Markets.Delete(-_marketId, id);
+                        _bus[b].vk = "";
+                        Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                                     {"id", _bus[b].id},
                                                     {"name", _bus[b].name},
                                                     {_url, _bus[b].vk} });
                         Log.Add("vk.com: " + _bus[b].name + " - удалено!");
                         Thread.Sleep(1000);
                     } else
-                        await Task.Factory.StartNew(() => { Edit(b); });
+                        Edit(b);
                 }
             }
-        }
+        });
 
         //запрос параметров из настроек
         async Task GetParamsAsync() => await Task.Factory.StartNew(() => {
@@ -151,19 +149,25 @@ namespace Selen.Sites {
                 OldPrice = _bus[b].price,
                 MainPhotoId = mainPhoto,
                 PhotoIds = dopPhotos,
-                Deleted = false
+                Deleted = false,
+               
             });
-            Thread.Sleep(10000);
-            //привяжем к альбому если есть индекс
-            int vkAlbInd = vkAlb.FindIndex(a => a.Title == _bus[b].GroupName());
+            //сохраняю ссылку
+            _bus[b].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
+            Thread.Sleep(7000);
+            AddToAlbum(b, itemId);
+            Thread.Sleep(1000);
+        });
+
+        //привяжем объявление к альбому если есть индекс
+        private void AddToAlbum(int b, long itemId) {
+            int vkAlbInd = vkAlb.FindIndex(a => a.Title.ToLowerInvariant() == _bus[b].GroupName().ToLowerInvariant());
             if (vkAlbInd > -1) {
                 List<long> sList = new List<long>();
                 sList.Add((long) vkAlb[vkAlbInd].Id);
                 _vk.Markets.AddToAlbum(-_marketId, itemId, sList);
             }
-            //сохраняю ссылку
-            _bus[b].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
-        });
+        }
         //отгружаю фото на сервер вк
         private void UploadPhotos(int b, ref long mainPhoto, ref List<long> dopPhotos) {
             //количество фото ограничиваем до 5
@@ -206,43 +210,51 @@ namespace Selen.Sites {
         }
         //запрос всех объявлений на ВК
         private async Task GetVKAsync() => await Task.Factory.StartNew(() => {
-            vkMark.Clear();
-            for (int v = 0; ; v++) {
-                int num = vkMark.Count;
-                try {
-                    vkMark.AddRange(_vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
-                    if (num == vkMark.Count)
-                        break;
-                    Log.Add("vk.com: получено " + vkMark.Count + " товаров");
-                } catch (Exception ex) {
-                    Log.Add("vk.com: ошибка при запросе товаров! " + ex.Message);
-                    Thread.Sleep(10000);
-                    v--;
+            int countCheck;
+            for (int tryCount = 1; tryCount < 10; tryCount++) {
+                countCheck = _db.GetParamInt("vk.countCheck");
+                vkMark.Clear();
+                for (int v = 0; ; v++) {
+                    int num = vkMark.Count;
+                    try {
+                        vkMark.AddRange(
+                            _vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
+                        Log.Add("vk.com: получено " + vkMark.Count + " товаров");
+                        if (num == vkMark.Count) {
+                            _db.SetParam("vk.countCheck", num.ToString());
+                            break;
+                        }
+                    } catch (Exception ex) {
+                        Log.Add("vk.com: ошибка при запросе товаров! " + ex.Message);
+                        Thread.Sleep(10000);
+                        v--;
+                    }
                 }
+                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 10)
+                    return;
             }
-            Log.Add("vk.com: получено " + vkMark.Count + " товаров");
+            throw new Exception("ошибка запроса объявлений");
         });
         //проверка каталога объявлений на вк
         async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
-            var cnt = _db.GetParamInt("vk.catalogDeleteCount");
-            for (int i = 0; i < vkMark.Count && cnt>0; i++) {
-                //для каждого товара поищем индекс в базе карточек товаров
-                int b = _bus.FindIndex(t => t.vk.Split('_').Last() == vkMark[i].Id.ToString());
-                //если не найден индекс или нет на остатках, количество фото не совпадает или есть дубли - удаляю объявление
+            var ccl = _db.GetParamInt("vk.catalogCheckLimit");
+            for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
+                //ищем индекс в карточках товаров
+                var id = vkMark[i].Id.ToString();
+                int b = _bus.FindIndex(t => t.vk.Split('_').Last() == id);
+                //если не найден индекс или нет на остатках, количество фото не совпадает - удаляю объявление
                 if (b == -1 ||
                     _bus[b].amount <= 0 ||
-                    vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count) 
+                    vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count)
                     //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1
                     ) {
-                    if (cnt > 0) {
-                        try {
-                            _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
-                            Log.Add("vk.com: " + vkMark[i].Title + " - удалено!");
-                            cnt--;
-                            Thread.Sleep(1000);
-                        } catch (Exception x) {
-                            Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
-                        }
+                    try {
+                        _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
+                        Log.Add("vk.com: " + vkMark[i].Title + " - удалено! (ост. "+ --ccl+")");
+                        Thread.Sleep(2000);
+                    } catch (Exception x) {
+                        Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
+                        Thread.Sleep(2000);
                     }
                     //если изменилась цена, наименование или карточка товара - редактирую
                 } else if (_bus[b].price != vkMark[i].Price.Amount / 100
@@ -257,8 +269,10 @@ namespace Selen.Sites {
         });
         //проверка актуальности ссылок в карточках бизнес.ру
         async Task CheckBusAsync() {
+            Log.Add("vk.com: ссылок в карточках товаров " + _bus.Count(b => b.vk.Contains("http")));
+            var ccl = _db.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
-            for (int b = 0, c = 2; b < _bus.Count && c > 0; b++) {
+            for (int b = 0; b < _bus.Count && ccl > 0; b++) {
                 //если нет ссылки перехожу к следующей
                 if (!_bus[b].vk.Contains("http"))
                     continue;
@@ -274,7 +288,7 @@ namespace Selen.Sites {
                                                       {"id", _bus[b].id},
                                                       {"name", _bus[b].name},
                                                       {_url, _bus[b].vk} });
-                        Log.Add("vk.com: " + _bus[b].name + " - объявление не найдено, ссылка удалена (ост. " + c-- + ")");
+                        Log.Add("vk.com: " + _bus[b].name + " - объявление не найдено, ссылка удалена (ост. " + --ccl + ")");
                         await Task.Delay(1000);
                     }
                 } catch (Exception x) {
@@ -323,7 +337,7 @@ namespace Selen.Sites {
         //v = версия протокола
         //client_id = ApplicationId
         private async Task IsVKAuthorizatedAsync() => await Task.Factory.StartNew(() => {
-            _vk.VkApiVersion.SetVersion(5,131);
+            _vk.VkApiVersion.SetVersion(5, 131);
             _vk.Authorize(new ApiAuthParams {
                 ApplicationId = ulong.Parse(_db.GetParamStr("vk.applicationId")),
                 Login = _db.GetParamStr("vk.login"),

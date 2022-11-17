@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.103 (test version)";
+        string _version = "1.104 (test vk)";
 
         DB _db = new DB();
 
@@ -310,7 +310,7 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (checkBox_sync.Checked && (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now)) {
+                if (DateTime.Now.Minute >= 55 || dateTimePicker1.Value.AddMinutes(60) < DateTime.Now) {
                     await SaveBusAsync();
                     await SyncAllAsync();
                     dateTimePicker1.Value = sync_start;
