@@ -57,6 +57,8 @@ namespace Selen.Sites {
             _bus = bus;
             //получаю номер ссылки в карточке
             _url = await _db.GetParamStrAsync("drom.url");
+            //заполнение веса
+            _addWeights = await _db.GetParamBoolAsync("drom.addWeights");
             //дополнительное описание
             _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
             Log.Add("drom.ru: начало выгрузки...");
@@ -110,7 +112,7 @@ namespace Selen.Sites {
             SetOptions(b);
             SetDesc(b);
             SetPart(b);
-            //SetWeight(b);
+            SetWeight(b);
             PressOkButton();
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
             if (b.amount <= 0) {
@@ -174,7 +176,7 @@ namespace Selen.Sites {
                         SetOptions(_bus[b]);
                         SetDiam(_bus[b]);
                         SetAudioSize(_bus[b]);
-                        //SetWeight(_bus[b]);
+                        SetWeight(_bus[b]);
                         PressPublicFreeButton();
                     });
                     try {
@@ -191,10 +193,11 @@ namespace Selen.Sites {
         }
 
         private void SetWeight(RootObject b) {
-            _dr.ButtonClick("//div[contains(@class,'_hidden')]/../label[text()='До Почты России']/input");
-            _dr.ButtonClick("//a[@title='бесплатно до Почты России']");
-            var weight = b.weight ?? 1.00;
-            _dr.WriteToSelector("//input[contains(@name,'ProviderWeight')]", weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
+            if (_addWeights) {
+                var weight = b.weight ?? 1.00;
+                _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']", 
+                    weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
+            }
         }
 
         async Task SaveUrlAsync(int b) {

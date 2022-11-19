@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.104 (test vk)";
+        string _version = "1.105 (drom weights)";
 
         DB _db = new DB();
 
