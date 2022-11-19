@@ -20,6 +20,7 @@ namespace Selen.Sites {
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
+        bool _addWeights;            //добавление веса
         List<RootObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
         bool _needRestart = false;
