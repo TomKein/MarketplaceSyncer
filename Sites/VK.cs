@@ -230,7 +230,7 @@ namespace Selen.Sites {
                         v--;
                     }
                 }
-                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 10)
+                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 3)
                     return;
             }
             throw new Exception("ошибка запроса объявлений");
