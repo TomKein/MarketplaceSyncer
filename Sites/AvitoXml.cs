@@ -190,7 +190,7 @@ namespace Selen.Sites {
             var name = b.name.ToLowerInvariant();
             var d = new Dictionary<string, string>();
             if (name.StartsWith("масло ")) {
-                //пока в исключениях
+                d.Add("TypeId", "4-942");                           //Масла и автохимия
             } else if (name.StartsWith("фиксаторы") ||
                 name.StartsWith("набор фиксаторов") ||
                 name.StartsWith("домкрат") ||

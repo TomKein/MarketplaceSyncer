@@ -214,7 +214,7 @@ namespace Selen.Sites {
             for (int tryCount = 1; tryCount < 10; tryCount++) {
                 countCheck = _db.GetParamInt("vk.countCheck");
                 vkMark.Clear();
-                for (int v = 0; ; v++) {
+                for (int v = 0; tryCount < 10; v++) {
                     int num = vkMark.Count;
                     try {
                         vkMark.AddRange(
@@ -225,12 +225,13 @@ namespace Selen.Sites {
                             break;
                         }
                     } catch (Exception ex) {
-                        Log.Add("vk.com: ошибка при запросе товаров! " + ex.Message);
-                        Thread.Sleep(10000);
+                        Log.Add("vk.com: ошибка при запросе товаров! (try:"+tryCount+") -- " + ex.Message);
+                        Thread.Sleep(30000);
                         v--;
+                        tryCount++;
                     }
                 }
-                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 3)
+                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 3 && tryCount < 10)
                     return;
             }
             throw new Exception("ошибка запроса объявлений");
