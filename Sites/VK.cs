@@ -30,6 +30,8 @@ namespace Selen.Sites {
         int _addCount;                                              //добавлять X объявлений в час
         int _catalogCheckInterval;                                 //проверять каталог на сайте каждые Х часов
         List<RootObject> _bus = null;
+        public int MarketCount;
+        public int UrlsCount;
         //главный метод синхронизации вк
         public async Task VkSyncAsync(List<RootObject> bus) {
             _bus = bus;
@@ -165,7 +167,11 @@ namespace Selen.Sites {
             if (vkAlbInd > -1) {
                 List<long> sList = new List<long>();
                 sList.Add((long) vkAlb[vkAlbInd].Id);
-                _vk.Markets.AddToAlbum(-_marketId, itemId, sList);
+                try {
+                    if (!_vk.Markets.AddToAlbum(-_marketId, itemId, sList)) throw new Exception("метод вернул false");
+                } catch (Exception x) {
+                    Log.Add("ошибка добавления в альбом" + x.Message);
+                }
             }
         }
         //отгружаю фото на сервер вк
@@ -210,31 +216,26 @@ namespace Selen.Sites {
         }
         //запрос всех объявлений на ВК
         private async Task GetVKAsync() => await Task.Factory.StartNew(() => {
-            int countCheck;
-            for (int tryCount = 1; tryCount < 10; tryCount++) {
-                countCheck = _db.GetParamInt("vk.countCheck");
-                vkMark.Clear();
-                for (int v = 0; tryCount < 10; v++) {
-                    int num = vkMark.Count;
-                    try {
-                        vkMark.AddRange(
-                            _vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
-                        Log.Add("vk.com: получено " + vkMark.Count + " товаров");
-                        if (num == vkMark.Count) {
-                            _db.SetParam("vk.countCheck", num.ToString());
-                            break;
-                        }
-                    } catch (Exception ex) {
-                        Log.Add("vk.com: ошибка при запросе товаров! (try:"+tryCount+") -- " + ex.Message);
-                        Thread.Sleep(30000);
-                        v--;
-                        tryCount++;
+            int checkCount = _db.GetParamInt("vk.checkCount");
+            vkMark.Clear();
+            for (int v = 0; ; v++) {
+                int num = vkMark.Count;
+                try {
+                    vkMark.AddRange(
+                        _vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
+                    if (num == vkMark.Count) {
+                        Log.Add("vk.com: получено объявлений " + vkMark.Count);
+                        _db.SetParam("vk.checkCount", num.ToString());
+                        MarketCount = num;
+                        break;
                     }
+                } catch (Exception ex) {
+                    Log.Add("vk.com: ошибка при запросе товаров! - " + ex.Message);
+                    break;
                 }
-                if (vkMark.Count != 0 && Math.Abs(countCheck - vkMark.Count) < 3 && tryCount < 10)
-                    return;
             }
-            throw new Exception("ошибка запроса объявлений");
+            if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10) return;
+            throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count+ ", checkCount = " + checkCount);
         });
         //проверка каталога объявлений на вк
         async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
@@ -270,7 +271,8 @@ namespace Selen.Sites {
         });
         //проверка актуальности ссылок в карточках бизнес.ру
         async Task CheckBusAsync() {
-            Log.Add("vk.com: ссылок в карточках товаров " + _bus.Count(b => b.vk.Contains("http")));
+            UrlsCount = _bus.Count(b => b.vk.Contains("http"));
+            Log.Add("vk.com: ссылок в карточках товаров " + UrlsCount);
             var ccl = _db.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
             for (int b = 0; b < _bus.Count && ccl > 0; b++) {

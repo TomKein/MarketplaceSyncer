@@ -195,6 +195,7 @@ namespace Selen.Sites {
         private void SetWeight(RootObject b) {
             if (_addWeights) {
                 var weight = b.weight ?? 1.00;
+                if (weight == 0) weight = 1.00;
                 _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']", 
                     weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
             }

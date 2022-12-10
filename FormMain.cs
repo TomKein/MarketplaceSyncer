@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.105 (drom weights)";
+        string _version = "1.107 (дром веса, проверка вк)";
 
         DB _db = new DB();
 
@@ -77,6 +77,7 @@ namespace Selen {
                 while (base_rescan_need)
                     await Task.Delay(20000);
                 await _vk.VkSyncAsync(bus);
+                label_Vk.Text = _vk.MarketCount +"/"+_vk.UrlsCount;
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
