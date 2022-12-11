@@ -117,7 +117,7 @@ namespace Selen.Sites {
                         ws.Cells[i, 53].Value = "Производитель";
                         ws.Cells[i, 54].Value = m;
                     } else {
-                        Log.Add("satom: " + _bus[b].name + " - производитель не определен!");
+                        Log.Add("satom: " + _bus[b].name + " - производитель не определен!", writeToFile:true);
                     }
                     //Марка/Модель/Серия
                     var mm = _bus[b].GetNameMarkModel();
@@ -129,7 +129,7 @@ namespace Selen.Sites {
                         ws.Cells[i,59].Value = "Серия авто";
                         ws.Cells[i,60].Value = mm[3];
                     } else {
-                        Log.Add("satom: " + _bus[b].name + " - марка не определена!");
+                        Log.Add("satom: " + _bus[b].name + " - марка не определена!", writeToFile:true);
                     }
                     //Вид...
 

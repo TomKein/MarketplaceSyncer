@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.107 (дром веса, проверка вк)";
+        string _version = "1.109 (логи, сатом)";
 
         DB _db = new DB();
 
@@ -163,6 +163,15 @@ namespace Selen {
                 await Task.Delay(30000);
             await sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
+        }
+        //YANDEX MARKET
+        async void button_YandexMarket_Click(object sender, EventArgs e) {
+            ChangeStatus(sender,ButtonStates.NoActive);
+            while (base_rescan_need || bus.Count == 0)
+                await Task.Delay(30000);
+            var yandexMarket = new YandexMarket();
+            await yandexMarket.GenerateXML(bus);
+            ChangeStatus(sender,ButtonStates.Active);
         }
         //===========================================
         //=== основной цикл (частота 1 раз в мин) ===
@@ -1220,22 +1229,27 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var img = new List<Image>() {
-                                    new Image() {
-                                       name = "1.jpg",
-                                        url = "https://static.baza.drom.ru/drom/1513339810647_default" }
-                                };
-                var images = JsonConvert.SerializeObject(img);
-                var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
-                                    {"id", "554634"},
-                                    {"name", "Крыло правое Chevrolet Lanos"},
-                                    {"images", images}
-                                });
+                var ya = new YandexMarket();
+                await ya.GenerateXML(bus);
+
+
+
+                //var img = new List<Image>() {
+                //                    new Image() {
+                //                       name = "1.jpg",
+                //                        url = "https://static.baza.drom.ru/drom/1513339810647_default" }
+                //                };
+                //var images = JsonConvert.SerializeObject(img);
+                //var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                //                    {"id", "554634"},
+                //                    {"name", "Крыло правое Chevrolet Lanos"},
+                //                    {"images", images}
+                //                });
 
 
 
 
-                Log.Add("TEST: "+s);
+                //Log.Add("TEST: "+s);
 
                 //await CheckDublesAsync();
 
@@ -1308,5 +1322,6 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
+
     }
 }

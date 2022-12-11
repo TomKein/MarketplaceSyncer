@@ -54,6 +54,8 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.label_YandexMarket = new System.Windows.Forms.Label();
+            this.button_YandexMarket = new System.Windows.Forms.Button();
             this.button_Youla = new System.Windows.Forms.Button();
             this.button_Izap24 = new System.Windows.Forms.Button();
             this.panel_bottom = new System.Windows.Forms.Panel();
@@ -341,6 +343,8 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.label_YandexMarket);
+            this.panel_Buttons.Controls.Add(this.button_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_Youla);
             this.panel_Buttons.Controls.Add(this.checkBox_sync);
             this.panel_Buttons.Controls.Add(this.button_Izap24);
@@ -367,6 +371,26 @@ namespace Selen {
             this.panel_Buttons.Name = "panel_Buttons";
             this.panel_Buttons.Size = new System.Drawing.Size(139, 427);
             this.panel_Buttons.TabIndex = 146;
+            // 
+            // label_YandexMarket
+            // 
+            this.label_YandexMarket.AutoSize = true;
+            this.label_YandexMarket.Enabled = false;
+            this.label_YandexMarket.Location = new System.Drawing.Point(120, 323);
+            this.label_YandexMarket.Name = "label_YandexMarket";
+            this.label_YandexMarket.Size = new System.Drawing.Size(16, 13);
+            this.label_YandexMarket.TabIndex = 150;
+            this.label_YandexMarket.Text = "...";
+            // 
+            // button_YandexMarket
+            // 
+            this.button_YandexMarket.Location = new System.Drawing.Point(5, 318);
+            this.button_YandexMarket.Name = "button_YandexMarket";
+            this.button_YandexMarket.Size = new System.Drawing.Size(113, 23);
+            this.button_YandexMarket.TabIndex = 149;
+            this.button_YandexMarket.Text = "Yandex.Market";
+            this.button_YandexMarket.UseVisualStyleBackColor = true;
+            this.button_YandexMarket.Click += new System.EventHandler(this.button_YandexMarket_Click);
             // 
             // button_Youla
             // 
@@ -523,6 +547,8 @@ namespace Selen {
         private System.Windows.Forms.Button button_Izap24;
         private System.Windows.Forms.Button button_Test;
         private System.Windows.Forms.Button button_Youla;
+        private System.Windows.Forms.Label label_YandexMarket;
+        private System.Windows.Forms.Button button_YandexMarket;
     }
 }
 

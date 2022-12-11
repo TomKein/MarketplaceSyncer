@@ -32,12 +32,13 @@ namespace Selen.Tools {
         //добавить в лог
         //s - строка, которая должна быть записана
         //writeDb - писать лог в базу данных
-        public static void Add(string s, bool writeDb = true) {
+        public static void Add(string s, bool writeDb = true, bool writeToFile = false) {
             if (writeDb) _db.AddLogAsync(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
-                _log.Add(s);
+                if (writeToFile) File.AppendAllText(@"..\log.txt", s);
+                else _log.Add(s);
                 if (_log.Count > Level) _log.RemoveRange(0, 10);
             }
             LogUpdate.Invoke();

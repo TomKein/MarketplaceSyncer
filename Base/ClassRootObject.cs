@@ -236,7 +236,10 @@ namespace Selen
             return t.CompareTo(ScanTime) > 0;
         }
 
-        public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ? Groups.First(f => f.id == group_id).name : "";
+        public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ?
+                                    Groups.First(f => f.id == group_id).name : "";
+        public static string GroupName(string group_id) => Groups.Count(c => c.id == group_id) > 0 ? 
+                                                          Groups.First(f => f.id == group_id).name : "";
 
         public string GetDiskSize() {
             try {

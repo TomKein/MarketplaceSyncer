@@ -266,6 +266,7 @@
     <Compile Include="Sites\izap24.cs" />
     <Compile Include="Sites\Kupiprodai.cs" />
     <Compile Include="Sites\Satom.cs" />
+    <Compile Include="Sites\YandexMarket.cs" />
     <Compile Include="Sites\YoulaXml.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="FormSettings.cs">
