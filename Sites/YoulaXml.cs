@@ -13,23 +13,28 @@ namespace Selen.Sites {
     class YoulaXml {
         string _l = "youlaXml: ";
         string filename = @"..\youla.xml";
-
-        string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
-        string satomFile = @"..\satom_import.xml";
+        readonly string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
+        readonly string satomFile = @"..\satom_import.xml";
         XDocument satomYML;
-
-        public YoulaXml() {
+        public void GetSatomXml() {
             //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
-            //if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(6) < DateTime.Now) {
-            //try {
-            //satomYML = XDocument.Load(satomUrl);
-            //satomYML.Save(satomFile);
-            //return;
-            //} catch (Exception x) {
-            //  Log.Add("YoulaXml: ошибка запроса xml с satom.ru - " + x.Message);
-            //}
-            //}
+            var period = DB._db.GetParamInt("satomRequestPeriod");
+            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
+                try {
+                    Log.Add(_l + "запрашиваю новый каталог xml с satom...");
+                    satomYML = XDocument.Load(satomUrl);
+                    if (satomYML.Descendants("offer").Count() > 10000)
+                        satomYML.Save(satomFile);
+                    else
+                        throw new Exception("мало элементов");
+                    Log.Add(_l + "каталог обновлен!");
+                    return;
+                } catch (Exception x) {
+                    Log.Add(_l + "ошибка запроса xml с satom.ru - " + x.Message);
+                }
+            }
             satomYML = XDocument.Load(satomFile);
+            Log.Add(_l + "каталог загружен!");
         }
         //получаю прямые ссылки на фото из каталога сатом
         List<string> GetSatomPhotos(RootObject b) {
@@ -52,8 +57,6 @@ namespace Selen.Sites {
             list.Reverse(1, list.Count - 1);
             return list;
         }
-
-
         //генерация xml - не ипользуется
         public async Task GenerateXML(List<RootObject> _bus) {
             //количество объявлений в тарифе
@@ -117,8 +120,11 @@ namespace Selen.Sites {
             //сохраняю файл
             xml.Save(filename);
         }
+        //генерация xml в формате авито
         public async Task GenerateXML_avito(List<RootObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
+                //загружаю xml с satom
+                GetSatomXml();
                 //интервал проверки
                 var uploadInterval = DB._db.GetParamInt("youla.uploadInterval");
                 if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)

@@ -11,77 +11,11 @@ using System.Xml.Linq;
 
 namespace Selen.Sites {
     internal class AvitoXml {
-        readonly string _l = "avitoXml: ";
-        readonly string filename = @"..\avito.xml";
-        readonly string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
-        //string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1";
-        //"https://автотехношик.рф/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save"
-        readonly string satomFile = @"..\satom_import.xml";
-        XDocument satomYML;
-
-        public void GetSatomXml() {
-            //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
-            var period = DB._db.GetParamInt("satomRequestPeriod");
-            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
-                try {
-                    Log.Add(_l + "запрашиваю новый каталог xml с satom...");
-                    satomYML = XDocument.Load(satomUrl);
-                    if (satomYML.Descendants("offer").Count() > 10000)
-                        satomYML.Save(satomFile);
-                    else
-                        throw new Exception("мало элементов");
-                    Log.Add(_l + "каталог обновлен!");
-                    return;
-                } catch (Exception x) {
-                    Log.Add(_l+"ошибка запроса xml с satom.ru - " + x.Message);
-                }
-            }
-            satomYML = XDocument.Load(satomFile);
-            Log.Add(_l + "каталог загружен!");
-        }
-        //получаю прямые ссылки на фото из каталога сатом
-        List<string> GetSatomPhotos(RootObject b) {
-            //проверка каталога xml
-            if (satomYML.Root.Name != "yml_catalog")
-                throw new Exception("GetSatomPhotos: ошибка чтения каталога satom! - корневой элемент не найден");
-            //ищем товар в каталоге
-            XElement offer = null;
-            var tmp = satomYML.Descendants("offer")
-                              .Where(w => w.Element("description")?
-                                           .Value?
-                                           .Split(':')
-                                           .Last()
-                                           .Split('<')
-                                           .First()
-                                           .Trim() == b.id);
-            if (tmp?.Count() > 0) offer = tmp.First();
-            //получаем фото
-            if (offer == null) {
-                //if (b.amount < 0)
-                //    return new List<string>();
-                //throw new Exception("оффер не найден в каталоге satom");
-                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
-                return b.images.Select(s => s.url).ToList();
-            }
-            var list = offer.Elements("picture")
-                            .Select(s => s.Value)
-                            .Take(10)
-                            .ToList();
-            //проверка наличия фото
-            if (list.Count == 0 && b.amount > 0)
-                //throw new Exception("фото не найдены в каталоге satom");
-                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
-                return b.images.Select(s=>s.url).ToList();
-
-            //сортировка фото - первое остается, остальные разворачиваем
-            list.Reverse(1, list.Count - 1);
-            return list;
-        }
+        readonly string _l = "avitoXml: ";              //префикс для лога
+        readonly string filename = @"..\avito.xml";     //имя файла для экспорта
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             await Task.Factory.StartNew(() => {
-                //загружаю xml с satom
-                GetSatomXml();
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("avito.offersLimit");
                 //ценовой порог
@@ -96,17 +30,11 @@ namespace Selen.Sites {
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
+                //отсортированный по убыванию цены
                 var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
                                       && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
-                              .OrderByDescending(o => o.price);
-                
+                              .OrderByDescending(o => o.price); 
                 Log.Add(_l+"найдено " + bus.Count() + " потенциальных объявлений");
-
-                //цена замены фото
-                var imagePrice = DB._db.GetParamInt("avito.photoChangePrice");
-                if (imagePrice < 1000000) DB._db.SetParam("avito.photoChangePrice", (imagePrice / 5 + imagePrice).ToString());
-
-                //для каждой карточки
                 int i=0;
                 foreach (var b in bus) {
                     try {
@@ -119,17 +47,9 @@ namespace Selen.Sites {
                         }
                         //изображения
                         var images = new XElement("Images");
-                        
-                        if (b.price < imagePrice) {
-                            foreach (var photo in b.images.Take(10)) {
-                                images.Add(new XElement("Image", new XAttribute("url", photo.url)));
-                            }
-                        } else {
-                            foreach (var photo in GetSatomPhotos(b)) {
-                                images.Add(new XElement("Image", new XAttribute("url", photo)));
-                            }
+                        foreach (var photo in b.images.Take(10)) {
+                            images.Add(new XElement("Image", new XAttribute("url", photo.url)));
                         }
-
                         ad.Add(images);
                         //если надо снять
                         if (b.amount <= 0) {
@@ -165,7 +85,7 @@ namespace Selen.Sites {
                         ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //добавляю объявление в дерево
                         root.Add(ad);
-                        //считаем только объявления с остатком
+                        //считаем только объявления с положительным остатком
                         if (b.amount > 0)
                             i++;
                         if (i >= offersLimit)
