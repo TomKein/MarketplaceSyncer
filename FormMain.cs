@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.110 (логи, сатом)";
+        string _version = "1.111 (яндекс маркет)";
 
         DB _db = new DB();
 
@@ -342,9 +342,11 @@ namespace Selen {
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
             button_Avito.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(30000);
+            button_YandexMarket.PerformClick();
+            await Task.Delay(30000);
             button_Satom.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(30000);
             button_Vk.PerformClick();
             await Task.Delay(60000);
             button_Youla.PerformClick();

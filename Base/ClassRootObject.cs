@@ -162,6 +162,8 @@ namespace Selen
                 group_id == "168723" || //Аудио-видеотехника
                 group_id == "168807" || //Шины, диски, колеса
                 group_id == "289732" || //Автохимия
+                group_id == "460974" || //Аксессуары
+                group_id == "430926" || //Масла
                 group_id == "530058") {   //Инструменты
                 return false;
             }
@@ -215,7 +217,7 @@ namespace Selen
                             .Select(ta => ta.Trim())
                             .Where(tb => tb.Length > 1)
                             .ToList();
-            if (IsGroupValid()) {
+            if (IsGroupValid() && dop!=null) {
                 s.AddRange(dop);
             }
             //контролируем длину описания
@@ -253,6 +255,10 @@ namespace Selen
 
         public bool IsNew() {
             var low = (name + ":" + description).ToLowerInvariant();
+            return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
+        }
+        public static bool IsNew(string s) {
+            var low = s.ToLowerInvariant();
             return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
         }
 

@@ -1,108 +1,234 @@
-﻿using Newtonsoft.Json;
-using Selen.Base;
-using Selen.Tools;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Bibliography;
+using Newtonsoft.Json;
+using Selen.Base;
+using Selen.Tools;
 
 namespace Selen.Sites {
-    internal class AvitoXml {
-        readonly string _l = "avitoXml: ";              //префикс для лога
-        readonly string filename = @"..\avito.xml";     //имя файла для экспорта
+    internal class YandexMarket {
+
+        readonly string _l = "yandex: ";
+        readonly string filename = @"..\yandex.xml";
+        readonly string satomUrl = "https://xn--80aejmkqfc6ab8a1b.xn--p1ai/yml-export/889dec0b799fb1c3efb2eb1ca4d7e41e/?full=1&save";
+        readonly string satomFile = @"..\satom_import.xml";
+        XDocument satomYML;
+
+        public void GetSatomXml() {
+            //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
+            var period = DB._db.GetParamInt("satomRequestPeriod");
+            if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
+                try {
+                    Log.Add(_l + "запрашиваю новый каталог xml с satom...");
+                    satomYML = XDocument.Load(satomUrl);
+                    if (satomYML.Descendants("offer").Count() > 10000)
+                        satomYML.Save(satomFile);
+                    else
+                        throw new Exception("мало элементов");
+                    Log.Add(_l + "каталог обновлен!");
+                    return;
+                } catch (Exception x) {
+                    Log.Add(_l + "ошибка запроса xml с satom.ru - " + x.Message);
+                }
+            }
+            satomYML = XDocument.Load(satomFile);
+            Log.Add(_l + "каталог загружен!");
+        }
+        //получаю прямые ссылки на фото из каталога сатом
+        List<string> GetSatomPhotos(RootObject b) {
+            //проверка каталога xml
+            if (satomYML.Root.Name != "yml_catalog")
+                throw new Exception("GetSatomPhotos: ошибка чтения каталога satom! - корневой элемент не найден");
+            //ищем товар в каталоге
+            XElement offer = null;
+            var tmp = satomYML.Descendants("offer")
+                              .Where(w => w.Element("description")?
+                                           .Value?
+                                           .Split(':')
+                                           .Last()
+                                           .Split('<')
+                                           .First()
+                                           .Trim() == b.id);
+            if (tmp?.Count() > 0)
+                offer = tmp.First();
+            //получаем фото
+            if (offer == null) {
+                //if (b.amount < 0)
+                //    return new List<string>();
+                //throw new Exception("оффер не найден в каталоге satom");
+                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
+                return b.images.Select(s => s.url).ToList();
+            }
+            var list = offer.Elements("picture")
+                            .Select(s => s.Value)
+                            .Take(10)
+                            .ToList();
+            //проверка наличия фото
+            if (list.Count == 0 && b.amount > 0)
+                //throw new Exception("фото не найдены в каталоге satom");
+                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
+                return b.images.Select(s => s.url).ToList();
+
+            //сортировка фото - первое остается, остальные разворачиваем
+            list.Reverse(1, list.Count - 1);
+            return list;
+        }
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             await Task.Factory.StartNew(() => {
-                //количество объявлений в тарифе
-                var offersLimit = DB._db.GetParamInt("avito.offersLimit");
-                //ценовой порог
-                var priceLevel = DB._db.GetParamInt("avito.priceLevel");
+                //загружаю xml с satom
+                GetSatomXml();
                 //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    DB._db.GetParamStr("avito.addDescription"));
-                string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
-                        DB._db.GetParamStr("avito.addDescription2"));
-                //создаю новый xml
-                var xml = new XDocument();
-                //корневой элемент yml_catalog
-                var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
-                //список карточек с положительным остатком и ценой, у которых есть фотографии
-                //отсортированный по убыванию цены
-                var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
-                                      && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
-                              .OrderByDescending(o => o.price); 
-                Log.Add(_l+"найдено " + bus.Count() + " потенциальных объявлений");
-                int i=0;
+                    DB._db.GetParamStr("yandex.addDescription"));
+                //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
+                var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
+                //создаю необходимый элемент <shop>
+                var shop = new XElement("shop");
+                shop.Add(new XElement("name", "АвтоТехноШик"));
+                shop.Add(new XElement("company", "АвтоТехноШик"));
+                shop.Add(new XElement("url", "https://автотехношик.рф"));
+                shop.Add(new XElement("platform", "Satom.ru"));
+                //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
+                //отсортированный по цене вниз
+                var bus = _bus.Where(w => w.price > 0
+                                       && w.images.Count > 0
+                                       && (w.amount > 0))
+                              .OrderByDescending(o => o.price);
+                //список групп, в которых нашлись товары
+                var groupsIds = bus.Select(s => s.group_id).Distinct();
+                //создаю необходимый элемент <categories>
+                var categories = new XElement("categories");
+                //заполняю категории
+                foreach (var groupId in groupsIds) {
+                    categories.Add(new XElement("category", RootObject.GroupName(groupId), new XAttribute("id", groupId)));
+                }
+                shop.Add(categories);
+                //создаю необходимый элемент <offers>
+                var offers = new XElement("offers");
+                Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
+                //цена замены фото - после первой загрузки фотографий с сатома будем плавно замещать
+                //на ссылки из бизнес.ру, если редиректные ссылки на фото прокатят
+                //используем старый параметр, больше ненужный для авито
+                var imagePrice = DB._db.GetParamInt("yandex.photoChangePrice");
+                //повышаем ценовую планочку немного, от самых дешевых к дорогим
+                if (imagePrice < 1000000)
+                    DB._db.SetParam("yandex.photoChangePrice", (imagePrice / 100 + imagePrice).ToString());
+                //для каждой карточки
                 foreach (var b in bus) {
                     try {
-                        var ad = new XElement("Ad");
-                        //id
-                        ad.Add(new XElement("Id", b.id));
-                        //категория товара
-                        foreach (var item in GetCategoryAvito(b)) {
-                            ad.Add(new XElement(item.Key, item.Value));
-                        }
-                        //изображения
-                        var images = new XElement("Images");
-                        foreach (var photo in b.images.Take(10)) {
-                            images.Add(new XElement("Image", new XAttribute("url", photo.url)));
-                        }
-                        ad.Add(images);
-                        //если надо снять
-                        if (b.amount <= 0) {
-                            ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
-                        }
-                        //else {
-                        //    ad.Add(new XElement("DateBegin", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
-                        //}
-                        //адрес магазина
-                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
+                        //создаю новый элемент <offer> с атрубутом id
+                        var offer = new XElement("offer", new XAttribute("id", b.id));
+                        //добавляю категорию товара
+                        offer.Add(new XElement("categoryId", b.group_id));
+
+                        //наименование (до 150 символов)
+                        offer.Add(new XElement("name", b.NameLength(150)));
+
                         //цена
-                        ad.Add(new XElement("Price", b.price));
-                        //телефон
-                        ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
-                        //наименование
-                        ad.Add(new XElement("Title", b.NameLength(100)));
+                        offer.Add(new XElement("price", b.price));
+                        //цена до скидки +10%
+                        offer.Add(new XElement("oldprice", (b.price * 1.1).ToString("F0")));
+                        //валюта 
+                        offer.Add(new XElement("currencyId", "RUR"));
+
+                        //изображения (до 20 шт)
+                        var images = new XElement("Images");
+                        if (b.price < imagePrice) {
+                            foreach (var photo in b.images.Take(20)) {
+                                images.Add(new XElement("picture", new XAttribute("url", photo.url)));
+                            }
+                        } else {
+                            foreach (var photo in GetSatomPhotos(b)) {
+                                images.Add(new XElement("picture", new XAttribute("url", photo)));
+                            }
+                        }
+                        offer.Add(images);
+
                         //описание
-                        var d = b.DescriptionList(2990, _addDesc);
-                        d.AddRange(_addDesc2);
-                        ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
-                        //имя менеджера
-                        ad.Add(new XElement("ManagerName", "Менеджер"));
-                        //добавляю элемент offer в контейнер offers
-                        ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
-                        //состояние
-                        ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
-                        //доступность
-                        ad.Add(new XElement("Availability", "В наличии"));
-                        //номер запчасти
+                        var description = b.DescriptionList(2990, _addDesc);
+                        offer.Add(new XElement("description", new XCData(description.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
+
+                        //производитель
+                        var vendor = b.GetManufacture();
+                        if (vendor != null)
+                            offer.Add(new XElement("vendor", vendor));
+
+                        //артикул
                         if (!string.IsNullOrEmpty(b.part))
-                            ad.Add(new XElement("OEM", b.part));
-                        //оригинальность
-                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
-                        //добавляю объявление в дерево
-                        root.Add(ad);
-                        //считаем только объявления с положительным остатком
-                        if (b.amount > 0)
-                            i++;
-                        if (i >= offersLimit)
-                            break;
+                            offer.Add(new XElement("vendorCode", b.part));
+
+                        //количество 
+                        offer.Add(new XElement("count", b.amount));
+
+                        //вес получаю из карточки, по умолчанию 1 кг
+                        var weight = b.weight ?? 1.00;
+                        if (weight == 0)
+                            weight = 1.00;
+                        offer.Add(new XElement("weight", weight));
+
+                        //объем упаковки получаю из карточки (м3). по умолчанию 0,02 м3
+                        var volume = b.volume ?? 0.02;
+                        if (b.volume == 0)
+                            volume = 0.02;
+                        //вычисляю из объема среднюю длину стороны
+                        var dimention = Math.Pow(volume, 1.0 / 3.0);
+                        //первую округляю в большую сторону
+                        var x1 = Math.Ceiling(dimention * 20) * 5;
+                        //вторую - в меньшую
+                        var x2 = Math.Floor(dimention * 20) * 5;
+                        //третью вычисляю от первых двух и округляю до целых
+                        var x3 = Math.Round((volume / (x1 * 0.01 * x2 * 0.01)) * 100);
+                        //строка с размерами
+                        var dimensions = (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
+                        offer.Add(new XElement("dimensions", dimensions));
+
+                        //блок ресейл
+                        if (!b.IsNew()) {
+                            //состояние - бывший в употреблении
+                            var condition = new XElement("condition", new XAttribute("type", "preowned"));
+                            //внешний вид - хороший, есть следы использования
+                            condition.Add(new XElement("quality", "good"));
+                            //описание состояния - ищу строку в описании
+                            var reason = (b.DescriptionList(3000).Where(w => !RootObject.IsNew(w))?.First())
+                                         ?? "Б/у оригинал, в хорошем состоянии!";
+                            condition.Add(new XElement("reason", reason));
+                            //сохраняю в оффер
+                            offer.Add(condition);
+                        }
+                        //срок годности 
+                        if (!b.IsGroupValid()) { //группы масла, автохимия, аксессуары
+                            offer.Add(new XElement("period-of-validity-days","P4Y"));
+                        }
+
+                        //добавляю оффер к офферам
+                        offers.Add(offer);
                     } catch (Exception x) {
-                        Log.Add(_l+ i + " - " + b.name + " - " + x.Message);
+                        Log.Add(_l + b.name + " - " + x.Message);
                     }
                 }
-                Log.Add(_l+"выгружено " + i);
+                Log.Add(_l + "выгружено " + offers.Descendants("offer").Count());
+                //добавляю offers в shop
+                shop.Add(offers);
+                //создаю корневой элемент <yml_catalog>
+                var root = new XElement("yml_catalog", new XAttribute("date", timeNow));
+                //добавляю shop в root 
+                root.Add(shop);
+                //создаю новый xml
+                var xml = new XDocument();
                 //добавляю root в документ
                 xml.Add(root);
                 //сохраняю файл
                 xml.Save(filename);
             });
             //если размер файла в порядке
-            if(new FileInfo(filename).Length > await DB._db.GetParamIntAsync("avito.xmlMinSize"))
-            //отправляю файл на сервер
+            if (new FileInfo(filename).Length > await DB._db.GetParamIntAsync("yandex.xmlMinSize"))
+                //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }
         //категории авито
@@ -128,7 +254,7 @@ namespace Selen.Sites {
                 name.Contains("лобовая") && name.Contains("крышка") ||
                 name.Contains("ось") && name.Contains("коромыс") ||
                 name.Contains("коромысл") && name.Contains("клапан") ||
-                name.Contains("натяж") && (name.Contains("планк") || name.Contains("башмак"))||
+                name.Contains("натяж") && (name.Contains("планк") || name.Contains("башмак")) ||
                 name.StartsWith("крышка лоб") ||
                 name.StartsWith("натяжитель") ||
                 name.StartsWith("балансир") ||
@@ -138,7 +264,7 @@ namespace Selen.Sites {
                 name.StartsWith("клапан впуск")) {
                 d.Add("TypeId", "16-841");                          //Ремни, цепи, элементы ГРМ
             } else if (name.StartsWith("акпп ") ||
-                (name.StartsWith("трубк")||
+                (name.StartsWith("трубк") ||
                  name.StartsWith("диск") ||
                  name.Contains("комплект") ||
                  name.Contains("к-т")
@@ -163,7 +289,7 @@ namespace Selen.Sites {
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
                 name.StartsWith("подшипник ступичный") ||
-                name.StartsWith("Подшипник выжимной") || 
+                name.StartsWith("Подшипник выжимной") ||
                 name.StartsWith("фланец") && name.Contains("раздат") ||
                 name.StartsWith("фланец") && name.Contains("кардан") ||
                 name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("акпп")) ||
@@ -243,18 +369,18 @@ namespace Selen.Sites {
                 d.Add("TypeId", "16-808");                              //Двери
             } else if (name.StartsWith("бампер") ||
                 name.StartsWith("абсорбер зад") ||
-                name.StartsWith("абсорбер пер") || 
-                name.StartsWith("решетка птф") ||                
-                (name.StartsWith("решетк")|| 
-                 name.StartsWith("спойлер")||
+                name.StartsWith("абсорбер пер") ||
+                name.StartsWith("решетка птф") ||
+                (name.StartsWith("решетк") ||
+                 name.StartsWith("спойлер") ||
                  name.StartsWith("поглотитель") ||
-                 name.StartsWith("усилитель")||
-                 name.StartsWith("заглушка")||
-                 name.StartsWith("направляющ")||
+                 name.StartsWith("усилитель") ||
+                 name.StartsWith("заглушка") ||
+                 name.StartsWith("направляющ") ||
                  name.StartsWith("пыльник") ||
-                 name.StartsWith("буфер")||
+                 name.StartsWith("буфер") ||
                  name.StartsWith("боковина") ||
-                 name.StartsWith("наполнитель")||
+                 name.StartsWith("наполнитель") ||
                  name.StartsWith("абсорбер")
                 ) && name.Contains("бампер")) {
                 d.Add("TypeId", "16-806");                              //Бамперы
@@ -326,11 +452,11 @@ namespace Selen.Sites {
                 name.StartsWith("привод заслонки") ||
                 name.StartsWith("трубка") && name.Contains("охла") ||
                 name.StartsWith("трубка конд") ||
-                name.StartsWith("фланец") && 
+                name.StartsWith("фланец") &&
                     (name.Contains("охлажден") ||
                      name.Contains("вентиляц")) ||
                 name.StartsWith("решет") && name.Contains("моторчик") ||
-                name.StartsWith("сервопривод") && 
+                name.StartsWith("сервопривод") &&
                     (name.Contains("заслонк") ||
                      name.Contains("отопит") ||
                      name.Contains("печк")) ||
@@ -342,7 +468,7 @@ namespace Selen.Sites {
                 name.StartsWith("терморегулятор") ||
                 name.StartsWith("шкив помпы") ||
                 name.StartsWith("вентиляционный дефлектор") ||
-                name.StartsWith("заслонка воздушная") || 
+                name.StartsWith("заслонка воздушная") ||
                 name.StartsWith("теплообменник") ||
                 name.StartsWith("моторчик засл")) {
                 d.Add("TypeId", "16-521");                              //Система охлаждения
@@ -390,7 +516,7 @@ namespace Selen.Sites {
                 d.Add("RimType", b.DiskType());                     //тип
             } else if (name.StartsWith("колпак")) {
                 d.Add("TypeId", "10-044");                          //Шины, диски и колёса / Колпаки
-            } else if (name.StartsWith("шины")||
+            } else if (name.StartsWith("шины") ||
                        name.StartsWith("резина")) {
                 d.Add("TypeId", "10-048");                          //Шины, диски и колёса / Шины
             } else if (name.StartsWith("фонар") ||
@@ -788,9 +914,9 @@ namespace Selen.Sites {
                 name.StartsWith("трубк") && name.Contains("турб")
                 ) {
                 d.Add("TypeId", "16-842");                           //Турбины, компрессоры
-            } else if (b.group_id == "289732") { //  "Автохимия"
+            } else if (b.GroupName() == "АВТОХИМИЯ") {
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
-            } else if (name.StartsWith("прокладка")||
+            } else if (name.StartsWith("прокладка") ||
                 name.StartsWith("ремкомплект задних колодок") ||
                 name.StartsWith("комплект прокладок") ||
                 name.StartsWith("сальник привода")) {

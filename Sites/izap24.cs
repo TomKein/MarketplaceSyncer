@@ -120,7 +120,7 @@ namespace Selen.Sites {
                     s.Append(desc).Append(";");                         //desc
                     s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos
                     n++;
-                    if (n % 500 == 0)
+                    if (n % 1000 == 0)
                         Log.Add(_l + "выгружено товаров " + n);
                 }
                 Log.Add(_l + "всего успешно выгружено товаров" + n);

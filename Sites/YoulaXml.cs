@@ -123,12 +123,12 @@ namespace Selen.Sites {
         //генерация xml в формате авито
         public async Task GenerateXML_avito(List<RootObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
-                //загружаю xml с satom
-                GetSatomXml();
                 //интервал проверки
                 var uploadInterval = DB._db.GetParamInt("youla.uploadInterval");
                 if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                     return false;
+                //загружаю xml с satom
+                GetSatomXml();
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("youla.offersLimit");
                 //доп. описание
