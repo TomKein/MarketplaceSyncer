@@ -37,11 +37,12 @@ namespace Selen.Tools {
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
-                if (writeToFile) File.AppendAllText(@"..\log.txt", s);
+                if (writeToFile) File.AppendAllText(@"..\log.txt", s+"\r\n", System.Text.Encoding.UTF8);
                 else _log.Add(s);
                 if (_log.Count > Level) _log.RemoveRange(0, 10);
             }
-            LogUpdate.Invoke();
+            if (!writeToFile)
+                LogUpdate.Invoke();
         }
     }
 }
