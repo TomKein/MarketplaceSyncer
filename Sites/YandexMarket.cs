@@ -80,7 +80,11 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
-            await Task.Factory.StartNew(() => {
+            var gen = Task.Factory.StartNew(() => {
+                //интервал проверки
+                var uploadInterval = DB._db.GetParamInt("yandex.uploadInterval");
+                if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
+                    return false;
                 //загружаю xml с satom
                 GetSatomXml();
                 //доп. описание
@@ -138,17 +142,15 @@ namespace Selen.Sites {
                         offer.Add(new XElement("currencyId", "RUR"));
 
                         //изображения (до 20 шт)
-                        var images = new XElement("Images");
                         if (b.price < imagePrice) {
                             foreach (var photo in b.images.Take(20)) {
-                                images.Add(new XElement("picture", new XAttribute("url", photo.url)));
+                                offer.Add(new XElement("picture", photo.url));
                             }
                         } else {
                             foreach (var photo in GetSatomPhotos(b)) {
-                                images.Add(new XElement("picture", new XAttribute("url", photo)));
+                                offer.Add(new XElement("picture", photo));
                             }
                         }
-                        offer.Add(images);
 
                         //описание
                         var description = b.DescriptionList(2990, _addDesc);
@@ -225,9 +227,10 @@ namespace Selen.Sites {
                 xml.Add(root);
                 //сохраняю файл
                 xml.Save(filename);
+                return true;
             });
-            //если размер файла в порядке
-            if (new FileInfo(filename).Length > await DB._db.GetParamIntAsync("yandex.xmlMinSize"))
+            //если файл сгенерирован и его размер ок
+            if (await gen && new FileInfo(filename).Length > await DB._db.GetParamIntAsync("yandex.xmlMinSize"))
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }
