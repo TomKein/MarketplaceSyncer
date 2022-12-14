@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.112 (яндекс маркет)";
+        string _version = "1.113 (яндекс)";
 
         DB _db = new DB();
 

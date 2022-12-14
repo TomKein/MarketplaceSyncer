@@ -164,7 +164,8 @@ namespace Selen
                 group_id == "289732" || //Автохимия
                 group_id == "460974" || //Аксессуары
                 group_id == "430926" || //Масла
-                group_id == "530058") {   //Инструменты
+                group_id == "2281135" || //Инструменты (аренда)
+                group_id == "530058") { //Инструменты
                 return false;
             }
             return true;

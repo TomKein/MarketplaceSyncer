@@ -110,6 +110,9 @@ namespace Selen.Sites {
                 var categories = new XElement("categories");
                 //заполняю категории
                 foreach (var groupId in groupsIds) {
+                    //исключение
+                    if (groupId == "2281135")// Инструменты (аренда)
+                        continue;
                     categories.Add(new XElement("category", RootObject.GroupName(groupId), new XAttribute("id", groupId)));
                 }
                 shop.Add(categories);
@@ -126,6 +129,9 @@ namespace Selen.Sites {
                 //для каждой карточки
                 foreach (var b in bus) {
                     try {
+                        //исключение
+                        if (b.group_id == "2281135") //// Инструменты (аренда)
+                            continue;
                         //создаю новый элемент <offer> с атрубутом id
                         var offer = new XElement("offer", new XAttribute("id", b.id));
                         //добавляю категорию товара
