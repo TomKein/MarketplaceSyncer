@@ -231,6 +231,7 @@ namespace Selen.Sites {
                 name.Contains("часть замка") ||
                 name.StartsWith("замок пер") ||
                 name.Contains("централь") && name.Contains("замка") ||
+                name.Contains("замок") && name.Contains("сиден") ||
                 name.Contains("крю") && name.Contains("капота") ||
                 name.StartsWith("фиксатор") && (name.Contains("капота") || name.Contains("замка")) ||
                 name.StartsWith("замок стек") ||
@@ -297,6 +298,7 @@ namespace Selen.Sites {
             } else if (name.StartsWith("блок управления печкой") ||
                 name.StartsWith("блок управления отоп") ||
                 name.StartsWith("блок управления клим") ||
+                name.StartsWith("трубка отоплен") ||
                 name.StartsWith("блок клим") ||
                 name.StartsWith("моторчик печки") ||
                 name.StartsWith("воздухоочиститель") ||
@@ -330,6 +332,7 @@ namespace Selen.Sites {
                     (name.Contains("охлажден") ||
                      name.Contains("вентиляц")) ||
                 name.StartsWith("решет") && name.Contains("моторчик") ||
+                name.Contains("мотор") && name.Contains("печк") ||
                 name.StartsWith("сервопривод") && 
                     (name.Contains("заслонк") ||
                      name.Contains("отопит") ||
@@ -354,6 +357,7 @@ namespace Selen.Sites {
                  name.StartsWith("корпус регулятора масла") ||
                  name.StartsWith("крышка заливная") ||
                  name.StartsWith("щуп акпп") ||
+                 name.StartsWith("трубка щуп") ||
                  name.Contains("масля")) {
                 d.Add("TypeId", "16-836");                              //Масляный насос, система смазки
             } else if (name.Contains("магнитола") ||
@@ -516,6 +520,7 @@ namespace Selen.Sites {
             } else if (name.StartsWith("ящик") ||
                   name.StartsWith("обшивка") ||
                   name.Contains("бардачок") ||
+                  name.Contains("крышка бардач") ||
                   name.Contains("воздуховод") ||
                   name.Contains("кожух подрул") ||
                   name.Contains("кожух рул") ||
@@ -550,6 +555,7 @@ namespace Selen.Sites {
                   name.StartsWith("диван") ||
                   name.StartsWith("сиденье") ||
                   name.StartsWith("сиденья") ||
+                  name.StartsWith("сидения") ||
                   name.StartsWith("подголовник") ||
                   name.StartsWith("треугольник задний") ||
                   name.StartsWith("лоток для домкрата") ||
@@ -573,6 +579,7 @@ namespace Selen.Sites {
                     name.Contains("центральной консоли")) ||
                   name.StartsWith("часы") ||
                   name.StartsWith("шторка") ||
+                  name.StartsWith("пол багажника") ||
                   name.Contains("карман")) {
                 d.Add("TypeId", "11-625");                        //Салон
             } else if (name.Contains("дворник") ||
@@ -594,6 +601,7 @@ namespace Selen.Sites {
                   name.StartsWith("подшипник генератора") ||
                   name.StartsWith("обгонная муфта генератора") ||
                   name.StartsWith("шкив генератора") ||
+                  name.StartsWith("щетки генератора") ||
                   name.StartsWith("диодный") ||
                   name.StartsWith("бендикс") ||
                   name.StartsWith("стартер") ||
@@ -647,6 +655,7 @@ namespace Selen.Sites {
                    name.StartsWith("трубки тнвд") ||
                    name.StartsWith("трубка карт") ||
                    name.StartsWith("трубка егр") ||
+                   name.StartsWith("трубка egr") ||
                    name.Contains("фильтр") && name.Contains("топлив") ||
                    name.StartsWith("крышка") && name.Contains("воздушного") ||
                    name.StartsWith("площадка") && name.Contains("приемной трубы") ||
@@ -726,7 +735,7 @@ namespace Selen.Sites {
                   name.StartsWith("креплени") ||
                   name.StartsWith("опора") ||
                   name.StartsWith("подушка") ||
-                  name.StartsWith("площадка ак") ||
+                  name.StartsWith("площадка") && name.Contains(" ак") ||
                   name.StartsWith("упор ") ||
                   name.StartsWith("гидроопора дв") ||
                   name.StartsWith("гидро опора дв") ||
@@ -752,7 +761,10 @@ namespace Selen.Sites {
                    name.StartsWith("муфта распр") ||
                    name.StartsWith("ванос") ||
                    name.StartsWith("вал кором") ||
+                   name.StartsWith("ролик обводной") ||
                    name.StartsWith("распредвал") ||
+                   name.StartsWith("постель ") ||
+                   name.StartsWith("площадка датчика фаз") ||
                    name.StartsWith("промежуточный вал") ||
                    name.StartsWith("планка успокоителя") ||
                    name.StartsWith("планка натяжителя") ||
@@ -793,7 +805,9 @@ namespace Selen.Sites {
             } else if (name.StartsWith("прокладка")||
                 name.StartsWith("ремкомплект задних колодок") ||
                 name.StartsWith("комплект прокладок") ||
-                name.StartsWith("сальник привода")) {
+                name.StartsWith("хомут ") ||
+                name.StartsWith("сальник привода") ||
+                name.StartsWith("сальник №")) {
                 d.Add("TypeId", "11-621");                          //Запчасти для ТО
             }
 

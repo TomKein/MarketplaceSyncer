@@ -256,6 +256,9 @@ namespace Selen
 
         public bool IsNew() {
             var low = (name + ":" + description).ToLowerInvariant();
+            if (group_id == "289732" || //Автохимия
+                group_id == "430926" )  //Масла
+                return true;
             return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
         }
         public static bool IsNew(string s) {
