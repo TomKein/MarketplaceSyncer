@@ -96,6 +96,8 @@ namespace Selen.Sites {
                 RootObject.UpdateDefaultWeight();
                 //обновляю объем товара по умолчанию
                 RootObject.UpdateDefaultVolume();
+                //обновляю срок годности товара по умолчанию
+                RootObject.UpdateDefaultValidity();
                 //создаю необходимый элемент <shop>
                 var shop = new XElement("shop");
                 shop.Add(new XElement("name", "АвтоТехноШик"));
@@ -198,8 +200,8 @@ namespace Selen.Sites {
                             offer.Add(condition);
                         }
                         //срок годности 
-                        if (!b.IsGroupValid()) { //группы масла, автохимия, аксессуары
-                            offer.Add(new XElement("period-of-validity-days","P4Y"));
+                        if (!b.IsGroupSolidParts()) { //если группа масла, автохимия, аксессуары
+                            offer.Add(new XElement("period-of-validity-days",b.GetValidity()));
                         }
 
                         //добавляю оффер к офферам

@@ -22,6 +22,7 @@ namespace Selen
         public string id { get; set; }
         public string model { get; set; }
         public string name { get; set; }
+        public string value { get; set; }
 
     }
     public class Attributes {
@@ -178,7 +179,7 @@ namespace Selen
         public static void UpdateDefaultWeight() {
             defaultWeight = DB._db.GetParamFloat("defaultWeigth");
             if (defaultWeight == 0) {
-                Log.Add("defaultWeigth: ошибка - значение в настройках 0! установлено значение 1");
+                Log.Add("defaultWeigth: ошибка - значение в настройках 0! установлено значение 1 кг");
                 defaultWeight = 1f;
             }
         }
@@ -192,13 +193,31 @@ namespace Selen
         public static void UpdateDefaultVolume() {
             defaultVolume = DB._db.GetParamFloat("defaultVolume");
             if (defaultVolume == 0) {
-                Log.Add("defaultVolume: ошибка - значение в настройках 0! установлено значение 0.02");
+                Log.Add("defaultVolume: ошибка - значение в настройках 0! установлено значение 0.02 м3");
                 defaultVolume = 0.02f;
             }
         }
+        //срок годности по умолчанию
+        static string defaultValidity;
+        public static void UpdateDefaultValidity() {
+            var validity = DB._db.GetParamStr("defaultValidity");
+            if (string.IsNullOrEmpty(validity)) {
+                Log.Add("defaultValidity: ошибка - значение в настройках 0! установлено значение 1 год");
+                defaultValidity = "P1Y";
+            }else
+                defaultValidity = "P" + validity + "Y";
+        }
+        public string GetValidity() {
+            //использую характеристику в карточке
+            var validity = attributes.Find(f => f.Attribute.id == "2283760"); //Срок годности, лет
+            if (validity != null && validity.Value.name != "") {
+                return validity.Value.name;
+            }else
+                return defaultValidity;
+        }
 
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
-        public bool IsGroupValid() {
+        public bool IsGroupSolidParts() {
             if (group_id == "169326" || //Корневая группа
                 group_id == "168723" || //Аудио-видеотехника
                 group_id == "168807" || //Шины, диски, колеса
@@ -259,7 +278,7 @@ namespace Selen
                             .Select(ta => ta.Trim())
                             .Where(tb => tb.Length > 1)
                             .ToList();
-            if (IsGroupValid() && dop!=null) {
+            if (IsGroupSolidParts() && dop!=null) {
                 s.AddRange(dop);
             }
             //контролируем длину описания
@@ -447,22 +466,22 @@ namespace Selen
             var width = attributes.Find(f => f.Attribute.id == "2283757"); //Ширина
             var heigth = attributes.Find(f => f.Attribute.id == "2283758"); //Высота
             var length = attributes.Find(f => f.Attribute.id == "2283759"); //Длина
-            if (width != null && width.Value.name != "" && width.Value.name != "0" &&
-                heigth != null && heigth.Value.name!="" && heigth.Value.name != "0" &&
-                length != null && length.Value.name!="" && length.Value.name != "0") {
+            if (width != null && width.Value.value != "" && width.Value.value != "0" &&
+                heigth != null && heigth.Value.value != "" && heigth.Value.value != "0" &&
+                length != null && length.Value.value != "" && length.Value.value != "0") {
                 var d = new StringBuilder();
-                d.Append(length.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(length.Value.value.Replace(",", ".").Split('.').First());
                 d.Append(".0/");
-                d.Append(width.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(width.Value.value.Replace(",", ".").Split('.').First());
                 d.Append(".0/");
-                d.Append(heigth.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(heigth.Value.value.Replace(",", ".").Split('.').First());
                 d.Append(".0");
                 return d.ToString();
             }
             //если характеристики не указаны, либо указаны неверно,
             //рассчитываю размеры из параметра Объем (м3)
             if (volume ==null || volume == 0)
-                volume = defaultWeight;
+                volume = defaultVolume;
             //средняя длина стороны = кубический корень из объема
             var dimention = Math.Pow((double) volume, 1.0 / 3.0);
             //первую округляю в большую сторону
@@ -474,7 +493,5 @@ namespace Selen
             //строка с размерами
             return (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
         }
-
-
     }
 }
