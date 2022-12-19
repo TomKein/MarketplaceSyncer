@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.114 (авито)";
+        string _version = "1.115 (веса, объемы)";
 
         DB _db = new DB();
 
@@ -206,15 +206,14 @@ namespace Selen {
                             //{"limit", pageLimitBase.ToString()},
                             //{"page", i.ToString()},
                             {"with_additional_fields", "1"},
+                            {"with_attributes", "1"},
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" },
                             {"updated[from]", lastTime}
                     });
-                s = s.Replace("\"209326\":", "\"avito\":")
-                    .Replace("\"209334\":", "\"drom\":")
+                s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
-                    .Replace("\"402489\":", "\"youla\":")
                     .Replace("\"833179\":", "\"kp\":")
                     .Replace("\"854872\":", "\"gde\":");
                 lightSyncGoods.Clear();
@@ -427,16 +426,15 @@ namespace Selen {
                             {"limit", _pageLimitBase.ToString()},
                             {"page", i.ToString()},
                             {"with_additional_fields", "1"},
+                            {"with_attributes", "1"},
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" }
                         });
                         if (s.Contains("name")) {
                             s = s
-                                .Replace("\"209326\":", "\"avito\":")
                                 .Replace("\"209334\":", "\"drom\":")
                                 .Replace("\"209360\":", "\"vk\":")
-                                .Replace("\"402489\":", "\"youla\":")
                                 .Replace("\"833179\":", "\"kp\":")
                                 .Replace("\"854872\":", "\"gde\":");
                             bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
@@ -480,10 +478,8 @@ namespace Selen {
                     try {
                         s = await Class365API.RequestAsync("get", "goods", d);
                         s = s
-                            .Replace("\"209326\":", "\"avito\":")
                             .Replace("\"209334\":", "\"drom\":")
                             .Replace("\"209360\":", "\"vk\":")
-                            .Replace("\"402489\":", "\"youla\":")
                             .Replace("\"833179\":", "\"kp\":")
                             .Replace("\"854872\":", "\"gde\":");
                         lro.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
@@ -1231,9 +1227,7 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var ya = new YandexMarket();
-                await ya.GenerateXML(bus);
-
+                var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
 
 
                 //var img = new List<Image>() {

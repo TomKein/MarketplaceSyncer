@@ -92,6 +92,10 @@ namespace Selen.Sites {
                     DB._db.GetParamStr("yandex.addDescription"));
                 //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
                 var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
+                //обновляю вес товара по умолчанию
+                RootObject.UpdateDefaultWeight();
+                //обновляю объем товара по умолчанию
+                RootObject.UpdateDefaultVolume();
                 //создаю необходимый элемент <shop>
                 var shop = new XElement("shop");
                 shop.Add(new XElement("name", "АвтоТехноШик"));
@@ -174,27 +178,11 @@ namespace Selen.Sites {
                         //количество 
                         offer.Add(new XElement("count", b.amount));
 
-                        //вес получаю из карточки, по умолчанию 1 кг
-                        var weight = b.weight ?? 1.00;
-                        if (weight == 0)
-                            weight = 1.00;
-                        offer.Add(new XElement("weight", weight));
-
-                        //объем упаковки получаю из карточки (м3). по умолчанию 0,02 м3
-                        var volume = b.volume ?? 0.02;
-                        if (b.volume == 0)
-                            volume = 0.02;
-                        //вычисляю из объема среднюю длину стороны
-                        var dimention = Math.Pow(volume, 1.0 / 3.0);
-                        //первую округляю в большую сторону
-                        var x1 = Math.Ceiling(dimention * 20) * 5;
-                        //вторую - в меньшую
-                        var x2 = Math.Floor(dimention * 20) * 5;
-                        //третью вычисляю от первых двух и округляю до целых
-                        var x3 = Math.Round((volume / (x1 * 0.01 * x2 * 0.01)) * 100);
-                        //строка с размерами
-                        var dimensions = (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
-                        offer.Add(new XElement("dimensions", dimensions));
+                        //вес
+                        offer.Add(new XElement("weight", b.GetWeight()));
+                        
+                        //размеры
+                        offer.Add(new XElement("dimensions", b.GetDimentions()));
 
                         //блок ресейл
                         if (!b.IsNew()) {

@@ -12,6 +12,23 @@ using System.Windows.Forms;
 
 namespace Selen
 {
+    public class Attribute {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+
+    }
+    public class Value { 
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+
+    }
+    public class Attributes {
+        public Attribute Attribute { get; set; }
+        public Value Value { get; set; }
+
+    }
     public class RootGroupsObject
     {
         public string id { get; set; }
@@ -119,6 +136,7 @@ namespace Selen
         public List<Image> images { get; set; }
         public List<Remains> remains { get; set; }
         public List<Prices> prices { get; set; }
+        public List<Attributes> attributes { get; set; }
         public string avito { get; set; }
         public string drom { get; set; }
         public string youla { get; set; }
@@ -153,6 +171,29 @@ namespace Selen
                         total = value.ToString("F0")
                     } }
                 };
+            }
+        }
+        //вес товара по умолчанию
+        static float defaultWeight;
+        public static void UpdateDefaultWeight() {
+            defaultWeight = DB._db.GetParamFloat("defaultWeigth");
+            if (defaultWeight == 0) {
+                Log.Add("defaultWeigth: ошибка - значение в настройках 0! установлено значение 1");
+                defaultWeight = 1f;
+            }
+        }
+        public string GetWeight() {
+            if (weight == null || weight == 0)
+                weight = defaultWeight;
+            return weight?.ToString("F1");
+        }
+        //объем товара по умолчанию
+        static float defaultVolume;
+        public static void UpdateDefaultVolume() {
+            defaultVolume = DB._db.GetParamFloat("defaultVolume");
+            if (defaultVolume == 0) {
+                Log.Add("defaultVolume: ошибка - значение в настройках 0! установлено значение 0.02");
+                defaultVolume = 0.02f;
             }
         }
 
@@ -394,5 +435,40 @@ namespace Selen
             if (manufactures == null || DateTime.Now.Ticks%10000 == 0)
                 manufactures = DB._db.GetParamStr("manufactures").Split(',');
         }
+        //метод определения размеров
+        public string GetDimentions() {
+            //сперва проверяю характеристики товара, если они указаны, использую их в первую очередь
+            var width = attributes.Find(f => f.Attribute.id == "2283757"); //Ширина
+            var heigth = attributes.Find(f => f.Attribute.id == "2283758"); //Высота
+            var length = attributes.Find(f => f.Attribute.id == "2283759"); //Длина
+            if (width != null && width.Value.name != "" && width.Value.name != "0" &&
+                heigth != null && heigth.Value.name!="" && heigth.Value.name != "0" &&
+                length != null && length.Value.name!="" && length.Value.name != "0") {
+                var d = new StringBuilder();
+                d.Append(length.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(".0/");
+                d.Append(width.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(".0/");
+                d.Append(heigth.Value.name.Replace(",", ".").Split('.').First());
+                d.Append(".0");
+                return d.ToString();
+            }
+            //если характеристики не указаны, либо указаны неверно,
+            //рассчитываю размеры из параметра Объем (м3)
+            if (volume ==null || volume == 0)
+                volume = defaultWeight;
+            //средняя длина стороны = кубический корень из объема
+            var dimention = Math.Pow((double) volume, 1.0 / 3.0);
+            //первую округляю в большую сторону
+            var x1 = Math.Ceiling(dimention * 20) * 5;
+            //вторую - в меньшую
+            var x2 = Math.Floor(dimention * 20) * 5;
+            //третью вычисляю от первых двух и округляю до целых
+            var x3 = Math.Round((double) (100 * volume / (x1 * 0.01 * x2 * 0.01)));
+            //строка с размерами
+            return (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
+        }
+
+
     }
 }

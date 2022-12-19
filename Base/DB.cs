@@ -160,6 +160,16 @@ namespace Selen.Base {
                 return i;
             return -1;
         }
+        //получаем настройки как число c плавающей точкой
+        public float GetParamFloat(string key) {
+            //перевызываем метод получения строки
+            var result = GetParamStr(key).Replace(",",".");
+            //приводим к числовому типу
+            float i;
+            if (float.TryParse(result, out i))
+                return i;
+            return -1;
+        }
         //получаем настройки как число long
         public long GetParamLong(string key) {
             //перевызываем метод получения строки
