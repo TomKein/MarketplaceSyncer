@@ -30,8 +30,10 @@ namespace Selen {
             //даю таблицу датагриду
             dataGridView_Settings.DataSource = dt;
             //первый столбец (sku) ставлю только для чтения
+            dataGridView_Settings.Columns[0].Width = 80;
             dataGridView_Settings.Columns[0].ReadOnly = true;
             //второй столбец (name) ставлю только для чтения
+            dataGridView_Settings.Columns[1].Width = 310;
             dataGridView_Settings.Columns[1].ReadOnly = true;
             //и фиксирую его при горизонтальной прокрутке
             dataGridView_Settings.Columns[1].Frozen = true;

@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.117 (веса, объемы)";
+        string _version = "1.118 (форма для заполнения веса, размеров)";
 
         DB _db = new DB();
 
