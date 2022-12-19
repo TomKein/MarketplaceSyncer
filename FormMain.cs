@@ -1063,6 +1063,13 @@ namespace Selen {
             fs.ShowDialog();
             fs.Dispose();
         }
+        //окно веса, размеры
+        private void button_WeightsDimensions_Click(object sender, EventArgs e) {
+            FormWeightsDimentions fw = new FormWeightsDimentions(bus);
+            fw.Owner = this;
+            fw.ShowDialog();
+            fw.Dispose();
+        }
         //массовое изменение цен закупки на товары введенных на остатки
         async Task ChangeRemainsPrices(int procent = 80) { //TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
             //цикл для пагинации запросов
@@ -1222,7 +1229,6 @@ namespace Selen {
                 }
             }
         }
-
         //метод для тестов
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);

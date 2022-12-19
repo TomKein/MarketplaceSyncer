@@ -64,6 +64,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.button_WeightsDimensions = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -182,9 +183,9 @@ namespace Selen {
             // 
             // button_Descriptions
             // 
-            this.button_Descriptions.Location = new System.Drawing.Point(185, 7);
+            this.button_Descriptions.Location = new System.Drawing.Point(141, 7);
             this.button_Descriptions.Name = "button_Descriptions";
-            this.button_Descriptions.Size = new System.Drawing.Size(108, 24);
+            this.button_Descriptions.Size = new System.Drawing.Size(68, 24);
             this.button_Descriptions.TabIndex = 59;
             this.button_Descriptions.Text = "Описания";
             this.button_Descriptions.UseVisualStyleBackColor = true;
@@ -415,6 +416,7 @@ namespace Selen {
             // panel_bottom
             // 
             this.panel_bottom.AutoSize = true;
+            this.panel_bottom.Controls.Add(this.button_WeightsDimensions);
             this.panel_bottom.Controls.Add(this.button_Test);
             this.panel_bottom.Controls.Add(this.button_PriceLevelsReport);
             this.panel_bottom.Controls.Add(this.button_Descriptions);
@@ -483,6 +485,16 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 427);
             this.panel4.TabIndex = 149;
             // 
+            // button_WeightsDimensions
+            // 
+            this.button_WeightsDimensions.Location = new System.Drawing.Point(215, 7);
+            this.button_WeightsDimensions.Name = "button_WeightsDimensions";
+            this.button_WeightsDimensions.Size = new System.Drawing.Size(77, 24);
+            this.button_WeightsDimensions.TabIndex = 124;
+            this.button_WeightsDimensions.Text = "Вес размер";
+            this.button_WeightsDimensions.UseVisualStyleBackColor = true;
+            this.button_WeightsDimensions.Click += new System.EventHandler(this.button_WeightsDimensions_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -549,6 +561,7 @@ namespace Selen {
         private System.Windows.Forms.Button button_Youla;
         private System.Windows.Forms.Label label_YandexMarket;
         private System.Windows.Forms.Button button_YandexMarket;
+        private System.Windows.Forms.Button button_WeightsDimensions;
     }
 }
 
