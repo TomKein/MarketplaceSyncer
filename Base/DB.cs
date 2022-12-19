@@ -163,7 +163,7 @@ namespace Selen.Base {
         //получаем настройки как число c плавающей точкой
         public float GetParamFloat(string key) {
             //перевызываем метод получения строки
-            var result = GetParamStr(key).Replace(",",".");
+            var result = GetParamStr(key).Replace(".",",");
             //приводим к числовому типу
             float i;
             if (float.TryParse(result, out i))

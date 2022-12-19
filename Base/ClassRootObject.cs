@@ -185,7 +185,7 @@ namespace Selen
         public string GetWeight() {
             if (weight == null || weight == 0)
                 weight = defaultWeight;
-            return weight?.ToString("F1");
+            return weight?.ToString("F1").Replace(",",".");
         }
         //объем товара по умолчанию
         static float defaultVolume;
@@ -362,6 +362,12 @@ namespace Selen
         //производители
         private static string[] manufactures;
         public string GetManufacture() {
+            //использую характеристику в карточке
+            var manufacture = attributes.Find(f => f.Attribute.id == "75579"); //Производитель
+            if (manufacture != null && manufacture.Value.name != "") {
+                return manufacture.Value.name;
+            }
+            //если характеристика не указана, то пытаюсь определить из названия и описания
             ResetManufactures();
             var n = (name + " | " + Regex.Replace(description ?? "", "<[^>]+>", " "))
                 .ToUpperInvariant()
