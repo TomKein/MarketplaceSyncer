@@ -59,12 +59,12 @@ namespace Selen {
             this.button_Youla = new System.Windows.Forms.Button();
             this.button_Izap24 = new System.Windows.Forms.Button();
             this.panel_bottom = new System.Windows.Forms.Panel();
+            this.button_WeightsDimensions = new System.Windows.Forms.Button();
             this.button_Test = new System.Windows.Forms.Button();
             this.panel_Filter = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_WeightsDimensions = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -169,7 +169,7 @@ namespace Selen {
             // timer_sync
             // 
             this.timer_sync.Enabled = true;
-            this.timer_sync.Interval = 200000;
+            this.timer_sync.Interval = 60000;
             this.timer_sync.Tick += new System.EventHandler(this.timer_sync_Tick);
             // 
             // label_Drom
@@ -430,6 +430,16 @@ namespace Selen {
             this.panel_bottom.Size = new System.Drawing.Size(784, 34);
             this.panel_bottom.TabIndex = 147;
             // 
+            // button_WeightsDimensions
+            // 
+            this.button_WeightsDimensions.Location = new System.Drawing.Point(215, 7);
+            this.button_WeightsDimensions.Name = "button_WeightsDimensions";
+            this.button_WeightsDimensions.Size = new System.Drawing.Size(77, 24);
+            this.button_WeightsDimensions.TabIndex = 124;
+            this.button_WeightsDimensions.Text = "Вес размер";
+            this.button_WeightsDimensions.UseVisualStyleBackColor = true;
+            this.button_WeightsDimensions.Click += new System.EventHandler(this.button_WeightsDimensions_ClickAsync);
+            // 
             // button_Test
             // 
             this.button_Test.Location = new System.Drawing.Point(790, 8);
@@ -484,16 +494,6 @@ namespace Selen {
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(784, 427);
             this.panel4.TabIndex = 149;
-            // 
-            // button_WeightsDimensions
-            // 
-            this.button_WeightsDimensions.Location = new System.Drawing.Point(215, 7);
-            this.button_WeightsDimensions.Name = "button_WeightsDimensions";
-            this.button_WeightsDimensions.Size = new System.Drawing.Size(77, 24);
-            this.button_WeightsDimensions.TabIndex = 124;
-            this.button_WeightsDimensions.Text = "Вес размер";
-            this.button_WeightsDimensions.UseVisualStyleBackColor = true;
-            this.button_WeightsDimensions.Click += new System.EventHandler(this.button_WeightsDimensions_Click);
             // 
             // FormMain
             // 

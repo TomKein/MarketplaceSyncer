@@ -12,6 +12,15 @@ using System.Windows.Forms;
 
 namespace Selen
 {
+    public class Goodsattributes {
+        public string id { get; set; }
+        public string good_id { get; set; }
+        public string attribute_id { get; set; }
+        public string value_id { get; set; }
+        public string value { get; set; }
+        public string updated { get; set; }
+
+    }
     public class Attribute {
         public string id { get; set; }
         public string model { get; set; }
@@ -209,7 +218,7 @@ namespace Selen
         }
         public string GetValidity() {
             //использую характеристику в карточке
-            var validity = attributes.Find(f => f.Attribute.id == "2283760"); //Срок годности, лет
+            var validity = attributes?.Find(f => f.Attribute.id == "2283760"); //Срок годности, лет
             if (validity != null && validity.Value.name != "") {
                 return validity.Value.name;
             }else
@@ -382,7 +391,7 @@ namespace Selen
         private static string[] manufactures;
         public string GetManufacture() {
             //использую характеристику в карточке
-            var manufacture = attributes.Find(f => f.Attribute.id == "75579"); //Производитель
+            var manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
                 return manufacture.Value.name;
             }
@@ -463,9 +472,9 @@ namespace Selen
         //метод определения размеров
         public string GetDimentions() {
             //сперва проверяю характеристики товара, если они указаны, использую их в первую очередь
-            var width = attributes.Find(f => f.Attribute.id == "2283757"); //Ширина
-            var heigth = attributes.Find(f => f.Attribute.id == "2283758"); //Высота
-            var length = attributes.Find(f => f.Attribute.id == "2283759"); //Длина
+            var width = attributes?.Find(f => f.Attribute.id == "2283757"); //Ширина
+            var heigth = attributes?.Find(f => f.Attribute.id == "2283758"); //Высота
+            var length = attributes?.Find(f => f.Attribute.id == "2283759"); //Длина
             if (width != null && width.Value.value != "" && width.Value.value != "0" &&
                 heigth != null && heigth.Value.value != "" && heigth.Value.value != "0" &&
                 length != null && length.Value.value != "" && length.Value.value != "0") {

@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.118 (форма для заполнения веса, размеров)";
+        string _version = "1.119 (рабочая форма для заполнения веса, размеров)";
 
         DB _db = new DB();
 
@@ -1058,17 +1058,23 @@ namespace Selen {
         }
         //загрузка окна настроек
         void button_SettingsFormOpen_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
             FormSettings fs = new FormSettings();
             fs.Owner = this;
             fs.ShowDialog();
             fs.Dispose();
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //окно веса, размеры
-        private void button_WeightsDimensions_Click(object sender, EventArgs e) {
+        private async void button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (base_rescan_need || bus.Count == 0)
+                await Task.Delay(5000);
             FormWeightsDimentions fw = new FormWeightsDimentions(bus);
             fw.Owner = this;
             fw.ShowDialog();
             fw.Dispose();
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //массовое изменение цен закупки на товары введенных на остатки
         async Task ChangeRemainsPrices(int procent = 80) { //TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
