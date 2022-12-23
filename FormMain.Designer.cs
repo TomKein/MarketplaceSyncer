@@ -32,7 +32,7 @@ namespace Selen {
             this.logBox = new System.Windows.Forms.RichTextBox();
             this.button_PriceLevelsReport = new System.Windows.Forms.Button();
             this.button_Vk = new System.Windows.Forms.Button();
-            this.checkBox_sync = new System.Windows.Forms.CheckBox();
+            this.checkBox_SyncSites = new System.Windows.Forms.CheckBox();
             this.label_Bus = new System.Windows.Forms.Label();
             this.label_Vk = new System.Windows.Forms.Label();
             this.timer_sync = new System.Windows.Forms.Timer(this.components);
@@ -138,15 +138,15 @@ namespace Selen {
             // 
             // checkBox_sync
             // 
-            this.checkBox_sync.AutoSize = true;
-            this.checkBox_sync.Checked = true;
-            this.checkBox_sync.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_sync.Location = new System.Drawing.Point(6, 4);
-            this.checkBox_sync.Name = "checkBox_sync";
-            this.checkBox_sync.Size = new System.Drawing.Size(124, 17);
-            this.checkBox_sync.TabIndex = 35;
-            this.checkBox_sync.Text = "синхронизация вкл";
-            this.checkBox_sync.UseVisualStyleBackColor = true;
+            this.checkBox_SyncSites.AutoSize = true;
+            this.checkBox_SyncSites.Checked = true;
+            this.checkBox_SyncSites.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_SyncSites.Location = new System.Drawing.Point(6, 4);
+            this.checkBox_SyncSites.Name = "checkBox_sync";
+            this.checkBox_SyncSites.Size = new System.Drawing.Size(124, 17);
+            this.checkBox_SyncSites.TabIndex = 35;
+            this.checkBox_SyncSites.Text = "синхронизация вкл";
+            this.checkBox_SyncSites.UseVisualStyleBackColor = true;
             // 
             // label_Bus
             // 
@@ -347,7 +347,7 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_Youla);
-            this.panel_Buttons.Controls.Add(this.checkBox_sync);
+            this.panel_Buttons.Controls.Add(this.checkBox_SyncSites);
             this.panel_Buttons.Controls.Add(this.button_Izap24);
             this.panel_Buttons.Controls.Add(this.dateTimePicker1);
             this.panel_Buttons.Controls.Add(this.button_Drom);
@@ -529,7 +529,7 @@ namespace Selen {
         private System.Windows.Forms.RichTextBox logBox;
         private System.Windows.Forms.Button button_PriceLevelsReport;
         private System.Windows.Forms.Button button_Vk;
-        private System.Windows.Forms.CheckBox checkBox_sync;
+        private System.Windows.Forms.CheckBox checkBox_SyncSites;
         private System.Windows.Forms.Label label_Bus;
         private System.Windows.Forms.Label label_Vk;
         private System.Windows.Forms.Timer timer_sync;

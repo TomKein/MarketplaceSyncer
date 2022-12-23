@@ -41,18 +41,15 @@ namespace Selen {
             dataGridView_Settings.AllowUserToAddRows = false;
             //первый столбец (sku) ставлю только для чтения
             dataGridView_Settings.Columns[0].MinimumWidth = 40;
-            dataGridView_Settings.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGridView_Settings.Columns[0].Width = 80;
             dataGridView_Settings.Columns[0].ReadOnly = true;
-            //второй столбец (name) ставлю только для чтения
-            dataGridView_Settings.Columns[0].MinimumWidth = 310;
-            dataGridView_Settings.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            dataGridView_Settings.Columns[1].ReadOnly = true;
-            //и фиксирую его при горизонтальной прокрутке
+            dataGridView_Settings.Columns[1].Width = 350;
             dataGridView_Settings.Columns[1].Frozen = true;
+            dataGridView_Settings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             //выравнивание
-            dataGridView_Settings.Columns[2].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            dataGridView_Settings.Columns[3].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-            dataGridView_Settings.Columns[4].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            for(var i=2;i < dataGridView_Settings.Columns.Count;i++) {
+                dataGridView_Settings.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            }
         }
 
         private async Task<DataTable> GetDataTableAsync(string text) => await Task.Factory.StartNew(() => {
@@ -63,10 +60,24 @@ namespace Selen {
             dt.Columns.Add("Ширина", typeof(string));
             dt.Columns.Add("Высота", typeof(string));
             dt.Columns.Add("Длина", typeof(string));
-            var busSearch = _bus.Where(w => w.amount > 0 &&
-                                            w.price > 0 &&
-                                            w.name.ToLowerInvariant()
-                                                  .Contains(text.ToLowerInvariant()))
+
+            var textWords = text.Split(' ');
+
+            //выражение для фильтра товаров
+            var busSearch = _bus.Where(w => (w.group_id == "2060149" || //если в группе черновики
+                                            w.amount > 0  &&            //или остаток положительный
+                                            w.price > 0 &&              //цена положительная
+                                            (w.images.Count > 0 || !checkBox_onlyHaveImage.Checked)) &&         //с фото или если галка только с фото не стоит
+                                            (
+                                            !(w.attributes != null &&                                           //нет заполненных атрибутов 
+                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Width"]) &&
+                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Height"]) &&
+                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Length"])) ||
+                                            !checkBox_EmptyOnly.Checked                                         //или галка только нет заполненных снята
+                                            ) &&
+                                            (textWords.Length == textWords.Count(textWord=>(w.name+w.id).ToLowerInvariant().Contains(textWord)))        //и тескт содержится в названии или номере
+                                            )
+                                .Reverse()
                                 .Take(_tableSize);
             foreach (var item in busSearch) {
                 var width = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Width"]);
@@ -89,12 +100,21 @@ namespace Selen {
         //метод обработки события завершения редактирования
         private async void dataGridView_Settings_CellEndEdit(object sender, DataGridViewCellEventArgs e) {
             //новое значения параметров
-            var value = dataGridView_Settings.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+            var value = dataGridView_Settings.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString().Replace(",",".");
             //если значение параметра изменилось
             if (value != _value) {
                 var id = dataGridView_Settings.Rows[e.RowIndex].Cells[0].Value.ToString();
                 var name = dataGridView_Settings.Rows[e.RowIndex].Cells[1].Value.ToString();
                 //определяю, какой именно параметр менялся
+                if (e.ColumnIndex == 1) {
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", id},
+                                {"name", value}
+                        });
+                    _bus.Find(f => f.id == id).name = value;
+                    Log.Add("БД: обновлено наименование = " + value);
+                }
+                
                 if (e.ColumnIndex == 2) {
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},

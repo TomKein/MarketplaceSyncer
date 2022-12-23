@@ -29,6 +29,8 @@
             this.panel_Search = new System.Windows.Forms.Panel();
             this.textBox_Search = new System.Windows.Forms.TextBox();
             this.button_Clear = new System.Windows.Forms.Button();
+            this.checkBox_EmptyOnly = new System.Windows.Forms.CheckBox();
+            this.checkBox_onlyHaveImage = new System.Windows.Forms.CheckBox();
             this.panel_Common.SuspendLayout();
             this.panel_DataGrid.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_Settings)).BeginInit();
@@ -71,6 +73,8 @@
             // 
             // panel_Search
             // 
+            this.panel_Search.Controls.Add(this.checkBox_onlyHaveImage);
+            this.panel_Search.Controls.Add(this.checkBox_EmptyOnly);
             this.panel_Search.Controls.Add(this.textBox_Search);
             this.panel_Search.Controls.Add(this.button_Clear);
             this.panel_Search.Dock = System.Windows.Forms.DockStyle.Top;
@@ -82,27 +86,52 @@
             // 
             // textBox_Search
             // 
-            this.textBox_Search.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textBox_Search.Dock = System.Windows.Forms.DockStyle.Left;
             this.textBox_Search.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBox_Search.Location = new System.Drawing.Point(10, 10);
             this.textBox_Search.Margin = new System.Windows.Forms.Padding(5);
             this.textBox_Search.Name = "textBox_Search";
-            this.textBox_Search.Size = new System.Drawing.Size(605, 26);
+            this.textBox_Search.Size = new System.Drawing.Size(480, 26);
             this.textBox_Search.TabIndex = 1;
             this.textBox_Search.TextChanged += new System.EventHandler(this.textBox_Search_TextChanged);
             // 
             // button_Clear
             // 
-            this.button_Clear.Dock = System.Windows.Forms.DockStyle.Right;
             this.button_Clear.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button_Clear.Location = new System.Drawing.Point(615, 10);
+            this.button_Clear.Location = new System.Drawing.Point(493, 10);
             this.button_Clear.Margin = new System.Windows.Forms.Padding(10);
             this.button_Clear.Name = "button_Clear";
-            this.button_Clear.Size = new System.Drawing.Size(103, 26);
+            this.button_Clear.Size = new System.Drawing.Size(74, 26);
             this.button_Clear.TabIndex = 2;
             this.button_Clear.Text = "Очистить";
             this.button_Clear.UseVisualStyleBackColor = true;
             this.button_Clear.Click += new System.EventHandler(this.button_Clear_Click);
+            // 
+            // checkBox_EmptyOnly
+            // 
+            this.checkBox_EmptyOnly.AutoSize = true;
+            this.checkBox_EmptyOnly.Checked = true;
+            this.checkBox_EmptyOnly.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_EmptyOnly.Location = new System.Drawing.Point(580, 16);
+            this.checkBox_EmptyOnly.Name = "checkBox_EmptyOnly";
+            this.checkBox_EmptyOnly.Size = new System.Drawing.Size(62, 17);
+            this.checkBox_EmptyOnly.TabIndex = 3;
+            this.checkBox_EmptyOnly.Text = "пустые";
+            this.checkBox_EmptyOnly.UseVisualStyleBackColor = true;
+            this.checkBox_EmptyOnly.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
+            // 
+            // checkBox_onlyHaveImage
+            // 
+            this.checkBox_onlyHaveImage.AutoSize = true;
+            this.checkBox_onlyHaveImage.Checked = true;
+            this.checkBox_onlyHaveImage.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_onlyHaveImage.Location = new System.Drawing.Point(650, 16);
+            this.checkBox_onlyHaveImage.Name = "checkBox_onlyHaveImage";
+            this.checkBox_onlyHaveImage.Size = new System.Drawing.Size(60, 17);
+            this.checkBox_onlyHaveImage.TabIndex = 4;
+            this.checkBox_onlyHaveImage.Text = "с фото";
+            this.checkBox_onlyHaveImage.UseVisualStyleBackColor = true;
+            this.checkBox_onlyHaveImage.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
             // 
             // FormWeightsDimentions
             // 
@@ -131,6 +160,8 @@
         private System.Windows.Forms.Panel panel_Search;
         private System.Windows.Forms.TextBox textBox_Search;
         private System.Windows.Forms.Button button_Clear;
+        private System.Windows.Forms.CheckBox checkBox_onlyHaveImage;
+        private System.Windows.Forms.CheckBox checkBox_EmptyOnly;
     }
 
 
