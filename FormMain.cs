@@ -198,6 +198,7 @@ namespace Selen {
                 _isBusinessCanBeScan = false;
                 _syncStartTime = DateTime.Now;
                 Log.Add("business.ru: запрос изменений...");
+                var liteScanTimeShift = await _db.GetParamIntAsync("liteScanTimeShift");
                 var lastLiteScanTime = await _db.GetParamStrAsync("liteScanTime");
                 var lastScanTime = await _db.GetParamDateTimeAsync("lastScanTime");
                 var lastWriteBusFile = File.GetLastWriteTime(busFileName);
@@ -247,6 +248,12 @@ namespace Selen {
                     await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
                         {"updated[from]", lastLiteScanTime}
                     })));
+                
+                //stage = "запросим изменения атрибутов...";
+                //ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
+                //    await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string>{
+                //        {"updated[from]", lastLiteScanTime}
+                //    })));
 
                 //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
                 //ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id = _.id }));
@@ -318,7 +325,7 @@ namespace Selen {
 
                 label_Bus.Text = bus.Count + "/" + bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
                 if (!isBusFileOld) {
-                    await _db.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-1).ToString());
+                    await _db.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-liteScanTimeShift).ToString());
                     await _db.SetParamAsync("controlBus", bus.Count.ToString());
                 }
 

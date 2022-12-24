@@ -62,7 +62,7 @@ namespace Selen {
             dt.Columns.Add("Высота", typeof(string));
             dt.Columns.Add("Длина", typeof(string));
 
-            var textWords = text.Split(' ');
+            var textWords = text.ToLowerInvariant().Split(' ');
 
             //выражение для фильтра товаров
             var busSearch = _bus.Where(w => (w.group_id == "2060149" || //если в группе черновики
@@ -210,6 +210,11 @@ namespace Selen {
         private void dataGridView_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e) {
             _startColumnIndex = e.ColumnIndex;
             _startRowIndex = e.RowIndex;
+        }
+
+        private void dataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
+            if(e.ColumnIndex==0)
+                Clipboard.SetText(dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString());
         }
     }
 }
