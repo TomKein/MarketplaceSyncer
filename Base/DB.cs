@@ -74,7 +74,7 @@ namespace Selen.Base {
                         break;
                     }
                 } catch (Exception x) {
-                    Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message, writeDb: false);
+                    Log.Add("mysql: ошибка обращения к базе данных! (" + i + ") - " + x.Message, writeDb: false);
                     Thread.Sleep(10000);
                 }
                 if (i >= 10) {
@@ -94,7 +94,7 @@ namespace Selen.Base {
                         result = command.ExecuteNonQuery();
                         break;
                     } catch (Exception x) {
-                        Log.Add("mysql: ошибка обращения к базе данных! ("+i+") - " + x.Message, writeDb:false);
+                        Log.Add("mysql: ошибка обращения к базе данных! (" + i + ") - " + x.Message, writeDb: false);
                         Thread.Sleep(10000);
                     }
                     if (i >= 10) {
@@ -163,7 +163,7 @@ namespace Selen.Base {
         //получаем настройки как число c плавающей точкой
         public float GetParamFloat(string key) {
             //перевызываем метод получения строки
-            var result = GetParamStr(key).Replace(".",",");
+            var result = GetParamStr(key).Replace(".", ",");
             //приводим к числовому типу
             float i;
             if (float.TryParse(result, out i))
@@ -213,6 +213,10 @@ namespace Selen.Base {
             //если парсинг неудачный - возвращаем минимальное значение
             return DateTime.MinValue;
         }
+        //получаем параметр как дату-время
+        public async Task<DateTime> GetParamDateTimeAsync(string key) {
+            return await Task.Factory.StartNew(() => { return GetParamDateTime(key); });
+        }
         //получаем параметры
         public async Task<DataTable> GetParamsAsync(string filter = null) {
             return await Task.Factory.StartNew(() => {
@@ -228,17 +232,17 @@ namespace Selen.Base {
         //возвращает первый элемент из таблицы как строку
         private string First(DataTable dataTable) {
             //если строк больше 0, возвращаем значение первого столбца первой строки
-            if (dataTable.Rows.Count >0)
+            if (dataTable.Rows.Count > 0)
                 return dataTable.Rows[0].ItemArray[0].ToString();
             //иначе
             return null;
         }
         //метод для записи логов в базу
         public void AddLogAsync(string message, string site = "") {
-            Task.Factory.StartNew(()=>{
+            Task.Factory.StartNew(() => {
                 //запрос для записи в лог
                 var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
-                            "VALUES (@datetime, @site, @message);";            
+                            "VALUES (@datetime, @site, @message);";
                 //создаю команду
                 MySqlCommand command = new MySqlCommand(query, connection);
                 command.Parameters.Add("@site", MySqlDbType.VarChar).Value = site;
@@ -247,7 +251,8 @@ namespace Selen.Base {
                 //выполняю запрос
                 ExecuteCommandNonQuery(command);
                 //чистка лога
-                if (DateTime.Now.Millisecond <= 5) TruncLog();
+                if (DateTime.Now.Millisecond <= 5)
+                    TruncLog();
             });
         }
         //удаляю из лога записи старше 30 дней
@@ -255,10 +260,10 @@ namespace Selen.Base {
             var query = "DELETE FROM `logs`" +
                         "WHERE DATE_SUB(CURDATE(),INTERVAL 30 DAY) > `datetime`";
             MySqlCommand command = new MySqlCommand(query, connection);
-            ExecuteCommandNonQuery(command); 
+            ExecuteCommandNonQuery(command);
         }
         //метод для запроса логов из базы
-        public async Task<DataTable> GetLogAsync(string filter, int limit=100) {
+        public async Task<DataTable> GetLogAsync(string filter, int limit = 100) {
             return await Task.Factory.StartNew(() => {
                 var query = "SELECT * FROM logs ";
                 //если параметр не нулевой - добавляем в запрос
@@ -276,7 +281,7 @@ namespace Selen.Base {
             //формируем строку запроса sql
             var query = "SELECT json " +
                         "FROM goods " +
-                        "WHERE json->'$."+arg+"' LIKE '%"+text+"%';";
+                        "WHERE json->'$." + arg + "' LIKE '%" + text + "%';";
             //передаю запрос
             MySqlCommand command = new MySqlCommand(query, connection);
             //command.Parameters.Add("@text", MySqlDbType.VarChar).Value = text;

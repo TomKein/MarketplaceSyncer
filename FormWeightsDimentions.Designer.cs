@@ -25,15 +25,15 @@
         private void InitializeComponent() {
             this.panel_Common = new System.Windows.Forms.Panel();
             this.panel_DataGrid = new System.Windows.Forms.Panel();
-            this.dataGridView_Settings = new System.Windows.Forms.DataGridView();
+            this.dataGridView = new System.Windows.Forms.DataGridView();
             this.panel_Search = new System.Windows.Forms.Panel();
+            this.checkBox_onlyHaveImage = new System.Windows.Forms.CheckBox();
+            this.checkBox_EmptyOnly = new System.Windows.Forms.CheckBox();
             this.textBox_Search = new System.Windows.Forms.TextBox();
             this.button_Clear = new System.Windows.Forms.Button();
-            this.checkBox_EmptyOnly = new System.Windows.Forms.CheckBox();
-            this.checkBox_onlyHaveImage = new System.Windows.Forms.CheckBox();
             this.panel_Common.SuspendLayout();
             this.panel_DataGrid.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_Settings)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
             this.panel_Search.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -49,7 +49,7 @@
             // 
             // panel_DataGrid
             // 
-            this.panel_DataGrid.Controls.Add(this.dataGridView_Settings);
+            this.panel_DataGrid.Controls.Add(this.dataGridView);
             this.panel_DataGrid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel_DataGrid.Location = new System.Drawing.Point(0, 46);
             this.panel_DataGrid.Name = "panel_DataGrid";
@@ -57,19 +57,21 @@
             this.panel_DataGrid.Size = new System.Drawing.Size(728, 498);
             this.panel_DataGrid.TabIndex = 5;
             // 
-            // dataGridView_Settings
+            // dataGridView
             // 
-            this.dataGridView_Settings.AllowUserToResizeRows = false;
-            this.dataGridView_Settings.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-            this.dataGridView_Settings.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView_Settings.Location = new System.Drawing.Point(10, 10);
-            this.dataGridView_Settings.MultiSelect = false;
-            this.dataGridView_Settings.Name = "dataGridView_Settings";
-            this.dataGridView_Settings.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.dataGridView_Settings.Size = new System.Drawing.Size(708, 478);
-            this.dataGridView_Settings.TabIndex = 3;
-            this.dataGridView_Settings.CellBeginEdit += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.dataGridView_Settings_CellBeginEdit);
-            this.dataGridView_Settings.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_Settings_CellEndEdit);
+            this.dataGridView.AllowUserToResizeRows = false;
+            this.dataGridView.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
+            this.dataGridView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dataGridView.Location = new System.Drawing.Point(10, 10);
+            this.dataGridView.MultiSelect = false;
+            this.dataGridView.Name = "dataGridView";
+            this.dataGridView.RowTemplate.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.dataGridView.Size = new System.Drawing.Size(708, 478);
+            this.dataGridView.TabIndex = 3;
+            this.dataGridView.CellBeginEdit += new System.Windows.Forms.DataGridViewCellCancelEventHandler(this.dataGridView_CellBeginEdit);
+            this.dataGridView.CellEndEdit += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_CellEndEdit);
+            this.dataGridView.CellMouseDown += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.dataGridView_CellMouseDown);
+            this.dataGridView.CellMouseUp += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.dataGridView_CellMouseUp);
             // 
             // panel_Search
             // 
@@ -83,6 +85,32 @@
             this.panel_Search.Padding = new System.Windows.Forms.Padding(10);
             this.panel_Search.Size = new System.Drawing.Size(728, 46);
             this.panel_Search.TabIndex = 4;
+            // 
+            // checkBox_onlyHaveImage
+            // 
+            this.checkBox_onlyHaveImage.AutoSize = true;
+            this.checkBox_onlyHaveImage.Checked = true;
+            this.checkBox_onlyHaveImage.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_onlyHaveImage.Location = new System.Drawing.Point(650, 16);
+            this.checkBox_onlyHaveImage.Name = "checkBox_onlyHaveImage";
+            this.checkBox_onlyHaveImage.Size = new System.Drawing.Size(60, 17);
+            this.checkBox_onlyHaveImage.TabIndex = 4;
+            this.checkBox_onlyHaveImage.Text = "с фото";
+            this.checkBox_onlyHaveImage.UseVisualStyleBackColor = true;
+            this.checkBox_onlyHaveImage.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
+            // 
+            // checkBox_EmptyOnly
+            // 
+            this.checkBox_EmptyOnly.AutoSize = true;
+            this.checkBox_EmptyOnly.Checked = true;
+            this.checkBox_EmptyOnly.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox_EmptyOnly.Location = new System.Drawing.Point(580, 16);
+            this.checkBox_EmptyOnly.Name = "checkBox_EmptyOnly";
+            this.checkBox_EmptyOnly.Size = new System.Drawing.Size(62, 17);
+            this.checkBox_EmptyOnly.TabIndex = 3;
+            this.checkBox_EmptyOnly.Text = "пустые";
+            this.checkBox_EmptyOnly.UseVisualStyleBackColor = true;
+            this.checkBox_EmptyOnly.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
             // 
             // textBox_Search
             // 
@@ -107,32 +135,6 @@
             this.button_Clear.UseVisualStyleBackColor = true;
             this.button_Clear.Click += new System.EventHandler(this.button_Clear_Click);
             // 
-            // checkBox_EmptyOnly
-            // 
-            this.checkBox_EmptyOnly.AutoSize = true;
-            this.checkBox_EmptyOnly.Checked = true;
-            this.checkBox_EmptyOnly.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_EmptyOnly.Location = new System.Drawing.Point(580, 16);
-            this.checkBox_EmptyOnly.Name = "checkBox_EmptyOnly";
-            this.checkBox_EmptyOnly.Size = new System.Drawing.Size(62, 17);
-            this.checkBox_EmptyOnly.TabIndex = 3;
-            this.checkBox_EmptyOnly.Text = "пустые";
-            this.checkBox_EmptyOnly.UseVisualStyleBackColor = true;
-            this.checkBox_EmptyOnly.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
-            // 
-            // checkBox_onlyHaveImage
-            // 
-            this.checkBox_onlyHaveImage.AutoSize = true;
-            this.checkBox_onlyHaveImage.Checked = true;
-            this.checkBox_onlyHaveImage.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_onlyHaveImage.Location = new System.Drawing.Point(650, 16);
-            this.checkBox_onlyHaveImage.Name = "checkBox_onlyHaveImage";
-            this.checkBox_onlyHaveImage.Size = new System.Drawing.Size(60, 17);
-            this.checkBox_onlyHaveImage.TabIndex = 4;
-            this.checkBox_onlyHaveImage.Text = "с фото";
-            this.checkBox_onlyHaveImage.UseVisualStyleBackColor = true;
-            this.checkBox_onlyHaveImage.CheckedChanged += new System.EventHandler(this.textBox_Search_TextChanged);
-            // 
             // FormWeightsDimentions
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -145,7 +147,7 @@
             this.Load += new System.EventHandler(this.FormWeightsDimentions_Load);
             this.panel_Common.ResumeLayout(false);
             this.panel_DataGrid.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_Settings)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
             this.panel_Search.ResumeLayout(false);
             this.panel_Search.PerformLayout();
             this.ResumeLayout(false);
@@ -156,7 +158,7 @@
 
         private System.Windows.Forms.Panel panel_Common;
         private System.Windows.Forms.Panel panel_DataGrid;
-        private System.Windows.Forms.DataGridView dataGridView_Settings;
+        private System.Windows.Forms.DataGridView dataGridView;
         private System.Windows.Forms.Panel panel_Search;
         private System.Windows.Forms.TextBox textBox_Search;
         private System.Windows.Forms.Button button_Clear;

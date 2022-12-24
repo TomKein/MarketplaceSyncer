@@ -40,12 +40,12 @@ namespace Selen {
         public string nForm3 = "";
         public string BindedName = "";
         //флаг - нужен рескан базы
-        bool isBusinessNeedRescan = false;
+        bool _isBusinessNeedRescan = false;
         //флаг - можно запускать новый цикл синхронизации
-        bool isBusinessCanBeScan = false;
+        bool _isBusinessCanBeScan = false;
         //время запуска очередной синхронизации
-        DateTime sync_start;
-        DateTime scanTime;
+        DateTime _syncStartTime;
+        DateTime _scanTime;
         //писать лог
         bool _writeLog = true;
         //конструктор формы
@@ -60,7 +60,7 @@ namespace Selen {
             if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
-                    while (isBusinessNeedRescan)
+                    while (_isBusinessNeedRescan)
                         await Task.Delay(30000);
                     var av = new AvitoXml();
                     await av.GenerateXML(bus);
@@ -75,7 +75,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("вк начало выгрузки");
-                while (isBusinessNeedRescan)
+                while (_isBusinessNeedRescan)
                     await Task.Delay(20000);
                 await _vk.VkSyncAsync(bus);
                 label_Vk.Text = _vk.MarketCount +"/"+_vk.UrlsCount;
@@ -90,7 +90,7 @@ namespace Selen {
         async void DromRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (isBusinessNeedRescan)
+                while (_isBusinessNeedRescan)
                     await Task.Delay(30000);
                 await _drom.DromStartAsync(bus);
                 label_Drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
@@ -111,7 +111,7 @@ namespace Selen {
         //KUPIPRODAI.RU
         async void KupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan)
+            while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
             if (await _kupiprodai.StartAsync(bus))
                 ChangeStatus(sender, ButtonStates.Active);
@@ -121,7 +121,7 @@ namespace Selen {
         }
         async void KupiprodaiRuAdd_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan)
+            while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
             await _kupiprodai.AddAsync();
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
@@ -130,7 +130,7 @@ namespace Selen {
         //GDE.RU
         async void GdeRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
             if (await _gde.StartAsync(bus)) {
                 label_Gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
@@ -141,7 +141,7 @@ namespace Selen {
         //IZAP24.RU
         async void Izap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan)
+            while (_isBusinessNeedRescan)
                 await Task.Delay(60000);
             if (await _izap24.SyncAsync(bus))
                 ChangeStatus(sender, ButtonStates.Active);
@@ -151,7 +151,7 @@ namespace Selen {
         //YOULA.RU
         async void Youla_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
             var youlaXml = new YoulaXml();
             await youlaXml.GenerateXML_avito(bus);
@@ -160,7 +160,7 @@ namespace Selen {
         //SATOM.RU
         async void buttonSatom_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
             await sat.SyncAsync(bus);
             ChangeStatus(sender, ButtonStates.Active);
@@ -168,7 +168,7 @@ namespace Selen {
         //YANDEX MARKET
         async void button_YandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender,ButtonStates.NoActive);
-            while (isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
             var yandexMarket = new YandexMarket();
             await yandexMarket.GenerateXML(bus);
@@ -178,27 +178,36 @@ namespace Selen {
         //=== основной цикл (частота 1 раз в мин) ===
         //===========================================
         private async void timer_sync_Tick(object sender, EventArgs e) {
-            if (!isBusinessCanBeScan) return;
+            if (!_isBusinessCanBeScan) return;
             if (DateTime.Now.Hour < await _db.GetParamIntAsync("syncStartHour"))
                 return;
             if (DateTime.Now.Hour >= await _db.GetParamIntAsync("syncStopHour"))
                 return;
             if (await _db.GetParamBoolAsync("useLiteSync"))
                 await GoLiteSync();
-            if (DateTime.Now.AddHours(-6) > dateTimePicker1.Value || isBusinessNeedRescan)
+            if (DateTime.Now.AddDays(-6) > dateTimePicker1.Value || _isBusinessNeedRescan)
                 button_BaseGet.PerformClick();
         }
         //оптимизированная синхронизации - запрос только последних изменений
         async Task GoLiteSync() {
-            if (bus.Count <= 0 || isBusinessNeedRescan)
+            if (bus.Count <= 0 || _isBusinessNeedRescan)
                 return;
             ChangeStatus(button_BaseGet, ButtonStates.NoActive);
             var stage = "";
             try {
-                isBusinessCanBeScan = false;
-                sync_start = DateTime.Now;
+                _isBusinessCanBeScan = false;
+                _syncStartTime = DateTime.Now;
                 Log.Add("business.ru: запрос изменений...");
-                var lastTime = await _db.GetParamStrAsync("liteScanTime");
+                var lastLiteScanTime = await _db.GetParamStrAsync("liteScanTime");
+                var lastScanTime = await _db.GetParamDateTimeAsync("lastScanTime");
+                var lastWriteBusFile = File.GetLastWriteTime(busFileName);
+
+                var isBusFileOld = lastWriteBusFile.AddMinutes(5) < lastScanTime;
+                //если файл базы устарел - выключаю обновление сайтов
+                if (isBusFileOld){
+                    checkBox_SyncSites.Checked = false;
+                    lastLiteScanTime = lastWriteBusFile.ToString();
+                }
                 //запросим новые/измененные карточки товаров
                 string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
                             //{"archive", "0"},
@@ -210,7 +219,7 @@ namespace Selen {
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" },
-                            {"updated[from]", lastTime}
+                            {"updated[from]", lastLiteScanTime}
                     });
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
@@ -223,20 +232,20 @@ namespace Selen {
                 stage = "текущие остатки...";
                 var ids = JsonConvert.DeserializeObject<List<GoodIds>>(
                     await Class365API.RequestAsync("get", "storegoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime}
+                        {"updated[from]", lastLiteScanTime}
                     }));
 
                 stage = "текущие цены...";
                 ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
                     await Class365API.RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime},
+                        {"updated[from]", lastLiteScanTime},
                         {"price_type_id","75524" } //интересуют только отпускные цены
                     })));
 
                 stage = "запросим реализации...";
                 ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
                     await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastTime}
+                        {"updated[from]", lastLiteScanTime}
                     })));
 
                 //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
@@ -255,11 +264,11 @@ namespace Selen {
                         lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
                 }
                 //если изменений слишком много - нужен полный рескан базы
-                if (lightSyncGoods.Count > 200) {
+                if (lightSyncGoods.Count > 500) {
                     Log.Add("business.ru: новых/измененных карточек: " + lightSyncGoods.Count +
                             " -- будет произведен запрос полной базы товаров...");
-                    isBusinessNeedRescan = true;
-                    isBusinessCanBeScan = true;
+                    _isBusinessNeedRescan = true;
+                    _isBusinessCanBeScan = true;
                     ChangeStatus(button_BaseGet, ButtonStates.Active);
                     return;
                 }
@@ -288,7 +297,7 @@ namespace Selen {
                                 //переносим все данные
                                 bus[ind] = lg;
                                 //время обновления карточки сдвигаю на время начала цикла синхронизации
-                                bus[ind].updated = sync_start.ToString();   //todo нужно ли?
+                                bus[ind].updated = _syncStartTime.ToString();   //todo нужно ли?
                             } else {
                                 //сохраняю в новых данных старую дату обновления
                                 lg.updated = bus[ind].updated;
@@ -297,7 +306,7 @@ namespace Selen {
                             }
                         }
                     } else { //если индекс карточки не найден - добавляем в коллекцию
-                        lg.updated = sync_start.ToString();
+                        lg.updated = _syncStartTime.ToString();
                         bus.Add(lg);
                     }
                 }
@@ -308,9 +317,10 @@ namespace Selen {
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
                 label_Bus.Text = bus.Count + "/" + bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
-                await _db.SetParamAsync("liteScanTime", sync_start.AddMinutes(-1).ToString());
-                await _db.SetParamAsync("controlBus", bus.Count.ToString());
-
+                if (!isBusFileOld) {
+                    await _db.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-1).ToString());
+                    await _db.SetParamAsync("controlBus", bus.Count.ToString());
+                }
 
                 ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
                 ///пока события не реализованы в проекте, поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
@@ -319,21 +329,25 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                var busFileWriteTime = new FileInfo(busFileName).LastWriteTime;
-                if (DateTime.Now.Minute == 55 || busFileWriteTime.AddHours(1) < DateTime.Now) {
+                if (DateTime.Now.Minute == 55 || lastWriteBusFile.AddHours(1) < DateTime.Now || isBusFileOld) {
                     await SaveBusAsync();
                     if (checkBox_SyncSites.Checked) await SyncAllAsync();
-                    dateTimePicker1.Value = sync_start;
+                    if (isBusFileOld) {
+                        dateTimePicker1.Value = lastScanTime;
+                        checkBox_SyncSites.Checked = true;
+                    } else {
+                        dateTimePicker1.Value = _syncStartTime;
+                    }
                 }
                 Log.Add("business.ru: цикл синхронизации завершен");
-                isBusinessCanBeScan = true;
+                _isBusinessCanBeScan = true;
             } catch (Exception ex) {
                 Log.Add("business.ru: ошибка синхронизации: " + ex.Message + "\n"
                     + ex.Source + "\n"
                     + ex.InnerException + "\n"
                     + stage);
-                isBusinessCanBeScan = true;
-                isBusinessNeedRescan = true;
+                _isBusinessCanBeScan = true;
+                _isBusinessNeedRescan = true;
             }
             ChangeStatus(button_BaseGet, ButtonStates.Active);
         }
@@ -378,20 +392,20 @@ namespace Selen {
         async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             Log.Add("business.ru: старт полного цикла синхронизации");
-            isBusinessNeedRescan = true;
-            isBusinessCanBeScan = false;
-            sync_start = DateTime.Now;
+            _isBusinessNeedRescan = true;
+            _isBusinessCanBeScan = false;
+            _syncStartTime = DateTime.Now;
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
             var tlog = bus.Count + "/" + bus.Count(c => c.images.Count > 0 && c.amount > 0 && c.price > 0);
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog);
             label_Bus.Text = tlog;
             await SaveBusAsync();
-            isBusinessNeedRescan = false;
+            _isBusinessNeedRescan = false;
             if (checkBox_SyncSites.Checked) await SyncAllAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
-            dateTimePicker1.Value = sync_start;
-            isBusinessCanBeScan = true;
+            dateTimePicker1.Value = _syncStartTime;
+            _isBusinessCanBeScan = true;
             ChangeStatus(sender, ButtonStates.Active);
         }
         //запрашиваю группы товаров
@@ -502,6 +516,7 @@ namespace Selen {
                     if (_db.GetParamBool("saveDataBaseLocal")) {
                         File.WriteAllText(busFileName, JsonConvert.SerializeObject(bus));
                         Log.Add("business.ru: bus.json - сохранение успешно");
+                        File.SetLastWriteTime(busFileName, _syncStartTime);
                     }
                 });
             } catch (Exception x) {
@@ -510,19 +525,18 @@ namespace Selen {
         }
         //подгружаю товары из файла
         async Task LoadBusJSON() {
-            var t = _db.GetParamDateTime("lastScanTime");
-            if (File.Exists(@"..\bus.json") && File.GetLastWriteTime(@"..\bus.json") > t) {
+            if (File.Exists(busFileName)) {
                 await GetBusGroupsAsync();
                 Log.Add("business.ru: загружаю список товаров...");
                 await Task.Factory.StartNew(() => {
-                    var s = File.ReadAllText(@"..\bus.json");
+                    var s = File.ReadAllText(busFileName);
                     bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
                 });
                 Log.Add("business.ru: загружено " + bus.Count + " карточек товаров");
                 label_Bus.Text = bus.Count + "/" + bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
                 button_BaseGet.BackColor = Color.GreenYellow;
             }
-            isBusinessCanBeScan = true;
+            _isBusinessCanBeScan = true;
         }
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
@@ -946,10 +960,10 @@ namespace Selen {
 
         private void dateTimePicker1_ValueChanged(object sender, EventArgs e) {
             try {
-                scanTime = dateTimePicker1.Value;
-                _db.SetParamAsync("lastScanTime", scanTime.ToString());
-                _db.SetParamAsync("liteScanTime", scanTime.ToString());
-                RootObject.ScanTime = scanTime;
+                _scanTime = dateTimePicker1.Value;
+                _db.SetParamAsync("lastScanTime", _scanTime.ToString());
+                _db.SetParamAsync("liteScanTime", _scanTime.ToString());
+                RootObject.ScanTime = _scanTime;
             } catch (Exception x) {
                 Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException.Message);
             }
@@ -1042,7 +1056,7 @@ namespace Selen {
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-            if (isBusinessCanBeScan)
+            if (_isBusinessCanBeScan)
                 Log.Add("синхронизация остановлена!");
             this.Visible = false;
             ClearTempFiles();
@@ -1073,7 +1087,7 @@ namespace Selen {
         //окно веса, размеры
         private async void button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(5000);
             FormWeightsDimentions fw = new FormWeightsDimentions(bus);
             fw.Owner = this;
@@ -1244,6 +1258,9 @@ namespace Selen {
         async void buttonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                var weight = 1.20;
+                string s = weight.ToString("0.00");
+
                 var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
 
 

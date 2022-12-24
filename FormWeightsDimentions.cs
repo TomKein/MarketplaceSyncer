@@ -23,6 +23,8 @@ namespace Selen {
         //сохраняю параметры
         string _sku = null;
         string _value = null;
+        int _startRowIndex;
+        int _startColumnIndex;
         //ссылка на товары
         List<RootObject> _bus;
         //конструктор
@@ -30,26 +32,25 @@ namespace Selen {
             InitializeComponent();
             _bus = bus;
             _tableSize = DB._db.GetParamInt("tableWeightsDimentionsSize");
-
         }
         //метод заполнения таблицы 
         async Task GridFillAsync() {
             //создаю таблицу
             DataTable dt = await GetDataTableAsync(textBox_Search.Text);
             //даю таблицу датагриду
-            dataGridView_Settings.DataSource = dt;
-            dataGridView_Settings.AllowUserToAddRows = false;
+            dataGridView.DataSource = dt;
+            dataGridView.AllowUserToAddRows = false;
             //первый столбец (sku) ставлю только для чтения
-            dataGridView_Settings.Columns[0].MinimumWidth = 40;
-            dataGridView_Settings.Columns[0].Width = 80;
-            dataGridView_Settings.Columns[0].ReadOnly = true;
-            dataGridView_Settings.Columns[1].Width = 350;
-            dataGridView_Settings.Columns[1].Frozen = true;
-            dataGridView_Settings.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView.Columns[0].MinimumWidth = 40;
+            dataGridView.Columns[0].Width = 80;
+            dataGridView.Columns[0].ReadOnly = true;
+            dataGridView.Columns[1].Width = 350;
+            dataGridView.Columns[1].Frozen = true;
             //выравнивание
-            for(var i=2;i < dataGridView_Settings.Columns.Count;i++) {
-                dataGridView_Settings.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            for (var i = 2; i < dataGridView.Columns.Count; i++) {
+                dataGridView.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
+            dataGridView.MultiSelect = true;
         }
 
         private async Task<DataTable> GetDataTableAsync(string text) => await Task.Factory.StartNew(() => {
@@ -65,17 +66,17 @@ namespace Selen {
 
             //выражение для фильтра товаров
             var busSearch = _bus.Where(w => (w.group_id == "2060149" || //если в группе черновики
-                                            w.amount > 0  &&            //или остаток положительный
+                                            w.amount > 0 &&            //или остаток положительный
                                             w.price > 0 &&              //цена положительная
                                             (w.images.Count > 0 || !checkBox_onlyHaveImage.Checked)) &&         //с фото или если галка только с фото не стоит
                                             (
                                             !(w.attributes != null &&                                           //нет заполненных атрибутов 
-                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Width"]) &&
-                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Height"]) &&
-                                            w.attributes.Exists(a=>a.Attribute.id == DimentionsId["Length"])) ||
+                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Width"]) &&
+                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Height"]) &&
+                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Length"])) ||
                                             !checkBox_EmptyOnly.Checked                                         //или галка только нет заполненных снята
                                             ) &&
-                                            (textWords.Length == textWords.Count(textWord=>(w.name+w.id).ToLowerInvariant().Contains(textWord)))        //и тескт содержится в названии или номере
+                                            (textWords.Length == textWords.Count(textWord => (w.name + w.id).ToLowerInvariant().Contains(textWord)))        //и тескт содержится в названии или номере
                                             )
                                 .Reverse()
                                 .Take(_tableSize);
@@ -83,7 +84,7 @@ namespace Selen {
                 var width = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Width"]);
                 var height = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Height"]);
                 var length = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Length"]);
-                dt.Rows.Add(item.id, item.name, item.weight??0, width?.Value.value ?? "", height?.Value.value ?? "", length?.Value.value ?? "");
+                dt.Rows.Add(item.id, item.name, item.weight ?? 0, width?.Value.value ?? "", height?.Value.value ?? "", length?.Value.value ?? "");
             }
             return dt;
         });
@@ -93,45 +94,49 @@ namespace Selen {
             GridFillAsync();
         }
         //метод обработки события начала режима редактирования
-        private void dataGridView_Settings_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e) {
+        private void dataGridView_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e) {
             //запоминаю изменяемое значение параметра
-            _value = dataGridView_Settings.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+            _value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
         }
         //метод обработки события завершения редактирования
-        private async void dataGridView_Settings_CellEndEdit(object sender, DataGridViewCellEventArgs e) {
+        private async void dataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e) {
             //новое значения параметров
-            var value = dataGridView_Settings.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString().Replace(",",".");
+            var value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString().Replace(",", ".");
             //если значение параметра изменилось
-            if (value != _value) {
-                var id = dataGridView_Settings.Rows[e.RowIndex].Cells[0].Value.ToString();
-                var name = dataGridView_Settings.Rows[e.RowIndex].Cells[1].Value.ToString();
-                //определяю, какой именно параметр менялся
-                if (e.ColumnIndex == 1) {
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+            if (value != _value)
+                await UpdateBusinessAsync(e.RowIndex, e.ColumnIndex, value);
+            else
+                Log.Add("БД: без изменений");
+        }
+
+        private async Task UpdateBusinessAsync(int rowIndex, int colIndex, string value) {
+            var id = dataGridView.Rows[rowIndex].Cells[0].Value.ToString();
+            var name = dataGridView.Rows[rowIndex].Cells[1].Value.ToString();
+            //определяю, какой именно параметр менялся
+            if (colIndex == 1) {
+                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},
                                 {"name", value}
                         });
-                    _bus.Find(f => f.id == id).name = value;
-                    Log.Add("БД: обновлено наименование = " + value);
-                }
-                
-                if (e.ColumnIndex == 2) {
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                _bus.Find(f => f.id == id).name = value;
+                Log.Add("БД: обновлено наименование = " + value);
+            }
+
+            if (colIndex == 2) {
+                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},
                                 {"name", name},
                                 {"weight", value}
                         });
-                    _bus.Find(f => f.id == id).weight = float.Parse(value.Replace(".",","));
-                    Log.Add("БД: обновлена характеристика Вес = " + value);
-                } else if (e.ColumnIndex == 3)
-                    await UpdateDimention(value, id, "Width");
-                else if (e.ColumnIndex == 4)
-                    await UpdateDimention(value, id, "Height");
-                else if (e.ColumnIndex == 5) {
-                    await UpdateDimention(value, id, "Length");
-                }
-            } else
-                Log.Add("БД: без изменений");
+                _bus.Find(f => f.id == id).weight = float.Parse(value.Replace(".", ","));
+                Log.Add("БД: обновлена характеристика Вес = " + value);
+            } else if (colIndex == 3)
+                await UpdateDimention(value, id, "Width");
+            else if (colIndex == 4)
+                await UpdateDimention(value, id, "Height");
+            else if (colIndex == 5) {
+                await UpdateDimention(value, id, "Length");
+            }
         }
 
         private async Task UpdateDimention(string value, string id, string attributeName) {
@@ -153,11 +158,11 @@ namespace Selen {
                             {"value", value}
                         });
                 if (s != null && s.Contains("updated")) {
-                    _bus.Find(f=>f.id==id)
+                    _bus.Find(f => f.id == id)
                         .attributes
                         .Find(f => f.Attribute.id == DimentionsId[attributeName])
                         .Value
-                        .value=value;
+                        .value = value;
                     Log.Add("БД: обновлена характеристика " + attributeName + " = " + value);
                 }
             } else { //если атрибута нет - создаем
@@ -168,9 +173,10 @@ namespace Selen {
                         });
                 if (s != null && s.Contains("updated")) {
                     _bus.Find(f => f.id == id).attributes.Add(
-                        new Attributes() { 
+                        new Attributes() {
                             Attribute = new Attribute() { id = DimentionsId[attributeName] },
-                            Value = new Value(){ value = value} });
+                            Value = new Value() { value = value }
+                        });
                     Log.Add("БД: добавлена характеристика " + attributeName + " = " + value);
                 }
 
@@ -186,6 +192,24 @@ namespace Selen {
         }
         private async void FormWeightsDimentions_FormClosed(object sender, FormClosedEventArgs e) {
             //Log.Level = await _db.GetParamIntAsync("logSize");
+        }
+
+        private async void dataGridView_CellMouseUp(object sender, DataGridViewCellMouseEventArgs e) {
+            if (e.RowIndex == _startRowIndex && e.ColumnIndex == _startColumnIndex)
+                return;
+            for (int c = _startColumnIndex; c <= e.ColumnIndex; c++) {
+                var cellValue = (string) dataGridView.Rows[_startRowIndex].Cells[c].Value;
+                if (!string.IsNullOrEmpty(cellValue))
+                    for (int r = _startRowIndex; r < e.RowIndex; r++) {
+                        dataGridView.Rows[r + 1].Cells[c].Value = cellValue;
+                        await UpdateBusinessAsync(r + 1, c, cellValue);
+                    }
+            }
+        }
+
+        private void dataGridView_CellMouseDown(object sender, DataGridViewCellMouseEventArgs e) {
+            _startColumnIndex = e.ColumnIndex;
+            _startRowIndex = e.RowIndex;
         }
     }
 }
