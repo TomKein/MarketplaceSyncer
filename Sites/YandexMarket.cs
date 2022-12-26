@@ -203,7 +203,10 @@ namespace Selen.Sites {
                         if (!b.IsGroupSolidParts()) { //если группа масла, автохимия, аксессуары
                             offer.Add(new XElement("period-of-validity-days",b.GetValidity()));
                         }
-
+                        //квант продажи
+                        var quant = b.GetQuantOfSell();
+                        if(!string.IsNullOrEmpty(quant))
+                            offer.Add(new XElement("min-quantity", quant));
                         //добавляю оффер к офферам
                         offers.Add(offer);
                     } catch (Exception x) {
@@ -213,7 +216,7 @@ namespace Selen.Sites {
                 Log.Add(_l + "выгружено " + offers.Descendants("offer").Count());
                 //добавляю offers в shop
                 shop.Add(offers);
-                //создаю корневой элемент <yml_catalog>
+                //создаю корневой элемент 
                 var root = new XElement("yml_catalog", new XAttribute("date", timeNow));
                 //добавляю shop в root 
                 root.Add(shop);

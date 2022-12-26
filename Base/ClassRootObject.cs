@@ -502,5 +502,13 @@ namespace Selen
             //строка с размерами
             return (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
         }
+        //квант продажи
+        public string GetQuantOfSell() {
+            int p;
+            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString())??"", out p))
+                return p.ToString();
+            return null;
+                
+        }
     }
 }
