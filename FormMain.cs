@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.124 (litesync)";
+        string _version = "1.125 (автозаполнение характеристик)";
 
         DB _db = new DB();
 

@@ -97,11 +97,56 @@ namespace Selen {
         private void dataGridView_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e) {
             //запоминаю изменяемое значение параметра
             _value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
+            //подставляю нулевые значения
+            if (e.ColumnIndex > 1 && (_value==null ||_value==""||_value=="0")) {
+                var name = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
+                if (!string.IsNullOrEmpty(name)) {
+                    var textWords = name.ToLowerInvariant().Split(' ').ToList();
+                    List<RootObject> busSearch = null;
+                    do {
+                        //выражение для фильтра похожих товаров
+                        busSearch = _bus.Where(w => w.weight != null && w.weight > 0 &&                  //указан вес
+                                                    w.attributes != null &&                              //заполненны атрибуты
+                                                    w.attributes.Exists(a => a.Attribute.id == DimentionsId["Width"]) &&
+                                                    w.attributes.Exists(a => a.Attribute.id == DimentionsId["Height"]) &&
+                                                    w.attributes.Exists(a => a.Attribute.id == DimentionsId["Length"]) &&
+                                                    //и тескт содержится в названии
+                                                    (textWords.Count == textWords.Count(textWord => w.name.ToLowerInvariant().Contains(textWord)))
+                                                ).ToList();
+                        if (!busSearch.Any())
+                            textWords.RemoveAt(textWords.Count - 1);
+                        else
+                            break;
+                    } while (textWords.Count > 0);
+                    if (busSearch.Any()) {
+                        var medianIndex = busSearch.Count / 2;
+                        string medianValue = null;
+                        List<string> attributes = null;
+                        List<float> floats= null;
+                        if (e.ColumnIndex == 2) { //заполняем средний вес
+                            medianValue = (busSearch.OrderBy(o => o.weight).ElementAt(medianIndex).weight ?? 0).ToString("F1");
+                        } else if (e.ColumnIndex == 3) {
+                            attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Width"]).Value.value).ToList();
+                            floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                        } else if (e.ColumnIndex == 4) {
+                            attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Height"]).Value.value).ToList();
+                            floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                        } else if (e.ColumnIndex == 5) {
+                            attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Length"]).Value.value).ToList();
+                            floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                        }
+                        dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = medianValue;
+                    }
+                }
+            }
         }
         //метод обработки события завершения редактирования
         private async void dataGridView_CellEndEdit(object sender, DataGridViewCellEventArgs e) {
             //новое значения параметров
-            var value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString().Replace(",", ".");
+            var value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString().Replace(",", ".");
             //если значение параметра изменилось
             if (value != _value)
                 await UpdateBusinessAsync(e.RowIndex, e.ColumnIndex, value);
@@ -128,7 +173,9 @@ namespace Selen {
                                 {"name", name},
                                 {"weight", value}
                         });
-                _bus.Find(f => f.id == id).weight = float.Parse(value.Replace(".", ","));
+                float floatWeight;
+                if (!float.TryParse(value?.Replace(".",","), out floatWeight)) floatWeight = 0f;
+                _bus.Find(f => f.id == id).weight = floatWeight;
                 Log.Add("БД: обновлена характеристика Вес = " + value);
             } else if (colIndex == 3)
                 await UpdateDimention(value, id, "Width");
@@ -213,7 +260,7 @@ namespace Selen {
         }
 
         private void dataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
-            if(e.ColumnIndex==0)
+            if (e.ColumnIndex == 0)
                 Clipboard.SetText(dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString());
         }
     }
