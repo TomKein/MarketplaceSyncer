@@ -111,7 +111,8 @@ namespace Selen.Sites {
         }
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
-            var name = b.name.ToLowerInvariant();
+            var name = b.name.ToLowerInvariant()
+                             .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.","").Replace("б.у","").Trim();
             var d = new Dictionary<string, string>();
             if (name.StartsWith("масло ")) {
                 d.Add("TypeId", "4-942");                           //Масла и автохимия

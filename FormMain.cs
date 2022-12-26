@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.125 (автозаполнение характеристик)";
+        string _version = "1.127 авито - игнор б/у в наименовании в методе определения категорий";
 
         DB _db = new DB();
 
