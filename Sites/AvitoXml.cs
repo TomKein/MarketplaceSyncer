@@ -83,6 +83,10 @@ namespace Selen.Sites {
                             ad.Add(new XElement("OEM", b.part));
                         //оригинальность
                         ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
+                        //производитель
+                        var brand = b.GetManufacture();
+                        if (!string.IsNullOrEmpty(brand))
+                            ad.Add(new XElement("Brand", b.GetManufacture()));
                         //добавляю объявление в дерево
                         root.Add(ad);
                         //считаем только объявления с положительным остатком
