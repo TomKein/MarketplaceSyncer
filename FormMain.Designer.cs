@@ -79,7 +79,7 @@ namespace Selen {
             this.button_Drom.TabIndex = 4;
             this.button_Drom.Text = "Drom.ru";
             this.button_Drom.UseVisualStyleBackColor = true;
-            this.button_Drom.Click += new System.EventHandler(this.DromRu_Click);
+            this.button_Drom.Click += new System.EventHandler(this.ButtonDromRu_Click);
             // 
             // button_BaseGet
             // 
@@ -99,7 +99,7 @@ namespace Selen {
             this.button_Avito.TabIndex = 3;
             this.button_Avito.Text = "Avito.ru";
             this.button_Avito.UseVisualStyleBackColor = true;
-            this.button_Avito.Click += new System.EventHandler(this.AvitoRu_Click);
+            this.button_Avito.Click += new System.EventHandler(this.ButtonAvitoRu_Click);
             // 
             // logBox
             // 
@@ -114,7 +114,7 @@ namespace Selen {
             this.logBox.Size = new System.Drawing.Size(645, 402);
             this.logBox.TabIndex = 16;
             this.logBox.Text = "";
-            this.logBox.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
+            this.logBox.TextChanged += new System.EventHandler(this.RichTextBox1_TextChanged);
             // 
             // button_PriceLevelsReport
             // 
@@ -134,7 +134,7 @@ namespace Selen {
             this.button_Vk.TabIndex = 7;
             this.button_Vk.Text = "Vk.com";
             this.button_Vk.UseVisualStyleBackColor = true;
-            this.button_Vk.Click += new System.EventHandler(this.VkCom_Click);
+            this.button_Vk.Click += new System.EventHandler(this.ButtonVkCom_Click);
             // 
             // checkBox_sync
             // 
@@ -189,7 +189,7 @@ namespace Selen {
             this.button_Descriptions.TabIndex = 59;
             this.button_Descriptions.Text = "Описания";
             this.button_Descriptions.UseVisualStyleBackColor = true;
-            this.button_Descriptions.Click += new System.EventHandler(this.button_put_desc_Click);
+            this.button_Descriptions.Click += new System.EventHandler(this.ButtonPutDesc_Click);
             // 
             // button_TestPartners
             // 
@@ -251,7 +251,7 @@ namespace Selen {
             this.button_Satom.TabIndex = 10;
             this.button_Satom.Text = "Satom.ru";
             this.button_Satom.UseVisualStyleBackColor = true;
-            this.button_Satom.Click += new System.EventHandler(this.buttonSatom_Click);
+            this.button_Satom.Click += new System.EventHandler(this.ButtonSatom_Click);
             // 
             // button_Kupiprodai
             // 
@@ -261,7 +261,7 @@ namespace Selen {
             this.button_Kupiprodai.TabIndex = 5;
             this.button_Kupiprodai.Text = "Купипродай";
             this.button_Kupiprodai.UseVisualStyleBackColor = true;
-            this.button_Kupiprodai.Click += new System.EventHandler(this.KupiprodaiRu_Click);
+            this.button_Kupiprodai.Click += new System.EventHandler(this.ButtonKupiprodaiRu_Click);
             // 
             // button_KupiprodaiAdd
             // 
@@ -271,7 +271,7 @@ namespace Selen {
             this.button_KupiprodaiAdd.TabIndex = 112;
             this.button_KupiprodaiAdd.Text = "Выкладывать";
             this.button_KupiprodaiAdd.UseVisualStyleBackColor = true;
-            this.button_KupiprodaiAdd.Click += new System.EventHandler(this.KupiprodaiRuAdd_Click);
+            this.button_KupiprodaiAdd.Click += new System.EventHandler(this.ButtonKupiprodaiRuAdd_Click);
             // 
             // label_Kp
             // 
@@ -290,7 +290,7 @@ namespace Selen {
             this.button_PricesCorrection.TabIndex = 115;
             this.button_PricesCorrection.Text = "Корекция цен закупки";
             this.button_PricesCorrection.UseVisualStyleBackColor = true;
-            this.button_PricesCorrection.Click += new System.EventHandler(this.button_PricesCheck_Click);
+            this.button_PricesCorrection.Click += new System.EventHandler(this.Button_PricesCheck_Click);
             // 
             // button_Gde
             // 
@@ -300,7 +300,7 @@ namespace Selen {
             this.button_Gde.TabIndex = 9;
             this.button_Gde.Text = "Gde.ru";
             this.button_Gde.UseVisualStyleBackColor = true;
-            this.button_Gde.Click += new System.EventHandler(this.GdeRu_Click);
+            this.button_Gde.Click += new System.EventHandler(this.ButtonGdeRu_Click);
             // 
             // label_Gde
             // 
@@ -328,7 +328,7 @@ namespace Selen {
             this.button_SaveCookie.TabIndex = 123;
             this.button_SaveCookie.Text = "Сохр. Куки";
             this.button_SaveCookie.UseVisualStyleBackColor = true;
-            this.button_SaveCookie.Click += new System.EventHandler(this.button_SaveCookie_Click);
+            this.button_SaveCookie.Click += new System.EventHandler(this.Button_SaveCookie_Click);
             // 
             // button_Settings
             // 
@@ -338,7 +338,7 @@ namespace Selen {
             this.button_Settings.TabIndex = 59;
             this.button_Settings.Text = "НАСТРОЙКИ";
             this.button_Settings.UseVisualStyleBackColor = true;
-            this.button_Settings.Click += new System.EventHandler(this.button_SettingsFormOpen_Click);
+            this.button_Settings.Click += new System.EventHandler(this.Button_SettingsFormOpen_Click);
             // 
             // panel_Buttons
             // 
@@ -391,7 +391,7 @@ namespace Selen {
             this.button_YandexMarket.TabIndex = 149;
             this.button_YandexMarket.Text = "Yandex.Market";
             this.button_YandexMarket.UseVisualStyleBackColor = true;
-            this.button_YandexMarket.Click += new System.EventHandler(this.button_YandexMarket_Click);
+            this.button_YandexMarket.Click += new System.EventHandler(this.ButtonYandexMarket_Click);
             // 
             // button_Youla
             // 
@@ -401,7 +401,7 @@ namespace Selen {
             this.button_Youla.TabIndex = 148;
             this.button_Youla.Text = "Youla.ru";
             this.button_Youla.UseVisualStyleBackColor = true;
-            this.button_Youla.Click += new System.EventHandler(this.Youla_Click);
+            this.button_Youla.Click += new System.EventHandler(this.ButtonYoula_Click);
             // 
             // button_Izap24
             // 
@@ -411,7 +411,7 @@ namespace Selen {
             this.button_Izap24.TabIndex = 147;
             this.button_Izap24.Text = "IZap24.ru";
             this.button_Izap24.UseVisualStyleBackColor = true;
-            this.button_Izap24.Click += new System.EventHandler(this.Izap24_Click);
+            this.button_Izap24.Click += new System.EventHandler(this.ButtonIzap24_Click);
             // 
             // panel_bottom
             // 
@@ -438,7 +438,7 @@ namespace Selen {
             this.button_WeightsDimensions.TabIndex = 124;
             this.button_WeightsDimensions.Text = "Вес размер";
             this.button_WeightsDimensions.UseVisualStyleBackColor = true;
-            this.button_WeightsDimensions.Click += new System.EventHandler(this.button_WeightsDimensions_ClickAsync);
+            this.button_WeightsDimensions.Click += new System.EventHandler(this.Button_WeightsDimensions_ClickAsync);
             // 
             // button_Test
             // 
@@ -449,7 +449,7 @@ namespace Selen {
             this.button_Test.TabStop = false;
             this.button_Test.Text = "Тест";
             this.button_Test.UseVisualStyleBackColor = true;
-            this.button_Test.Click += new System.EventHandler(this.buttonTest_Click);
+            this.button_Test.Click += new System.EventHandler(this.ButtonTest_Click);
             // 
             // panel_Filter
             // 
@@ -470,7 +470,7 @@ namespace Selen {
             this.textBox_LogFilter.Name = "textBox_LogFilter";
             this.textBox_LogFilter.Size = new System.Drawing.Size(528, 21);
             this.textBox_LogFilter.TabIndex = 0;
-            this.textBox_LogFilter.TextChanged += new System.EventHandler(this.textBox_LogFilter_TextChanged);
+            this.textBox_LogFilter.TextChanged += new System.EventHandler(this.TextBox_LogFilter_TextChanged);
             // 
             // button_LogFilterClear
             // 
@@ -482,7 +482,7 @@ namespace Selen {
             this.button_LogFilterClear.TabIndex = 1;
             this.button_LogFilterClear.Text = "Очистить фильтр";
             this.button_LogFilterClear.UseVisualStyleBackColor = true;
-            this.button_LogFilterClear.Click += new System.EventHandler(this.button_LogFilterClear_Click);
+            this.button_LogFilterClear.Click += new System.EventHandler(this.Button_LogFilterClear_Click);
             // 
             // panel4
             // 

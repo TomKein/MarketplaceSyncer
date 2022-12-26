@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.120 (фильтры на форме для заполнения веса, размеров)";
+        string _version = "1.124 (litesync)";
 
         DB _db = new DB();
 
@@ -56,7 +56,7 @@ namespace Selen {
         //=== РАБОТА С САЙТАМИ ===
         //========================
         //AVITO.RU
-        async void AvitoRu_Click(object sender, EventArgs e) {
+        async void ButtonAvitoRu_Click(object sender, EventArgs e) {
             if (await _db.GetParamBoolAsync("avito.syncEnable")) {
                 ChangeStatus(sender, ButtonStates.NoActive);
                 try {
@@ -71,7 +71,7 @@ namespace Selen {
             }
         }
         //VK.COM
-        async void VkCom_Click(object sender, EventArgs e) {
+        async void ButtonVkCom_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("вк начало выгрузки");
@@ -87,7 +87,7 @@ namespace Selen {
             }
         }
         //DROM.RU
-        async void DromRu_Click(object sender, EventArgs e) {
+        async void ButtonDromRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 while (_isBusinessNeedRescan)
@@ -103,13 +103,13 @@ namespace Selen {
                     x.Message.Contains("chrome not reachable")) {
                     _drom.Quit();
                     await Task.Delay(60000);
-                    DromRu_Click(sender, e);
+                    ButtonDromRu_Click(sender, e);
                 }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
         //KUPIPRODAI.RU
-        async void KupiprodaiRu_Click(object sender, EventArgs e) {
+        async void ButtonKupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
@@ -119,7 +119,7 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
         }
-        async void KupiprodaiRuAdd_Click(object sender, EventArgs e) {
+        async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
@@ -128,7 +128,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //GDE.RU
-        async void GdeRu_Click(object sender, EventArgs e) {
+        async void ButtonGdeRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
@@ -139,7 +139,7 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //IZAP24.RU
-        async void Izap24_Click(object sender, EventArgs e) {
+        async void ButtonIzap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan)
                 await Task.Delay(60000);
@@ -149,7 +149,7 @@ namespace Selen {
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //YOULA.RU
-        async void Youla_Click(object sender, EventArgs e) {
+        async void ButtonYoula_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
@@ -158,7 +158,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //SATOM.RU
-        async void buttonSatom_Click(object sender, EventArgs e) {
+        async void ButtonSatom_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
@@ -166,7 +166,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //YANDEX MARKET
-        async void button_YandexMarket_Click(object sender, EventArgs e) {
+        async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender,ButtonStates.NoActive);
             while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(30000);
@@ -193,6 +193,7 @@ namespace Selen {
             if (bus.Count <= 0 || _isBusinessNeedRescan)
                 return;
             ChangeStatus(button_BaseGet, ButtonStates.NoActive);
+            var checkSyncStatus = checkBox_SyncSites.Checked;
             var stage = "";
             try {
                 _isBusinessCanBeScan = false;
@@ -341,7 +342,8 @@ namespace Selen {
                     if (checkBox_SyncSites.Checked) await SyncAllAsync();
                     if (isBusFileOld) {
                         dateTimePicker1.Value = lastScanTime;
-                        checkBox_SyncSites.Checked = true;
+                        if (checkSyncStatus)
+                            checkBox_SyncSites.Checked = true;
                     } else {
                         dateTimePicker1.Value = _syncStartTime;
                     }
@@ -637,7 +639,7 @@ namespace Selen {
         }
 
         //редактирование описаний, добавленние синонимов
-        private async void button_put_desc_Click(object sender, EventArgs e) {
+        private async void ButtonPutDesc_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             //загрузим словарь
             List<string> eng = new List<string>();
@@ -977,7 +979,7 @@ namespace Selen {
         }
 
 
-        private async void button_PricesCheck_Click(object sender, EventArgs e) {
+        private async void Button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await ChangePostingsPrices();
             await Task.Delay(1000);//ChangeRemainsPrices();
@@ -985,7 +987,7 @@ namespace Selen {
         }
 
         //сохранить куки
-        private void button_SaveCookie_Click(object sender, EventArgs e) {
+        private void Button_SaveCookie_Click(object sender, EventArgs e) {
             _kupiprodai.SaveCookies();
             _drom.SaveCookies();
             _gde.SaveCookies();
@@ -1033,7 +1035,7 @@ namespace Selen {
                 }
         }
         //прокрутка лога
-        private void richTextBox1_TextChanged(object sender, EventArgs e) {
+        private void RichTextBox1_TextChanged(object sender, EventArgs e) {
             logBox.SelectionStart = logBox.TextLength;
             logBox.ScrollToCaret();
         }
@@ -1042,7 +1044,7 @@ namespace Selen {
             ToLogBox(Log.LogLastAdded);
         }
         //обработчик изменений значений фильтра лога
-        void textBox_LogFilter_TextChanged(object sender, EventArgs e) {
+        void TextBox_LogFilter_TextChanged(object sender, EventArgs e) {
             FillLogAsync();
         }
         //загружаю лог асинхронно
@@ -1058,7 +1060,7 @@ namespace Selen {
             }
         }
         //очистка фильтра
-        void button_LogFilterClear_Click(object sender, EventArgs e) {
+        void Button_LogFilterClear_Click(object sender, EventArgs e) {
             textBox_LogFilter.Text = "";
         }
         //закрываем форму, сохраняем настройки
@@ -1083,7 +1085,7 @@ namespace Selen {
             }
         }
         //загрузка окна настроек
-        void button_SettingsFormOpen_Click(object sender, EventArgs e) {
+        void Button_SettingsFormOpen_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             FormSettings fs = new FormSettings();
             fs.Owner = this;
@@ -1092,7 +1094,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         //окно веса, размеры
-        private async void button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
+        private async void Button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || bus.Count == 0)
                 await Task.Delay(5000);
@@ -1262,7 +1264,7 @@ namespace Selen {
             }
         }
         //метод для тестов
-        async void buttonTest_Click(object sender, EventArgs e) {
+        async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 var weight = 1.20;
