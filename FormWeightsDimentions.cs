@@ -124,19 +124,19 @@ namespace Selen {
                         List<string> attributes = null;
                         List<float> floats= null;
                         if (e.ColumnIndex == 2) { //заполняем средний вес
-                            medianValue = (busSearch.OrderBy(o => o.weight).ElementAt(medianIndex).weight ?? 0).ToString("F1");
+                            medianValue = (busSearch.OrderBy(o => o.weight).ElementAt(medianIndex).weight ?? 0).ToString();
                         } else if (e.ColumnIndex == 3) {
                             attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Width"]).Value.value).ToList();
                             floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
-                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString();
                         } else if (e.ColumnIndex == 4) {
                             attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Height"]).Value.value).ToList();
                             floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
-                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString();
                         } else if (e.ColumnIndex == 5) {
                             attributes = busSearch.Select(b => b.attributes.Find(a=>a.Attribute.id== DimentionsId["Length"]).Value.value).ToList();
                             floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
-                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString("F1");
+                            medianValue = floats.OrderBy(o=>o).ElementAt(medianIndex).ToString();
                         }
                         dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = medianValue;
                     }
@@ -153,7 +153,6 @@ namespace Selen {
             else
                 Log.Add("БД: без изменений");
         }
-
         private async Task UpdateBusinessAsync(int rowIndex, int colIndex, string value) {
             var id = dataGridView.Rows[rowIndex].Cells[0].Value.ToString();
             var name = dataGridView.Rows[rowIndex].Cells[1].Value.ToString();
@@ -166,7 +165,6 @@ namespace Selen {
                 _bus.Find(f => f.id == id).name = value;
                 Log.Add("БД: обновлено наименование = " + value);
             }
-
             if (colIndex == 2) {
                 await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},
@@ -185,7 +183,6 @@ namespace Selen {
                 await UpdateDimention(value, id, "Length");
             }
         }
-
         private async Task UpdateDimention(string value, string id, string attributeName) {
             //если атрибут в карточке существует
             if (_bus.Find(f => f.id == id).attributes?.Find(f => f.Attribute.id == DimentionsId[attributeName]) != null) {

@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.130 яндекс +минимальное количество, авито +категория";
+        string _version = "1.131 яндекс +округление весов и размеров";
 
         DB _db = new DB();
 
