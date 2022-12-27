@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.128 контроль б/у в начале названий";
+        string _version = "1.129 яндекс - пепельницы, доработка главного цикла";
 
         DB _db = new DB();
 
