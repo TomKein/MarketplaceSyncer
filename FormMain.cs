@@ -337,7 +337,8 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (DateTime.Now.Minute == 55 || lastWriteBusFile.AddHours(1) < DateTime.Now || isBusFileOld) {
+                if (DateTime.Now.Minute == 55 || lastScanTime.AddHours(1)< DateTime.Now ||
+                                            lastWriteBusFile.AddHours(1) < DateTime.Now || isBusFileOld) {
                     await SaveBusAsync();
                     if (checkBox_SyncSites.Checked) await SyncAllAsync();
                     if (isBusFileOld) {
@@ -364,6 +365,7 @@ namespace Selen {
         private async Task SyncAllAsync() {
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
+            await CheckBu(); 
             button_Avito.PerformClick();
             await Task.Delay(30000);
             button_YandexMarket.PerformClick();
@@ -389,7 +391,6 @@ namespace Selen {
             button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
                                                     //проверка задвоенности наименований карточек товаров
             await CheckDublesAsync();//проверка дублей
-            await CheckBu();
             await CheckMultipleApostropheAsync();//проверка лишних аппострофов
             if (await _db.GetParamBoolAsync("articlesClear"))
                 await ArtCheckAsync();//чистка артикулов от лишних символов
