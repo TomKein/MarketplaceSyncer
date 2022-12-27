@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.127 авито - игнор б/у в наименовании в методе определения категорий";
+        string _version = "1.128 контроль б/у в начале названий";
 
         DB _db = new DB();
 
@@ -389,6 +389,7 @@ namespace Selen {
             button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
                                                     //проверка задвоенности наименований карточек товаров
             await CheckDublesAsync();//проверка дублей
+            await CheckBu();
             await CheckMultipleApostropheAsync();//проверка лишних аппострофов
             if (await _db.GetParamBoolAsync("articlesClear"))
                 await ArtCheckAsync();//чистка артикулов от лишних символов
@@ -396,6 +397,24 @@ namespace Selen {
             await PhotoClearAsync();//очистка ненужных фото
             await ArchivateAsync();//архивирование старых карточек
         }
+
+        private async Task CheckBu() => await Task.Factory.StartNew(() => {
+            foreach (var b in bus) {
+                var n = b.name;
+                if (n.StartsWith(@"Б/У")) b.name = b.name.Replace(@"Б/У", "").Trim()+" Б/У";
+                if (n.StartsWith(@"б/у")) b.name = b.name.Replace(@"б/у", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Б\У")) b.name = b.name.Replace(@"Б\У", "").Trim()+" Б/У";
+                if (n.StartsWith(@"б\у")) b.name = b.name.Replace(@"б\у", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Б.У.")) b.name = b.name.Replace(@"Б.У.", "").Trim()+" Б/У";
+                if (n.StartsWith(@"б.у.")) b.name = b.name.Replace(@"б.у.", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Б.У")) b.name = b.name.Replace(@"Б.У", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Б.у")) b.name = b.name.Replace(@"Б.у", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Бу ")) b.name = b.name.Replace(@"Бу ", "").Trim()+" Б/У";
+                if (n.StartsWith(@"бу ")) b.name = b.name.Replace(@"бу ", "").Trim()+" Б/У";
+                if (n != b.name)
+                    Log.Add("business: исправлено наименование "+n+" -> "+b.name);
+            }
+        });
 
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {

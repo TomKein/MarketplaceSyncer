@@ -399,7 +399,8 @@ namespace Selen.Sites {
                 d.Add("RimType", b.DiskType());                     //тип
             } else if (name.StartsWith("колпак")) {
                 d.Add("TypeId", "10-044");                          //Шины, диски и колёса / Колпаки
-            } else if (name.StartsWith("шины")||
+            } else if (name.StartsWith("шины ") ||
+                       name.StartsWith("шина ") ||
                        name.StartsWith("резина")) {
                 d.Add("TypeId", "10-048");                          //Шины, диски и колёса / Шины
             } else if (name.StartsWith("фонар") ||
