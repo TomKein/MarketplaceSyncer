@@ -791,6 +791,7 @@ namespace Selen.Sites {
                 name.StartsWith("шумоизоляция") ||
                 name.Contains("шуба") ||
                 name.StartsWith("тормозной щит") ||
+                name.StartsWith("уплотнитель") ||
                 name.StartsWith("пыльник")) {
                 d.Add("TypeId", "16-811");                          //Защита
             } else if (name.StartsWith("поршен") ||

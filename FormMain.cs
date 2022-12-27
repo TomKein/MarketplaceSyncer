@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.129 яндекс - пепельницы, доработка главного цикла";
+        string _version = "1.130 яндекс +минимальное количество, авито +категория";
 
         DB _db = new DB();
 
@@ -1288,7 +1288,14 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 var weight = 1.20;
-                string s = weight.ToString("0.00");
+                string s = weight.ToString();
+                weight = 1.0;
+                s = weight.ToString();
+                weight = 11.0;
+                s = weight.ToString();
+                weight = 11.1;
+                s = weight.ToString();
+
 
                 var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
 

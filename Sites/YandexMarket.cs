@@ -192,12 +192,14 @@ namespace Selen.Sites {
                         }
                         //срок годности 
                         if (!b.IsGroupSolidParts()) { //если группа масла, автохимия, аксессуары
-                            offer.Add(new XElement("period-of-validity-days",b.GetValidity()));
+                            offer.Add(new XElement("period-of-validity-days", b.GetValidity()));
                         }
                         //квант продажи
                         var quant = b.GetQuantOfSell();
-                        if(!string.IsNullOrEmpty(quant))
+                        if (!string.IsNullOrEmpty(quant)) {
                             offer.Add(new XElement("min-quantity", quant));
+                            offer.Add(new XElement("step-quantity", quant));
+                        }
                         //добавляю оффер к офферам
                         offers.Add(offer);
                     } catch (Exception x) {
@@ -224,4 +226,5 @@ namespace Selen.Sites {
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }
+    }
 }
