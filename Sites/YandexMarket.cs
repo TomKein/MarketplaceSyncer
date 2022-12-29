@@ -137,7 +137,7 @@ namespace Selen.Sites {
                     try {
                         //исключение
                         var n = b.name.ToLowerInvariant();
-                        if (b.group_id == "2281135" || n.Contains("перельница")) //// Инструменты (аренда), пепельницы
+                        if (b.group_id == "2281135" || n.Contains("пепельница")) //// Инструменты (аренда), пепельницы
                             continue;
                         //создаю новый элемент <offer> с атрубутом id
                         var offer = new XElement("offer", new XAttribute("id", b.id));
