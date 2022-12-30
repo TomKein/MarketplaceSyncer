@@ -21,11 +21,13 @@ namespace Selen {
             //получаю таблицу параметров, в качестве параметра передаю значение поля для поиска
             var dt = await _db.GetParamsAsync(textBox_Search.Text);
             //даю таблицу датагриду
-            dataGridView_Settings.DataSource = dt;
+            dataGridView.DataSource = dt;
             //первый столбец (ключи) ставлю только для чтения
             //dataGridView_Settings.Columns[0].ReadOnly = true;
             //и фиксирую его при горизонтальной прокрутке
-            dataGridView_Settings.Columns[0].Frozen = true;
+            dataGridView.Columns[0].Frozen = true;
+            dataGridView.Columns[0].MinimumWidth = 40;
+            dataGridView.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
         }
         //метод обработки события загрузки формы
         private void FormSettings_Load(object sender, EventArgs e) {
@@ -34,16 +36,16 @@ namespace Selen {
         //метод обработки события начала режима редактирования
         private void dataGridView_Settings_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e) {
             //запоминаю имя параметра
-            _name = dataGridView_Settings.Rows[e.RowIndex].Cells[0].Value.ToString();
+            _name = dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
             //запоминаю значение параметра
-            _value = dataGridView_Settings.Rows[e.RowIndex].Cells[1].Value.ToString();
+            _value = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
         }
         //метод обработки события завершения редактирования
         private void dataGridView_Settings_CellEndEdit(object sender, DataGridViewCellEventArgs e) {
             //определяю имя параметра
-            var name = dataGridView_Settings.Rows[e.RowIndex].Cells[0].Value.ToString();
+            var name = dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
             //определяю значение параметра
-            var value = dataGridView_Settings.Rows[e.RowIndex].Cells[1].Value.ToString();
+            var value = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
             //если изменили имя параметра
             if (name != _name) {
                 var res1 = _db.UpdateParamName(_name, name);
