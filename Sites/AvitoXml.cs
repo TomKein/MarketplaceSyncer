@@ -758,6 +758,7 @@ namespace Selen.Sites {
                   name.StartsWith("крюк буксировочный") ||
                   name.StartsWith("ролик") && name.Contains("двер") ||
                   name.StartsWith("механизм") && name.Contains("двер") ||
+                  name.StartsWith("скоба стабилиз") ||
                   name.StartsWith("салазка") && name.Contains("двер") ||
                   name.Contains("держатель")) {
                 d.Add("TypeId", "16-815");                          //Крепления
