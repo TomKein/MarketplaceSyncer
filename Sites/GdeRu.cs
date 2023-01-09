@@ -162,7 +162,7 @@ namespace Selen.Sites {
         }
         //пишу название
         private void SetTitle(int b) {
-            _dr.WriteToSelector("#AInfoForm_title", _bus[b].NameLength(80));
+            _dr.WriteToSelector("#AInfoForm_title", _bus[b].NameLimit(80));
         }
         //пишу цену
         private void SetPrice(int b) {

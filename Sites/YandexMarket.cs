@@ -144,7 +144,7 @@ namespace Selen.Sites {
                         //добавляю категорию товара
                         offer.Add(new XElement("categoryId", b.group_id));
                         //наименование (до 150 символов)
-                        offer.Add(new XElement("name", b.NameLength(150)));
+                        offer.Add(new XElement("name", b.NameLimit(150)));
                         //цена
                         offer.Add(new XElement("price", b.price));
                         //цена до скидки +10%

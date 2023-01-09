@@ -93,7 +93,7 @@ namespace Selen.Sites {
                     //телефон
                     offer.Add(new XElement("phone", "8 920 899-45-45"));
                     //наименование
-                    offer.Add(new XElement("name", b.NameLength(100)));
+                    offer.Add(new XElement("name", b.NameLimit(100)));
                     //изображения
                     foreach (var photo in GetSatomPhotos(b)) {
                         offer.Add(new XElement("picture", photo));

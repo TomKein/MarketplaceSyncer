@@ -239,7 +239,7 @@ namespace Selen
             }
             return true;
         }
-        public string NameLength(int length) {
+        public string NameLimit(int length) {
             var t = name;
             while (t.Length > length) {
                 t = t.Remove(t.LastIndexOf(' '));

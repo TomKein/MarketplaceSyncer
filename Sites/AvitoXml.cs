@@ -65,7 +65,7 @@ namespace Selen.Sites {
                         //телефон
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
                         //наименование
-                        ad.Add(new XElement("Title", b.NameLength(100)));
+                        ad.Add(new XElement("Title", b.NameLimit(100)));
                         //описание
                         var d = b.DescriptionList(2990, _addDesc);
                         d.AddRange(_addDesc2);

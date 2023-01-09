@@ -273,7 +273,11 @@ namespace Selen {
 
         private void dataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
             if (e.ColumnIndex == 0)
-                Clipboard.SetText(dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString());
+                try {
+                    Clipboard.SetText(dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString());
+                } catch (Exception x) {
+                    Log.Add("ошибка копирования в буфер обмена - "+x.Message);
+                }
         }
     }
 }
