@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.131 яндекс +округление весов и размеров";
+        string _version = "1.132";
 
         DB _db = new DB();
 
@@ -286,35 +286,12 @@ namespace Selen {
                     Log.Add("business.ru: " + item.name + " (цена " + item.price + ", кол. " + item.amount + ")");
                 }
                 stage = "...";
-
-                var ignoreUrlChanges = await _db.GetParamBoolAsync("ignoreUrlChanges");
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
                     var ind = bus.FindIndex(f => f.id == lg.id);
-                    //индекс карточки найден
-                    if (ind != -1) {
-                        if (ignoreUrlChanges) {
-                            if (bus[ind].amount != lg.amount ||             //если изменилось количество или
-                                bus[ind].price != lg.price ||               //если изменилась цена или
-                                bus[ind].archive != lg.archive ||           //статус архивный или
-                                bus[ind].name != lg.name ||                 //изменилось наименование или
-                                bus[ind].description != lg.description ||   //изменилось описание или
-                                bus[ind].part != lg.part ||                 //изменился артикул
-                                bus[ind].weight != lg.weight                //изменился вес
-                                ) {
-                                //переносим все данные
-                                bus[ind] = lg;
-                                //время обновления карточки сдвигаю на время начала цикла синхронизации
-                                bus[ind].updated = _syncStartTime.ToString();   //todo нужно ли?
-                            } else {
-                                //сохраняю в новых данных старую дату обновления
-                                lg.updated = bus[ind].updated;
-                                //переношу все новые данные
-                                bus[ind] = lg;
-                            }
-                        }
-                    } else { //если индекс карточки не найден - добавляем в коллекцию
-                        lg.updated = _syncStartTime.ToString();
+                    if (ind != -1) { //индекс карточки найден - заменяем
+                        bus[ind] = lg;
+                    } else { //иначе добавляем в коллекцию
                         bus.Add(lg);
                     }
                 }
@@ -1287,17 +1264,26 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var weight = 1.20;
-                string s = weight.ToString();
-                weight = 1.0;
-                s = weight.ToString();
-                weight = 11.0;
-                s = weight.ToString();
-                weight = 11.1;
-                s = weight.ToString();
+                var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
+                var str = JsonConvert.SerializeObject(ids);
+
+                await _db.SetParamAsync("avito.upFromHour",str);
 
 
-                var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
+
+
+
+                //var weight = 1.20;
+                //string s = weight.ToString();
+                //weight = 1.0;
+                //s = weight.ToString();
+                //weight = 11.0;
+                //s = weight.ToString();
+                //weight = 11.1;
+                //s = weight.ToString();
+
+
+                //var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
 
 
                 //var img = new List<Image>() {
