@@ -29,7 +29,6 @@ namespace Selen.Sites {
         public Drom() {
             _db = DB._db;
         }
-
         public void LoadCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
@@ -38,7 +37,6 @@ namespace Selen.Sites {
                 Thread.Sleep(1000);
             }
         }
-
         public void SaveCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
@@ -47,7 +45,6 @@ namespace Selen.Sites {
                     _db.SetParam("drom.cookies", c);
             }
         }
-
         public void Quit() {
             _dr?.Quit();
             _dr = null;
@@ -464,7 +461,8 @@ namespace Selen.Sites {
                                 //получаю количество фотографий 
                                 var imgCount = _dr.GetElementsCount("//div[@class='grid-item-wrapper']/img[contains(@src,'drom.ru')]");
                                 //перехожу на страницу объявления
-                                PressOkButton();
+                                _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
+
                                 //открываю фото в полный размер, чтобы получить ссылки на полноразмерные фото
                                 _dr.ButtonClick(".image-gallery");
                                 //прокручиваю фотографии, т.к. в разметке ссылки только на 3 фотографии
