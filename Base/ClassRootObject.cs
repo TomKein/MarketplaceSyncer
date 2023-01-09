@@ -12,6 +12,12 @@ using System.Windows.Forms;
 
 namespace Selen
 {
+    public class realizationgoods {
+        public string id { get; set; }
+        public string good_id { get; set; }
+        public string updated { get; set; }
+    }
+
     public class Goodsattributes {
         public string id { get; set; }
         public string good_id { get; set; }

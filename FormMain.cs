@@ -1199,15 +1199,26 @@ namespace Selen {
             if (cnt == 0)
                 return;
             //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
-            var buschk = bus.Where(w => w.images.Count > 0 && w.amount <= 0 && w.price > 0 && w.remains.Count > 0)
+            var buschk = bus.Where(b => b.images.Count > 0 &&
+                                        b.amount <= 0 && 
+                                        b.price > 0 && 
+                                        b.remains.Count > 0 &&
+                                        DateTime.Now.AddDays(-days) > DateTime.Parse(b.updated))
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
-            Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка: " + buschk.Count);
+            Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
+            var lastDate = DateTime.Now.AddYears(-2).ToString();
             for (int b = 0; b < cnt && b < buschk.Count; b++) {
                 try {
-                    //пропускаю карточки которые обновлялись в течении месяца
-                    if (DateTime.Now.AddDays(-days) < DateTime.Parse(buschk[b].updated))
+                    //количество реализаций товара
+                    var s = await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
+                                    {"good_id", buschk[b].id},
+                                    {"updated[from]", lastDate}
+                                });
+                    var realizationsCount = JsonConvert.DeserializeObject<List<realizationgoods>>(s).Count;
+                    if (DateTime.Now.AddDays(-days - 10*realizationsCount) < DateTime.Parse(buschk[b].updated))
                         continue;
+
                     //удаляю фото
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", buschk[b].id},
@@ -1265,10 +1276,11 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
-                var str = JsonConvert.SerializeObject(ids);
+                await PhotoClearAsync();
+                //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
+                //var str = JsonConvert.SerializeObject(ids);
 
-                await _db.SetParamAsync("avito.upFromHour",str);
+                //await _db.SetParamAsync("avito.upFromHour",str);
 
 
 
