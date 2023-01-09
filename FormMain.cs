@@ -1195,6 +1195,7 @@ namespace Selen {
         //удаление фото из старых карточек
         async Task PhotoClearAsync() {
             var cnt = await _db.GetParamIntAsync("photosCheckCount");
+            var days = await _db.GetParamIntAsync("photosCheckDays");
             if (cnt == 0)
                 return;
             //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
@@ -1205,7 +1206,7 @@ namespace Selen {
             for (int b = 0; b < cnt && b < buschk.Count; b++) {
                 try {
                     //пропускаю карточки которые обновлялись в течении месяца
-                    if (DateTime.Now.AddDays(-30) < DateTime.Parse(buschk[b].updated))
+                    if (DateTime.Now.AddDays(-days) < DateTime.Parse(buschk[b].updated))
                         continue;
                     //удаляю фото
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
