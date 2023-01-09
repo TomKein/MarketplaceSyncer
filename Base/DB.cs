@@ -17,7 +17,8 @@ namespace Selen.Base {
         //строка подключения google cloud engine
         private static readonly string connectionString =
             //"server=35.185.57.11;database=business.ru;uid=business;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";
-            "server=31.31.198.99;database=u1633438_default;uid=u1633438_busines;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";
+            //"server=31.31.198.99;database=u1633438_default;uid=u1633438_busines;pwd=b1u2s3i4n5e6s7s8;charset=utf8;";
+            "server=37.140.192.251;database=u1723083_sync;uid=u1723083_program;pwd=u1723083_programpassword;charset=utf8;";
         //ссылка на экземпляр себя
         public static DB _db = null;
         //создаю подключение
