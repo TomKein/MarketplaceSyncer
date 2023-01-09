@@ -111,7 +111,7 @@ namespace Selen {
         //KUPIPRODAI.RU
         async void ButtonKupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan)
+            while (_isBusinessNeedRescan || !button_KupiprodaiAdd.Enabled)
                 await Task.Delay(30000);
             if (await _kupiprodai.StartAsync(bus))
                 ChangeStatus(sender, ButtonStates.Active);
@@ -121,7 +121,7 @@ namespace Selen {
         }
         async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan)
+            while (_isBusinessNeedRescan || !button_Kupiprodai.Enabled)
                 await Task.Delay(30000);
             await _kupiprodai.AddAsync();
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();

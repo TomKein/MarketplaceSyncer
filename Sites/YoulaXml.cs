@@ -161,7 +161,7 @@ namespace Selen.Sites {
                         //телефон
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
                         //наименование
-                        ad.Add(new XElement("Title", b.NameLength(100)));
+                        ad.Add(new XElement("Title", b.NameLimit(100)));
                         //изображения
                         var images = new XElement("Images");
                         foreach (var photo in GetSatomPhotos(b)) {

@@ -167,8 +167,15 @@ namespace Selen.Sites {
             }
         }
         //пишу название
-        void SetTitle(int b) {
-            _dr.WriteToSelector("input[name*='title']", _bus[b].NameLength(80));
+        void SetTitle(int b, bool twice = false) {
+            string newName = null;
+            if (twice) {
+                newName = (_bus[b].name + " " + _bus[b].name);
+                if (newName.Length > 80)
+                    newName = newName.Substring(0, 80);
+            } else
+                newName = _bus[b].NameLimit(80);
+            _dr.WriteToSelector("input[name*='title']", newName);
         }
         //пишу цену
         void SetPrice(int b) {
@@ -199,9 +206,9 @@ namespace Selen.Sites {
                     try {
                         await Task.Factory.StartNew(() => {
                             _dr.Navigate("https://vip.kupiprodai.ru/add/");
-                            SetTitle(b);
+                            SetTitle(b,twice:true);
                             SetCategory(b);
-                            SetImages(b);
+                            //SetImages(b);
                             SetDesc(b);
                             SetPrice(b);
                             PressOkButton();
@@ -230,7 +237,7 @@ namespace Selen.Sites {
             });
             if (url.Contains("editmsg")) {
                 _bus[b].kp = url;
-                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>                                {
+                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                 {"id", _bus[b].id},
                                 {"name",_bus[b].name},
                                 {_url, _bus[b].kp}
