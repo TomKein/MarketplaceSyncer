@@ -37,7 +37,7 @@ namespace Selen.Base {
         public static async Task FtpUploadAsync(string fname) {
             System.Net.WebClient ftp = new System.Net.WebClient();
             //ftp.Credentials = new NetworkCredential("u1633438", "HIJv3W71Xmftd61D"); 
-            ftp.Credentials = new NetworkCredential("u1723083", "0eCssGXW9fFXa39u");
+            ftp.Credentials = new NetworkCredential("u1723083", "e6sb0JTTrc0IV4sW");
             for (int f = 1; f <= 5; f++) {
                 try {
                     await Task.Factory.StartNew(() => {

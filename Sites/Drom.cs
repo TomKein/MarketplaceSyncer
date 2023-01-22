@@ -50,40 +50,52 @@ namespace Selen.Sites {
             _dr = null;
         }
         public async Task DromStartAsync(List<RootObject> bus) {
-            //сохраняю список товаров
-            _bus = bus;
-            //получаю номер ссылки в карточке
-            _url = await _db.GetParamStrAsync("drom.url");
-            //заполнение веса
-            _addWeights = await _db.GetParamBoolAsync("drom.addWeights");
-            //дополнительное описание
-            _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
-            Log.Add("drom.ru: начало выгрузки...");
-            await AuthAsync();
-            await GetDromPhotos();
-            await UpAsync();
-            await EditAsync();
-            await AddAsync();
-            await CheckAsync();
-            Log.Add("drom.ru: выгрузка завершена");
+            try {
+                //сохраняю список товаров
+                _bus = bus;
+                //получаю номер ссылки в карточке
+                _url = await _db.GetParamStrAsync("drom.url");
+                //заполнение веса
+                _addWeights = await _db.GetParamBoolAsync("drom.addWeights");
+                //дополнительное описание
+                _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
+                Log.Add("drom.ru: начало выгрузки...");
+                if (await AuthAsync()) {
+                    await GetDromPhotos();
+                    await UpAsync();
+                    await EditAsync();
+                    await AddAsync();
+                    await CheckAsync();
+                    Log.Add("drom.ru: выгрузка завершена");
+                }
+            } catch (Exception x) {
+                Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
+            }
         }
-        async Task AuthAsync() {
-            await Task.Factory.StartNew(() => {
-                if (_needRestart) Quit();
-                if (_dr == null) {
-                    _dr = new Selenium();
-                    LoadCookies();
-                }
-                _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
-                if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
-                    _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
-                    _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
-                    _dr.ButtonClick("#signbutton"); //жмем кнопку входа
-                    while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
-                        Thread.Sleep(30000);
-                }
-                SaveCookies();
-            });
+        async Task<bool> AuthAsync() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    if (_needRestart)
+                        Quit();
+                    if (_dr == null) {
+                        _dr = new Selenium();
+                        LoadCookies();
+                    }
+                    _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
+                    if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
+                        _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
+                        _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
+                        _dr.ButtonClick("#signbutton"); //жмем кнопку входа
+                        while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
+                            Thread.Sleep(30000);
+                    }
+                    SaveCookies();
+                });
+                return true;
+            } catch (Exception x) {
+                Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
+            }
+            return false;
         }
         async Task EditAsync() {
             await Task.Factory.StartNew(() => {
@@ -114,7 +126,8 @@ namespace Selen.Sites {
             Log.Add("drom.ru: " + b.name + " - объявление обновлено");
             if (b.amount <= 0) {
                 Delete();
-            } else Up(b);
+            } else
+                Up(b);
         }
         //проверка фотографий в объявлении
         private void CheckPhotos(RootObject b) {
@@ -162,7 +175,8 @@ namespace Selen.Sites {
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("http://baza.drom.ru/set/city/370?return=http%3A%2F%2Fbaza.drom.ru%2Fadding%3Fcity%3D370");
-                        if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0) throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
+                        if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
+                            throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
                         SetTitle(_bus[b]);
                         _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                         _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
@@ -192,9 +206,10 @@ namespace Selen.Sites {
         private void SetWeight(RootObject b) {
             if (_addWeights) {
                 var weight = b.weight ?? 1.00;
-                if (weight == 0) weight = 1.00;
-                _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']", 
-                    weight.ToString("0.00").Replace(",",".") + OpenQA.Selenium.Keys.Tab);
+                if (weight == 0)
+                    weight = 1.00;
+                _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
+                    weight.ToString("0.00").Replace(",", ".") + OpenQA.Selenium.Keys.Tab);
             }
         }
 
@@ -212,9 +227,12 @@ namespace Selen.Sites {
                 var d = b.description.ToLowerInvariant();
                 if (d.Contains("din")) {
                     var s = b.description.ToLowerInvariant().Replace(" din", "din").Replace("din ", "din").Split(' ').First(f => f.Contains("din"));
-                    if (s.Contains("2")) _dr.ButtonClick("//label[contains(text(),'2 DIN')]");
-                    else if (s.Contains("5")) _dr.ButtonClick("//label[contains(text(),'1,5 DIN')]");
-                } else _dr.ButtonClick("//label[contains(text(),'1 DIN')]");
+                    if (s.Contains("2"))
+                        _dr.ButtonClick("//label[contains(text(),'2 DIN')]");
+                    else if (s.Contains("5"))
+                        _dr.ButtonClick("//label[contains(text(),'1,5 DIN')]");
+                } else
+                    _dr.ButtonClick("//label[contains(text(),'1 DIN')]");
                 if (_dr.GetElementsCount("//div[@data-name='model']/div[contains(@class,'annotation') and contains(@style,'none')]") == 0) {
                     _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", "штатная");
                 }
@@ -227,9 +245,15 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='quantity']", "1");
                 string dtype;
                 switch (b.DiskType()) {
-                    case "Литые": dtype = "Литой";break;
-                    case "Кованые": dtype = "Кованый";break;
-                    default: dtype = "Литой"; break;
+                    case "Литые":
+                        dtype = "Литой";
+                        break;
+                    case "Кованые":
+                        dtype = "Кованый";
+                        break;
+                    default:
+                        dtype = "Литой";
+                        break;
                 }
                 _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", dtype + OpenQA.Selenium.Keys.Enter);
             }
@@ -239,19 +263,19 @@ namespace Selen.Sites {
             if (b.IsNew()) {
                 if (!_dr.GetElementCSSValue("//label[text()='Новый']", "background").Contains("224, 224"))
                     _dr.ButtonClick("//label[text()='Новый']");
-            } else 
+            } else
                 if (!_dr.GetElementCSSValue("//label[text()='Б/у']", "background").Contains("224, 224"))
-                    _dr.ButtonClick("//label[text()='Б/у']");
+                _dr.ButtonClick("//label[text()='Б/у']");
             //аналог или оригинал
             if (b.IsOrigin()) {
                 if (!_dr.GetElementCSSValue("//label[text()='Оригинал']", "background").Contains("224, 224"))
                     _dr.ButtonClick("//label[text()='Оригинал']");
-            } else 
+            } else
                 if (!_dr.GetElementCSSValue("//label[text()='Аналог']", "background").Contains("224, 224"))
-                    _dr.ButtonClick("//label[text()='Аналог']");
+                _dr.ButtonClick("//label[text()='Аналог']");
             //наличие
             if (!_dr.GetElementCSSValue("//label[text()='В наличии']", "background").Contains("224, 224"))
-                _dr.ButtonClick("//label[text()='В наличии']"); 
+                _dr.ButtonClick("//label[text()='В наличии']");
         }
         void SetImages(RootObject b) {
             WebClient cl = new WebClient();
@@ -282,7 +306,8 @@ namespace Selen.Sites {
         void PressPublicFreeButton() {
             for (int i = 0; i < 2; i++) {
                 _dr.ButtonClick("//button[@id='bulletin_publication_free']");
-                if (_dr.GetElementsCount("//button[@id='bulletin_publication_free']") == 0) break;
+                if (_dr.GetElementsCount("//button[@id='bulletin_publication_free']") == 0)
+                    break;
             }
         }
         void SetDesc(RootObject b) {
@@ -297,7 +322,8 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
         }
         void Up(RootObject b) {
-            if (_dr.GetElementsCount("//a[text()='Купить']") > 0) return;
+            if (_dr.GetElementsCount("//a[text()='Купить']") > 0)
+                return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
                 _dr.ButtonClick("//a[contains(@class,'doProlong')]");
                 _dr.ButtonClick("//a[@data-applier='recoverBulletin']");
@@ -343,7 +369,8 @@ namespace Selen.Sites {
             //для каждого объявления, в статусе которого есть предупреждение
             foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
                 //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
-                if (_rnd.Next(30) != 1) continue;
+                if (_rnd.Next(30) != 1)
+                    continue;
                 //сохраняю содержимое предупреждения 
                 var status = item.FindElement(By.XPath(".//div[contains(@class,'alert')]/p")).Text;
                 //сохраняю id объявления
@@ -380,7 +407,7 @@ namespace Selen.Sites {
             int count = await _db.GetParamIntAsync("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
-                    var pages = GetPagesCount("all")/2;//todo убрать
+                    var pages = GetPagesCount("all") / 2;//todo убрать
                     for (int i = 0; i < count; i++) {
                         try {
                             var drom = ParsePage(_rnd.Next(1, pages));
@@ -412,7 +439,7 @@ namespace Selen.Sites {
                 ((item.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
 
                     && DateTime.Now.Minute < 50 //ограничитель периода
-                    //&& _bus[i].price > 500
+                                                //&& _bus[i].price > 500
 
                 ) ||
                 !item.description.Contains("далено") && _bus[i].amount <= 0 ||
@@ -434,7 +461,8 @@ namespace Selen.Sites {
                 var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
                 //количество фото
                 var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
-                if (img == 0) price = 0; //если фотографий 0, то зануляю цену, которую спарсили, что спровоцирует обновление объявления и загрузку фото
+                if (img == 0)
+                    price = 0; //если фотографий 0, то зануляю цену, которую спарсили, что спровоцирует обновление объявления и загрузку фото
                 drom.Add(new RootObject {
                     name = name,
                     id = id,
@@ -468,16 +496,16 @@ namespace Selen.Sites {
                                 //прокручиваю фотографии, т.к. в разметке ссылки только на 3 фотографии
                                 for (int i = 0; i < imgCount; i++) {
                                     //получаю ссылки на фото
-                                    var url = _dr._drv.FindElements(By.XPath("//img[@class='pswp__img']")).Select(c=>c.GetAttribute("src"));
+                                    var url = _dr._drv.FindElements(By.XPath("//img[@class='pswp__img']")).Select(c => c.GetAttribute("src"));
                                     //добавляю в список
                                     imgUrls.AddRange(url);
                                     //пролистываю на следующее фото
-                                    _dr.ButtonClick("//button[contains(@class,'button--arrow--right')]",sleep:5000);
+                                    _dr.ButtonClick("//button[contains(@class,'button--arrow--right')]", sleep: 5000);
                                 }
                                 //очищаю список от повторов
-                                imgUrls = imgUrls.Distinct().OrderBy(a=>a).ToList();
+                                imgUrls = imgUrls.Distinct().OrderBy(a => a).ToList();
                             });
-                            if(imgUrls.Count==0)
+                            if (imgUrls.Count == 0)
                                 throw new Exception("сылки для загрузки на фото не найдены!!");
                             //если ссылки на фото найдены
                             for (int i = 0; i < imgUrls.Count; i++) {
@@ -502,7 +530,7 @@ namespace Selen.Sites {
                                     + biz[0].images.Count);
                             //обновляю ссылку на фото
                             _bus[b].images = biz[0].images;
-                            Log.Add("drom.ru: "+ imgUrls.Count + " фото обновлено!");
+                            Log.Add("drom.ru: " + imgUrls.Count + " фото обновлено!");
                         } catch (Exception x) {
                             Log.Add("drom.ru: " + _bus[b].name + " - ошибка загрузки фотографий - " + x.Message);
                         }
