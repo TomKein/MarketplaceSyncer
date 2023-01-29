@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using DocumentFormat.OpenXml.Bibliography;
 using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
@@ -39,45 +38,6 @@ namespace Selen.Sites {
             satomYML = XDocument.Load(satomFile);
             Log.Add(_l + "каталог загружен!");
         }
-        //получаю прямые ссылки на фото из каталога сатом
-        List<string> GetSatomPhotos(RootObject b) {
-            //проверка каталога xml
-            if (satomYML.Root.Name != "yml_catalog")
-                throw new Exception("GetSatomPhotos: ошибка чтения каталога satom! - корневой элемент не найден");
-            //ищем товар в каталоге
-            XElement offer = null;
-            var tmp = satomYML.Descendants("offer")
-                              .Where(w => w.Element("description")?
-                                           .Value?
-                                           .Split(':')
-                                           .Last()
-                                           .Split('<')
-                                           .First()
-                                           .Trim() == b.id);
-            if (tmp?.Count() > 0)
-                offer = tmp.First();
-            //получаем фото
-            if (offer == null) {
-                //if (b.amount < 0)
-                //    return new List<string>();
-                //throw new Exception("оффер не найден в каталоге satom");
-                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
-                return b.images.Select(s => s.url).ToList();
-            }
-            var list = offer.Elements("picture")
-                            .Select(s => s.Value)
-                            .Take(10)
-                            .ToList();
-            //проверка наличия фото
-            if (list.Count == 0 && b.amount > 0)
-                //throw new Exception("фото не найдены в каталоге satom");
-                //вместо выбрасывания ошибки добавляем ссылки на фото из бизнес.ру
-                return b.images.Select(s => s.url).ToList();
-
-            //сортировка фото - первое остается, остальные разворачиваем
-            list.Reverse(1, list.Count - 1);
-            return list;
-        }
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
@@ -108,7 +68,7 @@ namespace Selen.Sites {
                 //отсортированный по цене вниз
                 var bus = _bus.Where(w => w.price > 0
                                        && w.images.Count > 0
-                                       && (w.amount > 0))
+                                       && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
                               .OrderByDescending(o => o.price);
                 //список групп, в которых нашлись товары
                 var groupsIds = bus.Select(s => s.group_id).Distinct();
@@ -125,19 +85,13 @@ namespace Selen.Sites {
                 //создаю необходимый элемент <offers>
                 var offers = new XElement("offers");
                 Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
-                //цена замены фото - после первой загрузки фотографий с сатома будем плавно замещать
-                //на ссылки из бизнес.ру, если редиректные ссылки на фото прокатят
-                //используем старый параметр, больше ненужный для авито
-                var imagePrice = DB._db.GetParamInt("yandex.photoChangePrice");
-                //повышаем ценовую планочку немного, от самых дешевых к дорогим
-                if (imagePrice < 1000000)
-                    DB._db.SetParam("yandex.photoChangePrice", (imagePrice / 100 + imagePrice).ToString());
                 //для каждой карточки
                 foreach (var b in bus) {
                     try {
                         //исключение
                         var n = b.name.ToLowerInvariant();
-                        if (b.group_id == "2281135" || n.Contains("пепельница")) //// Инструменты (аренда), пепельницы
+                        if (b.group_id == "2281135" || n.Contains("пепельница") || //// Инструменты (аренда), пепельницы
+                            n.Contains("стекло заднее") || n.Contains("стекло переднее")) 
                             continue;
                         //создаю новый элемент <offer> с атрубутом id
                         var offer = new XElement("offer", new XAttribute("id", b.id));
@@ -152,14 +106,12 @@ namespace Selen.Sites {
                         //валюта 
                         offer.Add(new XElement("currencyId", "RUR"));
                         //изображения (до 20 шт)
-                        if (b.price < imagePrice) {
-                            foreach (var photo in b.images.Take(20)) {
-                                offer.Add(new XElement("picture", photo.url));
-                            }
-                        } else {
-                            foreach (var photo in GetSatomPhotos(b)) {
-                                offer.Add(new XElement("picture", photo));
-                            }
+                        foreach (var photo in b.images.Take(20)) {
+                            offer.Add(new XElement("picture", photo.url));
+                        }
+                        //если надо снять
+                        if (b.amount <= 0) {
+                            offer.Add(new XElement("disabled", "true"));
                         }
                         //описание
                         var description = b.DescriptionList(2990, _addDesc);
