@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.133";
+        string _version = "1.134";
 
         DB _db = new DB();
 
@@ -374,8 +374,23 @@ namespace Selen {
             await GroupsMoveAsync();//проверка групп
             await PhotoClearAsync();//очистка ненужных фото
             await ArchivateAsync();//архивирование старых карточек
+            await CheckDescriptions();
         }
-
+        //проверка переносов в описаниях
+        private async Task CheckDescriptions() {
+            for (int i = bus.Count-1; i > -1; i--) {
+                if (bus[i].name.Contains("test")) { await Task.Delay(10); }
+                if (bus[i].description?.Contains("\n")??false) {
+                    bus[i].description = bus[i].description.Replace("\n", "<br />");
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
+                                {"id", bus[i].id},
+                                {"name", bus[i].name},
+                                {"description", bus[i].description}
+                            });
+                    Log.Add("CheckDescriptions: " + bus[i].name + " - описание обновлено\n" + bus[i].description);
+                }
+            }
+        }
         private async Task CheckBu() => await Task.Factory.StartNew(() => {
             foreach (var b in bus) {
                 var n = b.name;
@@ -651,9 +666,10 @@ namespace Selen {
             //количество изменений за один раз
             var n = await _db.GetParamIntAsync("descriptionEditCount");
             //пробегаемся по описаниям карточек базы
-            for (int i = 0; i < bus.Count && n > 0; i++) {
+            //for (int i = bus.Count-1; i > -1 && n > 0; i--) {
+            for (int i = bus.Count-1; i > -1 && n > 0; i--) {
                 //если в карточке есть фото и остатки
-                if (bus[i].images.Count > 0 && bus[i].amount > 0) {
+                if (bus[i].images.Count > 0 /*&& bus[i].amount > 0*/) {
                     bool flag_need_formEdit = false;
                     //старое название, нужно обрезать
                     if (bus[i].description.Contains("Есть и другие")) {
@@ -1276,7 +1292,8 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await PhotoClearAsync();
+                _drom.CheckOffersAsync();
+                //CheckDescriptions();
                 //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
                 //var str = JsonConvert.SerializeObject(ids);
 

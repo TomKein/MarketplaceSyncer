@@ -20,7 +20,8 @@ namespace Selen.Sites {
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
-        bool _addWeights;            //добавление веса
+        bool _addWeights;            //добавление веса 
+        float _defWeigth;           //вес по умолчанию 
         List<RootObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
         bool _needRestart = false;
@@ -57,6 +58,8 @@ namespace Selen.Sites {
                 _url = await _db.GetParamStrAsync("drom.url");
                 //заполнение веса
                 _addWeights = await _db.GetParamBoolAsync("drom.addWeights");
+                //вес по умолчанию
+                _defWeigth = _db.GetParamFloat("defaultWeigth");
                 //дополнительное описание
                 _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
                 Log.Add("drom.ru: начало выгрузки...");
@@ -65,11 +68,20 @@ namespace Selen.Sites {
                     await UpAsync();
                     await EditAsync();
                     await AddAsync();
-                    await CheckAsync();
+                    await CheckPagesAsync();
+                    await CheckOffersAsync();
                     Log.Add("drom.ru: выгрузка завершена");
                 }
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
+                if (x.Message.Contains("timed out") ||
+                    x.Message.Contains("already closed") ||
+                    x.Message.Contains("invalid session id") ||
+                    x.Message.Contains("chrome not reachable")) {
+                    Log.Add("gde.ru: ошибка браузера! - " + x.Message);
+                    _dr.Quit();
+                    _dr = null;
+                }
             }
         }
         async Task<bool> AuthAsync() {
@@ -202,17 +214,15 @@ namespace Selen.Sites {
                 }
             }
         }
-
         private void SetWeight(RootObject b) {
             if (_addWeights) {
-                var weight = b.weight ?? 1.00;
+                var weight = b.weight ?? _defWeigth;
                 if (weight == 0)
-                    weight = 1.00;
+                    weight = _defWeigth;
                 _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
                     weight.ToString("0.00").Replace(",", ".") + OpenQA.Selenium.Keys.Tab);
             }
         }
-
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl().Split('-').Last().Split('.').First();
             _bus[b].drom = _dromUrlStart + new_id + "/edit";
@@ -403,7 +413,7 @@ namespace Selen.Sites {
             }
             return 1;
         }
-        public async Task CheckAsync() {
+        public async Task CheckPagesAsync() {
             int count = await _db.GetParamIntAsync("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
@@ -424,6 +434,46 @@ namespace Selen.Sites {
                 Debug.WriteLine("drom.ru: ошибка парсинга! - " + x.Message + " - " + x.InnerException.Message);
             }
         }
+        public async Task CheckOffersAsync() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    int b = _db.GetParamInt("drom.checkOfferIndex");
+                    int cnt = _db.GetParamInt("drom.checkOffersCount");
+                    for (int i = 0; i < cnt; i++) {
+                        try {
+                            if (b >= _bus.Count)
+                                b = 0;
+                            if (_bus[b].amount > 0 &&
+                                _bus[b].images.Count > 0 &&
+                                _bus[b].drom.Contains("http")) {
+                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление ("+b+" / "+_bus.Count+")");
+                                _dr.Navigate(_bus[b].drom);
+                                //адрес самовывоза из профиля
+                                if (_dr.GetElementAttribute("//label[contains(text(),'Применить из профиля')]/..//input[@name='showSellerProfile']", "value") != "true") {
+                                    _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]/..//input[@name='showSellerProfile']");
+                                    Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен адрес самовывоза");
+                                }
+                                //проверка заполнения веса
+                                var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value").Replace(".", ",");
+                                if (string.IsNullOrEmpty(w) || float.Parse(w) != _bus[b].weight) {
+                                    SetWeight(_bus[b]);
+                                    Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен вес " + _bus[b].weight);
+                                }
+                            }
+                            _db.SetParam("drom.checkOfferIndex", (++b).ToString());
+                            Thread.Sleep(5000);
+                        } catch {
+                            _dr.Refresh();
+                            Thread.Sleep(10000);
+                        }
+
+                    }
+                });
+            } catch (Exception x) {
+                Debug.WriteLine("drom.checkOffers: ошибка! - " + x.Message + " - " + x.InnerException.Message);
+            }
+        }
+
         void CheckPage(List<RootObject> drom) {
             for (int i = 0; i < drom.Count; i++) {
                 CheckItem(drom[i]);
