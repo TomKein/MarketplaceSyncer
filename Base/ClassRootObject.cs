@@ -198,10 +198,11 @@ namespace Selen
                 defaultWeight = 1f;
             }
         }
-        public string GetWeight() {
-            if (weight == null || weight == 0)
-                weight = defaultWeight;
-            return weight?.ToString("F1").Replace(",",".");
+        public string GetWeightString() {
+            return GetWeight().ToString("F1").Replace(",",".");
+        }
+        public float GetWeight() {
+            return (float) ((weight == null || weight == 0) ? defaultWeight : weight);
         }
         //объем товара по умолчанию
         static float defaultVolume;
@@ -476,37 +477,44 @@ namespace Selen
                 manufactures = DB._db.GetParamStr("manufactures").Split(',');
         }
         //метод определения размеров
-        public string GetDimentions() {
+        public string GetDimentionsString() {
+            var d = GetDimentions();
+            return (d[0].ToString("F1") + "/" + d[1].ToString("F1") + "/" + d[2].ToString("F1")).Replace(",", ".");
+        }
+
+        public float[] GetDimentions() {
             //сперва проверяю характеристики товара, если они указаны, использую их в первую очередь
+            float[] arr = new float[3];
             var width = attributes?.Find(f => f.Attribute.id == "2283757"); //Ширина
             var heigth = attributes?.Find(f => f.Attribute.id == "2283758"); //Высота
             var length = attributes?.Find(f => f.Attribute.id == "2283759"); //Длина
             if (width != null && width.Value.value != "" && width.Value.value != "0" &&
                 heigth != null && heigth.Value.value != "" && heigth.Value.value != "0" &&
                 length != null && length.Value.value != "" && length.Value.value != "0") {
-                var d = new StringBuilder();
-                d.Append(length.Value.value.Replace(",", ".").Split('.').First());
-                d.Append(".0/");
-                d.Append(width.Value.value.Replace(",", ".").Split('.').First());
-                d.Append(".0/");
-                d.Append(heigth.Value.value.Replace(",", ".").Split('.').First());
-                d.Append(".0");
-                return d.ToString();
+                try {
+                    arr[0] = float.Parse(length.Value.value.Replace(".", ","));
+                    arr[1] = float.Parse(width.Value.value.Replace(".", ","));
+                    arr[2] = float.Parse(heigth.Value.value.Replace(".", ","));
+                    return arr;
+                } catch (Exception x) {
+                    Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер: \nдлина " + 
+                        length.Value.value + " \nширина " + width.Value.value + " \nвысота " + heigth.Value.value);
+                }
             }
             //если характеристики не указаны, либо указаны неверно,
             //рассчитываю размеры из параметра Объем (м3)
-            if (volume ==null || volume == 0)
+            if (volume == null || volume == 0)
                 volume = defaultVolume;
             //средняя длина стороны = кубический корень из объема
             var dimention = Math.Pow((double) volume, 1.0 / 3.0);
             //первую округляю в большую сторону
-            var x1 = Math.Ceiling(dimention * 20) * 5;
+            arr[0] = (float) Math.Ceiling(dimention * 20) * 5;
             //вторую - в меньшую
-            var x2 = Math.Floor(dimention * 20) * 5;
+            arr[1] = (float) Math.Floor(dimention * 20) * 5;
             //третью вычисляю от первых двух и округляю до целых
-            var x3 = Math.Round((double) (100 * volume / (x1 * 0.01 * x2 * 0.01)));
+            arr[2] = (float) Math.Round((double)(100 * volume / (arr[0] * 0.01 * arr[1] * 0.01)));
             //строка с размерами
-            return (x1.ToString("F1") + "/" + x2.ToString("F1") + "/" + x3.ToString("F1")).Replace(",", ".");
+            return arr;
         }
         //квант продажи
         public string GetQuantOfSell() {
