@@ -446,11 +446,11 @@ namespace Selen.Sites {
                             if (_bus[b].amount > 0 &&
                                 _bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
-                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление ("+b+" / "+_bus.Count+")");
+                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление "+(i+1)+" (" + b + " / " + _bus.Count + ")");
                                 _dr.Navigate(_bus[b].drom);
                                 //адрес самовывоза из профиля
-                                if (_dr.GetElementAttribute("//label[contains(text(),'Применить из профиля')]/..//input[@name='showSellerProfile']", "value") != "true") {
-                                    _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]/..//input[@name='showSellerProfile']");
+                                if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background").Contains("rgb(255, 255, 255)")) { 
+                                    _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен адрес самовывоза");
                                 }
                                 //проверка заполнения веса
@@ -458,13 +458,14 @@ namespace Selen.Sites {
                                 if (string.IsNullOrEmpty(w) || float.Parse(w) != _bus[b].weight) {
                                     SetWeight(_bus[b]);
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен вес " + _bus[b].weight);
+                                    Thread.Sleep(5000);
                                 }
-                            }
+                            } else
+                                i--;
                             _db.SetParam("drom.checkOfferIndex", (++b).ToString());
-                            Thread.Sleep(5000);
                         } catch {
                             _dr.Refresh();
-                            Thread.Sleep(10000);
+                            Thread.Sleep(20000);
                         }
 
                     }
