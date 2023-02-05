@@ -85,6 +85,16 @@ namespace Selen.Sites {
                 //создаю необходимый элемент <offers>
                 var offers = new XElement("offers");
                 Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
+                ////наценка минимальная (дефолтная) из настроек
+                //var overPriceMin = DB._db.GetParamInt("yandex.overPriceMin");
+                ////наценка повышенная из настроек
+                //var overPriceMax = DB._db.GetParamInt("yandex.overPriceMax");
+                ////пороговый вес для максимальной наценки из настроек
+                //var overPriceThresWeight = DB._db.GetParamInt("yandex.overPriceThresWeight");
+                ////пороговая длина для максимальной наценки из настроек
+                //var overPriceThresLength = DB._db.GetParamInt("yandex.overPriceThresWeight");
+                //старая цена из настроек
+                var oldPriceProcent = DB._db.GetParamFloat("yandex.oldPriceProcent");
                 //для каждой карточки
                 foreach (var b in bus) {
                     try {
@@ -100,19 +110,18 @@ namespace Selen.Sites {
                         //наименование (до 150 символов)
                         offer.Add(new XElement("name", b.NameLimit(150)));
                         //цена
-                        offer.Add(new XElement("price", b.price));
+                        var price = GetPrice(b);
+                        offer.Add(new XElement("price", price));
                         //цена до скидки +10%
-                        offer.Add(new XElement("oldprice", (b.price * 1.1).ToString("F0")));
+                        offer.Add(new XElement("oldprice", (Math.Ceiling((price * (1 + oldPriceProcent/100))/100)*100).ToString("F0")));
                         //валюта 
                         offer.Add(new XElement("currencyId", "RUR"));
                         //изображения (до 20 шт)
-                        foreach (var photo in b.images.Take(20)) {
-                            offer.Add(new XElement("picture", photo.url));
-                        }
+                        foreach (var photo in b.images.Take(20)) 
+                            offer.Add(new XElement("picture", photo.url));                        
                         //если надо снять
-                        if (b.amount <= 0) {
+                        if (b.amount <= 0) 
                             offer.Add(new XElement("disabled", "true"));
-                        }
                         //описание
                         var description = b.DescriptionList(2990, _addDesc);
                         offer.Add(new XElement("description", new XCData(description.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
@@ -126,9 +135,9 @@ namespace Selen.Sites {
                         //количество 
                         offer.Add(new XElement("count", b.amount));
                         //вес
-                        offer.Add(new XElement("weight", b.GetWeight()));
+                        offer.Add(new XElement("weight", b.GetWeightString()));
                         //размеры
-                        offer.Add(new XElement("dimensions", b.GetDimentions()));
+                        offer.Add(new XElement("dimensions", b.GetDimentionsString()));
                         //блок ресейл
                         if (!b.IsNew()) {
                             //состояние - бывший в употреблении
@@ -143,9 +152,8 @@ namespace Selen.Sites {
                             offer.Add(condition);
                         }
                         //срок годности 
-                        if (!b.IsGroupSolidParts()) { //если группа масла, автохимия, аксессуары
+                        if (!b.IsGroupSolidParts())  //если группа масла, автохимия, аксессуары
                             offer.Add(new XElement("period-of-validity-days", b.GetValidity()));
-                        }
                         //квант продажи
                         var quant = b.GetQuantOfSell();
                         if (!string.IsNullOrEmpty(quant)) {
@@ -177,6 +185,23 @@ namespace Selen.Sites {
             if (await gen && new FileInfo(filename).Length > await DB._db.GetParamIntAsync("yandex.xmlMinSize"))
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
+        }
+
+        private int GetPrice(RootObject b) {
+            var weight = b.GetWeight();
+            var d = b.GetDimentions();
+            var length = d[0] + d[1] + d[2];
+            //вес до 15 кг и сумма размеров до 100 см
+            if (weight < 15 && length < 100) {
+                int overPrice = (int)(b.price * 0.1);
+                if (overPrice > 1000) overPrice = 1000;
+                return b.price + overPrice;
+            }
+            //вес от 15 кг до 25 кг или размер от 100 до 150 см
+            if (weight <= 25 && length <= 150)
+                return b.price + 400;
+            //в остальных случаях (вес от 25 кг или размер от 150 см)
+            else return b.price + 500;
         }
     }
 }

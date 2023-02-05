@@ -76,6 +76,7 @@ namespace Selen.Sites {
                 Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
+                    x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
                     Log.Add("gde.ru: ошибка браузера! - " + x.Message);
