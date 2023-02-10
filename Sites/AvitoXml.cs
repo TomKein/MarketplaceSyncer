@@ -145,6 +145,8 @@ namespace Selen.Sites {
             } else if (name.StartsWith("акпп ") ||
                 (name.StartsWith("трубк")||
                  name.StartsWith("диск") ||
+                 name.StartsWith("вилка") ||
+                 name.StartsWith("шланг") ||
                  name.Contains("комплект") ||
                  name.Contains("к-т")
                  ) && name.Contains("сцеплен") ||
@@ -233,6 +235,7 @@ namespace Selen.Sites {
                 name.StartsWith("замок кап") ||
                 name.StartsWith("замок крыш") ||
                 name.StartsWith("замок люч") ||
+                name.StartsWith("шток замка") ||
                 name.Contains("часть замка") ||
                 name.StartsWith("замок пер") ||
                 name.Contains("централь") && name.Contains("замка") ||
@@ -241,6 +244,7 @@ namespace Selen.Sites {
                 name.StartsWith("фиксатор") && (name.Contains("капота") || name.Contains("замка")) ||
                 name.StartsWith("замок стек") ||
                 name.StartsWith("личинк") ||
+                name.StartsWith("комплект личинок") ||
                 name.StartsWith("комплект замка") ||
                 name.StartsWith("замок") && name.Contains("двер")) {
                 d.Add("TypeId", "16-810");                              //Замки
@@ -269,6 +273,7 @@ namespace Selen.Sites {
                 name.StartsWith("амортизатор кап") ||
                 name.Contains("телевизор") ||
                 name.StartsWith("ручка") ||
+                name.StartsWith("ручки") ||
                 name.Contains("жабо") ||
                 name.StartsWith("решетка стеклоочист") ||
                 name.StartsWith("дождевик") ||
@@ -278,8 +283,9 @@ namespace Selen.Sites {
                 name.StartsWith("локер ") ||
                 name.StartsWith("траверса ") ||
                 name.StartsWith("ус ") ||
-                name.StartsWith("ресничка фары") ||
-                name.StartsWith("планк") && name.Contains("фар") ||
+                (name.StartsWith("ресничк") ||
+                 name.StartsWith("крышк") ||
+                 name.StartsWith("планк")) && name.Contains("фар") ||
                 name.StartsWith("планка") && (
                     name.Contains("под фар") ||
                     name.Contains("под решетк") ||
@@ -322,7 +328,7 @@ namespace Selen.Sites {
                 name.Contains("помпа") ||
                 name.StartsWith("моторчик отоп") ||
                 name.Contains("термостат") ||
-                name.StartsWith("корпус отопит") ||
+                name.StartsWith("корпус") && name.Contains("отопител") ||
                 name.StartsWith("испаритель конд") ||
                 name.StartsWith("радиатор") ||
                 name.StartsWith("моторчики засл") ||
@@ -408,6 +414,7 @@ namespace Selen.Sites {
                 name.StartsWith("корректор") ||
                 name.StartsWith("патрон") ||
                 name.StartsWith("фара") ||
+                name.StartsWith("облицовка фары") ||
                 name.StartsWith("подсветка") && name.Contains("номера") ||
                 name.StartsWith("стоп доп") ||
                 name.StartsWith("поворотник") ||
@@ -521,6 +528,7 @@ namespace Selen.Sites {
                   name.Contains("контактная") && name.Contains("группа") ||
                   name.StartsWith("расходомер") ||
                   name.StartsWith("эбу") ||
+                  name.StartsWith("конденсатор") ||
                   b.GroupName() == "Электрика, зажигание") {
                 d.Add("TypeId", "11-630");                          //Электрооборудование
             } else if (name.StartsWith("ящик") ||
@@ -575,10 +583,12 @@ namespace Selen.Sites {
                   name.StartsWith("ответная часть ремня") ||
                   name.StartsWith("крючок для одежды") ||
                   name.StartsWith("заглушка крепления сидения") ||
+                  name.StartsWith("крышка внутренней ручки") ||
                   name.StartsWith("крышка запаски") ||
                   name.StartsWith("уплотнитель стекла") ||
                   name.StartsWith("заглушка болта запасного колеса") ||
                   name.StartsWith("кожух") && name.Contains("ремня безопасности") ||
+                  name.StartsWith("уголок") && name.Contains("задн") ||
                   name.StartsWith("крышка") && (
                     name.Contains("приборной панели") ||
                     name.Contains("подушки безопасности") ||
@@ -634,9 +644,10 @@ namespace Selen.Sites {
                    name.StartsWith("крышка корпуса фильтра") ||
                    name.StartsWith("инжектор") ||
                    name.Contains("катализатор") ||
-                   name.StartsWith("шланг") && name.Contains("топлив") ||
-                   name.Contains("труба") && name.Contains("промежуточная") ||
-                   name.Contains("труба") && name.Contains("приемная") ||
+                   (name.StartsWith("шланг") ||
+                    name.StartsWith("крышка")) && name.Contains("топлив") ||
+                   (name.Contains("промежуточная") ||
+                    name.Contains("приемная")) && name.Contains("труба") ||
                    name.StartsWith("резонатор") ||
                    name.StartsWith("гофра") ||
                    name.StartsWith("патрубок воз") ||
@@ -677,7 +688,10 @@ namespace Selen.Sites {
                    name.StartsWith("труба соединительная") ||
                    name.StartsWith("насадка глушителя") ||
                    name.StartsWith("обратный клапан") ||
-                   name.StartsWith("фланец") && (name.Contains("карб") || name.Contains("монов")) ||
+                   name.StartsWith("фланец") && 
+                   (name.Contains("карб") ||
+                    name.Contains("монов") ||
+                    name.Contains("глушит")) ||
                    name.StartsWith("тнвд") ||
                    name.Contains("коллектора") ||
                    name.StartsWith("бензобак")) {

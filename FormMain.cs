@@ -13,10 +13,11 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
+using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.134";
+        string _version = "1.135";
 
         DB _db = new DB();
 
@@ -1288,11 +1289,52 @@ namespace Selen {
                 }
             }
         }
+        //массовая замена текста
+        async Task ReplaceTextAsync(string checkText, string newText) {
+            for (int b =0; b< bus.Count; b++) {
+                if (bus[b].images.Count == 0)
+                    continue;
+                if (!string.IsNullOrEmpty(bus[b].name) && bus[b].name.Contains(checkText)){
+                    var newName = bus[b].name.Replace(checkText, newText);
+                    var result = MessageBox.Show(bus[b].name + "\n\n↓↓↓\n\n" + newName, "Изменить название?", MessageBoxButtons.YesNo);
+                    if (result == DialogResult.Yes) {
+                        bus[b].name = newName;
+                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                            {"id", bus[b].id},
+                            {"name", bus[b].name},
+                        });
+                        if (s.Contains("updated"))
+                            Log.Add("ReplaceTextAsync: [" + bus[b].id + "] " + bus[b].name + " - название обновлено");
+                        else
+                            Log.Add("ReplaceTextAsync: ошибка сохранения названия " + bus[b].name);
+                    }
+                }
+                if (!string.IsNullOrEmpty(bus[b].description) && bus[b].description.Contains(checkText)) {
+                    var newDescription = bus[b].description.Replace(checkText, newText);
+                    var result = MessageBox.Show(bus[b].description + "\n\n↓↓↓\n\n" + newDescription, "Изменить описание?", MessageBoxButtons.YesNo);
+                    if (result == DialogResult.Yes) {
+                        bus[b].description = newDescription;
+                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                            {"id", bus[b].id},
+                            {"name", bus[b].name},
+                            {"description", bus[b].description},
+                        });
+                        if (s.Contains("updated"))
+                            Log.Add("ReplaceTextAsync: " + bus[b].name + " - карточка обновлено - " + bus[b].description);
+                        else
+                            Log.Add("ReplaceTextAsync: ошибка сохранения изменений " + bus[b].name + " - " + s);
+                    }
+                }
+            }
+        }
+
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                _drom.CheckOffersAsync();
+
+                await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
+                //_drom.CheckOffersAsync();
                 //CheckDescriptions();
                 //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
                 //var str = JsonConvert.SerializeObject(ids);
