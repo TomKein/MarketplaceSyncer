@@ -516,6 +516,11 @@ namespace Selen
             //строка с размерами
             return arr;
         }
+        //суммарная длина сторон
+        public float GetLength () {
+            var d = GetDimentions();
+            return d[0] + d[1] + d[2];
+        }
         //квант продажи
         public string GetQuantOfSell() {
             int p;

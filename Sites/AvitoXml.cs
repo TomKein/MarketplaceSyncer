@@ -78,6 +78,7 @@ namespace Selen.Sites {
                         ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
                         //доступность
                         ad.Add(new XElement("Availability", "В наличии"));
+                        //ad.Add(new XElement("stock", b.amount));
                         //номер запчасти
                         if (!string.IsNullOrEmpty(b.part))
                             ad.Add(new XElement("OEM", b.part));
@@ -837,6 +838,19 @@ namespace Selen.Sites {
                 d.Add("Category", "Запчасти и аксессуары"); //главная категория
             else
                 throw new Exception("категория не определена!");
+            
+            //корректировка категорий для авито доставки
+            if (d["TypeId"] == "11-629" //Трансмиссия и привод
+                && b.GetWeight() < 15
+                && b.GetLength() < 120) {
+                d["TypeId"] = "11-623"; // меняем категорию на Подвеска
+            }
+            if (d["TypeId"] == "16-819" //Кузов по частям
+                && b.GetWeight() < 15
+                && b.GetLength() < 120) {
+                d["TypeId"] = "11-625"; // меняем категорию на Салон
+            }
+
             return d;
         }
     }
