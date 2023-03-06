@@ -191,6 +191,10 @@ namespace Selen.Sites {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
+            //цена больше или равна 5000 р -- добавляю 10%
+            if (b.price >= 5000) {
+                return (int)(b.price * 1.1);
+            }
             //вес до 15 кг и сумма размеров до 100 см
             if (weight < 15 && length < 100) {
                 int overPrice = (int)(b.price * 0.1);
