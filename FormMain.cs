@@ -17,7 +17,7 @@ using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.135";
+        string _version = "1.137";
 
         DB _db = new DB();
 

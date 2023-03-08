@@ -122,6 +122,8 @@ namespace Selen.Sites {
                         //если надо снять
                         if (b.amount <= 0) 
                             offer.Add(new XElement("disabled", "true"));
+                        else
+                            offer.Add(new XElement("disabled", "false"));
                         //описание
                         var description = b.DescriptionList(2990, _addDesc);
                         offer.Add(new XElement("description", new XCData(description.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
