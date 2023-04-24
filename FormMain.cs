@@ -17,7 +17,7 @@ using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.137";
+        string _version = "1.138";
 
         DB _db = new DB();
 
@@ -1225,16 +1225,28 @@ namespace Selen {
                 .ToList();
             Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
             var lastDate = DateTime.Now.AddYears(-2).ToString();
-            for (int b = 0; b < cnt && b < buschk.Count; b++) {
+            for (int b = 0; cnt > 0 && b < buschk.Count; b++) {
                 try {
                     //количество реализаций товара
                     var s = await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
                                     {"good_id", buschk[b].id},
                                     {"updated[from]", lastDate}
                                 });
-                    var realizationsCount = JsonConvert.DeserializeObject<List<realizationgoods>>(s).Count;
-                    if (DateTime.Now.AddDays(-days - 10*realizationsCount) < DateTime.Parse(buschk[b].updated))
+
+
+                    var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s)
+                                                  .OrderBy(o=> DateTime.Parse(o.updated));
+                    DateTime controlDate;
+                    if (realizations.Any()) 
+                        controlDate = DateTime.Parse(realizations.Last().updated).AddDays(days + 10 * realizations.Count());
+                    else 
+                        controlDate = DateTime.Parse(buschk[b].updated).AddDays(days);
+
+                    Log.Add("PhotoClearAsync: " + buschk[b].id +" - " + buschk[b].name + ", updated: " + buschk[b].updated + ", реализаций: " + realizations.Count() + ", контрольная дата: " + controlDate);
+                    if (DateTime.Now < controlDate) {
+                        Log.Add("PhotoClearAsync: пропуск - дата не подошла (Now < controlDate)");
                         continue;
+                    }
 
                     //удаляю фото
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
@@ -1245,6 +1257,7 @@ namespace Selen {
                     Log.Add("PhotoClearAsync: " + buschk[b].name + " - удалены фото из карточки! (" +
                         buschk[b].images.Count + "), остаток - " + buschk[b].amount + ", updated " + buschk[b].updated);
                     buschk[b].images.Clear();
+                    cnt--;
                 } catch (Exception x) {
                     Log.Add("ошибка при удалении фото из карточки! - " + bus[b].name + " - " + x.Message);
                 }
