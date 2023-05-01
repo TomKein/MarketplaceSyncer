@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Data;
+using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.Cms;
 using Selen.Base;
 using Selen.Tools;
 
@@ -279,5 +278,51 @@ namespace Selen {
                     Log.Add("ошибка копирования в буфер обмена - "+x.Message);
                 }
         }
+
+        private void dataGridView_CellMouseEnter(object sender, DataGridViewCellEventArgs e) {
+            if (e.ColumnIndex == 0) {
+                var tooltip = new ToolTip();
+                tooltip.AutoPopDelay = 5000;
+                tooltip.InitialDelay = 1000;
+                tooltip.ReshowDelay = 500;
+
+                tooltip.ShowAlways = true;
+                tooltip.SetToolTip(this.dataGridView, "Here we are!");
+
+                //MessageBox.Show("Here "+_bus.First(b=>b.id == dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString()).name);
+                //Form form = new Form();
+                //Bitmap img = new Bitmap(width:100,height:100);
+                //img.
+
+                //    form.StartPosition = FormStartPosition.CenterScreen;
+                //    form.Size = img.Size;
+
+                //    PictureBox pb = new PictureBox();
+                //    pb.Dock = DockStyle.Fill;
+                //    pb.Image = img;
+
+                //    form.Controls.Add(pb);
+                //    form.ShowDialog();
+
+            }
+        }
     }
+
+    //public class CustomToolTip : ToolTip {
+    //    public CustomToolTip() { 
+    //        this.OwnerDraw= true;
+    //        this.Popup += new PopupEventHandler(this.OnPopup);
+    //        this.Draw += new DrawToolTipEventHandler(this.OnDraw);
+    //    }
+    //    private void OnPopup(object sender, PopupEventArgs e) {
+    //        e.ToolTipSize = new Size(200, 200);
+    //    }
+    //    private void OnDraw(object sender, DrawToolTipEventArgs e) {
+
+    //    }
+    //    protected override void OnPaint(PaintEventArgs e) {
+    //        base.OnPaint(e);
+    //        Image img = Image.FromFile("c:\Temp\1.jpg");
+    //    }
+    //}
 }

@@ -394,6 +394,13 @@ namespace Selen
             if (string.IsNullOrEmpty(number)) number = "100";
             return number;
         }
+        //получаем диаметр ступицы из описания
+        public string GetDiaStup() {
+            var pattern = @"(?>пица|dia|Dia|DIA)\D*([0-9]+[.,]*[0-9]*)\s*";
+            var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number)) number = "57.1";
+            return number.Replace(",",".");
+        }
         //производители
         private static string[] manufactures;
         public string GetManufacture() {
@@ -481,7 +488,7 @@ namespace Selen
             var d = GetDimentions();
             return (d[0].ToString("F1") + "/" + d[1].ToString("F1") + "/" + d[2].ToString("F1")).Replace(",", ".");
         }
-
+        //массив размеров сторон (длина, ширина, высота)
         public float[] GetDimentions() {
             //сперва проверяю характеристики товара, если они указаны, использую их в первую очередь
             float[] arr = new float[3];

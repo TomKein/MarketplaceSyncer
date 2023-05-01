@@ -180,7 +180,7 @@ namespace Selen.Sites {
 
         public async Task AddAsync() {
             var count = await _db.GetParamIntAsync("drom.addCount");
-            for (int b = 0; b < _bus.Count && count > 0; b++) {
+            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                     _bus[b].amount > 0 &&
@@ -201,6 +201,7 @@ namespace Selen.Sites {
                         SetDiam(_bus[b]);
                         SetAudioSize(_bus[b]);
                         SetWeight(_bus[b]);
+                        Thread.Sleep(30000);
                         PressPublicFreeButton();
                     });
                     try {
@@ -336,6 +337,7 @@ namespace Selen.Sites {
             if (_dr.GetElementsCount("//a[text()='Купить']") > 0)
                 return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
+                _dr.ButtonClick("//a[contains(@class,'freePublishDraft')]");
                 _dr.ButtonClick("//a[contains(@class,'doProlong')]");
                 _dr.ButtonClick("//a[@data-applier='recoverBulletin']");
                 PressServiseSubmitButton();
@@ -456,7 +458,7 @@ namespace Selen.Sites {
                                 }
                                 //проверка заполнения веса
                                 var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value").Replace(".", ",");
-                                if (string.IsNullOrEmpty(w) || float.Parse(w) != _bus[b].weight) {
+                                if (string.IsNullOrEmpty(w) || float.Parse(w) != _bus[b].GetWeight()) {
                                     SetWeight(_bus[b]);
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен вес " + _bus[b].weight);
                                     Thread.Sleep(5000);

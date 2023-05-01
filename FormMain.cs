@@ -13,7 +13,6 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 
 namespace Selen {
     public partial class FormMain : Form {
@@ -1254,8 +1253,7 @@ namespace Selen {
                                     {"name", buschk[b].name},
                                     {"images", "[]"}
                                 });
-                    Log.Add("PhotoClearAsync: " + buschk[b].name + " - удалены фото из карточки! (" +
-                        buschk[b].images.Count + "), остаток - " + buschk[b].amount + ", updated " + buschk[b].updated);
+                    Log.Add("PhotoClearAsync: " + buschk[b].name + " - удалены фото из карточки! (" + buschk[b].images.Count + ")");
                     buschk[b].images.Clear();
                     cnt--;
                 } catch (Exception x) {
@@ -1345,8 +1343,11 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
+                await PhotoClearAsync();
 
-                await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
+                {
+
+                //await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
                 //_drom.CheckOffersAsync();
                 //CheckDescriptions();
                 //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
@@ -1454,6 +1455,7 @@ namespace Selen {
                 //        }
                 //    });
                 //}
+                }                
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
