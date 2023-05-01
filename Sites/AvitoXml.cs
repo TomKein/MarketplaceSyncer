@@ -395,6 +395,7 @@ namespace Selen.Sites {
                 d.Add("TireType", "Всесезонные");                   //шины
                 d.Add("TireSectionWidth", "115");                   //ширина шины
                 d.Add("TireAspectRatio", "55");                     //соотношение
+                d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
             } else if (name.StartsWith("диск") &&
                 (name.Contains("лит") || name.Contains("штам") || name.Contains(" r1"))) {
                 d.Add("TypeId", "10-046");                          //Шины, диски и колёса / Диски
@@ -404,6 +405,7 @@ namespace Selen.Sites {
                 d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
                 d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
                 d.Add("RimType", b.DiskType());                     //тип
+                d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
             } else if (name.StartsWith("колпак")) {
                 d.Add("TypeId", "10-044");                          //Шины, диски и колёса / Колпаки
             } else if (name.StartsWith("шины ") ||
