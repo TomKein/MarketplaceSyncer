@@ -13,6 +13,7 @@ namespace Selen.Sites {
     internal class AvitoXml {
         readonly string _l = "avitoXml: ";              //префикс для лога
         readonly string filename = @"..\avito.xml";     //имя файла для экспорта
+        readonly string filenameStock = @"..\avitostock.xml";     //имя файла для экспорта остатков
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             await Task.Factory.StartNew(() => {
@@ -24,11 +25,16 @@ namespace Selen.Sites {
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
                     DB._db.GetParamStr("avito.addDescription"));
                 string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
-                        DB._db.GetParamStr("avito.addDescription2"));
+                    DB._db.GetParamStr("avito.addDescription2"));
                 //создаю новый xml
                 var xml = new XDocument();
+                //xml для выгрузки остатков
+                var xmlStock = new XDocument();
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
+                //корневой элемент для остатков
+                var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")), 
+                                                      new XAttribute("formatVersion", "1"));
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по убыванию цены
                 var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
@@ -38,6 +44,13 @@ namespace Selen.Sites {
                 int i=0;
                 foreach (var b in bus) {
                     try {
+                        //заполнение остатков
+                        var itemStock = new XElement("item");
+                        itemStock.Add(new XElement("id", b.id));
+                        itemStock.Add(new XElement("stock", b.amount));
+                        rootStock.Add(itemStock);
+
+                        //основной xml
                         var ad = new XElement("Ad");
                         //id
                         ad.Add(new XElement("Id", b.id));
@@ -102,13 +115,18 @@ namespace Selen.Sites {
                 Log.Add(_l+"выгружено " + i);
                 //добавляю root в документ
                 xml.Add(root);
-                //сохраняю файл
+                //добавляю root в документ остатков
+                xmlStock.Add(rootStock);
+                //сохраняю файлы
                 xml.Save(filename);
+                xmlStock.Save(filenameStock);
             });
             //если размер файла в порядке
-            if(new FileInfo(filename).Length > await DB._db.GetParamIntAsync("avito.xmlMinSize"))
-            //отправляю файл на сервер
+            if (new FileInfo(filename).Length > await DB._db.GetParamIntAsync("avito.xmlMinSize")) {
+                //отправляю файлы на сервер
                 await SftpClient.FtpUploadAsync(filename);
+                await SftpClient.FtpUploadAsync(filenameStock);
+            }
         }
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
