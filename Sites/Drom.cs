@@ -63,15 +63,14 @@ namespace Selen.Sites {
                 //дополнительное описание
                 _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
                 Log.Add("drom.ru: начало выгрузки...");
-                if (await AuthAsync()) {
-                    await GetDromPhotos();
-                    await UpAsync();
-                    await EditAsync();
-                    await AddAsync();
-                    await CheckPagesAsync();
-                    await CheckOffersAsync();
-                    Log.Add("drom.ru: выгрузка завершена");
-                }
+                await AuthAsync();
+                await GetDromPhotos();
+                await UpAsync();
+                await EditAsync();
+                await AddAsync();
+                await CheckPagesAsync();
+                await CheckOffersAsync();
+                Log.Add("drom.ru: выгрузка завершена");
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
                 if (x.Message.Contains("timed out") ||
@@ -79,36 +78,30 @@ namespace Selen.Sites {
                     x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
-                    Log.Add("gde.ru: ошибка браузера! - " + x.Message);
+                    Log.Add("drom.ru: ошибка браузера! - " + x.Message);
                     _dr.Quit();
                     _dr = null;
                 }
             }
         }
-        async Task<bool> AuthAsync() {
-            try {
-                await Task.Factory.StartNew(() => {
-                    if (_needRestart)
-                        Quit();
-                    if (_dr == null) {
-                        _dr = new Selenium();
-                        LoadCookies();
-                    }
-                    _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
-                    if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
-                        _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
-                        _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
-                        _dr.ButtonClick("#signbutton"); //жмем кнопку входа
-                        while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
-                            Thread.Sleep(30000);
-                    }
-                    SaveCookies();
-                });
-                return true;
-            } catch (Exception x) {
-                Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
-            }
-            return false;
+        async Task AuthAsync() {
+            await Task.Factory.StartNew(() => {
+                if (_needRestart)
+                    Quit();
+                if (_dr == null) {
+                    _dr = new Selenium();
+                    LoadCookies();
+                }
+                _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
+                if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
+                    _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
+                    _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
+                    _dr.ButtonClick("#signbutton"); //жмем кнопку входа
+                    while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
+                        Thread.Sleep(30000);
+                }
+                SaveCookies();
+            });
         }
         async Task EditAsync() {
             await Task.Factory.StartNew(() => {
