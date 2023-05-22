@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.139";
+        string _version = "1.141";
 
         DB _db = new DB();
 
@@ -271,10 +271,10 @@ namespace Selen {
                     if (distinctIds.Count > 0)
                         lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
                 }
-                //если изменений слишком много - нужен полный рескан базы
-                if (lightSyncGoods.Count > 500) {
-                    Log.Add("business.ru: новых/измененных карточек: " + lightSyncGoods.Count +
-                            " -- будет произведен запрос полной базы товаров...");
+                //если изменений слишком много или сменился день - нужен полный рескан базы
+                if (lightSyncGoods.Count >= 250 ||
+                    lastScanTime.Day != DateTime.Now.Day) {
+                    Log.Add("business.ru: будет произведен запрос полной базы товаров...");
                     _isBusinessNeedRescan = true;
                     _isBusinessCanBeScan = true;
                     ChangeStatus(button_BaseGet, ButtonStates.Active);
