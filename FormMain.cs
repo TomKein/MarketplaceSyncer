@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.142";
+        string _version = "1.141";
 
         DB _db = new DB();
 
@@ -120,9 +120,8 @@ namespace Selen {
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
         }
         async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
-            if (!button_Kupiprodai.Enabled) return;
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan)
+            while (_isBusinessNeedRescan || !button_Kupiprodai.Enabled)
                 await Task.Delay(30000);
             await _kupiprodai.AddAsync();
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
