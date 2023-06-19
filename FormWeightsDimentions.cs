@@ -50,6 +50,7 @@ namespace Selen {
                 dataGridView.Columns[i].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             }
             dataGridView.MultiSelect = true;
+            labelRowCount.Text = dt.Rows.Count.ToString();
         }
 
         private async Task<DataTable> GetDataTableAsync(string text) => await Task.Factory.StartNew(() => {

@@ -456,6 +456,8 @@ namespace Selen.Sites {
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен вес " + _bus[b].weight);
                                     Thread.Sleep(5000);
                                 }
+                                //проверка фото
+                                CheckPhotos(_bus[b]);
                             } else
                                 i--;
                             _db.SetParam("drom.checkOfferIndex", (++b).ToString());

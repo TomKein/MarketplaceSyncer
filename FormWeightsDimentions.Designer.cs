@@ -31,6 +31,7 @@
             this.checkBox_EmptyOnly = new System.Windows.Forms.CheckBox();
             this.textBox_Search = new System.Windows.Forms.TextBox();
             this.button_Clear = new System.Windows.Forms.Button();
+            this.labelRowCount = new System.Windows.Forms.Label();
             this.panel_Common.SuspendLayout();
             this.panel_DataGrid.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
@@ -78,6 +79,7 @@
             // 
             // panel_Search
             // 
+            this.panel_Search.Controls.Add(this.labelRowCount);
             this.panel_Search.Controls.Add(this.checkBox_onlyHaveImage);
             this.panel_Search.Controls.Add(this.checkBox_EmptyOnly);
             this.panel_Search.Controls.Add(this.textBox_Search);
@@ -138,6 +140,17 @@
             this.button_Clear.UseVisualStyleBackColor = true;
             this.button_Clear.Click += new System.EventHandler(this.button_Clear_Click);
             // 
+            // labelRowCount
+            // 
+            this.labelRowCount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelRowCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 7F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.labelRowCount.Location = new System.Drawing.Point(618, 34);
+            this.labelRowCount.Name = "labelRowCount";
+            this.labelRowCount.Size = new System.Drawing.Size(100, 12);
+            this.labelRowCount.TabIndex = 5;
+            this.labelRowCount.Text = "0";
+            this.labelRowCount.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
             // FormWeightsDimentions
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -167,6 +180,7 @@
         private System.Windows.Forms.Button button_Clear;
         private System.Windows.Forms.CheckBox checkBox_onlyHaveImage;
         private System.Windows.Forms.CheckBox checkBox_EmptyOnly;
+        private System.Windows.Forms.Label labelRowCount;
     }
 
 
