@@ -193,21 +193,12 @@ namespace Selen.Sites {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //цена больше или равна 5000 р -- добавляю 10%
-            if (b.price >= 5000) {
-                return (int)(b.price * 1.1);
-            }
-            //вес до 15 кг и сумма размеров до 100 см
-            if (weight < 15 && length < 100) {
-                int overPrice = (int)(b.price * 0.1);
-                if (overPrice > 1000) overPrice = 1000;
-                return b.price + overPrice;
-            }
-            //вес от 15 кг до 25 кг или размер от 100 до 150 см
-            if (weight <= 25 && length <= 150)
-                return b.price + 400;
-            //в остальных случаях (вес от 25 кг или размер от 150 см)
-            else return b.price + 500;
+            //добавляю 20% на всё
+            int overPrice = (int)(b.price * 0.2);
+            //вес от 10 кг или размер от 100 -- минимальная наценка 500 р
+            if (overPrice < 500 && (weight >= 10 || length >= 100)) 
+                overPrice = 500;
+            return b.price + overPrice;
         }
     }
 }
