@@ -356,7 +356,7 @@ namespace Selen.Sites {
                     //обрабатываем до 40 страниц неактивных объявлений за раз
                     for (int i = pages; i > 0 && pages - i < 40; i--) {
                         _dr.Navigate("https://baza.drom.ru/personal/non_active/bulletins?page=" + i);
-                        _dr.ButtonClick("//input[@id='selectAll']");
+                        _dr.ButtonClick("//label[@class='select-all']/input");
                         if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
                             _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
                             PressServiseSubmitButton();
