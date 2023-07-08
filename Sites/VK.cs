@@ -27,6 +27,9 @@ namespace Selen.Sites {
         string _url;
         string[] _dopDesc;
         string[] _dopDesc2;
+        int _creditPriceMin;        //цены для рассрочки
+        int _creditPriceMax;
+        string _creditDescription;  //описание для рассрочки
         int _addCount;                                              //добавлять X объявлений в час
         int _catalogCheckInterval;                                 //проверять каталог на сайте каждые Х часов
         List<RootObject> _bus = null;
@@ -80,6 +83,10 @@ namespace Selen.Sites {
             _dopDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc2"));
             _addCount = _db.GetParamInt("vk.addCount");
             _catalogCheckInterval = _db.GetParamInt("vk.catalogCheckInterval");
+            //рассрочка 
+            _creditPriceMin = _db.GetParamInt("creditPriceMin");
+            _creditPriceMax = _db.GetParamInt("creditPriceMax");
+            _creditDescription = _db.GetParamStr("creditDescription");
         });
         //редактирую объявление
         private void Edit(int b) {
@@ -92,6 +99,8 @@ namespace Selen.Sites {
                 var param = new MarketProductParams();
                 param.Name = _bus[b].name;
                 var desc = _bus[b].DescriptionList(dop: _dopDesc);
+                if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+                    desc.Insert(0, _creditDescription);
                 desc.AddRange(_dopDesc2);
                 param.Description = desc.Aggregate((a1, a2) => a1 + "\n" + a2);
                 param.CategoryId = (long) vk.Category.Id;
@@ -111,7 +120,7 @@ namespace Selen.Sites {
         //добавляю объявления на ВК
         private async Task AddVKAsync() {
             for (int b = 0; b < _bus.Count && _addCount > 0; b++) {
-                //если есть фотографии, привязка на тиу, цена, количество и нет привязки на вк
+                //если есть фотографии, цена, количество и нет привязки на вк
                 if (_bus[b].images.Count > 0
                     && !_bus[b].GroupName().Contains("ЧЕРНОВИК")
                     && _bus[b].price > 0
@@ -141,6 +150,8 @@ namespace Selen.Sites {
             //меняем доп описание
             string desc = _bus[b].DescriptionList(dop: _dopDesc).Aggregate((a1, a2) => a1 + "\n" + a2) + "\n";
             desc += _dopDesc2.Aggregate((a1, a2) => a1 + "\n" + a2);
+            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+                desc.Insert(0, _creditDescription);
             //создаем объявление
             long itemId = _vk.Markets.Add(new MarketProductParams {
                 OwnerId = -_marketId,
@@ -168,7 +179,8 @@ namespace Selen.Sites {
                 List<long> sList = new List<long>();
                 sList.Add((long) vkAlb[vkAlbInd].Id);
                 try {
-                    if (!_vk.Markets.AddToAlbum(-_marketId, itemId, sList)) throw new Exception("метод вернул false");
+                    if (!_vk.Markets.AddToAlbum(-_marketId, itemId, sList))
+                        throw new Exception("метод вернул false");
                 } catch (Exception x) {
                     Log.Add("ошибка добавления в альбом" + x.Message);
                 }
@@ -234,8 +246,9 @@ namespace Selen.Sites {
                     break;
                 }
             }
-            if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10) return;
-            throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count+ ", checkCount = " + checkCount);
+            if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10)
+                return;
+            throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count + ", checkCount = " + checkCount);
         });
         //проверка каталога объявлений на вк
         async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
@@ -252,7 +265,7 @@ namespace Selen.Sites {
                     ) {
                     try {
                         _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
-                        Log.Add("vk.com: " + vkMark[i].Title + " - удалено! (ост. "+ --ccl+")");
+                        Log.Add("vk.com: " + vkMark[i].Title + " - удалено! (ост. " + --ccl + ")");
                         Thread.Sleep(2000);
                     } catch (Exception x) {
                         Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
@@ -261,9 +274,14 @@ namespace Selen.Sites {
                     //если изменилась цена, наименование или карточка товара - редактирую
                 } else if (_bus[b].price != vkMark[i].Price.Amount / 100
 
-                               && DateTime.Now.Minute < 48 //ограничение периода
-                ||
-                    _bus[b].name != vkMark[i].Title ||
+                    && DateTime.Now.Minute < 48 || //ограничение периода
+
+                    _bus[b].name != vkMark[i].Title || //не совпадает название
+
+                    _bus[b].price >= _creditPriceMin && //цена в диапазоне
+                    _bus[b].price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем
+                    !vkMark[i].Description.Contains(_creditDescription) ||
+
                     _bus[b].IsTimeUpDated()) {
                     Edit(b);
                 }

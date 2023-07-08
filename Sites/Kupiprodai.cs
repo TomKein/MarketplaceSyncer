@@ -18,6 +18,9 @@ namespace Selen.Sites {
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
+        int _creditPriceMin;        //цены для рассрочки
+        int _creditPriceMax;
+        string _creditDescription;  //описание для рассрочки
         List<RootObject> _bus;      //ссылка на товары
         Random _rnd = new Random(); //генератор случайных чисел
         string _l = "kupiprodai.ru: "; //для записи в лог
@@ -55,6 +58,10 @@ namespace Selen.Sites {
                 _url = await _db.GetParamStrAsync("kupiprodai.url");
                 _addDesc = JsonConvert.DeserializeObject<string[]>(
                     _db.GetParamStr("kupiprodai.addDescription"));
+                //рассрочка 
+                _creditPriceMin = _db.GetParamInt("creditPriceMin");
+                _creditPriceMax = _db.GetParamInt("creditPriceMax");
+                _creditDescription = _db.GetParamStr("creditDescription");
                 await AuthAsync();
                 await EditAsync();
                 await DelNoActiveAsync();
@@ -183,7 +190,10 @@ namespace Selen.Sites {
         }
         //пишу описание
         void SetDesc(int b) {
-            _dr.WriteToSelector(".form_content_long2 textarea", sl: _bus[b].DescriptionList(2999, _addDesc));
+            var d = _bus[b].DescriptionList(2999, _addDesc);
+            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+                d.Insert(0, _creditDescription);
+            _dr.WriteToSelector(".form_content_long2 textarea", sl: d);
         }
         //жму кнопку ок
         void PressOkButton() {
@@ -373,9 +383,15 @@ namespace Selen.Sites {
                         var name = _dr.GetElementAttribute("//input[@name='bbs_title']", "value");
                         var price = int.Parse(_dr.GetElementAttribute("//input[@name='bbs_price']", "value"));
                         var photos = _dr.FindElements("//div[@id='images']/div/span");
+                        var desc = _dr.GetElementAttribute("//b[text()='Текст объявления']/../..//textarea", "value");
                         if (name.Length <= 5 ||
                             !_bus[b].name.Contains(name) ||
                             _bus[b].price != price ||
+                            //рассрочка в описании
+                            _bus[b].price >= _creditPriceMin &&
+                            _bus[b].price <= _creditPriceMax &&
+                            !desc.Contains(_creditDescription) ||
+
                             photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {
                             Log.Add(_l + _bus[b].name + " - обновляю объявление");
                             EditOffer(b);

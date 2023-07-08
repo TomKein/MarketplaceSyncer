@@ -80,6 +80,10 @@ namespace Selen.Sites {
         //формирование файла выгрузки
         private async Task CreateCsvAsync() {
             await Task.Factory.StartNew(() => {
+                //цены для рассрочки
+                var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
+                var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
+                var creditDescription = DB._db.GetParamStr("creditDescription");
                 //получаю список товаров
                 var offers = _bus.Where(w =>
                     w.images.Count > 0 &&                           //есть фото
@@ -118,6 +122,8 @@ namespace Selen.Sites {
                     s.Append(offer.part).Append(";");                   //part
                     var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
                                     .Groups[1].Value;
+                    if (offer.price >= creditPriceMin && offer.price <= creditPriceMax)
+                        desc = desc.Insert(0, creditDescription+" ");
                     s.Append(desc).Append(";");                         //desc
                     s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos
                     n++;

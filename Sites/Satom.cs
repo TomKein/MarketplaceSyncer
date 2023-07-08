@@ -52,18 +52,16 @@ namespace Selen.Sites {
             File.Copy(_ftmp, _fexp, overwrite: true);
             Log.Add("satom: шаблон скопирован");
 
-
             var fileInfo = new FileInfo(_fexp);
             var excelPackage = new ExcelPackage(fileInfo);
 
-
             Log.Add("satom: файл успешно загружен");
             //беру первую таблицу
-
-
             var ws = excelPackage.Workbook.Worksheets.First();
-
-
+            //цены для рассрочки
+            var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
+            var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
+            var creditDescription = DB._db.GetParamStr("creditDescription");
             //перебираю карточки товара
             for (int b = 0, i = 2; b < _bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
@@ -96,8 +94,11 @@ namespace Selen.Sites {
                     //идентификатор рубрики
                     ws.Cells[i, 10].Value = category.TrimEnd('/').Split('-').Last();
                     //доп. описание
-                    ws.Cells[i, 11].Value = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
+                    var d = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
                         "<br><br><p style=\"color:#DDDDDD;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
+                    if (_bus[b].price >= creditPriceMin && _bus[b].price <= creditPriceMax)
+                        d = d.Insert(0, creditDescription + "<br>");
+                    ws.Cells[i, 11].Value = d;
                     //идентификатор товара
                     ws.Cells[i, 17].Value = _bus[b].id;
                     //артикул

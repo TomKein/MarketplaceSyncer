@@ -26,6 +26,14 @@ namespace Selen.Sites {
                     DB._db.GetParamStr("avito.addDescription"));
                 string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
                     DB._db.GetParamStr("avito.addDescription2"));
+                //цены для рассрочки
+                var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
+                var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
+                var creditDescription = DB._db.GetParamStr("creditDescription");
+                //обновляю объем товара по умолчанию
+                RootObject.UpdateDefaultVolume();
+                //обновляю вес товара по умолчанию
+                RootObject.UpdateDefaultWeight();
                 //создаю новый xml
                 var xml = new XDocument();
                 //xml для выгрузки остатков
@@ -82,6 +90,8 @@ namespace Selen.Sites {
                         //описание
                         var d = b.DescriptionList(2990, _addDesc);
                         d.AddRange(_addDesc2);
+                        if (b.price >= creditPriceMin && b.price <= creditPriceMax)
+                            d.Insert(0, creditDescription);
                         ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
                         //имя менеджера
                         ad.Add(new XElement("ManagerName", "Менеджер"));

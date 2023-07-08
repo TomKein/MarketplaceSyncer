@@ -14,10 +14,14 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class GdeRu {
+        string _l = "gde.ru: ";
         public Selenium _dr;               //браузер
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
+        int _creditPriceMin;        //цены для рассрочки
+        int _creditPriceMax;
+        string _creditDescription;  //описание для рассрочки
         List<RootObject> _bus;      //ссылка на товары
         Random _rnd = new Random(); //генератор случайных чисел
         //конструктор
@@ -50,8 +54,12 @@ namespace Selen.Sites {
         //старт главного цикла синхронизации
         public async Task<bool> StartAsync(List<RootObject> bus) {
             if (await _db.GetParamBoolAsync("gde.syncEnable")) {
-                Log.Add("gde.ru: начало выгрузки...");
+                Log.Add(_l+"начало выгрузки...");
                 _bus = bus;
+                //рассрочка 
+                _creditPriceMin = _db.GetParamInt("creditPriceMin");
+                _creditPriceMax = _db.GetParamInt("creditPriceMax");
+                _creditDescription = _db.GetParamStr("creditDescription");
                 for (int i = 0; ; i++) {
                     try {
                         await AuthAsync();
@@ -59,15 +67,15 @@ namespace Selen.Sites {
                         await AddAsync();
                         await ParseAsync();
                         await CheckUrls();
-                        Log.Add("gde.ru: выгрузка завершена");
+                        Log.Add(_l + "выгрузка завершена");
                         return true;
                     } catch (Exception x) {
-                        Log.Add("gde.ru: ошибка синхронизации! - " + x.Message);
+                        Log.Add(_l + "ошибка синхронизации! - " + x.Message);
                         if (x.Message.Contains("timed out") ||
                         x.Message.Contains("already closed") ||
                         x.Message.Contains("invalid session id") ||
                         x.Message.Contains("chrome not reachable")) {
-                            Log.Add("gde.ru: ошибка браузера! - " + x.Message);
+                            Log.Add(_l + "ошибка браузера! - " + x.Message);
                             _dr.Quit();
                             _dr = null;
                         }
@@ -97,7 +105,7 @@ namespace Selen.Sites {
                     //если в кабинет не попали - ждем ручной вход
                     for (int i = 0; ; i++) {
                         if (_dr.GetUrl().Contains("user/login")) {
-                            Log.Add("gde.ru: ошибка авторизации в кабинете, ждем ручной вход...");
+                            Log.Add(_l + "ошибка авторизации в кабинете, ждем ручной вход...");
                             Thread.Sleep(60000);
                         } else break;
                         if (i > 20) throw new Exception("timed out - превышено время ожидания!");
@@ -127,11 +135,11 @@ namespace Selen.Sites {
                     var url = _bus[b].gde.Replace("/update", "/delete");
                     _dr.Navigate(url);
                     //TODO добавить проверку удаления
-                    Log.Add("gde.ru: " + _bus[b].name + " - объявление удалено");
+                    Log.Add(_l + _bus[b].name + " - объявление удалено");
                     Thread.Sleep(3000);
                 });
             } catch (Exception x) {
-                Log.Add("gde.ru: ошибка удаления! - " + _bus[b].name + " - " + x.Message);
+                Log.Add(_l + "ошибка удаления! - " + _bus[b].name + " - " + x.Message);
             }
         }
         //редактирование объявления асинхронно
@@ -150,7 +158,7 @@ namespace Selen.Sites {
             var photos = _dr.FindElements("//a[@title='Удалить']");
             if (photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)
                 && _bus[b].images.Count > 0) {
-                Log.Add("gde.ru: " + _bus[b].name + " - обновляю фотографии");
+                Log.Add(_l + _bus[b].name + " - обновляю фотографии");
                 foreach (var photo in photos) {
                     photo.Click();
                     Thread.Sleep(1000);
@@ -158,7 +166,7 @@ namespace Selen.Sites {
                 SetImages(b);
             }
             PressOkButton();
-            Log.Add("gde.ru: " + _bus[b].name + " - объявление обновлено");
+            Log.Add(_l + _bus[b].name + " - объявление обновлено");
         }
         //пишу название
         private void SetTitle(int b) {
@@ -170,7 +178,11 @@ namespace Selen.Sites {
         }
         //пишу описание
         void SetDesc(int b) {
-            _dr.WriteToSelector("#AInfoForm_content", sl: _bus[b].DescriptionList(2900, _addDesc));
+            var d = _bus[b].DescriptionList(2999, _addDesc);
+            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+                d.Insert(0, _creditDescription);
+            d.Add(OpenQA.Selenium.Keys.Tab);
+            _dr.WriteToSelector("#AInfoForm_content", sl: d);
         }
         //загрузка фото
         void SetImages(int b) {
@@ -184,7 +196,7 @@ namespace Selen.Sites {
                     Thread.Sleep(1000);
                     _dr.SendKeysToSelector("input[name=file]", Application.StartupPath + "\\" + "gde_" + u + ".jpg ");
                 } catch (Exception x) {
-                    Log.Add("gde.ru: " + _bus[b].name + " - ошибка загрузки фото - " + _bus[b].images[u].url);
+                    Log.Add(_l + _bus[b].name + " - ошибка загрузки фото - " + _bus[b].images[u].url);
                     Thread.Sleep(1000);
                 }
             }
@@ -213,7 +225,7 @@ namespace Selen.Sites {
             var items = _dr.FindElements(".title a");
             var names = items.Select(s => s.Text).ToList();
             if (names.Exists(s => s == _bus[b].name)) {
-                Log.Add("gde.ru: "+_bus[b].name+" - объявление в неактивных!");
+                Log.Add(_l + _bus[b].name+" - объявление в неактивных!");
                 return true;
             }
             return false;
@@ -243,9 +255,9 @@ namespace Selen.Sites {
                             }
                         });
                         await SaveUrlAsync(b);
-                        Log.Add("gde.ru: " + _bus[b].name + " - объявление добавлено, осталось (" + --count + ")");
+                        Log.Add(_l +  _bus[b].name + " - объявление добавлено, осталось (" + --count + ")");
                     } catch (Exception x) {
-                        Log.Add("gde.ru: " + _bus[b].name + " - ошибка добавления! - " + x.Message);
+                        Log.Add(_l + _bus[b].name + " - ошибка добавления! - " + x.Message);
                         break;
                     }
                 }
@@ -262,7 +274,7 @@ namespace Selen.Sites {
                                 {"name", _bus[b].name},
                                 {_url, _bus[b].gde}
                             });
-                    Log.Add("gde.ru: " + _bus[b].gde + " ссылка успешно сохранена");
+                    Log.Add(_l + _bus[b].gde + " ссылка успешно сохранена");
                     return;
                 }
                 await Task.Delay(5000);
@@ -382,7 +394,7 @@ namespace Selen.Sites {
                 });
             } catch (Exception x) {
                 if (x.Message.Contains("timed out")) throw;
-                Log.Add("gde.ru: ошибка парсинга страницы - " + x.Message);
+                Log.Add(_l + "ошибка парсинга страницы - " + x.Message);
             }
         }
         //проверка случайных ссылок
@@ -396,24 +408,31 @@ namespace Selen.Sites {
                         _dr.Navigate(_bus[b].gde);
                         //проверка загрузки страницы
                         if (_dr.GetElementsCount("//input[@id='AInfoForm_title']") == 0) {
-                            Log.Add("gde.ru: ошибка загрузки объявления! - " + _bus[b].name);
+                            Log.Add(_l + "ошибка загрузки объявления! - " + _bus[b].name);
                             continue;
                         }
                         //проверка названия и цены
                         var name = _dr.GetElementAttribute("//input[@id='AInfoForm_title']", "value");
                         var price = int.Parse(_dr.GetElementAttribute("//input[@id='AInfoForm_price']", "value"));
                         var photos = _dr.FindElements("//a[text()='Удалить']");
+                        var desc = _dr.GetElementAttribute("//label[text()='Полное описание']/..//textarea", "value");
                         if (name.Length <= 5 ||
                             !_bus[b].name.Contains(name) ||
                             _bus[b].price != price ||
+                            //рассрочка в описании
+                            _bus[b].price >= _creditPriceMin &&
+                            _bus[b].price <= _creditPriceMax &&
+                            !desc.Contains(_creditDescription) ||
+
                             photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)) {
+                            Log.Add(_l + _bus[b].name + " - обновляю объявление");
                             EditOffer(b);
                         }
                         i++;
                     }
                 });
             } catch (Exception x) {
-                Log.Add("gde.ru: ошибка при проверке ссылок - " + x.Message);
+                Log.Add(_l + "ошибка при проверке ссылок - " + x.Message);
             }
         }
     }

@@ -20,7 +20,10 @@ namespace Selen.Sites {
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
-        bool _addWeights;            //добавление веса 
+        int _creditPriceMin;        //цены для рассрочки
+        int _creditPriceMax;
+        string _creditDescription;  //описание для рассрочки
+        bool _addWeights;           //добавление веса 
         float _defWeigth;           //вес по умолчанию 
         List<RootObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
@@ -62,6 +65,11 @@ namespace Selen.Sites {
                 _defWeigth = _db.GetParamFloat("defaultWeigth");
                 //дополнительное описание
                 _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
+                //рассрочка 
+                _creditPriceMin = _db.GetParamInt("creditPriceMin"); 
+                _creditPriceMax = _db.GetParamInt("creditPriceMax");
+                _creditDescription = _db.GetParamStr("creditDescription"); 
+
                 Log.Add("drom.ru: начало выгрузки...");
                 await AuthAsync();
                 await GetDromPhotos();
@@ -180,7 +188,7 @@ namespace Selen.Sites {
                     _bus[b].price > 0 &&
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
-                        _dr.Navigate("http://baza.drom.ru/set/city/370?return=http%3A%2F%2Fbaza.drom.ru%2Fadding%3Fcity%3D370");
+                        _dr.Navigate("http://baza.drom.ru/set/city/370?return=http%3A%2F%2Fbaza.drom.ru%2Fadding%3Fcity%3D370", "//input[@name='subject']");
                         if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
                             throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
                         SetTitle(_bus[b]);
@@ -316,7 +324,11 @@ namespace Selen.Sites {
             }
         }
         void SetDesc(RootObject b) {
-            _dr.WriteToSelector("//textarea[@name='text']", sl: b.DescriptionList(2999, _addDesc));
+            var d = b.DescriptionList(2999, _addDesc);
+            if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
+                d.Insert(0, _creditDescription);
+            d.Add(OpenQA.Selenium.Keys.Tab);
+            _dr.WriteToSelector("//textarea[@name='text']", sl: d);
         }
         void SetPrice(RootObject b) {
             var desc = b.description.ToLowerInvariant();
@@ -458,6 +470,13 @@ namespace Selen.Sites {
                                 }
                                 //проверка фото
                                 CheckPhotos(_bus[b]);
+                                //проверка описания
+                                if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax) {
+                                    var d = _dr.GetElementAttribute("//label[text()='Текст объявления']/../../div/textarea", "value");
+                                    if (!d.Contains(_creditDescription))
+                                        SetDesc(_bus[b]);
+                                }
+                                Thread.Sleep(3000);
                             } else
                                 i--;
                             _db.SetParam("drom.checkOfferIndex", (++b).ToString());

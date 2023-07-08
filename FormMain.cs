@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.145";
+        string _version = "1.147";
 
         DB _db = new DB();
 
@@ -345,25 +345,25 @@ namespace Selen {
             await CheckArhiveStatusAsync();//проверка архивного статуса
             await CheckBu(); 
             button_Avito.PerformClick();
-            await Task.Delay(30000);
+            await Task.Delay(10000);
             button_YandexMarket.PerformClick();
-            await Task.Delay(30000);
+            await Task.Delay(10000);
             button_Satom.PerformClick();
-            await Task.Delay(30000);
+            await Task.Delay(10000);
             button_Vk.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             button_Youla.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             button_Gde.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             button_Kupiprodai.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             button_Drom.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             //button_EuroAuto.PerformClick();
             //await Task.Delay(60000);
             button_Izap24.PerformClick();
-            await Task.Delay(60000);
+            await Task.Delay(10000);
             //нужно подождать конца обновлений объявлений
             await WaitButtonsActiveAsync();
             button_PricesCorrection.PerformClick(); //коррекция цен в оприходованиях
@@ -923,7 +923,7 @@ namespace Selen {
                 button_Youla.Enabled
                 )
             )
-                await Task.Delay(20000);
+                await Task.Delay(5000);
         }
 
         async Task CheckMultipleApostropheAsync() {
