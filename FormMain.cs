@@ -1346,22 +1346,58 @@ namespace Selen {
                     var width = bus[b].attributes?.Find(f => f.Attribute.id == "2283757")?.Value.value;
                     var height = bus[b].attributes?.Find(f => f.Attribute.id == "2283758")?.Value.value;
                     var length = bus[b].attributes?.Find(f => f.Attribute.id == "2283759")?.Value.value;
-                    if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length) 
-                        && (width != bus[b].width || height != bus[b].height || length != bus[b].length)) {
-                        bus[b].width = width;
-                        bus[b].height = height;
-                        bus[b].length = length;
-                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                {"id", bus[b].id},
-                                {"width", bus[b].width},
-                                {"height", bus[b].height},
-                                {"length", bus[b].length}
-                        });
-                        if (s != null && s.Contains("updated")) {
-                            Log.Add(bus[b].name + " - размеры скопированы! [" + (i--) + "]");
-                        } else
-                            Log.Add(bus[b].name + " - ошибка копирования размеров!");
-                        await Task.Delay(400);
+                    if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length)){
+                        if (width != bus[b].width || height != bus[b].height || length != bus[b].length) {
+                            bus[b].width = width;
+                            bus[b].height = height;
+                            bus[b].length = length;
+                            var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                    {"id", bus[b].id},
+                                    {"width", bus[b].width},
+                                    {"height", bus[b].height},
+                                    {"length", bus[b].length}
+                            });
+                            if (s != null && s.Contains("updated")) {
+                                Log.Add(bus[b].name + " - размеры скопированы! [" + (i--) + "]");
+                            } else
+                                Log.Add(bus[b].name + " - ошибка копирования размеров!");
+                            await Task.Delay(400);
+                        } else {
+                            //запрашиваю привязку атрибута width к карточке
+                            var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
+                                {"good_id",bus[b].id},
+                                {"attribute_id","2283757" }
+                            });
+                            var attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
+                            //удаляю привязку по id
+                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
+                                {"id",attr[0].id},
+                            });
+
+                            //запрашиваю привязку атрибута height к карточке
+                            s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
+                                {"good_id",bus[b].id},
+                                {"attribute_id","2283758" }
+                            });
+                            attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
+                            //удаляю привязку по id
+                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
+                                {"id",attr[0].id},
+                            });
+
+                            //запрашиваю привязку атрибута length к карточке
+                            s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
+                                {"good_id",bus[b].id},
+                                {"attribute_id","2283759" }
+                            });
+                            attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
+                            //удаляю привязку по id
+                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
+                                {"id",attr[0].id},
+                            });
+
+                            Log.Add("idLength: " + s);
+                        }
                     }
                 } catch (Exception x) {
                     Log.Add(x.Message);

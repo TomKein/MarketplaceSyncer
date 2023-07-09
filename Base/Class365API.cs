@@ -123,6 +123,9 @@ namespace Selen {
                     } else if (action.ToUpper() == "POST") {
                         HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/x-www-form-urlencoded");
                         httpResponseMessage = await hc.PostAsync(url, content);
+                    } else if (action.ToUpper() == "DELETE") {
+                        HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/x-www-form-urlencoded");
+                        httpResponseMessage = await hc.DeleteAsync(url + "?" + qstr);
                     }
                     if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
                         var js = await httpResponseMessage.Content.ReadAsStringAsync();
