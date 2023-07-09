@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.147";
+        string _version = "1.148";
 
         DB _db = new DB();
 
@@ -1339,12 +1339,40 @@ namespace Selen {
                 }
             }
         }
-
+        //замена атрибутов с размерами на поля в карточке
+        async Task DimentionsLocationChange(int i) {
+            for (int b = 0; b < bus.Count && i > 0 && !_isBusinessNeedRescan; b++) {
+                try {
+                    var width = bus[b].attributes?.Find(f => f.Attribute.id == "2283757")?.Value.value;
+                    var height = bus[b].attributes?.Find(f => f.Attribute.id == "2283758")?.Value.value;
+                    var length = bus[b].attributes?.Find(f => f.Attribute.id == "2283759")?.Value.value;
+                    if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length) 
+                        && (width != bus[b].width || height != bus[b].height || length != bus[b].length)) {
+                        bus[b].width = width;
+                        bus[b].height = height;
+                        bus[b].length = length;
+                        var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                {"id", bus[b].id},
+                                {"width", bus[b].width},
+                                {"height", bus[b].height},
+                                {"length", bus[b].length}
+                        });
+                        if (s != null && s.Contains("updated")) {
+                            Log.Add(bus[b].name + " - размеры скопированы! [" + (i--) + "]");
+                        } else
+                            Log.Add(bus[b].name + " - ошибка копирования размеров!");
+                        await Task.Delay(400);
+                    }
+                } catch (Exception x) {
+                    Log.Add(x.Message);
+                }
+            }
+        }
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await PhotoClearAsync();
+                await DimentionsLocationChange(10000);
 
                 {
 

@@ -10,8 +10,7 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Forms;
 
-namespace Selen
-{
+namespace Selen {
     public class realizationgoods {
         public string id { get; set; }
         public string good_id { get; set; }
@@ -33,7 +32,7 @@ namespace Selen
         public string name { get; set; }
 
     }
-    public class Value { 
+    public class Value {
         public string id { get; set; }
         public string model { get; set; }
         public string name { get; set; }
@@ -45,8 +44,7 @@ namespace Selen
         public Value Value { get; set; }
 
     }
-    public class RootGroupsObject
-    {
+    public class RootGroupsObject {
         public string id { get; set; }
         public string name { get; set; }
         public string parent_id { get; set; }
@@ -82,7 +80,7 @@ namespace Selen
 
         public float FloatAmount {
             get {
-                return string.IsNullOrEmpty(amount) ? 0 
+                return string.IsNullOrEmpty(amount) ? 0
                     : float.Parse(amount.Replace(".", ","));
             }
         }
@@ -123,7 +121,7 @@ namespace Selen
         }
     }
 
-    public class Image{
+    public class Image {
         public string name { get; set; }
         public string url { get; set; }
     }
@@ -162,13 +160,16 @@ namespace Selen
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }
+        public string length { get; set; }
+        public string width { get; set; }
+        public string height { get; set; }
         public static DateTime ScanTime { get; set; }
         public static List<RootGroupsObject> Groups { get; set; }
         public int price {
             get {
                 if (prices.Count > 0)
                     return prices.Select(s => string.IsNullOrEmpty(s.price) ? 0 :
-                                                (int)float.Parse(s.price.Replace(".", ","))).Max();
+                                                (int) float.Parse(s.price.Replace(".", ","))).Max();
                 return 0;
             }
             set {
@@ -199,7 +200,7 @@ namespace Selen
             }
         }
         public string GetWeightString() {
-            return GetWeight().ToString("F1").Replace(",",".");
+            return GetWeight().ToString("F1").Replace(",", ".");
         }
         public float GetWeight() {
             return (float) ((weight == null || weight == 0) ? defaultWeight : weight);
@@ -220,7 +221,7 @@ namespace Selen
             if (string.IsNullOrEmpty(validity)) {
                 Log.Add("defaultValidity: ошибка - значение в настройках 0! установлено значение 1 год");
                 defaultValidity = "P1Y";
-            }else
+            } else
                 defaultValidity = "P" + validity + "Y";
         }
         public string GetValidity() {
@@ -228,7 +229,7 @@ namespace Selen
             var validity = attributes?.Find(f => f.Attribute.id == "2283760"); //Срок годности, лет
             if (validity != null && validity.Value.name != "") {
                 return validity.Value.name;
-            }else
+            } else
                 return defaultValidity;
         }
 
@@ -263,9 +264,10 @@ namespace Selen
                            .Replace("|", " "),
                            "<[^>]+>", string.Empty).Trim();
 
-        public List<string> DescriptionList(int b = 3000, string[] dop = null,bool removeSpec=false) {
+        public List<string> DescriptionList(int b = 3000, string[] dop = null, bool removeSpec = false) {
             string d = description;
-            if (removeSpec) d = d
+            if (removeSpec)
+                d = d
                                     .Replace("/", " ")
                                     .Replace("\\", " ")
                                     .Replace("(", " ")
@@ -294,7 +296,7 @@ namespace Selen
                             .Select(ta => ta.Trim())
                             .Where(tb => tb.Length > 1)
                             .ToList();
-            if (IsGroupSolidParts() && dop!=null) {
+            if (IsGroupSolidParts() && dop != null) {
                 s.AddRange(dop);
             }
             //контролируем длину описания
@@ -317,7 +319,7 @@ namespace Selen
 
         public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ?
                                     Groups.First(f => f.id == group_id).name : "";
-        public static string GroupName(string group_id) => Groups.Count(c => c.id == group_id) > 0 ? 
+        public static string GroupName(string group_id) => Groups.Count(c => c.id == group_id) > 0 ?
                                                           Groups.First(f => f.id == group_id).name : "";
 
         public string GetDiskSize() {
@@ -333,7 +335,7 @@ namespace Selen
         public bool IsNew() {
             var low = (name + ":" + description).ToLowerInvariant();
             if (group_id == "289732" || //Автохимия
-                group_id == "430926" )  //Масла
+                group_id == "430926")  //Масла
                 return true;
             return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
         }
@@ -361,7 +363,8 @@ namespace Selen
             if (!String.IsNullOrEmpty(description) && description.Contains("№")) {
                 var pattern = @"№\s*([а-яa-z0-9]+)\s*";
                 var number = Regex.Match(description, pattern).Groups[1].Value;
-                if (string.IsNullOrEmpty(number)) number = "";
+                if (string.IsNullOrEmpty(number))
+                    number = "";
                 return number;
                 //return description
                 //                .Split('№').Last()
@@ -384,22 +387,25 @@ namespace Selen
         public string GetNumberOfHoles() {
             var pattern = @"(?:.+)\s*(\d)(?:\*|x|х)\s*(?:[0-9]+)";
             var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
-            if (string.IsNullOrEmpty(number)) number = "4";
+            if (string.IsNullOrEmpty(number))
+                number = "4";
             return number;
         }
         //получаем диаметр отверстий на диске из описания
         public string GetDiameterOfHoles() {
             var pattern = @"\d\s*(?:\*|x|х)\s*([0-9]+\.*[0-9]*)\s*(?:<|\ |m|м|.|,)";
             var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
-            if (string.IsNullOrEmpty(number)) number = "100";
+            if (string.IsNullOrEmpty(number))
+                number = "100";
             return number;
         }
         //получаем диаметр ступицы из описания
         public string GetDiaStup() {
             var pattern = @"(?>пица|dia|Dia|DIA)\D*([0-9]+[.,]*[0-9]*)\s*";
             var number = Regex.Match(description.ToLowerInvariant(), pattern).Groups[1].Value;
-            if (string.IsNullOrEmpty(number)) number = "57.1";
-            return number.Replace(",",".");
+            if (string.IsNullOrEmpty(number))
+                number = "57.1";
+            return number.Replace(",", ".");
         }
         //производители
         private static string[] manufactures;
@@ -430,7 +436,7 @@ namespace Selen
         //определяю название запчасти, марку и модель из описания
         private static string[] _autos;
         //марка и модель асинхронный метод
-        public async Task<string[]> GetNameMarkModelAsync() => 
+        public async Task<string[]> GetNameMarkModelAsync() =>
             await Task.Factory.StartNew(() => {
                 return GetNameMarkModel();
             });
@@ -445,7 +451,8 @@ namespace Selen
             for (int i = 0; i < _autos.Length; i++) {
                 dict.Add(_autos[i], 0);
                 foreach (var word in _autos[i].Split(';'))
-                    if (desc.Contains(word)) dict[_autos[i]]++;
+                    if (desc.Contains(word))
+                        dict[_autos[i]]++;
             }//== dict.Values.Max()
             //определяю лучшие совпадения
             var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).Select(s => s.Key).ToList();
@@ -455,9 +462,11 @@ namespace Selen
                 var n = new StringBuilder();
                 foreach (var part in name.Split(' ')) {
                     //если слово не содержится в марке и не является номером запчасти, то берем его
-                    if (!best[0].Contains(part.ToLowerInvariant()) && part!=this.part) n.Append(part).Append(" ");
+                    if (!best[0].Contains(part.ToLowerInvariant()) && part != this.part)
+                        n.Append(part).Append(" ");
                     //иначе завершаем проверку
-                    else break;
+                    else
+                        break;
                 }
                 //проверяю длину названия, если она больше 0, то ок
                 if (n.Length > 0) {
@@ -480,7 +489,7 @@ namespace Selen
         }
         //перечитать из таблицы настроек
         public static void ResetManufactures() {
-            if (manufactures == null || DateTime.Now.Ticks%10000 == 0)
+            if (manufactures == null || DateTime.Now.Ticks % 10000 == 0)
                 manufactures = DB._db.GetParamStr("manufactures").Split(',');
         }
         //метод определения размеров
@@ -490,22 +499,19 @@ namespace Selen
         }
         //массив размеров сторон (длина, ширина, высота)
         public float[] GetDimentions() {
-            //сперва проверяю характеристики товара, если они указаны, использую их в первую очередь
             float[] arr = new float[3];
-            var width = attributes?.Find(f => f.Attribute.id == "2283757"); //Ширина
-            var heigth = attributes?.Find(f => f.Attribute.id == "2283758"); //Высота
-            var length = attributes?.Find(f => f.Attribute.id == "2283759"); //Длина
-            if (width != null && width.Value.value != "" && width.Value.value != "0" &&
-                heigth != null && heigth.Value.value != "" && heigth.Value.value != "0" &&
-                length != null && length.Value.value != "" && length.Value.value != "0") {
+            //сперва проверяю поля карточки
+            if (!string.IsNullOrWhiteSpace(this.width) &&
+                !string.IsNullOrWhiteSpace(this.height) &&
+                !string.IsNullOrWhiteSpace(this.length) != null) {
                 try {
-                    arr[0] = float.Parse(length.Value.value.Replace(".", ","));
-                    arr[1] = float.Parse(width.Value.value.Replace(".", ","));
-                    arr[2] = float.Parse(heigth.Value.value.Replace(".", ","));
+                    arr[0] = float.Parse(this.length.Replace(".", ","));
+                    arr[1] = float.Parse(this.width.Replace(".", ","));
+                    arr[2] = float.Parse(this.height.Replace(".", ","));
                     return arr;
                 } catch (Exception x) {
-                    Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер: \nдлина " + 
-                        length.Value.value + " \nширина " + width.Value.value + " \nвысота " + heigth.Value.value);
+                    Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер в полях: \nдлина " +
+                        this.length + " \nширина " + this.width + " \nвысота " + this.height+"\n"+ x.Message);
                 }
             }
             //если характеристики не указаны, либо указаны неверно,
@@ -519,22 +525,22 @@ namespace Selen
             //вторую - в меньшую
             arr[1] = (float) Math.Floor(dimention * 20) * 5;
             //третью вычисляю от первых двух и округляю до целых
-            arr[2] = (float) Math.Round((double)(100 * volume / (arr[0] * 0.01 * arr[1] * 0.01)));
+            arr[2] = (float) Math.Round((double) (100 * volume / (arr[0] * 0.01 * arr[1] * 0.01)));
             //строка с размерами
             return arr;
         }
         //суммарная длина сторон
-        public float GetLength () {
+        public float GetLength() {
             var d = GetDimentions();
             return d[0] + d[1] + d[2];
         }
         //квант продажи
         public string GetQuantOfSell() {
             int p;
-            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString())??"", out p))
+            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString()) ?? "", out p))
                 return p.ToString();
             return null;
-                
+
         }
     }
 }

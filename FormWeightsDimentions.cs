@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 
+
 namespace Selen {
     public partial class FormWeightsDimentions : Form {
         Dictionary<string, string> DimentionsId = new Dictionary<string, string>(){
@@ -69,22 +70,17 @@ namespace Selen {
                                             w.amount > 0 &&            //или остаток положительный
                                             w.price > 0 &&              //цена положительная
                                             (w.images.Count > 0 || !checkBox_onlyHaveImage.Checked)) &&         //с фото или если галка только с фото не стоит
-                                            (
-                                            !(w.attributes != null &&                                           //нет заполненных атрибутов 
-                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Width"]) &&
-                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Height"]) &&
-                                            w.attributes.Exists(a => a.Attribute.id == DimentionsId["Length"])) ||
-                                            !checkBox_EmptyOnly.Checked                                         //или галка только нет заполненных снята
+                                            ((string.IsNullOrWhiteSpace(w.width) || //есть пустые размеры
+                                             string.IsNullOrWhiteSpace(w.height) ||
+                                             string.IsNullOrWhiteSpace(w.length)) ||
+                                            !checkBox_EmptyOnly.Checked             //или галка только пустые снята
                                             ) &&
                                             (textWords.Length == textWords.Count(textWord => (w.name + w.id).ToLowerInvariant().Contains(textWord)))        //и тескт содержится в названии или номере
                                             )
                                 .Reverse()
                                 .Take(_tableSize);
             foreach (var item in busSearch) {
-                var width = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Width"]);
-                var height = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Height"]);
-                var length = item.attributes?.Find(f => f.Attribute.id == DimentionsId["Length"]);
-                dt.Rows.Add(item.id, item.name, item.weight ?? 0, width?.Value.value ?? "", height?.Value.value ?? "", length?.Value.value ?? "");
+                dt.Rows.Add(item.id, item.name, item.weight ?? 0, item.width ?? "", item.height ?? "", item.length ?? "");
             }
             return dt;
         });
@@ -98,7 +94,6 @@ namespace Selen {
             //запоминаю изменяемое значение параметра
             _value = dataGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
             try {
-
                 //подставляю нулевые значения
                 if (e.ColumnIndex > 1 && (_value == null || _value == "" || _value == "0")) {
                     var name = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
@@ -107,13 +102,15 @@ namespace Selen {
                         List<RootObject> busSearch = null;
                         do {
                             //выражение для фильтра похожих товаров
-                            busSearch = _bus.Where(w => w.weight != null && w.weight > 0 &&                  //указан вес
-                                                        w.attributes != null &&                              //заполненны атрибуты
-                                                        w.attributes.Exists(a => a.Attribute.id == DimentionsId["Width"]) &&
-                                                        w.attributes.Exists(a => a.Attribute.id == DimentionsId["Height"]) &&
-                                                        w.attributes.Exists(a => a.Attribute.id == DimentionsId["Length"]) &&
-                                                        //и тескт содержится в названии
-                                                        (textWords.Count == textWords.Count(textWord => w.name.ToLowerInvariant().Contains(textWord)))
+                            busSearch = _bus.Where(w => (//если ищем средний вес - нужно фильтровать карточки с весом
+                                                         w.weight != null && w.weight > 0 && e.ColumnIndex == 2 ||
+                                                         //если размеры -- заполненные размеры
+                                                         !string.IsNullOrWhiteSpace(w.width) &&
+                                                         !string.IsNullOrWhiteSpace(w.height) &&
+                                                         !string.IsNullOrWhiteSpace(w.length) &&
+                                                         e.ColumnIndex > 2) &&
+                                                         //тескт содержится в названии в любом случае
+                                                         (textWords.Count == textWords.Count(textWord => w.name.ToLowerInvariant().Contains(textWord)))
                                                     ).ToList();
                             if (!busSearch.Any())
                                 textWords.RemoveAt(textWords.Count - 1);
@@ -128,15 +125,15 @@ namespace Selen {
                             if (e.ColumnIndex == 2) { //заполняем средний вес
                                 medianValue = (busSearch.OrderBy(o => o.weight).ElementAt(medianIndex).weight ?? 0).ToString();
                             } else if (e.ColumnIndex == 3) {
-                                attributes = busSearch.Select(b => b.attributes.Find(a => a.Attribute.id == DimentionsId["Width"]).Value.value).ToList();
+                                attributes = busSearch.Select(b => b.width).ToList();
                                 floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
                                 medianValue = floats.OrderBy(o => o).ElementAt(medianIndex).ToString();
                             } else if (e.ColumnIndex == 4) {
-                                attributes = busSearch.Select(b => b.attributes.Find(a => a.Attribute.id == DimentionsId["Height"]).Value.value).ToList();
+                                attributes = busSearch.Select(b => b.height).ToList();
                                 floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
                                 medianValue = floats.OrderBy(o => o).ElementAt(medianIndex).ToString();
                             } else if (e.ColumnIndex == 5) {
-                                attributes = busSearch.Select(b => b.attributes.Find(a => a.Attribute.id == DimentionsId["Length"]).Value.value).ToList();
+                                attributes = busSearch.Select(b => b.length).ToList();
                                 floats = attributes.Select(a => float.Parse(a.Replace(".", ","))).ToList();
                                 medianValue = floats.OrderBy(o => o).ElementAt(medianIndex).ToString();
                             }
@@ -194,52 +191,16 @@ namespace Selen {
             }
         }
         private async Task UpdateDimention(string value, string id, string attributeName) {
-            try {
-                //если атрибут в карточке существует
-                if (_bus.Find(f => f.id == id).attributes?.Find(f => f.Attribute.id == DimentionsId[attributeName]) != null) {
-                    //получим id привязки атрибута
-                    var attributeId = _bus.Find(f => f.id == id)
-                                          .attributes
-                                          .Find(f => f.Attribute.id == DimentionsId[attributeName])
-                                          .Attribute
-                                          .id;
-                    var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string>() {
-                            {"good_id", id},
-                            {"attribute_id", attributeId}
-                        });
-                    var ga = JsonConvert.DeserializeObject<List<Goodsattributes>>(s);
-                    s = await Class365API.RequestAsync("put", "goodsattributes", new Dictionary<string, string>() {
-                            {"id", ga[0].id},
-                            {"value", value}
-                        });
-                    if (s != null && s.Contains("updated")) {
-                        _bus.Find(f => f.id == id)
-                            .attributes
-                            .Find(f => f.Attribute.id == DimentionsId[attributeName])
-                            .Value
-                            .value = value;
-                        Log.Add("БД: обновлена характеристика " + attributeName + " = " + value);
-                    }
-                } else { //если атрибута нет - создаем
-                    var s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
-                            {"good_id", id},
-                            {"attribute_id", DimentionsId[attributeName]},
-                            {"value", value}
-                        });
-                    if (s != null && s.Contains("updated")) {
-                        _bus.Find(f => f.id == id).attributes.Add(
-                            new Attributes() {
-                                Attribute = new Attribute() { id = DimentionsId[attributeName] },
-                                Value = new Value() { value = value }
-                            });
-                        Log.Add("БД: добавлена характеристика " + attributeName + " = " + value);
-                    }
-
-                }
-            } catch (Exception x) {
-                Log.Add("веса размеры: ошибка обновления характеристик - " + x.Message + x.InnerException.Message);
-            }
-
+            var name = attributeName.ToLowerInvariant();
+            var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                { "id",id},
+                {name, value}
+            });
+            if(s!=null && s.Contains("updated")) {
+                Log.Add("UpdateDimention: " + id + " - " + name + ": " + value + " - обновлено!");
+                return;
+            }else 
+                Log.Add("UpdateDimention: " + id + " - " + name + ": " + value + " - ошибка обновления!");
         }
 
         private void button_Clear_Click(object sender, EventArgs e) {

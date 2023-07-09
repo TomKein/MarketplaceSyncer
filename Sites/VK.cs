@@ -163,7 +163,7 @@ namespace Selen.Sites {
                 MainPhotoId = mainPhoto,
                 PhotoIds = dopPhotos,
                 Deleted = false,
-               
+
             });
             //сохраняю ссылку
             _bus[b].vk = "https://vk.com/market-23570129?w=product-23570129_" + itemId;
