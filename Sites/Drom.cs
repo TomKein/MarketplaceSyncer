@@ -249,6 +249,12 @@ namespace Selen.Sites {
                 if (_dr.GetElementsCount("//div[@data-name='model']/div[contains(@class,'annotation') and contains(@style,'none')]") == 0) {
                     _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", "штатная");
                 }
+                //тип акустики
+                if (d.Contains("коаксиал"))
+                    _dr.ButtonClick("//input[@name='speakerSystemType' and @value='Коаксиальные']");
+                else
+                    _dr.ButtonClick("//input[@name='speakerSystemType' and @value='Широкополосные']");
+
             }
         }
         void SetDiam(RootObject b) {

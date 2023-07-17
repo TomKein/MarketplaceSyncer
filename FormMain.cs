@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.148";
+        string _version = "1.149";
 
         DB _db = new DB();
 
@@ -344,6 +344,7 @@ namespace Selen {
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
             await CheckBu(); 
+            await CheckUrls(); //удаление ссылок из черновиков
             button_Avito.PerformClick();
             await Task.Delay(10000);
             button_YandexMarket.PerformClick();
@@ -377,6 +378,31 @@ namespace Selen {
             await ArchivateAsync();//архивирование старых карточек
             await CheckDescriptions();
         }
+        //проверка ссылок в черновиках
+        async Task CheckUrls() {
+            for (int b = 0; b < bus.Count; b++) {
+                if (bus[b].GroupName().Contains("РАЗБОРКА") &&
+                    (!string.IsNullOrEmpty(bus[b].drom) ||
+                    !string.IsNullOrEmpty(bus[b].vk) ||
+                    !string.IsNullOrEmpty(bus[b].kp) ||
+                    !string.IsNullOrEmpty(bus[b].gde))) {
+                    bus[b].drom = "";
+                    bus[b].vk = "";
+                    bus[b].kp = "";
+                    bus[b].gde = "";
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                        {"id", bus[b].id},
+                        {"name", bus[b].name},
+                        {"209334", ""},
+                        {"209360", ""},
+                        {"833179", ""},
+                        {"854872", ""}
+                    });
+                    Log.Add(bus[b].name + " - удалены ссылки черновика");
+                }
+            }
+        }
+
         //проверка переносов в описаниях
         private async Task CheckDescriptions() {
             for (int i = bus.Count-1; i > -1; i--) {
@@ -1340,13 +1366,26 @@ namespace Selen {
             }
         }
         //замена атрибутов с размерами на поля в карточке
-        async Task DimentionsLocationChange(int i) {
+        async Task AttributesChange(int i) {
             for (int b = 0; b < bus.Count && i > 0 && !_isBusinessNeedRescan; b++) {
                 try {
+                    //удаляю атрибут tiuAttr 
+                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77526") ?? false)
+                        await DeleteAttribute(b, "77526");
+                    //удаляю атрибут tiuId 
+                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77371") ?? false)
+                        await DeleteAttribute(b, "77371");
+                    //удаляю атрибут tiuPhotos 
+                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77480") ?? false)
+                        await DeleteAttribute(b, "77480");
+                    //удаляю атрибут Ключевые слова
+                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77527") ?? false)
+                        await DeleteAttribute(b, "77527");
+                    //перенос значений атрибутов в новые поля
                     var width = bus[b].attributes?.Find(f => f.Attribute.id == "2283757")?.Value.value;
                     var height = bus[b].attributes?.Find(f => f.Attribute.id == "2283758")?.Value.value;
                     var length = bus[b].attributes?.Find(f => f.Attribute.id == "2283759")?.Value.value;
-                    if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length)){
+                    if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length)) {
                         if (width != bus[b].width || height != bus[b].height || length != bus[b].length) {
                             bus[b].width = width;
                             bus[b].height = height;
@@ -1363,40 +1402,12 @@ namespace Selen {
                                 Log.Add(bus[b].name + " - ошибка копирования размеров!");
                             await Task.Delay(400);
                         } else {
-                            //запрашиваю привязку атрибута width к карточке
-                            var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
-                                {"good_id",bus[b].id},
-                                {"attribute_id","2283757" }
-                            });
-                            var attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
-                            //удаляю привязку по id
-                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
-                                {"id",attr[0].id},
-                            });
-
-                            //запрашиваю привязку атрибута height к карточке
-                            s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
-                                {"good_id",bus[b].id},
-                                {"attribute_id","2283758" }
-                            });
-                            attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
-                            //удаляю привязку по id
-                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
-                                {"id",attr[0].id},
-                            });
-
-                            //запрашиваю привязку атрибута length к карточке
-                            s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
-                                {"good_id",bus[b].id},
-                                {"attribute_id","2283759" }
-                            });
-                            attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
-                            //удаляю привязку по id
-                            s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
-                                {"id",attr[0].id},
-                            });
-
-                            Log.Add("idLength: " + s);
+                            //удаляю атрибут width  
+                            await DeleteAttribute(b, "2283757");
+                            //удаляю атрибут height  
+                            await DeleteAttribute(b, "2283758");
+                            //удаляю атрибут length
+                            await DeleteAttribute(b, "2283759");
                         }
                     }
                 } catch (Exception x) {
@@ -1404,11 +1415,32 @@ namespace Selen {
                 }
             }
         }
+        //удаление атрибута в карточке
+        private async Task DeleteAttribute(int b, string atrId) {
+            var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
+                                {"good_id",bus[b].id},
+                                {"attribute_id",atrId }
+                            });
+            var attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
+            //удаляю привязку по id
+            if (attr.Any()) {
+                s = await Class365API.RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
+                                {"id",attr[0].id},
+                            });
+                if (s.Contains("id")) {
+                    Log.Add(b + ": " + bus[b].name +" - атрибут "+atrId+" удален");
+                    Thread.Sleep(360);
+                } else {
+                    Log.Add(b + ": " + bus[b].name + "атрибут "+atrId+" - ошибка удаления");
+                } 
+            }
+        }
+
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await DimentionsLocationChange(10000);
+                await CheckUrls();
 
                 {
 
