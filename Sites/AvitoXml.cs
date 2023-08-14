@@ -790,7 +790,10 @@ namespace Selen.Sites {
                  name.StartsWith("усилитель вакуум") ||
                  name.Contains("тормоз") && (name.Contains("барабан") || name.Contains("механизм")) ||
                  name.StartsWith("бачок гтц") ||
-                 name.StartsWith("штуцер прокачки") ||
+                 name.StartsWith("штуцер прокачки") || 
+                 name.StartsWith("ремкомплект задних колодок") ||
+                 name.StartsWith("колодки тормоз") ||
+                 name.StartsWith("колодки бараб") ||
                  name.StartsWith("распределитель торм") ||
                  name.Contains("abs") && (name.StartsWith("насос") || name.StartsWith("блок")) ||
                  name.Contains("планка") && name.Contains("тормоза") ||
@@ -873,9 +876,6 @@ namespace Selen.Sites {
             } else if (b.group_id == "289732") { //  "Автохимия"
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
             } else if (name.StartsWith("прокладка")||
-                name.StartsWith("ремкомплект задних колодок") ||
-                name.StartsWith("колодки тормоз") ||
-                name.StartsWith("колодки бараб") ||
                 name.StartsWith("свеча зажиг") ||
                 name.StartsWith("комплект прокладок") ||
                 name.StartsWith("хомут ") ||
