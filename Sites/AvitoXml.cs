@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
+using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -14,6 +16,10 @@ namespace Selen.Sites {
         readonly string _l = "avitoXml: ";              //префикс для лога
         readonly string filename = @"..\avito.xml";     //имя файла для экспорта
         readonly string filenameStock = @"..\avitostock.xml";     //имя файла для экспорта остатков
+        XDocument autoCatalogXML;
+        readonly string autoCatalogFile = @"..\autocatalog.xml";
+        readonly string autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
+
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
             await Task.Factory.StartNew(() => {
@@ -34,6 +40,8 @@ namespace Selen.Sites {
                 RootObject.UpdateDefaultVolume();
                 //обновляю вес товара по умолчанию
                 RootObject.UpdateDefaultWeight();
+                //обновляю автокаталог
+                GetAutoCatalogXml();
                 //создаю новый xml
                 var xml = new XDocument();
                 //xml для выгрузки остатков
@@ -41,15 +49,15 @@ namespace Selen.Sites {
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //корневой элемент для остатков
-                var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")), 
+                var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")),
                                                       new XAttribute("formatVersion", "1"));
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по убыванию цены
                 var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
                                       && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
-                              .OrderByDescending(o => o.price); 
-                Log.Add(_l+"найдено " + bus.Count() + " потенциальных объявлений");
-                int i=0;
+                              .OrderByDescending(o => o.price);
+                Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
+                int i = 0;
                 foreach (var b in bus) {
                     try {
                         //заполнение остатков
@@ -74,7 +82,7 @@ namespace Selen.Sites {
                         ad.Add(images);
                         //если надо снять
                         if (b.amount <= 0) {
-                            ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
+                            ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss") + "+03:00"));
                         }
                         //else {
                         //    ad.Add(new XElement("DateBegin", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
@@ -102,15 +110,22 @@ namespace Selen.Sites {
                         //доступность
                         ad.Add(new XElement("Availability", "В наличии"));
                         //ad.Add(new XElement("stock", b.amount));
+                        //оригинальность
+                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //номер запчасти
                         if (!string.IsNullOrEmpty(b.part))
                             ad.Add(new XElement("OEM", b.part));
-                        //оригинальность
-                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //производитель
                         var brand = b.GetManufacture();
                         if (!string.IsNullOrEmpty(brand))
                             ad.Add(new XElement("Brand", b.GetManufacture()));
+                        // если запчасть б/у и нет номера или бренда,
+                        // то нужно добавить Для чего подходит (требование авито)
+                        if (!b.IsNew()/* && (string.IsNullOrEmpty(b.part) || string.IsNullOrEmpty(brand))*/) {
+                            var make = GetMake(b);
+                            if (make != null)
+                                ad.Add(new XElement("Make", GetMake(b)));
+                        }
                         //добавляю объявление в дерево
                         root.Add(ad);
                         //считаем только объявления с положительным остатком
@@ -119,10 +134,10 @@ namespace Selen.Sites {
                         if (i >= offersLimit)
                             break;
                     } catch (Exception x) {
-                        Log.Add(_l+ i + " - " + b.name + " - " + x.Message);
+                        Log.Add(_l + i + " - " + b.name + " - " + x.Message);
                     }
                 }
-                Log.Add(_l+"выгружено " + i);
+                Log.Add(_l + "выгружено " + i);
                 //добавляю root в документ
                 xml.Add(root);
                 //добавляю root в документ остатков
@@ -138,10 +153,67 @@ namespace Selen.Sites {
                 await SftpClient.FtpUploadAsync(filenameStock);
             }
         }
+
+        public void GetAutoCatalogXml() {
+            //загружаю xml с авто: если файлу больше 24 часов - пытаюсь запросить новый, иначе загружаю с диска
+            var period = DB._db.GetParamInt("avito.autoCatalogPeriod");
+            if (!File.Exists(autoCatalogFile) || File.GetLastWriteTime(autoCatalogFile).AddHours(period) < DateTime.Now) {
+                try {
+                    Log.Add(_l + "запрашиваю новый автокаталог xml с avito...");
+                    autoCatalogXML = XDocument.Load(autoCatalogUrl);
+                    if (autoCatalogXML.Element("Catalog").Elements("Make").Count() > 200)
+                       autoCatalogXML.Save(autoCatalogFile);
+                    else
+                        throw new Exception("мало элементов в автокаталоге");
+                    Log.Add(_l + "автокаталог обновлен!");
+                    return;
+                } catch (Exception x) {
+                    Log.Add(_l + "ошибка запроса xml - " + x.Message);
+                }
+            }
+            autoCatalogXML = XDocument.Load(autoCatalogFile);
+            Log.Add(_l + "автокаталог загружен!");
+        }
+        private string GetMake(RootObject b) {
+            //склеиваю название и описание
+            var desc = (b.name + " " + b.HtmlDecodedDescription())
+                       .ToLowerInvariant()
+                       .Replace("vw ", "volkswagen ")
+                       .Replace("vag ", "volkswagen ")
+                       .Replace("psa ", "peugeot ");
+            //новый словарь для учета совпадений
+            var dict = new Dictionary<string, int>();
+            // получаем список производителей
+            var makes = autoCatalogXML.Element("Catalog").Elements("Make");
+            //            Log.Add(makes.Count().ToString());
+            //проверяю похожесть на каждый элемент списка
+            foreach (var make in makes) {
+                dict.Add(make.Attribute("name").Value, 0);
+                if (desc.Contains(make.Attribute("name").Value.ToLowerInvariant()))
+                    dict[make.Attribute("name").Value] += 11;
+                foreach (var model in make.Elements("Model")) {
+                    if (desc.Contains(model.Attribute("name").Value.ToLowerInvariant()))
+                        dict[make.Attribute("name").Value] += model.Attribute("name").Value.Length;
+                }
+                //                if (dict[make.Attribute("name").Value]>0)
+                //                    Log.Add("GetMake: dict " + make.Attribute("name").Value +" => "+ dict[make.Attribute("name").Value]);
+            }
+            //определяю лучшие совпадения
+            var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).ToList();
+            //если они есть
+            if (best.Count > 0) {
+                //                Log.Add("GetMake: ======== " + desc + " >>> " + best[0].Key + " [" + best[0].Value +"]");
+                //                Thread.Sleep(10000);
+                return best[0].Key;
+            } else
+                Log.Add("GetMake: " + b.name + " пропущен - не удалось определить автопроизводителя");
+            return null;
+        }
+
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
             var name = b.name.ToLowerInvariant()
-                             .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.","").Replace("б.у","").Trim();
+                             .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.", "").Replace("б.у", "").Trim();
             var d = new Dictionary<string, string>();
             if (name.StartsWith("масло ")) {
                 d.Add("TypeId", "4-942");                           //Масла и автохимия
@@ -209,8 +281,8 @@ namespace Selen.Sites {
                 name.StartsWith("пластина мкпп") ||
                 name.StartsWith("фланец кпп") ||
                 (name.Contains("фланец") || name.Contains("передача") ||
-                 name.Contains("механизм") || name.Contains("узел") || 
-                 name.Contains("корпус") || name.Contains("крышка") || 
+                 name.Contains("механизм") || name.Contains("узел") ||
+                 name.Contains("корпус") || name.Contains("крышка") ||
                  name.Contains("вал ") || name.Contains("селектор ") || name.Contains("муфта"))
                                               && name.Contains("кпп ") ||
                 name.Contains("комплект кулисы") ||
@@ -652,7 +724,7 @@ namespace Selen.Sites {
                  name.StartsWith("рейлинг") ||
                  name.StartsWith("трос ") ||
                  name.StartsWith("передняя панель") ||
-                 (name.Contains("мотор") || name.Contains("трапеция")) 
+                 (name.Contains("мотор") || name.Contains("трапеция"))
                                          && name.Contains("стеклоочист") ||
                  name.StartsWith("фаркоп") ||
                  name.StartsWith("ниша запасного колеса") ||
@@ -667,8 +739,8 @@ namespace Selen.Sites {
                   name.StartsWith("диодный") ||
                   name.StartsWith("бендикс") ||
                   name.StartsWith("стартер") ||
-                  (name.StartsWith("крышка") ||  name.StartsWith("вилка") || name.StartsWith("щетки"))
-                                                                          && name.Contains("стартер")){
+                  (name.StartsWith("крышка") || name.StartsWith("вилка") || name.StartsWith("щетки"))
+                                                                          && name.Contains("стартер")) {
                 d.Add("TypeId", "16-829");                          // Генераторы, стартеры
             } else if (name.StartsWith("амортизатор") ||
                   name.StartsWith("кулак") ||
@@ -689,7 +761,7 @@ namespace Selen.Sites {
                    name.StartsWith("горловина") ||
                    name.Contains("заслонка") && name.Contains("дроссел") ||
                    name.StartsWith("корпус воздуш") ||
-                   (name.StartsWith("крышка")||name.Contains("корпус ")) && name.Contains("фильтр") ||
+                   (name.StartsWith("крышка") || name.Contains("корпус ")) && name.Contains("фильтр") ||
                    name.StartsWith("инжектор") ||
                    name.Contains("катализатор") ||
                    (name.StartsWith("шланг") ||
@@ -734,7 +806,7 @@ namespace Selen.Sites {
                    name.StartsWith("обратный клапан") ||
                    name.StartsWith("проставка под карб") ||
                    name.StartsWith("сепаратор картерн") ||
-                   name.StartsWith("фланец") && 
+                   name.StartsWith("фланец") &&
                    (name.Contains("карб") ||
                     name.Contains("монов") ||
                     name.Contains("глушит")) ||
@@ -790,7 +862,7 @@ namespace Selen.Sites {
                  name.StartsWith("усилитель вакуум") ||
                  name.Contains("тормоз") && (name.Contains("барабан") || name.Contains("механизм")) ||
                  name.StartsWith("бачок гтц") ||
-                 name.StartsWith("штуцер прокачки") || 
+                 name.StartsWith("штуцер прокачки") ||
                  name.StartsWith("ремкомплект задних колодок") ||
                  name.StartsWith("колодки тормоз") ||
                  name.StartsWith("колодки бараб") ||
@@ -875,7 +947,7 @@ namespace Selen.Sites {
                 d.Add("TypeId", "16-842");                           //Турбины, компрессоры
             } else if (b.group_id == "289732") { //  "Автохимия"
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
-            } else if (name.StartsWith("прокладка")||
+            } else if (name.StartsWith("прокладка") ||
                 name.StartsWith("свеча зажиг") ||
                 name.StartsWith("комплект прокладок") ||
                 name.StartsWith("хомут ") ||
@@ -888,7 +960,7 @@ namespace Selen.Sites {
                 d.Add("Category", "Запчасти и аксессуары"); //главная категория
             else
                 throw new Exception("категория не определена!");
-            
+
             //корректировка категорий для авито доставки
             if (d["TypeId"] == "11-629" //Трансмиссия и привод
                 && b.GetWeight() < 15
