@@ -195,9 +195,9 @@ namespace Selen.Sites {
             var length = d[0] + d[1] + d[2];
             //наценка 20% на всё
             int overPrice = (int)(b.price * 0.2);
-            //если наценка меньше 150 р - округляю
-            if (overPrice < 150)
-                overPrice = 150;
+            //если наценка меньше 200 р - округляю
+            if (overPrice < 200)
+                overPrice = 200;
             //вес от 10 кг или размер от 100 -- минимальная наценка 1000 р
             if (overPrice < 1000 && (weight >= 10 || length >= 100))
                 overPrice = 1000;
