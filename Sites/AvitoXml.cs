@@ -162,7 +162,7 @@ namespace Selen.Sites {
                     Log.Add(_l + "запрашиваю новый автокаталог xml с avito...");
                     autoCatalogXML = XDocument.Load(autoCatalogUrl);
                     if (autoCatalogXML.Element("Catalog").Elements("Make").Count() > 200)
-                       autoCatalogXML.Save(autoCatalogFile);
+                        autoCatalogXML.Save(autoCatalogFile);
                     else
                         throw new Exception("мало элементов в автокаталоге");
                     Log.Add(_l + "автокаталог обновлен!");
@@ -185,7 +185,6 @@ namespace Selen.Sites {
             var dict = new Dictionary<string, int>();
             // получаем список производителей
             var makes = autoCatalogXML.Element("Catalog").Elements("Make");
-            //            Log.Add(makes.Count().ToString());
             //проверяю похожесть на каждый элемент списка
             foreach (var make in makes) {
                 dict.Add(make.Attribute("name").Value, 0);
@@ -195,15 +194,11 @@ namespace Selen.Sites {
                     if (desc.Contains(model.Attribute("name").Value.ToLowerInvariant()))
                         dict[make.Attribute("name").Value] += model.Attribute("name").Value.Length;
                 }
-                //                if (dict[make.Attribute("name").Value]>0)
-                //                    Log.Add("GetMake: dict " + make.Attribute("name").Value +" => "+ dict[make.Attribute("name").Value]);
             }
             //определяю лучшие совпадения
             var best = dict.OrderByDescending(o => o.Value).Where(w => w.Value >= 3).ToList();
             //если они есть
             if (best.Count > 0) {
-                //                Log.Add("GetMake: ======== " + desc + " >>> " + best[0].Key + " [" + best[0].Value +"]");
-                //                Thread.Sleep(10000);
                 return best[0].Key;
             } else
                 Log.Add("GetMake: " + b.name + " пропущен - не удалось определить автопроизводителя");
@@ -245,8 +240,7 @@ namespace Selen.Sites {
                 name.StartsWith("муфта vvti") ||
                 name.StartsWith("клапан впуск")) {
                 d.Add("TypeId", "16-841");                          //Ремни, цепи, элементы ГРМ
-            } else if (name.StartsWith("акпп ") ||
-                (name.StartsWith("трубк") ||
+            } else if ((name.StartsWith("трубк") ||
                  name.StartsWith("диск") ||
                  name.StartsWith("вилка") ||
                  name.StartsWith("шланг") ||
@@ -285,8 +279,7 @@ namespace Selen.Sites {
                  name.Contains("корпус") || name.Contains("крышка") ||
                  name.Contains("вал ") || name.Contains("селектор ") || name.Contains("муфта"))
                                               && name.Contains("кпп ") ||
-                name.Contains("комплект кулисы") ||
-                name.StartsWith("мкпп ")) {
+                name.Contains("комплект кулисы") ) {
                 d.Add("TypeId", "11-629");                           //Трансмиссия и привод
             } else if (name.StartsWith("клапанная крышка") ||
                 name.StartsWith("крышка клапанная") ||
@@ -294,7 +287,8 @@ namespace Selen.Sites {
                 d.Add("TypeId", "16-832");                           //Клапанная крышка
             } else if (name.StartsWith("стекло ") ||
                 name.StartsWith("форточ")) {
-                d.Add("TypeId", "11-626");                           // Стекла
+                //d.Add("TypeId", "11-626");                         //Стекла
+                d.Add("TypeId", "11-625");                           //Салон
             } else if (name.StartsWith("бачок гур") ||
                 name.StartsWith("комплект гур") ||
                 (name.Contains("рейк") && name.Contains("рул")) ||
@@ -355,10 +349,12 @@ namespace Selen.Sites {
                 name.StartsWith("комплект личинок") ||
                 name.StartsWith("комплект замка") ||
                 name.StartsWith("замок") && name.Contains("двер")) {
-                d.Add("TypeId", "16-810");                              //Замки
+                //d.Add("TypeId", "16-810");                              //Замки меняю на
+                d.Add("TypeId", "11-625");                                //Салон (для авито доставки)
             } else if (name.StartsWith("дверь") ||
                 name.StartsWith("панель двери")) {
-                d.Add("TypeId", "16-808");                              //Двери
+                //d.Add("TypeId", "16-808");                              //Двери
+                d.Add("TypeId", "11-625");                           //Салон
             } else if (name.StartsWith("бампер") ||
                 name.StartsWith("абсорбер зад") ||
                 name.StartsWith("абсорбер пер") ||
@@ -713,7 +709,14 @@ namespace Selen.Sites {
                   name.StartsWith("пол багажника") ||
                   name.StartsWith("заглушка в руль") ||
                   name.StartsWith("заглушка переключател") ||
-                  name.Contains("карман")) {
+                  name.Contains("карман") ||
+                  name.StartsWith("фиксатор") && name.Contains("стекл") ||
+                  name.StartsWith("ограничит") && name.Contains("двер") ||
+                  name.StartsWith("направляющая") ||
+                  name.StartsWith("ролик") && name.Contains("двер") ||
+                  name.StartsWith("механизм") && name.Contains("двер") ||
+                  name.StartsWith("салазка") && name.Contains("двер") 
+                  ){
                 d.Add("TypeId", "11-625");                        //Салон
             } else if (name.Contains("дворник") ||
                  name.Contains("стеклоподъемник") ||
@@ -750,7 +753,12 @@ namespace Selen.Sites {
                   name.StartsWith("тарелка пружины") ||
                   name.Contains("опорн") && name.Contains("чашк") && name.Contains("амортизат") ||
                   name.StartsWith("тяга ") ||
-                  name.Contains("опор") && name.Contains("амортизат")) {
+                  name.Contains("опор") && name.Contains("амортизат") ||
+                  (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
+                  name.StartsWith("сайлентблок") ||
+                  name.StartsWith("привод ") ||
+                  name.StartsWith("мкпп ") ||
+                  name.StartsWith("акпп ")) {
                 d.Add("TypeId", "11-623");                          // Подвеска
             } else if (name.StartsWith("абсорбер") ||
                    name.StartsWith("шланг") && name.Contains("абсорбер") ||
@@ -884,18 +892,10 @@ namespace Selen.Sites {
                   name.StartsWith("торсион") ||
                   name.StartsWith("штырь") && name.Contains("капот") ||
                   name.StartsWith("хомут") && name.Contains("бака") ||
-                  name.StartsWith("фиксатор") && name.Contains("стекл") ||
-                  name.StartsWith("ограничит") && name.Contains("двер") ||
-                  name.StartsWith("направляющая") ||
                   name.StartsWith("петл") ||
                   name.StartsWith("скобы приёмной трубы") ||
                   name.StartsWith("скоба лампы") ||
-                  name.StartsWith("сайлентблок") ||
                   name.StartsWith("крюк буксировочный") ||
-                  name.StartsWith("ролик") && name.Contains("двер") ||
-                  name.StartsWith("механизм") && name.Contains("двер") ||
-                  (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
-                  name.StartsWith("салазка") && name.Contains("двер") ||
                   name.Contains("держатель")) {
                 d.Add("TypeId", "16-815");                          //Крепления
             } else if (name.Contains("грм") ||
@@ -938,7 +938,7 @@ namespace Selen.Sites {
                 d.Add("TypeId", "16-838");                          //Поршни, шатуны, кольца
             } else if (name.StartsWith("крыша ")) {
                 d.Add("TypeId", "16-817");                          //Крыша
-            } else if (name.StartsWith("привод ") ||
+            } else if (
                 name.Contains("вал карданный")) {
                 d.Add("TypeId", "11-629");                           //Трансмиссия и привод
             } else if (name.StartsWith("турбина ") ||
