@@ -352,7 +352,10 @@ namespace Selen.Sites {
                 //d.Add("TypeId", "16-810");                              //Замки меняю на
                 d.Add("TypeId", "11-625");                                //Салон (для авито доставки)
             } else if (name.StartsWith("дверь") ||
-                name.StartsWith("панель двери")) {
+                name.StartsWith("панель двери")||
+                name.StartsWith("ручка") ||
+                name.StartsWith("ручки"))
+                {
                 //d.Add("TypeId", "16-808");                              //Двери
                 d.Add("TypeId", "11-625");                           //Салон
             } else if (name.StartsWith("бампер") ||
@@ -377,8 +380,6 @@ namespace Selen.Sites {
                 name.StartsWith("амортизатор две") ||
                 name.StartsWith("амортизатор кап") ||
                 name.Contains("телевизор") ||
-                name.StartsWith("ручка") ||
-                name.StartsWith("ручки") ||
                 name.Contains("жабо") ||
                 name.Contains("водосток") ||
                 name.StartsWith("решетка стеклоочист") ||
