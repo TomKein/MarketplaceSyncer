@@ -13,6 +13,7 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace Selen {
     public partial class FormMain : Form {
@@ -78,7 +79,7 @@ namespace Selen {
                 while (_isBusinessNeedRescan)
                     await Task.Delay(20000);
                 await _vk.VkSyncAsync(bus);
-                label_Vk.Text = _vk.MarketCount +"/"+_vk.UrlsCount;
+                label_Vk.Text = _vk.MarketCount + "/" + _vk.UrlsCount;
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
@@ -120,7 +121,8 @@ namespace Selen {
             label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
         }
         async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
-            if (!button_Kupiprodai.Enabled) return;
+            if (!button_Kupiprodai.Enabled)
+                return;
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
@@ -168,18 +170,23 @@ namespace Selen {
         }
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
-            ChangeStatus(sender,ButtonStates.NoActive);
-            while (_isBusinessNeedRescan || bus.Count == 0)
-                await Task.Delay(30000);
-            var yandexMarket = new YandexMarket();
-            await yandexMarket.GenerateXML(bus);
-            ChangeStatus(sender,ButtonStates.Active);
+            ChangeStatus(sender, ButtonStates.NoActive);
+            if (IsWorkTime()) {
+                while (_isBusinessNeedRescan || bus.Count == 0)
+                    await Task.Delay(30000);
+                var yandexMarket = new YandexMarket();
+                await yandexMarket.GenerateXML(bus);
+            }
+            ChangeStatus(sender, ButtonStates.Active);
         }
+
+
         //===========================================
         //=== основной цикл (частота 1 раз в мин) ===
         //===========================================
         private async void timer_sync_Tick(object sender, EventArgs e) {
-            if (!_isBusinessCanBeScan) return;
+            if (!_isBusinessCanBeScan)
+                return;
             if (DateTime.Now.Hour < await _db.GetParamIntAsync("syncStartHour"))
                 return;
             if (DateTime.Now.Hour >= await _db.GetParamIntAsync("syncStopHour"))
@@ -207,7 +214,7 @@ namespace Selen {
 
                 var isBusFileOld = lastWriteBusFile.AddMinutes(5) < lastScanTime;
                 //если файл базы устарел - выключаю обновление сайтов
-                if (isBusFileOld){
+                if (isBusFileOld) {
                     checkBox_SyncSites.Checked = false;
                     lastLiteScanTime = lastWriteBusFile.ToString();
                 }
@@ -250,7 +257,7 @@ namespace Selen {
                     await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
                         {"updated[from]", lastLiteScanTime}
                     })));
-                
+
                 //stage = "запросим изменения атрибутов...";
                 //ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
                 //    await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string>{
@@ -315,10 +322,11 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (DateTime.Now.Minute == 55 || lastScanTime.AddHours(1)< DateTime.Now ||
+                if (DateTime.Now.Minute == 55 || lastScanTime.AddHours(1) < DateTime.Now ||
                                             lastWriteBusFile.AddHours(1) < DateTime.Now || isBusFileOld) {
                     await SaveBusAsync();
-                    if (checkBox_SyncSites.Checked) await SyncAllAsync();
+                    if (checkBox_SyncSites.Checked)
+                        await SyncAllAsync();
                     if (isBusFileOld) {
                         dateTimePicker1.Value = lastScanTime;
                         if (checkSyncStatus)
@@ -343,7 +351,7 @@ namespace Selen {
         private async Task SyncAllAsync() {
             await AddPartNumsAsync();//добавление артикулов из описания
             await CheckArhiveStatusAsync();//проверка архивного статуса
-            await CheckBu(); 
+            await CheckBu();
             await CheckUrls(); //удаление ссылок из черновиков
             button_Avito.PerformClick();
             await Task.Delay(10000);
@@ -405,9 +413,9 @@ namespace Selen {
 
         //проверка переносов в описаниях
         private async Task CheckDescriptions() {
-            for (int i = bus.Count-1; i > -1; i--) {
+            for (int i = bus.Count - 1; i > -1; i--) {
                 if (bus[i].name.Contains("test")) { await Task.Delay(10); }
-                if (bus[i].description?.Contains("\n")??false) {
+                if (bus[i].description?.Contains("\n") ?? false) {
                     bus[i].description = bus[i].description.Replace("\n", "<br />");
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
                                 {"id", bus[i].id},
@@ -421,18 +429,28 @@ namespace Selen {
         private async Task CheckBu() => await Task.Factory.StartNew(() => {
             foreach (var b in bus) {
                 var n = b.name;
-                if (n.StartsWith(@"Б/У")) b.name = b.name.Replace(@"Б/У", "").Trim()+" Б/У";
-                if (n.StartsWith(@"б/у")) b.name = b.name.Replace(@"б/у", "").Trim()+" Б/У";
-                if (n.StartsWith(@"Б\У")) b.name = b.name.Replace(@"Б\У", "").Trim()+" Б/У";
-                if (n.StartsWith(@"б\у")) b.name = b.name.Replace(@"б\у", "").Trim()+" Б/У";
-                if (n.StartsWith(@"Б.У.")) b.name = b.name.Replace(@"Б.У.", "").Trim()+" Б/У";
-                if (n.StartsWith(@"б.у.")) b.name = b.name.Replace(@"б.у.", "").Trim()+" Б/У";
-                if (n.StartsWith(@"Б.У")) b.name = b.name.Replace(@"Б.У", "").Trim()+" Б/У";
-                if (n.StartsWith(@"Б.у")) b.name = b.name.Replace(@"Б.у", "").Trim()+" Б/У";
-                if (n.StartsWith(@"Бу ")) b.name = b.name.Replace(@"Бу ", "").Trim()+" Б/У";
-                if (n.StartsWith(@"бу ")) b.name = b.name.Replace(@"бу ", "").Trim()+" Б/У";
+                if (n.StartsWith(@"Б/У"))
+                    b.name = b.name.Replace(@"Б/У", "").Trim() + " Б/У";
+                if (n.StartsWith(@"б/у"))
+                    b.name = b.name.Replace(@"б/у", "").Trim() + " Б/У";
+                if (n.StartsWith(@"Б\У"))
+                    b.name = b.name.Replace(@"Б\У", "").Trim() + " Б/У";
+                if (n.StartsWith(@"б\у"))
+                    b.name = b.name.Replace(@"б\у", "").Trim() + " Б/У";
+                if (n.StartsWith(@"Б.У."))
+                    b.name = b.name.Replace(@"Б.У.", "").Trim() + " Б/У";
+                if (n.StartsWith(@"б.у."))
+                    b.name = b.name.Replace(@"б.у.", "").Trim() + " Б/У";
+                if (n.StartsWith(@"Б.У"))
+                    b.name = b.name.Replace(@"Б.У", "").Trim() + " Б/У";
+                if (n.StartsWith(@"Б.у"))
+                    b.name = b.name.Replace(@"Б.у", "").Trim() + " Б/У";
+                if (n.StartsWith(@"Бу "))
+                    b.name = b.name.Replace(@"Бу ", "").Trim() + " Б/У";
+                if (n.StartsWith(@"бу "))
+                    b.name = b.name.Replace(@"бу ", "").Trim() + " Б/У";
                 if (n != b.name)
-                    Log.Add("business: исправлено наименование "+n+" -> "+b.name);
+                    Log.Add("business: исправлено наименование " + n + " -> " + b.name);
             }
         });
 
@@ -450,7 +468,8 @@ namespace Selen {
             label_Bus.Text = tlog;
             await SaveBusAsync();
             _isBusinessNeedRescan = false;
-            if (checkBox_SyncSites.Checked) await SyncAllAsync();
+            if (checkBox_SyncSites.Checked)
+                await SyncAllAsync();
             Log.Add("business.ru: полный цикл синхронизации завершен");
             dateTimePicker1.Value = _syncStartTime;
             _isBusinessCanBeScan = true;
@@ -596,7 +615,7 @@ namespace Selen {
             this.Text += _version;
             var currentVersion = await _db.GetParamStrAsync("version");
             if (!_version.Contains(currentVersion)) {
-                Log.Add("доступна новая версия "+currentVersion);
+                Log.Add("доступна новая версия " + currentVersion);
             }
             _writeLog = await _db.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = _db.GetParamDateTime("lastScanTime");
@@ -694,7 +713,7 @@ namespace Selen {
             var n = await _db.GetParamIntAsync("descriptionEditCount");
             //пробегаемся по описаниям карточек базы
             //for (int i = bus.Count-1; i > -1 && n > 0; i--) {
-            for (int i = bus.Count-1; i > -1 && n > 0; i--) {
+            for (int i = bus.Count - 1; i > -1 && n > 0; i--) {
                 //если в карточке есть фото и остатки
                 if (bus[i].images.Count > 0 /*&& bus[i].amount > 0*/) {
                     bool flag_need_formEdit = false;
@@ -1092,7 +1111,7 @@ namespace Selen {
             try {
                 DataTable table = await _db.GetLogAsync(textBox_LogFilter.Text, Log.Level);
                 if (table.Rows.Count > 0)
-                    logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a)+"\n";
+                    logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a) + "\n";
                 else
                     logBox.Text = "по заданному фильтру ничего не найдено!\n";
             } catch (Exception x) {
@@ -1243,8 +1262,8 @@ namespace Selen {
                 return;
             //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
             var buschk = bus.Where(b => b.images.Count > 0 &&
-                                        b.amount <= 0 && 
-                                        b.price > 0 && 
+                                        b.amount <= 0 &&
+                                        b.price > 0 &&
                                         b.remains.Count > 0 &&
                                         DateTime.Now.AddDays(-days) > DateTime.Parse(b.updated))
                 .OrderBy(o => DateTime.Parse(o.updated))
@@ -1261,14 +1280,14 @@ namespace Selen {
 
 
                     var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s)
-                                                  .OrderBy(o=> DateTime.Parse(o.updated));
+                                                  .OrderBy(o => DateTime.Parse(o.updated));
                     DateTime controlDate;
-                    if (realizations.Any()) 
+                    if (realizations.Any())
                         controlDate = DateTime.Parse(realizations.Last().updated).AddDays(days + 10 * realizations.Count());
-                    else 
+                    else
                         controlDate = DateTime.Parse(buschk[b].updated).AddDays(days);
 
-                    Log.Add("PhotoClearAsync: " + buschk[b].id +" - " + buschk[b].name + ", updated: " + buschk[b].updated + ", реализаций: " + realizations.Count() + ", контрольная дата: " + controlDate);
+                    Log.Add("PhotoClearAsync: " + buschk[b].id + " - " + buschk[b].name + ", updated: " + buschk[b].updated + ", реализаций: " + realizations.Count() + ", контрольная дата: " + controlDate);
                     if (DateTime.Now < controlDate) {
                         Log.Add("PhotoClearAsync: пропуск - дата не подошла (Now < controlDate)");
                         continue;
@@ -1327,12 +1346,23 @@ namespace Selen {
                 }
             }
         }
+        //сейчас рабочее время?
+        private bool IsWorkTime() {
+            var dt = DateTime.Now;
+            if (dt.DayOfWeek == DayOfWeek.Sunday)
+                return false;
+            if (dt.Hour >= 19 || dt.Hour < 9)
+                return false;
+            if (dt.DayOfWeek == DayOfWeek.Saturday && dt.Hour >= 15)
+                return false;
+            return true;
+        }
         //массовая замена текста
         async Task ReplaceTextAsync(string checkText, string newText) {
-            for (int b =0; b< bus.Count; b++) {
+            for (int b = 0; b < bus.Count; b++) {
                 if (bus[b].images.Count == 0)
                     continue;
-                if (!string.IsNullOrEmpty(bus[b].name) && bus[b].name.Contains(checkText)){
+                if (!string.IsNullOrEmpty(bus[b].name) && bus[b].name.Contains(checkText)) {
                     var newName = bus[b].name.Replace(checkText, newText);
                     var result = MessageBox.Show(bus[b].name + "\n\n↓↓↓\n\n" + newName, "Изменить название?", MessageBoxButtons.YesNo);
                     if (result == DialogResult.Yes) {
@@ -1428,131 +1458,196 @@ namespace Selen {
                                 {"id",attr[0].id},
                             });
                 if (s.Contains("id")) {
-                    Log.Add(b + ": " + bus[b].name +" - атрибут "+atrId+" удален");
+                    Log.Add(b + ": " + bus[b].name + " - атрибут " + atrId + " удален");
                     Thread.Sleep(360);
                 } else {
-                    Log.Add(b + ": " + bus[b].name + "атрибут "+atrId+" - ошибка удаления");
-                } 
+                    Log.Add(b + ": " + bus[b].name + "атрибут " + atrId + " - ошибка удаления");
+                }
             }
+        }
+
+        //новые товары с фото
+        async Task GetNewGoodsForOzon() {
+            var goods = bus.Where(w => w.amount > 0 && w.images.Count > 0 && w.IsNew());
+            Log.Add("карточек с остатком новые с фото: " + goods.Count());
+            StringBuilder s = new StringBuilder();
+            var splt = "\t";
+            s.Append("id");
+            s.Append(splt);
+            s.Append("part");
+            s.Append(splt);
+            s.Append("name");
+            s.Append(splt);
+            s.Append("GroupName");
+            s.Append(splt);
+            s.Append("Amount");
+            s.Append(splt);
+            s.Append("price");
+            s.Append(splt);
+            s.Append("weight");
+            s.Append(splt);
+            s.Append("Width");
+            s.Append(splt);
+            s.Append("length");
+            s.Append(splt);
+            s.Append("Height");
+            s.Append(splt);
+            s.Append("GetManufacture");
+            s.Append(splt);
+            s.Append("images");
+            s.Append(splt);
+            s.Append("Description");
+            s.AppendLine(splt);
+            foreach (var good in goods) {
+                s.Append(good.id);
+                s.Append(splt);
+                s.Append(good.part);
+                s.Append(splt);
+                s.Append(good.name);
+                s.Append(splt);
+                s.Append(good.GroupName());
+                s.Append(splt);
+                s.Append(good.amount);
+                s.Append(splt);
+                s.Append(good.price);
+                s.Append(splt);
+                s.Append(good.weight);
+                s.Append(splt);
+                s.Append(good.width);
+                s.Append(splt);
+                s.Append(good.length);
+                s.Append(splt);
+                s.Append(good.height);
+                s.Append(splt);
+                s.Append(good.GetManufacture());
+                s.Append(splt);
+                s.Append(good.images.Select(g => g.url).Aggregate((a, b) => a + " " + b));
+                s.Append(splt);
+                s.Append(good.description);
+                s.AppendLine(splt);
+            }
+            File.WriteAllText(@"..\ozon.csv", s.ToString(), Encoding.UTF8);
+            Log.Add("товары выгружены в ozon.csv");
         }
 
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                await CheckUrls();
+
+                await GetNewGoodsForOzon();
 
                 {
 
-                //await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
-                //_drom.CheckOffersAsync();
-                //CheckDescriptions();
-                //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
-                //var str = JsonConvert.SerializeObject(ids);
+                    //await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
+                    //_drom.CheckOffersAsync();
+                    //CheckDescriptions();
+                    //var ids = bus.Where(w => w.IsTimeUpDated()).Select(s => s.id).ToList();
+                    //var str = JsonConvert.SerializeObject(ids);
 
-                //await _db.SetParamAsync("avito.upFromHour",str);
-
-
-
-
-
-                //var weight = 1.20;
-                //string s = weight.ToString();
-                //weight = 1.0;
-                //s = weight.ToString();
-                //weight = 11.0;
-                //s = weight.ToString();
-                //weight = 11.1;
-                //s = weight.ToString();
-
-
-                //var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
-
-
-                //var img = new List<Image>() {
-                //                    new Image() {
-                //                       name = "1.jpg",
-                //                        url = "https://static.baza.drom.ru/drom/1513339810647_default" }
-                //                };
-                //var images = JsonConvert.SerializeObject(img);
-                //var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
-                //                    {"id", "554634"},
-                //                    {"name", "Крыло правое Chevrolet Lanos"},
-                //                    {"images", images}
-                //                });
+                    //await _db.SetParamAsync("avito.upFromHour",str);
 
 
 
 
-                //Log.Add("TEST: "+s);
 
-                //await CheckDublesAsync();
-
-                //var youlaXml = new YoulaXml();
-                //await youlaXml.GenerateXML_avito(bus);
-                //await ArchivateAsync();
-
-                //var av = new AvitoXml();
-                //await av.GenerateXML(bus);
-
-                //_avito.StartAsync(bus);
-
-                //if (_avito._dr!=null)_avito._dr.ScreenShot();
-                //if (_drom._dr != null) _drom._dr.ScreenShot();
-                //if (_kupiprodai._dr != null) _kupiprodai._dr.ScreenShot();
-                //if (_tiu._dr != null) _tiu._dr.ScreenShot();
-                //if (_youla._dr != null) _youla._dr.ScreenShot();
-                //if (_gde._dr != null) _gde._dr.ScreenShot();
-                //if (_cdek._dr != null) _cdek._dr.ScreenShot();
-                //if (_avto._dr != null) _avto._dr.ScreenShot();
-                //if (_auto._dr != null) _auto._dr.ScreenShot();
+                    //var weight = 1.20;
+                    //string s = weight.ToString();
+                    //weight = 1.0;
+                    //s = weight.ToString();
+                    //weight = 11.0;
+                    //s = weight.ToString();
+                    //weight = 11.1;
+                    //s = weight.ToString();
 
 
-                //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
-                //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
+                    //var str = await Class365API.RequestAsync("get", "attributesforgoods",new Dictionary<string, string>());
 
 
-                //не выложено на авито
-                //Log.Add(
-                //    bus.Count(w => w.amount > 0 &&
-                //              w.price >= 500 &&
-                //              w.tiu.Contains("http") &&
-                //             !w.avito.Contains("http"))
-                //       .ToString()
-                //    );
+                    //var img = new List<Image>() {
+                    //                    new Image() {
+                    //                       name = "1.jpg",
+                    //                        url = "https://static.baza.drom.ru/drom/1513339810647_default" }
+                    //                };
+                    //var images = JsonConvert.SerializeObject(img);
+                    //var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>(){
+                    //                    {"id", "554634"},
+                    //                    {"name", "Крыло правое Chevrolet Lanos"},
+                    //                    {"images", images}
+                    //                });
 
 
 
-                //Log.Add(DateTime.Now.ToString().Replace(".", ""));
-                //await SftpUploadAsync();
-                //var json = JsonConvert.SerializeObject(bus[0]);
 
-                //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
-                //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+                    //Log.Add("TEST: "+s);
 
-                //var j = _db.GetGood("id", bus[0].id.ToString());
-                //var b = JsonConvert.DeserializeObject<RootObject>(j);
+                    //await CheckDublesAsync();
 
-                //var j2 = _db.GetGood("drom", "47176874");
-                //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+                    //var youlaXml = new YoulaXml();
+                    //await youlaXml.GenerateXML_avito(bus);
+                    //await ArchivateAsync();
+
+                    //var av = new AvitoXml();
+                    //await av.GenerateXML(bus);
+
+                    //_avito.StartAsync(bus);
+
+                    //if (_avito._dr!=null)_avito._dr.ScreenShot();
+                    //if (_drom._dr != null) _drom._dr.ScreenShot();
+                    //if (_kupiprodai._dr != null) _kupiprodai._dr.ScreenShot();
+                    //if (_tiu._dr != null) _tiu._dr.ScreenShot();
+                    //if (_youla._dr != null) _youla._dr.ScreenShot();
+                    //if (_gde._dr != null) _gde._dr.ScreenShot();
+                    //if (_cdek._dr != null) _cdek._dr.ScreenShot();
+                    //if (_avto._dr != null) _avto._dr.ScreenShot();
+                    //if (_auto._dr != null) _auto._dr.ScreenShot();
 
 
-                //var res = db.SetParam("test", "123");
-                //var res2 = db.SetParam("test", "777");
-                //var str = db.GetParamStr("test");
-                //var i = db.GetParamInt("test");
-                //res = db.SetParam("test", DateTime.Now.ToString());
-                //var dt = db.GetParamDateTime("test");
+                    //var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {       { "help", "1" },   });
+                    //s = await Class365API.RequestAsync("get", "remains", new Dictionary<string, string> { { "help", "1" },});
 
-                //пробую записать в лог из вторичного потока (в 10 потоков)
-                //for (int j = 0; j < 10; j++) {
-                //    Task.Factory.StartNew(() => {
-                //        for (int i = 0; i < 100; i++) {
-                //            db.Log.Add("site", j+" thread = " + i.ToString());
-                //        }
-                //    });
-                //}
-                }                
+
+                    //не выложено на авито
+                    //Log.Add(
+                    //    bus.Count(w => w.amount > 0 &&
+                    //              w.price >= 500 &&
+                    //              w.tiu.Contains("http") &&
+                    //             !w.avito.Contains("http"))
+                    //       .ToString()
+                    //    );
+
+
+
+                    //Log.Add(DateTime.Now.ToString().Replace(".", ""));
+                    //await SftpUploadAsync();
+                    //var json = JsonConvert.SerializeObject(bus[0]);
+
+                    //var x = _db.SetGood(int.Parse(bus[0].id), DateTime.Now.ToString(), json);
+                    //var y = _db.SetGood(int.Parse(bus[1].id), DateTime.Now.ToString(), JsonConvert.SerializeObject(bus[1]));
+
+                    //var j = _db.GetGood("id", bus[0].id.ToString());
+                    //var b = JsonConvert.DeserializeObject<RootObject>(j);
+
+                    //var j2 = _db.GetGood("drom", "47176874");
+                    //var b2 = JsonConvert.DeserializeObject<RootObject>(j2);
+
+
+                    //var res = db.SetParam("test", "123");
+                    //var res2 = db.SetParam("test", "777");
+                    //var str = db.GetParamStr("test");
+                    //var i = db.GetParamInt("test");
+                    //res = db.SetParam("test", DateTime.Now.ToString());
+                    //var dt = db.GetParamDateTime("test");
+
+                    //пробую записать в лог из вторичного потока (в 10 потоков)
+                    //for (int j = 0; j < 10; j++) {
+                    //    Task.Factory.StartNew(() => {
+                    //        for (int i = 0; i < 100; i++) {
+                    //            db.Log.Add("site", j+" thread = " + i.ToString());
+                    //        }
+                    //    });
+                    //}
+                }
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
