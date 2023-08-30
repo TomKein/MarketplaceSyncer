@@ -151,12 +151,11 @@ namespace Selen {
         public List<Remains> remains { get; set; }
         public List<Prices> prices { get; set; }
         public List<Attributes> attributes { get; set; }
-        public string avito { get; set; }
         public string drom { get; set; }
-        public string youla { get; set; }
         public string vk { get; set; }
         public string kp { get; set; }
         public string gde { get; set; }
+        public string ozon { get; set; }
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }

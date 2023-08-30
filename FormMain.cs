@@ -234,7 +234,8 @@ namespace Selen {
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
                     .Replace("\"833179\":", "\"kp\":")
-                    .Replace("\"854872\":", "\"gde\":");
+                    .Replace("\"854872\":", "\"gde\":")
+                    .Replace("\"854879\":", "\"ozon\":");
                 lightSyncGoods.Clear();
                 if (s.Length > 3)
                     lightSyncGoods.AddRange(JsonConvert.DeserializeObject<RootObject[]>(s));
@@ -393,18 +394,21 @@ namespace Selen {
                     (!string.IsNullOrEmpty(bus[b].drom) ||
                     !string.IsNullOrEmpty(bus[b].vk) ||
                     !string.IsNullOrEmpty(bus[b].kp) ||
+                    !string.IsNullOrEmpty(bus[b].ozon) ||
                     !string.IsNullOrEmpty(bus[b].gde))) {
                     bus[b].drom = "";
                     bus[b].vk = "";
                     bus[b].kp = "";
                     bus[b].gde = "";
+                    bus[b].ozon = "";
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                         {"id", bus[b].id},
                         {"name", bus[b].name},
                         {"209334", ""},
                         {"209360", ""},
                         {"833179", ""},
-                        {"854872", ""}
+                        {"854872", ""},
+                        {"854879", ""}
                     });
                     Log.Add(bus[b].name + " - удалены ссылки черновика");
                 }
@@ -518,7 +522,8 @@ namespace Selen {
                                 .Replace("\"209334\":", "\"drom\":")
                                 .Replace("\"209360\":", "\"vk\":")
                                 .Replace("\"833179\":", "\"kp\":")
-                                .Replace("\"854872\":", "\"gde\":");
+                                .Replace("\"854872\":", "\"gde\":")
+                                .Replace("\"854879\":", "\"ozon\":");
                             bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
                             label_Bus.Text = bus.Count.ToString();
                         } else
@@ -563,7 +568,8 @@ namespace Selen {
                             .Replace("\"209334\":", "\"drom\":")
                             .Replace("\"209360\":", "\"vk\":")
                             .Replace("\"833179\":", "\"kp\":")
-                            .Replace("\"854872\":", "\"gde\":");
+                            .Replace("\"854872\":", "\"gde\":")
+                            .Replace("\"854879\":", "\"ozon\":");
                         lro.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
                         await Task.Delay(1000);
                         break;
