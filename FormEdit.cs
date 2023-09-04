@@ -23,9 +23,9 @@ namespace Selen {
         private void button_Ok_Click(object sender, EventArgs e) {
             FormMain main = this.Owner as FormMain;
             try {
-                main.bus[_i].name = textBox1.Text;
-                main.bus[_i].price = int.Parse(textBox_Price.Text);
-                main.bus[_i].description = richTextBox1.Text;
+                main._bus[_i].name = textBox1.Text;
+                main._bus[_i].price = int.Parse(textBox_Price.Text);
+                main._bus[_i].description = richTextBox1.Text;
             } catch (Exception x) {
                 Log.Add("FormEdit: ошибка сохранения изменений - " + x.Message);
             }
@@ -38,13 +38,13 @@ namespace Selen {
 
         private void Form4_Shown(object sender, EventArgs e) {
             FormMain main = this.Owner as FormMain;
-            textBox1.Text = main.bus[_i].name;
-            textBox_Price.Text = main.bus[_i].price.ToString();
-            richTextBox1.Text = main.bus[_i].description;
+            textBox1.Text = main._bus[_i].name;
+            textBox_Price.Text = main._bus[_i].price.ToString();
+            richTextBox1.Text = main._bus[_i].description;
             WebClient cl = new WebClient();
             for (int i = 0; i < 3; i++) {
                 try {
-                    var byteArray = cl.DownloadData(main.bus[_i].images[0].url);
+                    var byteArray = cl.DownloadData(main._bus[_i].images[0].url);
                     var ms = new MemoryStream(byteArray);
                     pictureBox1.Image = Bitmap.FromStream(ms);
                     break;

@@ -17,12 +17,12 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.155";
+        string _version = "1.156";
 
         DB _db = new DB();
 
         public List<RootGroupsObject> busGroups = new List<RootGroupsObject>();
-        public List<RootObject> bus = new List<RootObject>();
+        public List<RootObject> _bus = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
 
         VK _vk = new VK();
@@ -32,7 +32,7 @@ namespace Selen {
         GdeRu _gde = new GdeRu();
         Satom sat = new Satom();
 
-        string busFileName = @"..\bus.json";
+        string _busFileName = @"..\bus.json";
         int _pageLimitBase = 250;
         bool _saveCookiesBeforeClose;
 
@@ -64,7 +64,7 @@ namespace Selen {
                     while (_isBusinessNeedRescan)
                         await Task.Delay(30000);
                     var av = new AvitoXml();
-                    await av.GenerateXML(bus);
+                    await av.GenerateXML(_bus);
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
@@ -78,7 +78,7 @@ namespace Selen {
                 Log.Add("вк начало выгрузки");
                 while (_isBusinessNeedRescan)
                     await Task.Delay(20000);
-                await _vk.VkSyncAsync(bus);
+                await _vk.VkSyncAsync(_bus);
                 label_Vk.Text = _vk.MarketCount + "/" + _vk.UrlsCount;
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
@@ -93,8 +93,8 @@ namespace Selen {
             try {
                 while (_isBusinessNeedRescan)
                     await Task.Delay(30000);
-                await _drom.DromStartAsync(bus);
-                label_Drom.Text = bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
+                await _drom.DromStartAsync(_bus);
+                label_Drom.Text = _bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
@@ -114,11 +114,11 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || !button_KupiprodaiAdd.Enabled)
                 await Task.Delay(30000);
-            if (await _kupiprodai.StartAsync(bus))
+            if (await _kupiprodai.StartAsync(_bus))
                 ChangeStatus(sender, ButtonStates.Active);
             else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-            label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+            label_Kp.Text = _bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
         }
         async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
             if (!button_Kupiprodai.Enabled)
@@ -127,16 +127,16 @@ namespace Selen {
             while (_isBusinessNeedRescan)
                 await Task.Delay(30000);
             await _kupiprodai.AddAsync();
-            label_Kp.Text = bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
+            label_Kp.Text = _bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //GDE.RU
         async void ButtonGdeRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(30000);
-            if (await _gde.StartAsync(bus)) {
-                label_Gde.Text = bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
+            if (await _gde.StartAsync(_bus)) {
+                label_Gde.Text = _bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -146,7 +146,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan)
                 await Task.Delay(60000);
-            if (await _izap24.SyncAsync(bus))
+            if (await _izap24.SyncAsync(_bus))
                 ChangeStatus(sender, ButtonStates.Active);
             else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -154,32 +154,40 @@ namespace Selen {
         //YOULA.RU
         async void ButtonYoula_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(30000);
             var youlaXml = new YoulaXml();
-            await youlaXml.GenerateXML_avito(bus);
+            await youlaXml.GenerateXML_avito(_bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //SATOM.RU
         async void ButtonSatom_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(30000);
-            await sat.SyncAsync(bus);
+            await sat.SyncAsync(_bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             if (IsWorkTime()) {
-                while (_isBusinessNeedRescan || bus.Count == 0)
+                while (_isBusinessNeedRescan || _bus.Count == 0)
                     await Task.Delay(30000);
                 var yandexMarket = new YandexMarket();
-                await yandexMarket.GenerateXML(bus);
+                await yandexMarket.GenerateXML(_bus);
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
-
+        //OZON
+        async void button_ozon_ClickAsync(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            while (_isBusinessNeedRescan || _bus.Count == 0)
+                await Task.Delay(30000);
+            var ozon = new OzonApi(_bus);
+            await ozon.SyncAsync();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
 
         //===========================================
         //=== основной цикл (частота 1 раз в мин) ===
@@ -198,7 +206,7 @@ namespace Selen {
         }
         //оптимизированная синхронизации - запрос только последних изменений
         async Task GoLiteSync() {
-            if (bus.Count <= 0 || _isBusinessNeedRescan)
+            if (_bus.Count <= 0 || _isBusinessNeedRescan)
                 return;
             ChangeStatus(button_BaseGet, ButtonStates.NoActive);
             var checkSyncStatus = checkBox_SyncSites.Checked;
@@ -210,7 +218,7 @@ namespace Selen {
                 var liteScanTimeShift = await _db.GetParamIntAsync("liteScanTimeShift");
                 var lastLiteScanTime = await _db.GetParamStrAsync("liteScanTime");
                 var lastScanTime = await _db.GetParamDateTimeAsync("lastScanTime");
-                var lastWriteBusFile = File.GetLastWriteTime(busFileName);
+                var lastWriteBusFile = File.GetLastWriteTime(_busFileName);
 
                 var isBusFileOld = lastWriteBusFile.AddMinutes(5) < lastScanTime;
                 //если файл базы устарел - выключаю обновление сайтов
@@ -297,11 +305,14 @@ namespace Selen {
                 stage = "...";
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
-                    var ind = bus.FindIndex(f => f.id == lg.id);
+                    var ind = _bus.FindIndex(f => f.id == lg.id);
                     if (ind != -1) { //индекс карточки найден - заменяем
-                        bus[ind] = lg;
+                        _bus[ind] = lg;
+                        //время обновления карточки сдвигаю на время начала цикла синхронизации
+                        //для того чтобы обновлялись карточки, у которых изменился только остаток или цена
+                        _bus[ind].updated = _syncStartTime.ToString();
                     } else { //иначе добавляем в коллекцию
-                        bus.Add(lg);
+                        _bus.Add(lg);
                     }
                 }
 
@@ -310,10 +321,10 @@ namespace Selen {
                 //lastScanTime сохраним когда перенесем изменения в объявления!!)
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
-                label_Bus.Text = bus.Count + "/" + bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
+                label_Bus.Text = _bus.Count + "/" + _bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
                 if (!isBusFileOld) {
                     await _db.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-liteScanTimeShift).ToString());
-                    await _db.SetParamAsync("controlBus", bus.Count.ToString());
+                    await _db.SetParamAsync("controlBus", _bus.Count.ToString());
                 }
 
                 ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
@@ -358,6 +369,8 @@ namespace Selen {
             await Task.Delay(10000);
             button_YandexMarket.PerformClick();
             await Task.Delay(10000);
+            button_ozon.PerformClick();
+            await Task.Delay(10000);
             button_Satom.PerformClick();
             await Task.Delay(10000);
             button_Vk.PerformClick();
@@ -389,49 +402,49 @@ namespace Selen {
         }
         //проверка ссылок в черновиках
         async Task CheckUrls() {
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].GroupName().Contains("РАЗБОРКА") &&
-                    (!string.IsNullOrEmpty(bus[b].drom) ||
-                    !string.IsNullOrEmpty(bus[b].vk) ||
-                    !string.IsNullOrEmpty(bus[b].kp) ||
-                    !string.IsNullOrEmpty(bus[b].ozon) ||
-                    !string.IsNullOrEmpty(bus[b].gde))) {
-                    bus[b].drom = "";
-                    bus[b].vk = "";
-                    bus[b].kp = "";
-                    bus[b].gde = "";
-                    bus[b].ozon = "";
+            for (int b = 0; b < _bus.Count; b++) {
+                if (_bus[b].GroupName().Contains("РАЗБОРКА") &&
+                    (!string.IsNullOrEmpty(_bus[b].drom) ||
+                    !string.IsNullOrEmpty(_bus[b].vk) ||
+                    !string.IsNullOrEmpty(_bus[b].kp) ||
+                    !string.IsNullOrEmpty(_bus[b].ozon) ||
+                    !string.IsNullOrEmpty(_bus[b].gde))) {
+                    _bus[b].drom = "";
+                    _bus[b].vk = "";
+                    _bus[b].kp = "";
+                    _bus[b].gde = "";
+                    _bus[b].ozon = "";
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                        {"id", bus[b].id},
-                        {"name", bus[b].name},
+                        {"id", _bus[b].id},
+                        {"name", _bus[b].name},
                         {"209334", ""},
                         {"209360", ""},
                         {"833179", ""},
                         {"854872", ""},
                         {"854879", ""}
                     });
-                    Log.Add(bus[b].name + " - удалены ссылки черновика");
+                    Log.Add(_bus[b].name + " - удалены ссылки черновика");
                 }
             }
         }
 
         //проверка переносов в описаниях
         private async Task CheckDescriptions() {
-            for (int i = bus.Count - 1; i > -1; i--) {
-                if (bus[i].name.Contains("test")) { await Task.Delay(10); }
-                if (bus[i].description?.Contains("\n") ?? false) {
-                    bus[i].description = bus[i].description.Replace("\n", "<br />");
+            for (int i = _bus.Count - 1; i > -1; i--) {
+                if (_bus[i].name.Contains("test")) { await Task.Delay(10); }
+                if (_bus[i].description?.Contains("\n") ?? false) {
+                    _bus[i].description = _bus[i].description.Replace("\n", "<br />");
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
-                                {"id", bus[i].id},
-                                {"name", bus[i].name},
-                                {"description", bus[i].description}
+                                {"id", _bus[i].id},
+                                {"name", _bus[i].name},
+                                {"description", _bus[i].description}
                             });
-                    Log.Add("CheckDescriptions: " + bus[i].name + " - описание обновлено\n" + bus[i].description);
+                    Log.Add("CheckDescriptions: " + _bus[i].name + " - описание обновлено\n" + _bus[i].description);
                 }
             }
         }
         private async Task CheckBu() => await Task.Factory.StartNew(() => {
-            foreach (var b in bus) {
+            foreach (var b in _bus) {
                 var n = b.name;
                 if (n.StartsWith(@"Б/У"))
                     b.name = b.name.Replace(@"Б/У", "").Trim() + " Б/У";
@@ -467,7 +480,7 @@ namespace Selen {
             _syncStartTime = DateTime.Now;
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
-            var tlog = bus.Count + "/" + bus.Count(c => c.images.Count > 0 && c.amount > 0 && c.price > 0);
+            var tlog = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.amount > 0 && c.price > 0);
             Log.Add("business.ru: получено товаров с остатками из группы интернет магазин " + tlog);
             label_Bus.Text = tlog;
             await SaveBusAsync();
@@ -503,7 +516,7 @@ namespace Selen {
             int lastScan;
             do {
                 lastScan = await _db.GetParamIntAsync("controlBus");
-                bus.Clear();
+                _bus.Clear();
                 try {
                     for (int i = 1; i > 0; i++) {
                         string s = await Class365API.RequestAsync("get", "goods", new Dictionary<string, string>{
@@ -524,8 +537,8 @@ namespace Selen {
                                 .Replace("\"833179\":", "\"kp\":")
                                 .Replace("\"854872\":", "\"gde\":")
                                 .Replace("\"854879\":", "\"ozon\":");
-                            bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
-                            label_Bus.Text = bus.Count.ToString();
+                            _bus.AddRange(JsonConvert.DeserializeObject<List<RootObject>>(s));
+                            label_Bus.Text = _bus.Count.ToString();
                         } else
                             break;
                     }
@@ -533,9 +546,9 @@ namespace Selen {
                     Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
                     await Task.Delay(60000);
                 }
-                await _db.SetParamAsync("controlBus", bus.Count.ToString());
-            } while (bus.Count == 0 || Math.Abs(lastScan - bus.Count) > 400);
-            Log.Add("business.ru: получено товаров " + bus.Count);
+                await _db.SetParamAsync("controlBus", _bus.Count.ToString());
+            } while (_bus.Count == 0 || Math.Abs(lastScan - _bus.Count) > 400);
+            Log.Add("business.ru: получено товаров " + _bus.Count);
         }
 
         async Task<List<RootObject>> GetBusGoodsAsync(List<string> ids) {
@@ -587,9 +600,9 @@ namespace Selen {
             try {
                 await Task.Factory.StartNew(() => {
                     if (_db.GetParamBool("saveDataBaseLocal")) {
-                        File.WriteAllText(busFileName, JsonConvert.SerializeObject(bus));
+                        File.WriteAllText(_busFileName, JsonConvert.SerializeObject(_bus));
                         Log.Add("business.ru: bus.json - сохранение успешно");
-                        File.SetLastWriteTime(busFileName, _syncStartTime);
+                        File.SetLastWriteTime(_busFileName, _syncStartTime);
                     }
                 });
             } catch (Exception x) {
@@ -598,15 +611,15 @@ namespace Selen {
         }
         //подгружаю товары из файла
         async Task LoadBusJSON() {
-            if (File.Exists(busFileName)) {
+            if (File.Exists(_busFileName)) {
                 await GetBusGroupsAsync();
                 Log.Add("business.ru: загружаю список товаров...");
                 await Task.Factory.StartNew(() => {
-                    var s = File.ReadAllText(busFileName);
-                    bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
+                    var s = File.ReadAllText(_busFileName);
+                    _bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
                 });
-                Log.Add("business.ru: загружено " + bus.Count + " карточек товаров");
-                label_Bus.Text = bus.Count + "/" + bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
+                Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
+                label_Bus.Text = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
                 button_BaseGet.BackColor = Color.GreenYellow;
             }
             _isBusinessCanBeScan = true;
@@ -659,39 +672,39 @@ namespace Selen {
         private async Task CheckDublesAsync() {
             try {
                 var count = await _db.GetParamIntAsync("checkDublesCount");
-                for (int i = DateTime.Now.Second, cnt = 0; i < bus.Count && cnt < count; i += 30) {
+                for (int i = DateTime.Now.Second, cnt = 0; i < _bus.Count && cnt < count; i += 30) {
                     //название без кавычек
-                    var tmpName = bus[i].name.TrimEnd(new[] { '`', ' ', '\'', '.' });
+                    var tmpName = _bus[i].name.TrimEnd(new[] { '`', ' ', '\'', '.' });
                     //признак дублирования
-                    var haveDub = bus.Count(c => c.name.Contains(tmpName) && c.amount > 0) > 1;
+                    var haveDub = _bus.Count(c => c.name.Contains(tmpName) && c.amount > 0) > 1;
                     //если есть дубли, но нет на остатках и НЕ заканчивается . - переименовываю
-                    if (bus[i].amount <= 0
+                    if (_bus[i].amount <= 0
                         && haveDub
-                        && !bus[i].name.EndsWith(".")) {
-                        bus[i].name = tmpName + " .";
+                        && !_bus[i].name.EndsWith(".")) {
+                        _bus[i].name = tmpName + " .";
                         await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                            { "id" , bus[i].id},
-                            { "name" , bus[i].name}
+                            { "id" , _bus[i].id},
+                            { "name" , _bus[i].name}
                         });
-                        Log.Add("CheckDublesAsync: переименование [" + ++cnt + "] нет в наличии: " + bus[i].name);
+                        Log.Add("CheckDublesAsync: переименование [" + ++cnt + "] нет в наличии: " + _bus[i].name);
                         await Task.Delay(1000);
                     }
                     //если есть дубли, остаток и в конце ` или '
-                    if (bus[i].amount > 0
-                        && (haveDub && bus[i].name.EndsWith("`")
-                            || bus[i].name.EndsWith("'")
-                            || bus[i].name.EndsWith("."))) {
+                    if (_bus[i].amount > 0
+                        && (haveDub && _bus[i].name.EndsWith("`")
+                            || _bus[i].name.EndsWith("'")
+                            || _bus[i].name.EndsWith("."))) {
                         //проверяем свободные имена
-                        while (bus.Count(c => c.name == tmpName && c.amount > 0) > 0)
+                        while (_bus.Count(c => c.name == tmpName && c.amount > 0) > 0)
                             tmpName += tmpName.EndsWith("`") ? "`"
                                                              : " `";
                         //если новое имя короче или если старое заканчивается ' или .
-                        if (tmpName.Length < bus[i].name.Length || bus[i].name.EndsWith("'") || bus[i].name.EndsWith(".")) {
-                            Log.Add("CheckDublesAsync: сокращаю наименование [" + ++cnt + "] " + bus[i].name + " => " + tmpName);
-                            bus[i].name = tmpName;
+                        if (tmpName.Length < _bus[i].name.Length || _bus[i].name.EndsWith("'") || _bus[i].name.EndsWith(".")) {
+                            Log.Add("CheckDublesAsync: сокращаю наименование [" + ++cnt + "] " + _bus[i].name + " => " + tmpName);
+                            _bus[i].name = tmpName;
                             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                { "id" , bus[i].id},
-                                { "name" , bus[i].name}
+                                { "id" , _bus[i].id},
+                                { "name" , _bus[i].name}
                             });
                         }
                     }
@@ -719,20 +732,20 @@ namespace Selen {
             var n = await _db.GetParamIntAsync("descriptionEditCount");
             //пробегаемся по описаниям карточек базы
             //for (int i = bus.Count-1; i > -1 && n > 0; i--) {
-            for (int i = bus.Count - 1; i > -1 && n > 0; i--) {
+            for (int i = _bus.Count - 1; i > -1 && n > 0; i--) {
                 //если в карточке есть фото и остатки
-                if (bus[i].images.Count > 0 /*&& bus[i].amount > 0*/) {
+                if (_bus[i].images.Count > 0 /*&& bus[i].amount > 0*/) {
                     bool flag_need_formEdit = false;
                     //старое название, нужно обрезать
-                    if (bus[i].description.Contains("Есть и другие")) {
-                        bus[i].description = bus[i].description.Replace("Есть и другие", "|").Split('|')[0];
+                    if (_bus[i].description.Contains("Есть и другие")) {
+                        _bus[i].description = _bus[i].description.Replace("Есть и другие", "|").Split('|')[0];
                         flag_need_formEdit = true;
                     }
                     //для каждого слова из словаря проверим, содержится ли оно в описании
                     for (int d = 0; d < eng.Count; d++) {
                         //если содержит английское написание И не содержит такого же на русском ИЛИ содержит
-                        if (bus[i].description.Contains(eng[d]) && !bus[i].description.Contains(rus[d])) {
-                            bus[i].description = bus[i].description.Replace(eng[d], eng[d] + " / " + rus[d]);
+                        if (_bus[i].description.Contains(eng[d]) && !_bus[i].description.Contains(rus[d])) {
+                            _bus[i].description = _bus[i].description.Replace(eng[d], eng[d] + " / " + rus[d]);
                             flag_need_formEdit = true;
                             break;
                         }
@@ -743,14 +756,14 @@ namespace Selen {
                         f4.ShowDialog();
                         if (f4.DialogResult == DialogResult.OK) {
                             var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>() {
-                                {"id", bus[i].id},
-                                {"name", bus[i].name},
-                                {"description", bus[i].description},
+                                {"id", _bus[i].id},
+                                {"name", _bus[i].name},
+                                {"description", _bus[i].description},
                             });
                             if (s.Contains("updated"))
-                                Log.Add("business.ru: " + bus[i].name + " - описание карточки обновлено - " + bus[i].description + " (ост. " + --n + ")");
+                                Log.Add("business.ru: " + _bus[i].name + " - описание карточки обновлено - " + _bus[i].description + " (ост. " + --n + ")");
                             else
-                                Log.Add("business.ru: ошибка сохранения изменений " + bus[i].name + " - " + s + " (ост. " + --n + ")");
+                                Log.Add("business.ru: ошибка сохранения изменений " + _bus[i].name + " - " + s + " (ост. " + --n + ")");
                         }
                         f4.Dispose();
                     }
@@ -778,7 +791,7 @@ namespace Selen {
                         if (s.Length > 3) {
                             pc.AddRange(JsonConvert.DeserializeObject<PartnerContactinfoClass[]>(s));
                             Thread.Sleep(500);
-                            label_Bus.Text = bus.Count.ToString();
+                            label_Bus.Text = _bus.Count.ToString();
                         } else {
                             break;
                         }
@@ -807,30 +820,30 @@ namespace Selen {
         }
         //проверка артикулов
         private async Task ArtCheckAsync() {
-            for (int b = 0; b < bus.Count; b++) {
+            for (int b = 0; b < _bus.Count; b++) {
                 try {
-                    var desc = !String.IsNullOrEmpty(bus[b].description) ? bus[b].description.ToLowerInvariant() : "";
+                    var desc = !String.IsNullOrEmpty(_bus[b].description) ? _bus[b].description.ToLowerInvariant() : "";
 
                     //проверим на нулевое значение
-                    bus[b].part = bus[b].part ?? "";
-                    bus[b].store_code = bus[b].store_code ?? "";
-                    if (bus[b].part.Contains(" ")
-                        || bus[b].part.Contains(".")
-                        || bus[b].part.Contains("/") && bus[b].images.Count > 0
-                        || bus[b].part.Contains(",") && bus[b].images.Count > 0
-                        || bus[b].part.Contains("_")
-                        || bus[b].store_code.Contains(" ")
-                        || bus[b].store_code.Contains(".")
-                        || bus[b].store_code.Contains("_")
-                        || bus[b].store_code.Contains("(")
-                        || bus[b].name.StartsWith(" ")
-                        || bus[b].name.EndsWith(" ")
-                        || bus[b].name.Contains("  ")
-                        || bus[b].name.Contains(";")
-                        || bus[b].name.Contains(@"\")
-                        || bus[b].name.Contains("!")
-                        || bus[b].name.Contains("\t")
-                        || bus[b].name.Contains("\u00a0")
+                    _bus[b].part = _bus[b].part ?? "";
+                    _bus[b].store_code = _bus[b].store_code ?? "";
+                    if (_bus[b].part.Contains(" ")
+                        || _bus[b].part.Contains(".")
+                        || _bus[b].part.Contains("/") && _bus[b].images.Count > 0
+                        || _bus[b].part.Contains(",") && _bus[b].images.Count > 0
+                        || _bus[b].part.Contains("_")
+                        || _bus[b].store_code.Contains(" ")
+                        || _bus[b].store_code.Contains(".")
+                        || _bus[b].store_code.Contains("_")
+                        || _bus[b].store_code.Contains("(")
+                        || _bus[b].name.StartsWith(" ")
+                        || _bus[b].name.EndsWith(" ")
+                        || _bus[b].name.Contains("  ")
+                        || _bus[b].name.Contains(";")
+                        || _bus[b].name.Contains(@"\")
+                        || _bus[b].name.Contains("!")
+                        || _bus[b].name.Contains("\t")
+                        || _bus[b].name.Contains("\u00a0")
 
                         //|| ((bus[b].name.Contains(" l ") || bus[b].name.Contains(" L ")) && desc.Contains("лев"))
                         //|| ((bus[b].name.Contains(" r ") || bus[b].name.Contains(" R ")) && desc.Contains("прав"))
@@ -840,7 +853,7 @@ namespace Selen {
                         //|| bus[b].name.Contains(@" L\R ")
 
                         //или артикул написан маленькими буквами
-                        || bus[b].part.ToUpper() != bus[b].part
+                        || _bus[b].part.ToUpper() != _bus[b].part
 
                         //или описание содержит названия месенджеров (запрещено на многих сайтах)
                         || desc.Contains("viber") || desc.Contains("вайбер")
@@ -849,8 +862,8 @@ namespace Selen {
                         var args = new Dictionary<string, string>();
 
                         //удаляем упоминание в тексте мессенжеров
-                        if (!String.IsNullOrEmpty(bus[b].description)) {
-                            var newDesc = bus[b].description
+                        if (!String.IsNullOrEmpty(_bus[b].description)) {
+                            var newDesc = _bus[b].description
                                                 .Replace("на вайбер", "")
                                                 .Replace("на Вайбер", "")
                                                 .Replace("на viber", "")
@@ -864,24 +877,24 @@ namespace Selen {
                                                 .Replace("Вайбер", "")
                                                 .Replace("ВАЙБЕР", "");
                             //если не совпадает - были изменения, значит надо добавить в набор параметров
-                            if (newDesc != bus[b].description) {
+                            if (newDesc != _bus[b].description) {
                                 args.Add("description", newDesc);
-                                bus[b].description = newDesc;
+                                _bus[b].description = newDesc;
                             }
                         }
-                        var new_part = bus[b].part.Replace(" ", "")
+                        var new_part = _bus[b].part.Replace(" ", "")
                             .Replace(".", "")
                             .Replace("/", "")
                             .Split(',').First()
                             .Replace("_", "")
                             .ToUpper();
 
-                        var new_store_code = bus[b].store_code.Replace(" ", "")
+                        var new_store_code = _bus[b].store_code.Replace(" ", "")
                             .Replace(".", "")
                             //.Replace("-", "")
                             .Replace("_", "");
 
-                        var new_name = bus[b].name.Trim()
+                        var new_name = _bus[b].name.Trim()
                             .Replace("\u00a0", " ")
                             .Replace("  ", " ")
                             .Replace(@"\", " ")
@@ -897,7 +910,7 @@ namespace Selen {
                             new_name = new_name.Replace(" R ", " r ");
                             new_name = new_name.Contains(" r ") ? new_name.Replace(" r ", " " + GetNameForm(desc, "прав") + " ") : new_name;
                         }
-                        args.Add("id", bus[b].id);
+                        args.Add("id", _bus[b].id);
                         args.Add("name", new_name);
                         args.Add("part", new_part);
                         args.Add("store_code", new_store_code);
@@ -905,18 +918,18 @@ namespace Selen {
                         await Class365API.RequestAsync("put", "goods", args);
 
                         Log.Add("исправлена карточка\n" +
-                              bus[b].name + "\n" +
+                              _bus[b].name + "\n" +
                               new_name + "\n" +
-                              bus[b].part + "\t" + bus[b].store_code + "\n" +
+                              _bus[b].part + "\t" + _bus[b].store_code + "\n" +
                               new_part + "\t" + new_store_code);
 
-                        bus[b].part = new_part;
-                        bus[b].store_code = new_store_code;
-                        bus[b].name = new_name;
+                        _bus[b].part = new_part;
+                        _bus[b].store_code = new_store_code;
+                        _bus[b].name = new_name;
                         await Task.Delay(1000);
                     }
                 } catch (Exception x) {
-                    Log.Add("business.ru: " + bus[b].name + " - ошибка при обработке артикулов! - " + x.Message);
+                    Log.Add("business.ru: " + _bus[b].name + " - ошибка при обработке артикулов! - " + x.Message);
                     Thread.Sleep(10000);
                 }
             }
@@ -931,17 +944,17 @@ namespace Selen {
         }
         //изменение групп
         private async Task GroupsMoveAsync() {  //TODO добавиить перемещение по группам карточек с ценами из группы черновики
-            for (int b = 0; b < bus.Count; b++) {
+            for (int b = 0; b < _bus.Count; b++) {
                 //перемещение в группу Заказы всех карточек, непривязанных к группам
-                if (bus[b].group_id == "1") {
-                    bus[b].group_id = "209277";
+                if (_bus[b].group_id == "1") {
+                    _bus[b].group_id = "209277";
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>
                     {
-                        {"id", bus[b].id},
-                        {"name", bus[b].name},
-                        {"group_id", bus[b].group_id}
+                        {"id", _bus[b].id},
+                        {"name", _bus[b].name},
+                        {"group_id", _bus[b].group_id}
                     });
-                    Log.Add("business.ru: " + bus[b].name + " --> в группу Заказы");
+                    Log.Add("business.ru: " + _bus[b].name + " --> в группу Заказы");
                     await Task.Delay(1000);
                 }
             }
@@ -949,7 +962,7 @@ namespace Selen {
         //контроль архивного статуса на карточках с положительным остатком
         async Task CheckArhiveStatusAsync() {
             try {
-                foreach (var item in bus.Where(w => w.amount > 0 && w.archive)) {
+                foreach (var item in _bus.Where(w => w.amount > 0 && w.archive)) {
                     Log.Add("business.ru: ошибка! карточка с положительным остатком в архиве! - " + item.name);
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", item.id},
@@ -979,7 +992,7 @@ namespace Selen {
 
         async Task CheckMultipleApostropheAsync() {
             try {
-                foreach (var item in bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.amount > 0)) {
+                foreach (var item in _bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.amount > 0)) {
                     Log.Add("business.ru: обнаружено название с множеством апострофов - " + item.name);
                     var s = item.name;
                     while (s.EndsWith("'") || s.EndsWith("`"))
@@ -1000,7 +1013,7 @@ namespace Selen {
         async Task AddPartNumsAsync() {
             try {
                 var i = 0;
-                foreach (var item in bus.Where(w => (!string.IsNullOrEmpty(w.description) && w.description.Contains("№") && string.IsNullOrEmpty(w.part)))) {
+                foreach (var item in _bus.Where(w => (!string.IsNullOrEmpty(w.description) && w.description.Contains("№") && string.IsNullOrEmpty(w.part)))) {
                     Log.Add("business.ru: обнаружен пустой артикул - " + item.name);
                     //ищем номера в описании
                     string num = item.description
@@ -1161,9 +1174,9 @@ namespace Selen {
         //окно веса, размеры
         private async void Button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (_isBusinessNeedRescan || bus.Count == 0)
+            while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(5000);
-            FormWeightsDimentions fw = new FormWeightsDimentions(bus);
+            FormWeightsDimentions fw = new FormWeightsDimentions(_bus);
             fw.Owner = this;
             fw.ShowDialog();
             fw.Dispose();
@@ -1186,13 +1199,13 @@ namespace Selen {
                 //перебираю товары из списка
                 foreach (var rg in remainGoods) {
                     //индекс карточки товара
-                    var indBus = bus.FindIndex(f => f.id == rg.good_id);
+                    var indBus = _bus.FindIndex(f => f.id == rg.good_id);
                     //если индекс и остаток положительный
-                    if (indBus > -1 && bus[indBus].amount > 0) {
+                    if (indBus > -1 && _bus[indBus].amount > 0) {
                         //цена ввода на остатки (цена закупки)
                         var priceIn = rg.FloatPrice;
                         //цена отдачи (розничная)
-                        var priceOut = bus[indBus].price;
+                        var priceOut = _bus[indBus].price;
                         //процент цены закупки от цены отдачи
                         var procentCurrent = 100 * priceIn / priceOut;
                         //если процент различается более чем на 5%
@@ -1207,7 +1220,7 @@ namespace Selen {
                                 { "price", newPrice.ToString("#.##")},
                             });
                             if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                                Log.Add("business.ru: " + _bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
                             await Task.Delay(50);
                         }
                     }
@@ -1232,13 +1245,13 @@ namespace Selen {
                 //перебираю товары из списка
                 foreach (var pg in postingGoods) {
                     //индекс карточки товара
-                    var indBus = bus.FindIndex(f => f.id == pg.good_id);
+                    var indBus = _bus.FindIndex(f => f.id == pg.good_id);
                     //если индекс и остаток положительный
-                    if (indBus > -1 && bus[indBus].amount > 0 && bus[indBus].price > 0) {
+                    if (indBus > -1 && _bus[indBus].amount > 0 && _bus[indBus].price > 0) {
                         //цена ввода на остатки (цена закупки)
                         var priceIn = pg.FloatPrice;
                         //цена отдачи (розничная)
-                        var priceOut = bus[indBus].price;
+                        var priceOut = _bus[indBus].price;
                         //процент цены закупки от цены отдачи
                         var procentCurrent = 100 * priceIn / priceOut;
                         //если процент различается более чем на 5%
@@ -1253,7 +1266,7 @@ namespace Selen {
                                 { "price", newPrice.ToString("#.##")},
                             });
                             if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                                Log.Add("business.ru: " + _bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
                             await Task.Delay(1000);
                         }
                     }
@@ -1267,7 +1280,7 @@ namespace Selen {
             if (cnt == 0)
                 return;
             //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
-            var buschk = bus.Where(b => b.images.Count > 0 &&
+            var buschk = _bus.Where(b => b.images.Count > 0 &&
                                         b.amount <= 0 &&
                                         b.price > 0 &&
                                         b.remains.Count > 0 &&
@@ -1309,7 +1322,7 @@ namespace Selen {
                     buschk[b].images.Clear();
                     cnt--;
                 } catch (Exception x) {
-                    Log.Add("ошибка при удалении фото из карточки! - " + bus[b].name + " - " + x.Message);
+                    Log.Add("ошибка при удалении фото из карточки! - " + _bus[b].name + " - " + x.Message);
                 }
             }
         }
@@ -1319,7 +1332,7 @@ namespace Selen {
             var priceLevelsStr = _db.GetParamStr("priceLevelsForRemainsReport");
             var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
             foreach (var price in priceLevels) {
-                var x = bus.Count(w => w.images.Count > 0 && w.price >= price && w.amount > 0);
+                var x = _bus.Count(w => w.images.Count > 0 && w.price >= price && w.amount > 0);
                 Log.Add("позиций фото, положительным остатком и ценой " + price + "+ : " + x);
             }
         }
@@ -1329,7 +1342,7 @@ namespace Selen {
             if (cnt == 0)
                 return;
             //список не архивных карточек без фото, без остатка, отсортированный с самых старых
-            var buschk = bus.Where(w => w.images.Count == 0 && w.amount == 0 && !w.archive)
+            var buschk = _bus.Where(w => w.images.Count == 0 && w.amount == 0 && !w.archive)
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("ArchivateAsync: карточек без фото и остатка: " + buschk.Count);
@@ -1348,7 +1361,7 @@ namespace Selen {
                         buschk[b].images.Count + ", остаток " + buschk[b].amount + ", updated " + buschk[b].updated + ")");
                     buschk[b].archive = true;
                 } catch (Exception x) {
-                    Log.Add("ошибка архивирования карточки! - " + bus[b].name + " - " + x.Message);
+                    Log.Add("ошибка архивирования карточки! - " + _bus[b].name + " - " + x.Message);
                 }
             }
         }
@@ -1365,77 +1378,77 @@ namespace Selen {
         }
         //массовая замена текста
         async Task ReplaceTextAsync(string checkText, string newText) {
-            for (int b = 0; b < bus.Count; b++) {
-                if (bus[b].images.Count == 0)
+            for (int b = 0; b < _bus.Count; b++) {
+                if (_bus[b].images.Count == 0)
                     continue;
-                if (!string.IsNullOrEmpty(bus[b].name) && bus[b].name.Contains(checkText)) {
-                    var newName = bus[b].name.Replace(checkText, newText);
-                    var result = MessageBox.Show(bus[b].name + "\n\n↓↓↓\n\n" + newName, "Изменить название?", MessageBoxButtons.YesNo);
+                if (!string.IsNullOrEmpty(_bus[b].name) && _bus[b].name.Contains(checkText)) {
+                    var newName = _bus[b].name.Replace(checkText, newText);
+                    var result = MessageBox.Show(_bus[b].name + "\n\n↓↓↓\n\n" + newName, "Изменить название?", MessageBoxButtons.YesNo);
                     if (result == DialogResult.Yes) {
-                        bus[b].name = newName;
+                        _bus[b].name = newName;
                         var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                            {"id", bus[b].id},
-                            {"name", bus[b].name},
+                            {"id", _bus[b].id},
+                            {"name", _bus[b].name},
                         });
                         if (s.Contains("updated"))
-                            Log.Add("ReplaceTextAsync: [" + bus[b].id + "] " + bus[b].name + " - название обновлено");
+                            Log.Add("ReplaceTextAsync: [" + _bus[b].id + "] " + _bus[b].name + " - название обновлено");
                         else
-                            Log.Add("ReplaceTextAsync: ошибка сохранения названия " + bus[b].name);
+                            Log.Add("ReplaceTextAsync: ошибка сохранения названия " + _bus[b].name);
                     }
                 }
-                if (!string.IsNullOrEmpty(bus[b].description) && bus[b].description.Contains(checkText)) {
-                    var newDescription = bus[b].description.Replace(checkText, newText);
-                    var result = MessageBox.Show(bus[b].description + "\n\n↓↓↓\n\n" + newDescription, "Изменить описание?", MessageBoxButtons.YesNo);
+                if (!string.IsNullOrEmpty(_bus[b].description) && _bus[b].description.Contains(checkText)) {
+                    var newDescription = _bus[b].description.Replace(checkText, newText);
+                    var result = MessageBox.Show(_bus[b].description + "\n\n↓↓↓\n\n" + newDescription, "Изменить описание?", MessageBoxButtons.YesNo);
                     if (result == DialogResult.Yes) {
-                        bus[b].description = newDescription;
+                        _bus[b].description = newDescription;
                         var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                            {"id", bus[b].id},
-                            {"name", bus[b].name},
-                            {"description", bus[b].description},
+                            {"id", _bus[b].id},
+                            {"name", _bus[b].name},
+                            {"description", _bus[b].description},
                         });
                         if (s.Contains("updated"))
-                            Log.Add("ReplaceTextAsync: " + bus[b].name + " - карточка обновлено - " + bus[b].description);
+                            Log.Add("ReplaceTextAsync: " + _bus[b].name + " - карточка обновлено - " + _bus[b].description);
                         else
-                            Log.Add("ReplaceTextAsync: ошибка сохранения изменений " + bus[b].name + " - " + s);
+                            Log.Add("ReplaceTextAsync: ошибка сохранения изменений " + _bus[b].name + " - " + s);
                     }
                 }
             }
         }
         //замена атрибутов с размерами на поля в карточке
         async Task AttributesChange(int i) {
-            for (int b = 0; b < bus.Count && i > 0 && !_isBusinessNeedRescan; b++) {
+            for (int b = 0; b < _bus.Count && i > 0 && !_isBusinessNeedRescan; b++) {
                 try {
                     //удаляю атрибут tiuAttr 
-                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77526") ?? false)
+                    if (_bus[b].attributes?.Any(f => f.Attribute.id == "77526") ?? false)
                         await DeleteAttribute(b, "77526");
                     //удаляю атрибут tiuId 
-                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77371") ?? false)
+                    if (_bus[b].attributes?.Any(f => f.Attribute.id == "77371") ?? false)
                         await DeleteAttribute(b, "77371");
                     //удаляю атрибут tiuPhotos 
-                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77480") ?? false)
+                    if (_bus[b].attributes?.Any(f => f.Attribute.id == "77480") ?? false)
                         await DeleteAttribute(b, "77480");
                     //удаляю атрибут Ключевые слова
-                    if (bus[b].attributes?.Any(f => f.Attribute.id == "77527") ?? false)
+                    if (_bus[b].attributes?.Any(f => f.Attribute.id == "77527") ?? false)
                         await DeleteAttribute(b, "77527");
                     //перенос значений атрибутов в новые поля
-                    var width = bus[b].attributes?.Find(f => f.Attribute.id == "2283757")?.Value.value;
-                    var height = bus[b].attributes?.Find(f => f.Attribute.id == "2283758")?.Value.value;
-                    var length = bus[b].attributes?.Find(f => f.Attribute.id == "2283759")?.Value.value;
+                    var width = _bus[b].attributes?.Find(f => f.Attribute.id == "2283757")?.Value.value;
+                    var height = _bus[b].attributes?.Find(f => f.Attribute.id == "2283758")?.Value.value;
+                    var length = _bus[b].attributes?.Find(f => f.Attribute.id == "2283759")?.Value.value;
                     if (!string.IsNullOrEmpty(width) && !string.IsNullOrEmpty(height) && !string.IsNullOrEmpty(length)) {
-                        if (width != bus[b].width || height != bus[b].height || length != bus[b].length) {
-                            bus[b].width = width;
-                            bus[b].height = height;
-                            bus[b].length = length;
+                        if (width != _bus[b].width || height != _bus[b].height || length != _bus[b].length) {
+                            _bus[b].width = width;
+                            _bus[b].height = height;
+                            _bus[b].length = length;
                             var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                    {"id", bus[b].id},
-                                    {"width", bus[b].width},
-                                    {"height", bus[b].height},
-                                    {"length", bus[b].length}
+                                    {"id", _bus[b].id},
+                                    {"width", _bus[b].width},
+                                    {"height", _bus[b].height},
+                                    {"length", _bus[b].length}
                             });
                             if (s != null && s.Contains("updated")) {
-                                Log.Add(bus[b].name + " - размеры скопированы! [" + (i--) + "]");
+                                Log.Add(_bus[b].name + " - размеры скопированы! [" + (i--) + "]");
                             } else
-                                Log.Add(bus[b].name + " - ошибка копирования размеров!");
+                                Log.Add(_bus[b].name + " - ошибка копирования размеров!");
                             await Task.Delay(400);
                         } else {
                             //удаляю атрибут width  
@@ -1454,7 +1467,7 @@ namespace Selen {
         //удаление атрибута в карточке
         private async Task DeleteAttribute(int b, string atrId) {
             var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
-                                {"good_id",bus[b].id},
+                                {"good_id",_bus[b].id},
                                 {"attribute_id",atrId }
                             });
             var attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
@@ -1464,76 +1477,12 @@ namespace Selen {
                                 {"id",attr[0].id},
                             });
                 if (s.Contains("id")) {
-                    Log.Add(b + ": " + bus[b].name + " - атрибут " + atrId + " удален");
+                    Log.Add(b + ": " + _bus[b].name + " - атрибут " + atrId + " удален");
                     Thread.Sleep(360);
                 } else {
-                    Log.Add(b + ": " + bus[b].name + "атрибут " + atrId + " - ошибка удаления");
+                    Log.Add(b + ": " + _bus[b].name + "атрибут " + atrId + " - ошибка удаления");
                 }
             }
-        }
-
-        //новые товары с фото
-        async Task GetNewGoodsForOzon() {
-            var goods = bus.Where(w => w.amount > 0 && w.images.Count > 0 && w.IsNew());
-            Log.Add("карточек с остатком новые с фото: " + goods.Count());
-            StringBuilder s = new StringBuilder();
-            var splt = "\t";
-            s.Append("id");
-            s.Append(splt);
-            s.Append("part");
-            s.Append(splt);
-            s.Append("name");
-            s.Append(splt);
-            s.Append("GroupName");
-            s.Append(splt);
-            s.Append("Amount");
-            s.Append(splt);
-            s.Append("price");
-            s.Append(splt);
-            s.Append("weight");
-            s.Append(splt);
-            s.Append("Width");
-            s.Append(splt);
-            s.Append("length");
-            s.Append(splt);
-            s.Append("Height");
-            s.Append(splt);
-            s.Append("GetManufacture");
-            s.Append(splt);
-            s.Append("images");
-            s.Append(splt);
-            s.Append("Description");
-            s.AppendLine(splt);
-            foreach (var good in goods) {
-                s.Append(good.id);
-                s.Append(splt);
-                s.Append(good.part);
-                s.Append(splt);
-                s.Append(good.name);
-                s.Append(splt);
-                s.Append(good.GroupName());
-                s.Append(splt);
-                s.Append(good.amount);
-                s.Append(splt);
-                s.Append(good.price);
-                s.Append(splt);
-                s.Append(good.weight);
-                s.Append(splt);
-                s.Append(good.width);
-                s.Append(splt);
-                s.Append(good.length);
-                s.Append(splt);
-                s.Append(good.height);
-                s.Append(splt);
-                s.Append(good.GetManufacture());
-                s.Append(splt);
-                s.Append(good.images.Select(g => g.url).Aggregate((a, b) => a + " " + b));
-                s.Append(splt);
-                s.Append(good.description);
-                s.AppendLine(splt);
-            }
-            File.WriteAllText(@"..\ozon.csv", s.ToString(), Encoding.UTF8);
-            Log.Add("товары выгружены в ozon.csv");
         }
 
         //метод для тестов
@@ -1541,7 +1490,8 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
 
-                await GetNewGoodsForOzon();
+
+                //await GetNewGoodsForOzon();
 
                 {
 

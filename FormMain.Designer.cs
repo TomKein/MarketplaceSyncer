@@ -65,6 +65,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.button_ozon = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -136,13 +137,13 @@ namespace Selen {
             this.button_Vk.UseVisualStyleBackColor = true;
             this.button_Vk.Click += new System.EventHandler(this.ButtonVkCom_Click);
             // 
-            // checkBox_sync
+            // checkBox_SyncSites
             // 
             this.checkBox_SyncSites.AutoSize = true;
             this.checkBox_SyncSites.Checked = true;
             this.checkBox_SyncSites.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkBox_SyncSites.Location = new System.Drawing.Point(6, 4);
-            this.checkBox_SyncSites.Name = "checkBox_sync";
+            this.checkBox_SyncSites.Name = "checkBox_SyncSites";
             this.checkBox_SyncSites.Size = new System.Drawing.Size(124, 17);
             this.checkBox_SyncSites.TabIndex = 35;
             this.checkBox_SyncSites.Text = "синхронизация вкл";
@@ -344,6 +345,7 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.button_ozon);
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_Youla);
@@ -495,6 +497,16 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 427);
             this.panel4.TabIndex = 149;
             // 
+            // button_ozon
+            // 
+            this.button_ozon.Location = new System.Drawing.Point(5, 344);
+            this.button_ozon.Name = "button_ozon";
+            this.button_ozon.Size = new System.Drawing.Size(113, 23);
+            this.button_ozon.TabIndex = 151;
+            this.button_ozon.Text = "OZON";
+            this.button_ozon.UseVisualStyleBackColor = true;
+            this.button_ozon.Click += new System.EventHandler(this.button_ozon_ClickAsync);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -562,6 +574,7 @@ namespace Selen {
         private System.Windows.Forms.Label label_YandexMarket;
         private System.Windows.Forms.Button button_YandexMarket;
         private System.Windows.Forms.Button button_WeightsDimensions;
+        private System.Windows.Forms.Button button_ozon;
     }
 }
 
