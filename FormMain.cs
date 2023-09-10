@@ -22,7 +22,7 @@ namespace Selen {
         DB _db = new DB();
 
         public List<RootGroupsObject> busGroups = new List<RootGroupsObject>();
-        public List<RootObject> _bus = new List<RootObject>();
+        public static List<RootObject> _bus = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
 
         VK _vk = new VK();
@@ -30,7 +30,8 @@ namespace Selen {
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
-        Satom sat = new Satom();
+        Satom _sat = new Satom();
+        OzonApi _ozon = new OzonApi();
 
         string _busFileName = @"..\bus.json";
         int _pageLimitBase = 250;
@@ -165,7 +166,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(30000);
-            await sat.SyncAsync(_bus);
+            await _sat.SyncAsync(_bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //YANDEX MARKET
@@ -184,8 +185,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (_isBusinessNeedRescan || _bus.Count == 0)
                 await Task.Delay(30000);
-            var ozon = new OzonApi(_bus);
-            await ozon.SyncAsync();
+            await _ozon.SyncAsync();
             ChangeStatus(sender, ButtonStates.Active);
         }
 
@@ -1490,7 +1490,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
 
-
+                await _ozon.GetCategoriesAsync();
                 //await GetNewGoodsForOzon();
 
                 {

@@ -14,25 +14,23 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace Selen.Sites {
     public class OzonApi {
         readonly HttpClient _hc = new HttpClient();
-        readonly string _clientID;                  // 1331176
-        readonly string _apiKey;                    // 1d0edd61-1b2d-4ac5-afa0-cf5488665d35
+        readonly string _clientID;                    // 1331176
+        readonly string _apiKey;                      // 1d0edd61-1b2d-4ac5-afa0-cf5488665d35
         readonly string _baseApiUrl = "https://api-seller.ozon.ru";
         readonly string _baseBusUrl = "https://www.ozon.ru/context/detail/id/";
-        readonly string _url;                       //номер поля в карточке
-        readonly string _l = "ozon: ";              //префикс для лога
+        readonly string _url;                         //номер поля в карточке
+        readonly string _l = "ozon: ";                //префикс для лога
         readonly float _oldPriceProcent = 10;
-        DB _db;                                     //база данных
-        ProductList _productList;                   //список товаров, получаемый из /v2/product/list
+        ProductList _productList;                     //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon_productList.json";
         readonly string _attributeValuesFile = @"..\ozon_AttributeValues.json";
-        readonly int _updateFreq = 24;              //частота обновления списка (часов)
-        readonly List<RootObject> _bus;             //ссылка на товары
+        readonly int _updateFreq = 24;                //частота обновления списка (часов)
+        static List<RootObject> _bus = FormMain._bus; //ссылка на товары
+        static DB _db = DB._db;                       //база данных
         static bool _isProductListCheckNeeds = true;
-        bool _hasNext = false;                      //для запросов
+        bool _hasNext = false;                        //для запросов
         List<AttributeValue> _attributeValues;
-        public OzonApi(List<RootObject> bus) {
-            _bus = bus;
-            _db = DB._db;
+        public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
             //получаю номер ссылки в карточке
             _url = _db.GetParamStr("ozon.url");
@@ -96,7 +94,7 @@ namespace Selen.Sites {
                         throw new Exception("карточка с id = " + item.offer_id + " не найдена!");
                     //если товар не привязан к карточке, либо неверный sku в ссылке
                     if (!_bus[b].ozon.Contains("http")
-                        || _bus[b].ozon.Split('/').Last().Length<3  ) {
+                        || _bus[b].ozon.Split('/').Last().Length < 3) {
                         //запросим все данные о товаре
                         var productInfo = await GetProductInfoAsync(_bus[b]);
                         await SaveUrlAsync(_bus[b], productInfo);
@@ -135,7 +133,7 @@ namespace Selen.Sites {
                             {_url, bus.ozon}
                         });
                     Log.Add(_l + bus.name + " ссылка на товар обновлена!");
-                }else
+                } else
                     Log.Add(_l + bus.name + " ссылка без изменений!");
             } catch (Exception x) {
                 Log.Add(_l + " SaveUrlAsync - ошибка! - " + x.Message + x.InnerException.Message);
@@ -176,8 +174,7 @@ namespace Selen.Sites {
                 if (res.First().updated) {
                     Log.Add(_l + bus.name + " остаток обновлен! (" + bus.amount + ")");
                 } else {
-                    Log.Add(_l + bus.name + " ошибка! остаток не обновлен! (" + bus.amount + ")"
-                               + res.First().errors.Aggregate((p, q) => p + ", " + q));
+                    Log.Add(_l + bus.name + " ошибка! остаток не обновлен! (" + bus.amount + ")");
                 }
             } catch (Exception x) {
                 Log.Add(_l + " ошибка обновления остатка - " + x.Message);
@@ -230,8 +227,7 @@ namespace Selen.Sites {
                         Log.Add(_l + bus.name + " (" + bus.price + ") цены обновлены! ("
                                    + newPrice + ", " + oldPrice + ")");
                     } else {
-                        Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.price + ")"
-                                   + res.First().errors.Aggregate((p, q) => p + ", " + q));
+                        Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.price + ")");
                     }
                 }
             } catch (Exception x) {
@@ -285,7 +281,7 @@ namespace Selen.Sites {
                                      && w.width != null
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
-                                     && _productList.items.Any(_=>w.id==_.offer_id));
+                                     && !_productList.items.Any(_ => w.id == _.offer_id));
             Log.Add(_l + "карточек для добавления: " + goods.Count());
             SaveToFile(goods);
             int i = 0;
@@ -395,7 +391,7 @@ namespace Selen.Sites {
                     Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add(_l+x.Message+x.InnerException.Message);
+                    Log.Add(_l + x.Message + x.InnerException.Message);
                 }
                 if (++i >= count)
                     break;
@@ -522,6 +518,18 @@ namespace Selen.Sites {
                 Log.Add(_l + " загружено с озон " + _attributeValues.Count + " атрибутов");
             }
         }
+        //запрос категорий озон
+        public async Task GetCategoriesAsync(int rootCategoryId = 0) {
+            var data = new {
+                category_id = rootCategoryId,
+                language = "DEFAULT"
+            };
+            var s = await PostRequestAsync(data, "/v2/category/tree");
+            var res = JsonConvert.DeserializeObject<List<Category>>(s);
+            File.WriteAllText(@"..\ozon_categories.json", s);
+            Log.Add(_l + "GetCategoriesAsync - получено категорий " + res.Count);
+        }
+
     }
     public class Attributes {
         public int categoryId;
@@ -735,7 +743,12 @@ namespace Selen.Sites {
         public int product_id { get; set; }
         public string offer_id { get; set; }
         public bool updated { get; set; }
-        public string[] errors { get; set; }
+        public UpdateResultErrors[] errors { get; set; }
+    }
+
+    public class UpdateResultErrors {
+        public string code { get; set; }
+        public string message { get; set; }
     }
     /////////////////////////////////////////
     public class AttributeValue {
@@ -772,8 +785,13 @@ namespace Selen.Sites {
         public string message { get; set; }
     }
 
-    //public class Optional_Description_Elements {
-    //}
+    public class Category {
+        public int category_id { get; set; }
+        public string title { get; set; }
+        public Category[] children { get; set; }
+    }
+
+
 
 }
 
