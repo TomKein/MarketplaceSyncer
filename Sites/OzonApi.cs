@@ -29,10 +29,9 @@ namespace Selen.Sites {
         static DB _db = DB._db;                       //база данных
         static bool _isProductListCheckNeeds = true;
         bool _hasNext = false;                        //для запросов
-        List<AttributeValue> _attributeValues;
+        List<AttributeValue> _brends;                 //список брендов озон
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
-            //получаю номер ссылки в карточке
             _url = _db.GetParamStr("ozon.url");
             _clientID = _db.GetParamStr("ozon.id");
             _apiKey = _db.GetParamStr("ozon.apiKey");
@@ -270,8 +269,8 @@ namespace Selen.Sites {
                 return;
             if (_isProductListCheckNeeds)
                 await CheckProductListAsync();
-            if (_attributeValues == null)
-                await GetAttibuteValues();
+            if (_brends == null)
+                _brends = await GetAttibuteValuesAsync();
             //список карточек которые еще не добавлены на озон
             var goods = _bus.Where(w => w.amount > 0
                                      && w.price > 0
@@ -421,8 +420,8 @@ namespace Selen.Sites {
             if (m == "vag") {
                 id = 115840909;
                 name = "VAG (VW/Audi/Skoda/Seat)";
-            } else if (_attributeValues.Any(a => a.value.ToLowerInvariant() == m)) {
-                var attribute = _attributeValues.Find(a => a.value.ToLowerInvariant() == m);
+            } else if (_brends.Any(a => a.value.ToLowerInvariant() == m)) {
+                var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
                 id = attribute.id;
                 name = attribute.value;
             } else {
@@ -491,13 +490,15 @@ namespace Selen.Sites {
             File.WriteAllText(@"..\ozonGoodListForAdding.csv", s.ToString(), Encoding.UTF8);
             Log.Add("товары выгружены в ozonGoodListForAdding.csv");
         }
-        //получаем список атрибутов с озон
-        public async Task GetAttibuteValues() {
-            var lastWriteTime = File.GetLastWriteTime(_attributeValuesFile);
+        //получаем список атрибутов с озон (значения по умолчанию - для получения списка брендов
+        public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id=85, int category_id= 61852812) {
+            var attributeValuesFile = @"..\ozon_attr_"+ attribute_id+"_cat_"+ category_id+".json";
+            var lastWriteTime = File.GetLastWriteTime(attributeValuesFile);
             if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
-                _attributeValues = JsonConvert.DeserializeObject<List<AttributeValue>>(
-                    File.ReadAllText(_attributeValuesFile));
-                Log.Add(_l + " загружено с диска" + _attributeValues.Count + " атрибутов");
+                var res = JsonConvert.DeserializeObject<List<AttributeValue>>(
+                    File.ReadAllText(attributeValuesFile));
+                Log.Add(_l + " загружено с диска" + res.Count + " атрибутов");
+                return res;
             } else {
                 var res = new List<AttributeValue>();
                 var last = 0;
@@ -511,11 +512,11 @@ namespace Selen.Sites {
                     };
                     var s = await PostRequestAsync(data, "/v2/category/attribute/values");
                     res.AddRange(JsonConvert.DeserializeObject<List<AttributeValue>>(s));
-                    last = res.Last().id;
+                    last = res.Last()?.id??0;
                 } while (_hasNext);
-                _attributeValues = res;
-                File.WriteAllText(_attributeValuesFile, JsonConvert.SerializeObject(res));
-                Log.Add(_l + " загружено с озон " + _attributeValues.Count + " атрибутов");
+                File.WriteAllText(attributeValuesFile, JsonConvert.SerializeObject(res));
+                Log.Add(_l + " загружено с озон " + res.Count + " атрибутов");
+                return res;
             }
         }
         //запрос категорий озон
