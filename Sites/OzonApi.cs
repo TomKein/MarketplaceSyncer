@@ -9,7 +9,6 @@ using Newtonsoft.Json;
 using Selen.Tools;
 using Selen.Base;
 using System.IO;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Selen.Sites {
     public class OzonApi {
@@ -274,20 +273,21 @@ namespace Selen.Sites {
             //список карточек которые еще не добавлены на озон
             var goods = _bus.Where(w => w.amount > 0
                                      && w.price > 0
+                                     && w.part != null
                                      && w.images.Count > 0
                                      && w.height != null
                                      && w.length != null
                                      && w.width != null
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
-                                     && !_productList.items.Any(_ => w.id == _.offer_id));
+                                     && !_productList.items.Any(_ => w.id == _.offer_id)); 
             Log.Add(_l + "карточек для добавления: " + goods.Count());
             SaveToFile(goods);
             int i = 0;
             foreach (var good in goods) {
                 try {
                     //проверяем группу товара
-                    var attributes = GetAttributes(good);
+                    var attributes = await GetAttributesAsync(good);
                     if (attributes.typeId == 0)
                         continue;
                     //формирую объект запроса
@@ -333,16 +333,7 @@ namespace Selen.Sites {
                                             }
                                         }
                                     },
-                                    new {                        //Количество штук (обязательный параметр)
-                                        complex_id = 0,
-                                        id = 7202,
-                                        values = new[] {
-                                            new {
-                                                value = 1
-                                            }
-                                        }
-                                    },
-                                    //new {                        //Аннотация Описание товара
+                                   //new {                        //Аннотация Описание товара
                                     //    complex_id = 0,
                                     //    id = 4191,
                                     //    values = new[] {
@@ -371,6 +362,8 @@ namespace Selen.Sites {
                             }
                         }
                     };
+                    if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count>0)
+                        data.items[0].attributes.AddRange(attributes.additionalAttributes);
                     //var testJson = JsonConvert.SerializeObject(data);
                     //File.WriteAllText(@"..\test.json", testJson);
                     var s = await PostRequestAsync(data, "/v2/product/import");
@@ -397,7 +390,7 @@ namespace Selen.Sites {
             }
         }
         //получить атрибуты и категорию товара на озон
-        Attributes GetAttributes(RootObject bus) {
+        async Task<Attributes> GetAttributesAsync(RootObject bus) {
             var n = bus.name.ToLowerInvariant();
             var a = new Attributes();
             if (n.StartsWith("генератор ")) {
@@ -405,11 +398,33 @@ namespace Selen.Sites {
                 a.typeId = 970707037;
                 a.typeName = "Генератор в сборе";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.additionalAttributes = new List<object> {
+                    new {                        //Количество штук (обязательный параметр)
+                        complex_id = 0,
+                        id = 7202,
+                        values = new[] {
+                            new {
+                                value = 1
+                            }
+                        }
+                    },
+                };
             } else if (n.StartsWith("стартер ")) {
                 a.categoryId = 61852812;
                 a.typeId = 98941;
                 a.typeName = "Стартер в сборе";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.additionalAttributes = new List<object> {
+                    new {                        //Количество штук (обязательный параметр)
+                        complex_id = 0,
+                        id = 7202,
+                        values = new[] {
+                            new {
+                                value = 1
+                            }
+                        }
+                    },
+                };
             } else if (n.Contains("гофра") && n.Contains("универсальная")) {
                 a.categoryId = 33698291;
                 a.typeId = 98818;
@@ -417,6 +432,9 @@ namespace Selen.Sites {
                 GetBrend(ref a.brendId, ref a.brendName, bus);
             }
             return a;
+                var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
+                Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
+                await Task.Delay(3000);
         }
         //бренд 
         void GetBrend(ref int id, ref string name, RootObject bus) {
@@ -542,6 +560,7 @@ namespace Selen.Sites {
         public string brendName;
         public int typeId;
         public string typeName;
+        public List<object> additionalAttributes;
     }
 
     /////////////////////////////////////////
@@ -576,7 +595,7 @@ namespace Selen.Sites {
         public Visibility_Details visibility_details { get; set; }
         public string price_index { get; set; }
         //        public Commission[] commissions { get; set; }
-        public int volume_weight { get; set; }
+        public decimal volume_weight { get; set; }
         public bool is_prepayment { get; set; }
         public bool is_prepayment_allowed { get; set; }
         //public object[] images360 { get; set; }
