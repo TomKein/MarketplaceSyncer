@@ -21,7 +21,7 @@ namespace Selen {
 
         DB _db = new DB();
 
-        public List<RootGroupsObject> busGroups = new List<RootGroupsObject>();
+        public List<RootGroupsObject> _busGroups = new List<RootGroupsObject>();
         public static List<RootObject> _bus = new List<RootObject>();
         public List<RootObject> lightSyncGoods = new List<RootObject>();
 
@@ -496,20 +496,20 @@ namespace Selen {
         async Task GetBusGroupsAsync() {
             Log.Add("business.ru: получаю список групп...");
             do {
-                busGroups.Clear();
+                _busGroups.Clear();
                 try {
                     var tmp = await Class365API.RequestAsync("get", "groupsofgoods", new Dictionary<string, string> {
                         //{"parent_id", "205352"} // БУ запчасти
                     });
                     var tmp2 = JsonConvert.DeserializeObject<List<RootGroupsObject>>(tmp);
-                    busGroups.AddRange(tmp2);
+                    _busGroups.AddRange(tmp2);
                 } catch (Exception x) {
                     Log.Add("business.ru: ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException.Message);
                     await Task.Delay(60000);
                 }
-            } while (busGroups.Count < 30);
-            Log.Add("business.ru: получено " + busGroups.Count + " групп товаров");
-            RootObject.Groups = busGroups;
+            } while (_busGroups.Count < 30);
+            Log.Add("business.ru: получено " + _busGroups.Count + " групп товаров");
+            RootObject.Groups = _busGroups;
         }
         //получаю карточки товаров
         async Task GetBusGoodsAsync2() {

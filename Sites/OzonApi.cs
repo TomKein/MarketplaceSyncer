@@ -23,10 +23,9 @@ namespace Selen.Sites {
         readonly float _oldPriceProcent = 10;
         ProductList _productList;                     //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon_productList.json";
-        readonly string _attributeValuesFile = @"..\ozon_AttributeValues.json";
         readonly int _updateFreq = 24;                //частота обновления списка (часов)
-        static List<RootObject> _bus = FormMain._bus; //ссылка на товары
-        static DB _db = DB._db;                       //база данных
+        List<RootObject> _bus;                        //ссылка на товары
+        DB _db = DB._db;                              //база данных
         static bool _isProductListCheckNeeds = true;
         bool _hasNext = false;                        //для запросов
         List<AttributeValue> _brends;                 //список брендов озон
@@ -39,6 +38,7 @@ namespace Selen.Sites {
         }
         //главный метод
         public async Task SyncAsync() {
+            _bus = FormMain._bus;
             await CheckProductListAsync();
             await UpdateProductsAsync();
             await AddProductsAsync();
@@ -124,7 +124,7 @@ namespace Selen.Sites {
                     Log.Add(_l + "SaveUrlAsync - ошибка! - " + bus.name + " - sku: 0");
                 }
                 var newUrl = _baseBusUrl + sku;
-                if (bus.ozon != newUrl) { 
+                if (bus.ozon != newUrl) {
                     bus.ozon = newUrl;
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                             {"id", bus.id},
@@ -396,7 +396,7 @@ namespace Selen.Sites {
                     break;
             }
         }
-        //получить группу (категорию) товара на озон
+        //получить атрибуты и категорию товара на озон
         Attributes GetAttributes(RootObject bus) {
             var n = bus.name.ToLowerInvariant();
             var a = new Attributes();
@@ -405,11 +405,15 @@ namespace Selen.Sites {
                 a.typeId = 970707037;
                 a.typeName = "Генератор в сборе";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-            }
-            if (n.StartsWith("стартер ")) {
+            } else if (n.StartsWith("стартер ")) {
                 a.categoryId = 61852812;
                 a.typeId = 98941;
                 a.typeName = "Стартер в сборе";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.Contains("гофра") && n.Contains("универсальная")) {
+                a.categoryId = 33698291;
+                a.typeId = 98818;
+                a.typeName = "Гофра глушителя";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
             }
             return a;
@@ -504,8 +508,8 @@ namespace Selen.Sites {
                 var last = 0;
                 do {
                     var data = new {
-                        attribute_id = 85,
-                        category_id = 61852812,
+                        attribute_id = attribute_id,
+                        category_id = category_id,
                         language = "DEFAULT",
                         last_value_id = last,
                         limit = 1000
@@ -566,12 +570,12 @@ namespace Selen.Sites {
         public string min_price { get; set; }
         public Source[] sources { get; set; }
         public Stocks stocks { get; set; }
-//        public ItemErrors[] errors { get; set; }
+        //        public ItemErrors[] errors { get; set; }
         public string vat { get; set; }
         public bool visible { get; set; }
         public Visibility_Details visibility_details { get; set; }
         public string price_index { get; set; }
-//        public Commission[] commissions { get; set; }
+        //        public Commission[] commissions { get; set; }
         public int volume_weight { get; set; }
         public bool is_prepayment { get; set; }
         public bool is_prepayment_allowed { get; set; }
@@ -588,7 +592,7 @@ namespace Selen.Sites {
         public Discounted_Stocks discounted_stocks { get; set; }
         public bool is_discounted { get; set; }
         public bool has_discounted_item { get; set; }
-//        public object[] barcodes { get; set; }
+        //        public object[] barcodes { get; set; }
         public DateTime updated_at { get; set; }
         public Price_Indexes price_indexes { get; set; }
         public int sku { get; set; }
