@@ -128,7 +128,7 @@ namespace Selen.Sites {
         }
 
         void Edit(RootObject b) {
-            _dr.Navigate(b.drom);
+            _dr.Navigate(b.drom, "//input[@name='subject']");
             SetTitle(b);
             CheckPhotos(b);
             SetPrice(b);
