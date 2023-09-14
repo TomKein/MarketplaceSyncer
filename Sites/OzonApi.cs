@@ -425,10 +425,50 @@ namespace Selen.Sites {
                         }
                     },
                 };
-            } else if (n.Contains("гофра") && n.Contains("универсальная")) {
+            } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) && 
+                (n.Contains("универсальная") || n.Contains("площадка"))) {
                 a.categoryId = 33698291;
                 a.typeId = 98818;
                 a.typeName = "Гофра глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.Contains("хомут") && n.Contains("глушителя")) {
+                a.categoryId = 33698291;
+                a.typeId = 971043197;
+                a.typeName = "Хомут для глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.Contains("труба") && 
+                (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная"))) {
+                a.categoryId = 33698291;
+                a.typeId = 98954;
+                a.typeName = "Труба глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.StartsWith("резонатор ") ||
+                n.StartsWith("пламегаситель ") ||
+                n.Contains("стронгер")) {
+                a.categoryId = 33698291;
+                a.typeId = 98906;
+                a.typeName = "Резонатор глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.Contains("скобы приёмной трубы") ||
+                n.Contains("глушител") &&
+                (n.Contains("подвеск") || n.Contains("кронштейн") ||
+                n.Contains("крепление") || n.Contains("держател"))) {
+                a.categoryId = 33698291;
+                a.typeId = 970984895;
+                a.typeName = "Крепление глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.Contains("комплект фланцев с трубой") ||
+                n.Contains("глушител") &&
+                (n.Contains("ремкомплект") || n.Contains("фланец"))) {
+                a.categoryId = 33698291;
+                a.typeId = 971100632;
+                a.typeName = "Ремкомплект глушителя";
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.StartsWith("глушитель ") && 
+                (bus.GroupName().Contains("ыхлопная")|| bus.GroupName().Contains("лушител")))  {
+                a.categoryId = 33698291;
+                a.typeId = 971906701;
+                a.typeName = "Глушитель";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
             }
             return a;
