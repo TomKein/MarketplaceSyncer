@@ -111,7 +111,7 @@ namespace Selen.Sites {
                 var s = await PostRequestAsync(data, "/v2/product/info");
                 return JsonConvert.DeserializeObject<ProductInfo>(s);
             } catch (Exception x) {
-                Log.Add(_l + " ошибка - " + x.Message + x.InnerException.Message);
+                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
                 throw;
             }
         }
@@ -134,7 +134,7 @@ namespace Selen.Sites {
                 } else
                     Log.Add(_l + bus.name + " ссылка без изменений!");
             } catch (Exception x) {
-                Log.Add(_l + " SaveUrlAsync - ошибка! - " + x.Message + x.InnerException.Message);
+                Log.Add(_l + " SaveUrlAsync - ошибка! - " + x.Message + x.InnerException?.Message);
             }
         }
         //проверка и обновление товара
@@ -147,7 +147,7 @@ namespace Selen.Sites {
                 //TODO добавить проверку описаний await UpdateProductDecription()
                 //TODO добавить проверку и обновление фотографий await UpdateProductImages()
             } catch (Exception x) {
-                Log.Add(_l + " ошибка - " + x.Message + x.InnerException.Message);
+                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
             }
         }
         //обновление остатков товара на озон
@@ -280,7 +280,7 @@ namespace Selen.Sites {
                                      && w.width != null
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
-                                     && !_productList.items.Any(_ => w.id == _.offer_id)); 
+                                     && !_productList.items.Any(_ => w.id == _.offer_id));
             Log.Add(_l + "карточек для добавления: " + goods.Count());
             SaveToFile(goods);
             int i = 0;
@@ -362,7 +362,7 @@ namespace Selen.Sites {
                             }
                         }
                     };
-                    if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count>0)
+                    if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
                         data.items[0].attributes.AddRange(attributes.additionalAttributes);
                     //var testJson = JsonConvert.SerializeObject(data);
                     //File.WriteAllText(@"..\test.json", testJson);
@@ -383,7 +383,7 @@ namespace Selen.Sites {
                     Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add(_l + x.Message + x.InnerException.Message);
+                    Log.Add(_l + x.Message + x.InnerException?.Message);
                 }
                 if (++i >= count)
                     break;
@@ -398,34 +398,14 @@ namespace Selen.Sites {
                 a.typeId = 970707037;
                 a.typeName = "Генератор в сборе";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-                a.additionalAttributes = new List<object> {
-                    new {                        //Количество штук (обязательный параметр)
-                        complex_id = 0,
-                        id = 7202,
-                        values = new[] {
-                            new {
-                                value = 1
-                            }
-                        }
-                    },
-                };
+                a.additionalAttributes = GetCountAttribute();
             } else if (n.StartsWith("стартер ")) {
                 a.categoryId = 61852812;
                 a.typeId = 98941;
                 a.typeName = "Стартер в сборе";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-                a.additionalAttributes = new List<object> {
-                    new {                        //Количество штук (обязательный параметр)
-                        complex_id = 0,
-                        id = 7202,
-                        values = new[] {
-                            new {
-                                value = 1
-                            }
-                        }
-                    },
-                };
-            } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) && 
+                a.additionalAttributes = GetCountAttribute();
+            } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) &&    //выхлопная система
                 (n.Contains("универсальная") || n.Contains("площадка"))) {
                 a.categoryId = 33698291;
                 a.typeId = 98818;
@@ -436,7 +416,7 @@ namespace Selen.Sites {
                 a.typeId = 971043197;
                 a.typeName = "Хомут для глушителя";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-            } else if (n.Contains("труба") && 
+            } else if (n.Contains("труба") &&
                 (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная"))) {
                 a.categoryId = 33698291;
                 a.typeId = 98954;
@@ -445,7 +425,7 @@ namespace Selen.Sites {
             } else if (n.StartsWith("резонатор ") ||
                 n.StartsWith("пламегаситель ") ||
                 n.Contains("стронгер")) {
-                a.categoryId = 33698291;
+                a.categoryId = 33698292;
                 a.typeId = 98906;
                 a.typeName = "Резонатор глушителя";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -453,7 +433,7 @@ namespace Selen.Sites {
                 n.Contains("глушител") &&
                 (n.Contains("подвеск") || n.Contains("кронштейн") ||
                 n.Contains("крепление") || n.Contains("держател"))) {
-                a.categoryId = 33698291;
+                a.categoryId = 33698296;
                 a.typeId = 970984895;
                 a.typeName = "Крепление глушителя";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -464,19 +444,56 @@ namespace Selen.Sites {
                 a.typeId = 971100632;
                 a.typeName = "Ремкомплект глушителя";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-            } else if (n.StartsWith("глушитель ") && 
-                (bus.GroupName().Contains("ыхлопная")|| bus.GroupName().Contains("лушител")))  {
-                a.categoryId = 33698291;
+            } else if (n.StartsWith("глушитель ") &&
+                (bus.GroupName().Contains("ыхлопная") || bus.GroupName().Contains("лушител"))) {
+                a.categoryId = 33698292;
                 a.typeId = 971906701;
                 a.typeName = "Глушитель";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
+            } else if (n.StartsWith("суппорт ") &&                                                //тормозная система
+                (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
+                a.categoryId = 85842995;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970725296;
+                a.typeName = "Суппорты тормозные";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("цилиндр") && 
+                n.Contains("главный") &&
+                (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
+                a.categoryId = 85842992;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98965;
+                a.typeName = "Цилиндр тормозной главный";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("цилиндр") &&
+                (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
+                a.categoryId = 85842992;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98966;
+                a.typeName = "Цилиндр тормозной рабочий";
+                a.additionalAttributes = GetCountAttribute();
             }
             return a;
-                var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
-                Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
-                await Task.Delay(3000);
+
+                //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
+                //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
+                //await Task.Delay(3000);
+
         }
-        //бренд 
+        //Количество штук (обязательный параметр)
+        List<object> GetCountAttribute(int cnt = 1) =>
+            new List<object> {
+                 new {
+                      complex_id = 0,
+                      id = 7202,
+                      values = new[] {
+                          new {
+                              value = cnt.ToString()
+                          }
+                      }
+                 },
+            };
+        //бренд
         void GetBrend(ref int id, ref string name, RootObject bus) {
             var m = bus.GetManufacture().ToLowerInvariant() ?? "";
             if (m == "vag") {
@@ -553,8 +570,8 @@ namespace Selen.Sites {
             Log.Add("товары выгружены в ozonGoodListForAdding.csv");
         }
         //получаем список атрибутов с озон (значения по умолчанию - для получения списка брендов
-        public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id=85, int category_id= 61852812) {
-            var attributeValuesFile = @"..\ozon_attr_"+ attribute_id+"_cat_"+ category_id+".json";
+        public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id = 85, int category_id = 61852812) {
+            var attributeValuesFile = @"..\ozon_attr_" + attribute_id + "_cat_" + category_id + ".json";
             var lastWriteTime = File.GetLastWriteTime(attributeValuesFile);
             if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
                 var res = JsonConvert.DeserializeObject<List<AttributeValue>>(
@@ -574,7 +591,7 @@ namespace Selen.Sites {
                     };
                     var s = await PostRequestAsync(data, "/v2/category/attribute/values");
                     res.AddRange(JsonConvert.DeserializeObject<List<AttributeValue>>(s));
-                    last = res.Last()?.id??0;
+                    last = res.Last()?.id ?? 0;
                 } while (_hasNext);
                 File.WriteAllText(attributeValuesFile, JsonConvert.SerializeObject(res));
                 Log.Add(_l + " загружено с озон " + res.Count + " атрибутов");

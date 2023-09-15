@@ -98,7 +98,7 @@ namespace Selen {
                 label_Drom.Text = _bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
-                Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException.Message);
+                Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException?.Message);
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("invalid session id") ||
@@ -352,7 +352,7 @@ namespace Selen {
             } catch (Exception ex) {
                 Log.Add("business.ru: ошибка синхронизации: " + ex.Message + "\n"
                     + ex.Source + "\n"
-                    + ex.InnerException + "\n"
+                    + ex.InnerException?.Message + "\n"
                     + stage);
                 _isBusinessCanBeScan = true;
                 _isBusinessNeedRescan = true;
@@ -504,7 +504,7 @@ namespace Selen {
                     var tmp2 = JsonConvert.DeserializeObject<List<RootGroupsObject>>(tmp);
                     _busGroups.AddRange(tmp2);
                 } catch (Exception x) {
-                    Log.Add("business.ru: ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException.Message);
+                    Log.Add("business.ru: ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException?.Message);
                     await Task.Delay(60000);
                 }
             } while (_busGroups.Count < 30);
@@ -1052,7 +1052,7 @@ namespace Selen {
                 _db.SetParamAsync("liteScanTime", _scanTime.ToString());
                 RootObject.ScanTime = _scanTime;
             } catch (Exception x) {
-                Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException.Message);
+                Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
 
