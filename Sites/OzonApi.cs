@@ -179,7 +179,7 @@ namespace Selen.Sites {
             }
         }
         //расчет цен с учетом наценки
-57        private int GetNewPrice(RootObject b) {
+        private int GetNewPrice(RootObject b) {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
