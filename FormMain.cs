@@ -17,7 +17,7 @@ using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.156";
+        string _version = "1.157";
 
         DB _db = new DB();
 

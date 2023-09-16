@@ -101,7 +101,13 @@ namespace Selen.Sites {
                         //исключение
                         var n = b.name.ToLowerInvariant();
                         if (b.group_id == "2281135" || n.Contains("пепельница") || //// Инструменты (аренда), пепельницы
-                            n.Contains("стекло заднее") || n.Contains("стекло переднее")) 
+                            n.Contains("стекло заднее") || n.Contains("стекло переднее") ||
+                            n.StartsWith("крыша ") || n.Contains("задняя часть кузова") ||  //габаритные зч
+                            n.Contains("крыло заднее") || n.Contains("четверть ") ||
+                            n.Contains("передняя часть кузова") || n.Contains("лонжерон") ||
+                            n.Contains("панель передняя") || n.Contains("морда") || 
+                            n.Contains("телевизор")
+                            ) 
                             continue;
                         //создаю новый элемент <offer> с атрубутом id
                         var offer = new XElement("offer", new XAttribute("id", b.id));
@@ -188,22 +194,24 @@ namespace Selen.Sites {
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }
-
         private int GetPrice(RootObject b) {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //наценка 20% на всё
-            int overPrice = (int)(b.price * 0.2);
+            //наценка 25% на всё
+            int overPrice = (int)(b.price * 0.25);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
-            //вес от 10 кг или размер от 100 -- минимальная наценка 1000 р
-            if (overPrice < 1000 && (weight >= 10 || length >= 100))
-                overPrice = 1000;
-            //вес от 30 кг -- минимальная наценка 2000 р
-            if (overPrice < 2000 && weight >= 30)
+            //вес от 10 кг или размер от 100 -- наценка 1500 р
+            if (overPrice < 1500 && (weight >= 10 || length >= 100))
+                overPrice = 1500;
+            //вес от 30 кг или размер от 150 -- наценка 2000 р
+            if (overPrice < 2000 && (weight >= 30 || length >= 150))
                 overPrice = 2000;
+            //вес от 50 кг или размер более 200 -- наценка 3000 р
+            if (overPrice < 3000 && (weight >= 50 || length >= 200))
+                overPrice = 3000;
             return b.price + overPrice;
         }
     }

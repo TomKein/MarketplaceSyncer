@@ -179,22 +179,25 @@ namespace Selen.Sites {
             }
         }
         //расчет цен с учетом наценки
-        private int GetNewPrice(RootObject bus) {
-            var weight = bus.GetWeight();
-            var d = bus.GetDimentions();
+57        private int GetNewPrice(RootObject b) {
+            var weight = b.GetWeight();
+            var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //наценка 20% на всё
-            int overPrice = (int) (bus.price * 0.2);
+            //наценка 25% на всё
+            int overPrice = (int) (b.price * 0.25);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
-            //вес от 10 кг или размер от 100 -- минимальная наценка 1000 р
-            if (overPrice < 1000 && (weight >= 10 || length >= 100))
-                overPrice = 1000;
-            //вес от 30 кг -- минимальная наценка 2000 р
-            if (overPrice < 2000 && weight >= 30)
+            //вес от 10 кг или размер от 100 -- наценка 1500 р
+            if (overPrice < 1500 && (weight >= 10 || length >= 100))
+                overPrice = 1500;
+            //вес от 30 кг или размер от 150 -- наценка 2000 р
+            if (overPrice < 2000 && (weight >= 30 || length >= 150))
                 overPrice = 2000;
-            return bus.price + overPrice;
+            //вес от 50 кг или размер более 200 -- наценка 3000 р
+            if (overPrice < 3000 && (weight >= 50 || length >= 200))
+                overPrice = 3000;
+            return b.price + overPrice;
         }
         //цена до скидки (старая)
         private int GetOldPrice(int newPrice) {
