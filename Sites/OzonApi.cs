@@ -41,6 +41,8 @@ namespace Selen.Sites {
             await CheckProductListAsync();
             await UpdateProductsAsync();
             await AddProductsAsync();
+            if (RootObject.ScanTime.Day < DateTime.Now.Day)
+                await CheckProductLinksAsync(checkAll: true);
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
@@ -83,7 +85,7 @@ namespace Selen.Sites {
             }
         }
         //проверяем привязку товаров в карточки бизнес.ру
-        private async Task CheckProductLinksAsync() {
+        private async Task CheckProductLinksAsync(bool checkAll = false) {
             foreach (var item in _productList.items) {
                 try {
                     //карточка в бизнес.ру с id = артикулу товара на озон
@@ -91,8 +93,9 @@ namespace Selen.Sites {
                     if (b == -1)
                         throw new Exception("карточка с id = " + item.offer_id + " не найдена!");
                     //если товар не привязан к карточке, либо неверный sku в ссылке
-                    if (!_bus[b].ozon.Contains("http")
-                        || _bus[b].ozon.Split('/').Last().Length < 3) {
+                    if (!_bus[b].ozon.Contains("http") || 
+                        _bus[b].ozon.Split('/').Last().Length < 3 || 
+                        checkAll) {
                         //запросим все данные о товаре
                         var productInfo = await GetProductInfoAsync(_bus[b]);
                         await SaveUrlAsync(_bus[b], productInfo);
@@ -248,7 +251,7 @@ namespace Selen.Sites {
 
                 var response = await _hc.SendAsync(requestMessage);
 
-                await Task.Delay(100);
+                await Task.Delay(1000);
                 if (response.StatusCode == HttpStatusCode.OK) {
                     var js = await response.Content.ReadAsStringAsync();
                     RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);
@@ -474,6 +477,19 @@ namespace Selen.Sites {
                 GetBrend(ref a.brendId, ref a.brendName, bus);
                 a.typeId = 98966;
                 a.typeName = "Цилиндр тормозной рабочий";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("ручка") &&
+                (n.Contains("двери") || n.Contains("наруж") || n.Contains("внутр"))) {
+                a.categoryId = 99606705;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970939934;
+                a.typeName = "Ручка дверная автомобильная";
+            } else if (n.Contains("ручка") &&
+                n.Contains("стеклоподъемника")) {
+                a.categoryId = 1000002306;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970945542;
+                a.typeName = "Ручка стеклоподъемника";
                 a.additionalAttributes = GetCountAttribute();
             }
             return a;
