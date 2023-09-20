@@ -456,7 +456,7 @@ namespace Selen.Sites {
                 a.typeId = 971906701;
                 a.typeName = "Глушитель";
                 GetBrend(ref a.brendId, ref a.brendName, bus);
-            } else if (n.StartsWith("суппорт ") &&                                                //тормозная система
+            } else if (n.StartsWith("суппорт ") &&                                      //тормозная система
                 (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
                 a.categoryId = 85842995;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -478,7 +478,28 @@ namespace Selen.Sites {
                 a.typeId = 98966;
                 a.typeName = "Цилиндр тормозной рабочий";
                 a.additionalAttributes = GetCountAttribute();
-            } else if (n.Contains("ручка") &&
+            } else if (n.Contains("барабан") &&
+                n.Contains("тормоз")) {
+                a.categoryId = 33698167;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98799;
+                a.typeName = "Барабан тормозной";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("диск") &&
+                n.Contains("тормоз")) {
+                a.categoryId = 33698167;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98825;
+                a.typeName = "Диск тормозной";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("колодки") &&
+                n.Contains("тормоз")) {
+                a.categoryId = 33698187;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 96167;
+                a.typeName = "Колодки тормозные";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("ручка") &&                                           //ручки
                 (n.Contains("двери") || n.Contains("наруж") || n.Contains("внутр"))) {
                 a.categoryId = 99606705;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -491,7 +512,42 @@ namespace Selen.Sites {
                 a.typeId = 970945542;
                 a.typeName = "Ручка стеклоподъемника";
                 a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("радиатор") &&                                        //охлаждение
+                n.Contains("охлаждения")) {
+                a.categoryId = 39655599;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970782911;
+                a.typeName = "Радиатор охлаждения";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("радиатор") &&
+                (n.Contains("отопителя") || n.Contains("печки"))) {
+                a.categoryId = 86296320;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970781727;
+                a.typeName = "Радиатор отопителя салона";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("радиатор") &&
+                n.Contains("кондиционера")) {
+                a.categoryId = 85833530;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970781671;
+                a.typeName = "Радиатор кондиционера";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("мотор") &&
+                (n.Contains("печки") || n.Contains("отопителя"))) {
+                a.categoryId = 78305548;
+                a.typeId = 970782175;
+                a.typeName = "Электровентилятор отопления";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.Contains("катушка") &&                                         //зажигание
+                n.Contains("зажигания")) {
+                a.categoryId = 85835327;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970744686;
+                a.typeName = "Катушка зажигания";
+                a.additionalAttributes = GetCountAttribute();
             }
+
             return a;
 
                 //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
