@@ -121,6 +121,13 @@ namespace Selen.Sites {
                             Edit(_bus[b]);
                         } catch (Exception x) {
                             Debug.WriteLine(x.Message);
+                            if (x.Message.Contains("timed out") ||
+                                x.Message.Contains("already closed") ||
+                                x.Message.Contains("HTTP request") ||
+                                x.Message.Contains("invalid session id") ||
+                                x.Message.Contains("chrome not reachable")) {
+                                throw x;
+                            }
                         }
                     }
                 }
@@ -345,7 +352,7 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
         }
         void Up(RootObject b) {
-            if (_dr.GetElementsCount("//a[text()='Купить']") > 0)
+            if (_dr.GetElementsCount("//a[text()='В корзину']") > 0)
                 return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
                 _dr.ButtonClick("//a[contains(@class,'freePublishDraft')]");
@@ -527,8 +534,8 @@ namespace Selen.Sites {
             _dr.Navigate(page);
             var drom = new List<RootObject>();
             foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
-                var el = item.FindElements(By.XPath(".//span[@data-role='price']"));
-                var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("₽", "")) : 0;
+                var el = item.FindElements(By.XPath(".//div[@data-role='price']"));
+                var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("р.", "")) : 0;
                 var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
                 var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item-content__additional')]")).Text;
                 var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
