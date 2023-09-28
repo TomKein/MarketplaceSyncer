@@ -13,11 +13,10 @@ using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.157";
+        string _version = "1.158";
 
         DB _db = new DB();
 
