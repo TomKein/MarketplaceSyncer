@@ -66,6 +66,7 @@ namespace Selen {
                         await Task.Delay(30000);
                     var av = new AvitoXml();
                     await av.GenerateXML(_bus);
+                    await av.GetGenerationsAsync();
                     ChangeStatus(sender, ButtonStates.Active);
                 } catch (Exception x) {
                     Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);

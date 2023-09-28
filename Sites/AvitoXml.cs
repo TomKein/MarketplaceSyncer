@@ -204,7 +204,22 @@ namespace Selen.Sites {
                 Log.Add("GetMake: " + b.name + " пропущен - не удалось определить автопроизводителя");
             return null;
         }
-
+        //
+        public Task GetGenerationsAsync() => Task.Factory.StartNew(() => {
+            var list = new List<string>();
+            foreach (var make in autoCatalogXML.Element("Catalog").Elements("Make"))
+                foreach (var model in make.Elements("Model"))
+                    foreach (var generation in model.Elements("Generation")) {
+                        var name = new StringBuilder();
+                        name.Append(make.Attribute("name").Value);
+                        name.Append(", ");
+                        name.Append(model.Attribute("name").Value);
+                        name.Append(", ");
+                        name.Append(generation.Attribute("name").Value);
+                        list.Add(name.ToString());
+                    }
+            File.WriteAllText(@"..\avito_generations.txt", list.Aggregate((a, b) => a + "\n" + b));
+        });
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
             var name = b.name.ToLowerInvariant()
@@ -726,6 +741,7 @@ namespace Selen.Sites {
                  name.StartsWith("порог ") ||
                  name.StartsWith("спойлер") ||
                  name.StartsWith("рейлинг") ||
+                 name.StartsWith("дуги крыши") ||
                  name.StartsWith("трос ") ||
                  name.StartsWith("передняя панель") ||
                  (name.Contains("мотор") || name.Contains("трапеция"))
@@ -798,6 +814,7 @@ namespace Selen.Sites {
                    name.StartsWith("трубки ") ||
                    name.StartsWith("резонатор воздуш") ||
                    name.StartsWith("ресивер воздуш") ||
+                   name.StartsWith("ресивер вакуумный") ||
                    name.Contains("фильтр") && name.Contains("топлив") ||
                    name.Contains("уровень") && name.Contains("топлив") ||
                    name.StartsWith("крышка") && name.Contains("воздушного") ||
@@ -812,6 +829,7 @@ namespace Selen.Sites {
                    name.StartsWith("потенциометр дроссельной заслонки") ||
                    name.StartsWith("труба соединительная") ||
                    name.StartsWith("насадка глушителя") ||
+                   name.StartsWith("хомут глушителя") ||
                    name.StartsWith("обратный клапан") ||
                    name.StartsWith("проставка под карб") ||
                    name.StartsWith("сепаратор картерн") ||
