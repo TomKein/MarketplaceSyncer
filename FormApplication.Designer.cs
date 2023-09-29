@@ -23,10 +23,13 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle9 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.labelAmount = new System.Windows.Forms.Label();
+            this.labelPrice = new System.Windows.Forms.Label();
             this.buttonBack = new System.Windows.Forms.Button();
-            this.buttonSkio = new System.Windows.Forms.Button();
+            this.buttonSkip = new System.Windows.Forms.Button();
             this.buttonOk = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
@@ -44,10 +47,8 @@
             this.panel8 = new System.Windows.Forms.Panel();
             this.dataGridViewSelect = new System.Windows.Forms.DataGridView();
             this.panel7 = new System.Windows.Forms.Panel();
-            this.label4 = new System.Windows.Forms.Label();
+            this.labelSelectedApplications = new System.Windows.Forms.Label();
             this.mySqlDataAdapter1 = new MySql.Data.MySqlClient.MySqlDataAdapter();
-            this.labelPrice = new System.Windows.Forms.Label();
-            this.labelAmount = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.panel4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxImage)).BeginInit();
@@ -77,7 +78,7 @@
             this.panel4.Controls.Add(this.labelAmount);
             this.panel4.Controls.Add(this.labelPrice);
             this.panel4.Controls.Add(this.buttonBack);
-            this.panel4.Controls.Add(this.buttonSkio);
+            this.panel4.Controls.Add(this.buttonSkip);
             this.panel4.Controls.Add(this.buttonOk);
             this.panel4.Controls.Add(this.label2);
             this.panel4.Controls.Add(this.label1);
@@ -90,6 +91,24 @@
             this.panel4.Size = new System.Drawing.Size(466, 352);
             this.panel4.TabIndex = 1;
             // 
+            // labelAmount
+            // 
+            this.labelAmount.AutoSize = true;
+            this.labelAmount.Location = new System.Drawing.Point(12, 295);
+            this.labelAmount.Name = "labelAmount";
+            this.labelAmount.Size = new System.Drawing.Size(47, 13);
+            this.labelAmount.TabIndex = 8;
+            this.labelAmount.Text = "Кол-во: ";
+            // 
+            // labelPrice
+            // 
+            this.labelPrice.AutoSize = true;
+            this.labelPrice.Location = new System.Drawing.Point(11, 278);
+            this.labelPrice.Name = "labelPrice";
+            this.labelPrice.Size = new System.Drawing.Size(39, 13);
+            this.labelPrice.TabIndex = 7;
+            this.labelPrice.Text = "Цена: ";
+            // 
             // buttonBack
             // 
             this.buttonBack.Location = new System.Drawing.Point(202, 318);
@@ -99,14 +118,15 @@
             this.buttonBack.Text = "Назад";
             this.buttonBack.UseVisualStyleBackColor = true;
             // 
-            // buttonSkio
+            // buttonSkip
             // 
-            this.buttonSkio.Location = new System.Drawing.Point(283, 318);
-            this.buttonSkio.Name = "buttonSkio";
-            this.buttonSkio.Size = new System.Drawing.Size(75, 23);
-            this.buttonSkio.TabIndex = 5;
-            this.buttonSkio.Text = "Пропустить";
-            this.buttonSkio.UseVisualStyleBackColor = true;
+            this.buttonSkip.Location = new System.Drawing.Point(283, 318);
+            this.buttonSkip.Name = "buttonSkip";
+            this.buttonSkip.Size = new System.Drawing.Size(75, 23);
+            this.buttonSkip.TabIndex = 5;
+            this.buttonSkip.Text = "Пропустить";
+            this.buttonSkip.UseVisualStyleBackColor = true;
+            this.buttonSkip.Click += new System.EventHandler(this.buttonSkip_Click);
             // 
             // buttonOk
             // 
@@ -116,7 +136,7 @@
             this.buttonOk.TabIndex = 4;
             this.buttonOk.Text = "ОК";
             this.buttonOk.UseVisualStyleBackColor = true;
-            this.buttonOk.Click += new System.EventHandler(this.buttonOk_Click);
+            this.buttonOk.Click += new System.EventHandler(this.buttonOk_ClickAsync);
             // 
             // label2
             // 
@@ -144,6 +164,7 @@
             this.richTextBoxDesc.Size = new System.Drawing.Size(443, 204);
             this.richTextBoxDesc.TabIndex = 1;
             this.richTextBoxDesc.Text = "";
+            this.richTextBoxDesc.Leave += new System.EventHandler(this.richTextBoxDesc_TextChanged);
             // 
             // textBoxName
             // 
@@ -152,6 +173,7 @@
             this.textBoxName.Name = "textBoxName";
             this.textBoxName.Size = new System.Drawing.Size(443, 23);
             this.textBoxName.TabIndex = 5;
+            this.textBoxName.Leave += new System.EventHandler(this.richTextBoxDesc_TextChanged);
             // 
             // pictureBoxImage
             // 
@@ -187,13 +209,29 @@
             // 
             // dataGridViewAvito
             // 
+            this.dataGridViewAvito.AllowUserToAddRows = false;
+            this.dataGridViewAvito.AllowUserToDeleteRows = false;
+            this.dataGridViewAvito.AllowUserToResizeColumns = false;
+            this.dataGridViewAvito.AllowUserToResizeRows = false;
             this.dataGridViewAvito.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewAvito.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle9.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle9.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            dataGridViewCellStyle9.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle9.SelectionBackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle9.SelectionForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle9.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dataGridViewAvito.DefaultCellStyle = dataGridViewCellStyle9;
             this.dataGridViewAvito.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridViewAvito.Location = new System.Drawing.Point(0, 0);
+            this.dataGridViewAvito.MultiSelect = false;
             this.dataGridViewAvito.Name = "dataGridViewAvito";
+            this.dataGridViewAvito.ReadOnly = true;
+            this.dataGridViewAvito.RowTemplate.ReadOnly = true;
             this.dataGridViewAvito.Size = new System.Drawing.Size(434, 323);
             this.dataGridViewAvito.TabIndex = 0;
+            this.dataGridViewAvito.CellContentDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewAvito_CellContentDoubleClick);
             // 
             // panel9
             // 
@@ -253,30 +291,37 @@
             // 
             // dataGridViewSelect
             // 
+            this.dataGridViewSelect.AllowUserToResizeColumns = false;
+            this.dataGridViewSelect.AllowUserToResizeRows = false;
+            this.dataGridViewSelect.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewSelect.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridViewSelect.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridViewSelect.Location = new System.Drawing.Point(0, 0);
             this.dataGridViewSelect.Name = "dataGridViewSelect";
+            this.dataGridViewSelect.ReadOnly = true;
             this.dataGridViewSelect.Size = new System.Drawing.Size(450, 347);
             this.dataGridViewSelect.TabIndex = 0;
+            this.dataGridViewSelect.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewSelect_CellDoubleClick);
+            this.dataGridViewSelect.RowsAdded += new System.Windows.Forms.DataGridViewRowsAddedEventHandler(this.dataGridViewSelect_RowsAdded);
+            this.dataGridViewSelect.RowsRemoved += new System.Windows.Forms.DataGridViewRowsRemovedEventHandler(this.dataGridViewSelect_RowsRemoved);
             // 
             // panel7
             // 
-            this.panel7.Controls.Add(this.label4);
+            this.panel7.Controls.Add(this.labelSelectedApplications);
             this.panel7.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel7.Location = new System.Drawing.Point(8, 8);
             this.panel7.Name = "panel7";
             this.panel7.Size = new System.Drawing.Size(450, 25);
             this.panel7.TabIndex = 0;
             // 
-            // label4
+            // labelSelectedApplications
             // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(2, 8);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(144, 13);
-            this.label4.TabIndex = 0;
-            this.label4.Text = "Выбранные применимости";
+            this.labelSelectedApplications.AutoSize = true;
+            this.labelSelectedApplications.Location = new System.Drawing.Point(2, 8);
+            this.labelSelectedApplications.Name = "labelSelectedApplications";
+            this.labelSelectedApplications.Size = new System.Drawing.Size(180, 13);
+            this.labelSelectedApplications.TabIndex = 0;
+            this.labelSelectedApplications.Text = "Рекомендованные применимости";
             // 
             // mySqlDataAdapter1
             // 
@@ -284,24 +329,6 @@
             this.mySqlDataAdapter1.InsertCommand = null;
             this.mySqlDataAdapter1.SelectCommand = null;
             this.mySqlDataAdapter1.UpdateCommand = null;
-            // 
-            // labelPrice
-            // 
-            this.labelPrice.AutoSize = true;
-            this.labelPrice.Location = new System.Drawing.Point(11, 278);
-            this.labelPrice.Name = "labelPrice";
-            this.labelPrice.Size = new System.Drawing.Size(39, 13);
-            this.labelPrice.TabIndex = 7;
-            this.labelPrice.Text = "Цена: ";
-            // 
-            // labelAmount
-            // 
-            this.labelAmount.AutoSize = true;
-            this.labelAmount.Location = new System.Drawing.Point(12, 295);
-            this.labelAmount.Name = "labelAmount";
-            this.labelAmount.Size = new System.Drawing.Size(47, 13);
-            this.labelAmount.TabIndex = 8;
-            this.labelAmount.Text = "Кол-во: ";
             // 
             // FormApplication
             // 
@@ -345,7 +372,7 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.RichTextBox richTextBoxDesc;
         private System.Windows.Forms.Button buttonBack;
-        private System.Windows.Forms.Button buttonSkio;
+        private System.Windows.Forms.Button buttonSkip;
         private System.Windows.Forms.Button buttonOk;
         private System.Windows.Forms.Panel panel6;
         private System.Windows.Forms.DataGridView dataGridViewAvito;
@@ -354,7 +381,7 @@
         private System.Windows.Forms.Panel panel8;
         private System.Windows.Forms.DataGridView dataGridViewSelect;
         private System.Windows.Forms.Panel panel7;
-        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label labelSelectedApplications;
         private System.Windows.Forms.Panel panel9;
         private System.Windows.Forms.TextBox textBoxSearch;
         private MySql.Data.MySqlClient.MySqlDataAdapter mySqlDataAdapter1;

@@ -262,7 +262,7 @@ namespace Selen {
                            .Split('|')[0]
                            .Replace("\n", "|")
                            .Replace("|", " "),
-                           "<[^>]+>", string.Empty).Trim();
+                           "<[^>]+>", " ").Trim();
 
         public List<string> DescriptionList(int b = 3000, string[] dop = null, bool removeSpec = false) {
             string d = description;
@@ -543,53 +543,9 @@ namespace Selen {
 
         }
     }
-    //применимость
-    public static class Applications {
-        static List<ApplicationItem> list { get; set; }
-        public static async Task GetApplicationListAsync() {
-            if (list == null) {
-                list = new List<ApplicationItem>();
-                for (int i = 0; ; i++) {
-                    var s = await Class365API.RequestAsync("get", "attributesforgoodsvalues", new Dictionary<string, string> {
-                        { "attribute_id" , "2543011"},
-                        {"limit", "10"},
-                        {"page", i.ToString()},
-                    });
-                    //if (s.Contains("name"))
-                        list.AddRange(JsonConvert.DeserializeObject<List<ApplicationItem>>(s));
-                    //else
-                        break;
-                }
-            }
-        }
-        public static async Task UpdateApplicationListAsync(List<string> newList) {
-            try {
-                if (list == null)
-                    await GetApplicationListAsync();
-                var updated = false;
-                foreach (var newApp in newList) {
-                    if (!list.Any(a => a.name == newApp)) {
-                        var s = await Class365API.RequestAsync("post", "attributesforgoodsvalues", new Dictionary<string, string> {
-                            { "attribute_id", "2543011"},
-                            { "name", newApp }
-                        });
-                        await Task.Delay(300);
-                        if (s.Contains("updated")) {
-                            Log.Add("UpdateApplicationListAsync: " + newApp + " - применимость добавлена успешно");
-                            updated = true;
-                        }
-                    }
-                }
-                if (updated)
-                    await GetApplicationListAsync();
-            } catch (Exception x) {
-                Log.Add(x.Message);
-            }
-        }
-    }
     public class ApplicationItem {
         public string id { get; set; }
-        public string name { get; set; }
-        //        public string attribute_id { get; set; }
+        public string name { get; set; }        
+        public string attribute_id { get; set; }
     }
 }
