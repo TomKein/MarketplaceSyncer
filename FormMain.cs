@@ -1484,7 +1484,15 @@ namespace Selen {
                 }
             }
         }
-
+        //заполнить применимость
+        private void button_application_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            FormApplication form = new FormApplication(_bus);
+            form.Owner = this;
+            form.ShowDialog();
+            form.Dispose();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -1609,6 +1617,5 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
-
     }
 }

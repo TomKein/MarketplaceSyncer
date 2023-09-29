@@ -54,6 +54,7 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.button_ozon = new System.Windows.Forms.Button();
             this.label_YandexMarket = new System.Windows.Forms.Label();
             this.button_YandexMarket = new System.Windows.Forms.Button();
             this.button_Youla = new System.Windows.Forms.Button();
@@ -65,7 +66,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_ozon = new System.Windows.Forms.Button();
+            this.button_application = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -194,9 +195,9 @@ namespace Selen {
             // 
             // button_TestPartners
             // 
-            this.button_TestPartners.Location = new System.Drawing.Point(434, 8);
+            this.button_TestPartners.Location = new System.Drawing.Point(513, 8);
             this.button_TestPartners.Name = "button_TestPartners";
-            this.button_TestPartners.Size = new System.Drawing.Size(152, 23);
+            this.button_TestPartners.Size = new System.Drawing.Size(73, 23);
             this.button_TestPartners.TabIndex = 61;
             this.button_TestPartners.Text = "Задвоения контрагентов";
             this.button_TestPartners.UseVisualStyleBackColor = true;
@@ -285,9 +286,9 @@ namespace Selen {
             // 
             // button_PricesCorrection
             // 
-            this.button_PricesCorrection.Location = new System.Drawing.Point(298, 8);
+            this.button_PricesCorrection.Location = new System.Drawing.Point(416, 8);
             this.button_PricesCorrection.Name = "button_PricesCorrection";
-            this.button_PricesCorrection.Size = new System.Drawing.Size(131, 23);
+            this.button_PricesCorrection.Size = new System.Drawing.Size(92, 23);
             this.button_PricesCorrection.TabIndex = 115;
             this.button_PricesCorrection.Text = "Корекция цен закупки";
             this.button_PricesCorrection.UseVisualStyleBackColor = true;
@@ -323,7 +324,7 @@ namespace Selen {
             // 
             // button_SaveCookie
             // 
-            this.button_SaveCookie.Location = new System.Drawing.Point(591, 8);
+            this.button_SaveCookie.Location = new System.Drawing.Point(590, 8);
             this.button_SaveCookie.Name = "button_SaveCookie";
             this.button_SaveCookie.Size = new System.Drawing.Size(76, 23);
             this.button_SaveCookie.TabIndex = 123;
@@ -375,6 +376,16 @@ namespace Selen {
             this.panel_Buttons.Size = new System.Drawing.Size(139, 427);
             this.panel_Buttons.TabIndex = 146;
             // 
+            // button_ozon
+            // 
+            this.button_ozon.Location = new System.Drawing.Point(5, 344);
+            this.button_ozon.Name = "button_ozon";
+            this.button_ozon.Size = new System.Drawing.Size(113, 23);
+            this.button_ozon.TabIndex = 151;
+            this.button_ozon.Text = "OZON";
+            this.button_ozon.UseVisualStyleBackColor = true;
+            this.button_ozon.Click += new System.EventHandler(this.button_ozon_ClickAsync);
+            // 
             // label_YandexMarket
             // 
             this.label_YandexMarket.AutoSize = true;
@@ -418,6 +429,7 @@ namespace Selen {
             // panel_bottom
             // 
             this.panel_bottom.AutoSize = true;
+            this.panel_bottom.Controls.Add(this.button_application);
             this.panel_bottom.Controls.Add(this.button_WeightsDimensions);
             this.panel_bottom.Controls.Add(this.button_Test);
             this.panel_bottom.Controls.Add(this.button_PriceLevelsReport);
@@ -434,7 +446,7 @@ namespace Selen {
             // 
             // button_WeightsDimensions
             // 
-            this.button_WeightsDimensions.Location = new System.Drawing.Point(215, 7);
+            this.button_WeightsDimensions.Location = new System.Drawing.Point(213, 7);
             this.button_WeightsDimensions.Name = "button_WeightsDimensions";
             this.button_WeightsDimensions.Size = new System.Drawing.Size(77, 24);
             this.button_WeightsDimensions.TabIndex = 124;
@@ -497,15 +509,15 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 427);
             this.panel4.TabIndex = 149;
             // 
-            // button_ozon
+            // button_application
             // 
-            this.button_ozon.Location = new System.Drawing.Point(5, 344);
-            this.button_ozon.Name = "button_ozon";
-            this.button_ozon.Size = new System.Drawing.Size(113, 23);
-            this.button_ozon.TabIndex = 151;
-            this.button_ozon.Text = "OZON";
-            this.button_ozon.UseVisualStyleBackColor = true;
-            this.button_ozon.Click += new System.EventHandler(this.button_ozon_ClickAsync);
+            this.button_application.Location = new System.Drawing.Point(294, 7);
+            this.button_application.Name = "button_application";
+            this.button_application.Size = new System.Drawing.Size(92, 24);
+            this.button_application.TabIndex = 125;
+            this.button_application.Text = "Применимость";
+            this.button_application.UseVisualStyleBackColor = true;
+            this.button_application.Click += new System.EventHandler(this.button_application_Click);
             // 
             // FormMain
             // 
@@ -575,6 +587,7 @@ namespace Selen {
         private System.Windows.Forms.Button button_YandexMarket;
         private System.Windows.Forms.Button button_WeightsDimensions;
         private System.Windows.Forms.Button button_ozon;
+        private System.Windows.Forms.Button button_application;
     }
 }
 

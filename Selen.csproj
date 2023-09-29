@@ -270,6 +270,12 @@
     <Compile Include="FormWeightsDimentions.Designer.cs">
       <DependentUpon>FormWeightsDimentions.cs</DependentUpon>
     </Compile>
+    <Compile Include="FormApplication.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormApplication.Designer.cs">
+      <DependentUpon>FormApplication.cs</DependentUpon>
+    </Compile>
     <Compile Include="Sites\AvitoXml.cs" />
     <Compile Include="Sites\GdeRu.cs" />
     <Compile Include="Sites\izap24.cs" />
@@ -323,6 +329,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="FormWeightsDimentions.resx">
       <DependentUpon>FormWeightsDimentions.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormApplication.resx">
+      <DependentUpon>FormApplication.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
