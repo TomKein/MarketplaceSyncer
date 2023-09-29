@@ -19,9 +19,11 @@ namespace Selen.Sites {
         XDocument autoCatalogXML;
         readonly string autoCatalogFile = @"..\autocatalog.xml";
         readonly string autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
+        readonly string applicationAttribureId = "2543011";
 
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
+            await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
                 //количество объявлений в тарифе
                 var offersLimit = DB._db.GetParamInt("avito.offersLimit");
@@ -40,8 +42,6 @@ namespace Selen.Sites {
                 RootObject.UpdateDefaultVolume();
                 //обновляю вес товара по умолчанию
                 RootObject.UpdateDefaultWeight();
-                //обновляю автокаталог
-                GetAutoCatalogXml();
                 //создаю новый xml
                 var xml = new XDocument();
                 //xml для выгрузки остатков
@@ -122,9 +122,15 @@ namespace Selen.Sites {
                         // если запчасть б/у и нет номера или бренда,
                         // то нужно добавить Для чего подходит (требование авито)
                         if (!b.IsNew()/* && (string.IsNullOrEmpty(b.part) || string.IsNullOrEmpty(brand))*/) {
-                            var make = GetMake(b);
-                            if (make != null)
-                                ad.Add(new XElement("Make", GetMake(b)));
+                            var app = GetApplication(b);
+                            if (app != null) {
+                                var list = app.Split(',');
+                                ad.Add(new XElement("Make", list[0]));
+                                if (list.Length > 2 ) { 
+                                    ad.Add(new XElement("Model", list[1].Trim())); 
+                                    ad.Add(new XElement("Generation", list[2].Trim())); 
+                                }
+                            }
                         }
                         //добавляю объявление в дерево
                         root.Add(ad);
@@ -154,7 +160,7 @@ namespace Selen.Sites {
             }
         }
 
-        public void GetAutoCatalogXml() {
+        public Task GetAutoCatalogXmlAsync() => Task.Factory.StartNew(() => {
             //загружаю xml с авто: если файлу больше 24 часов - пытаюсь запросить новый, иначе загружаю с диска
             var period = DB._db.GetParamInt("avito.autoCatalogPeriod");
             if (!File.Exists(autoCatalogFile) || File.GetLastWriteTime(autoCatalogFile).AddHours(period) < DateTime.Now) {
@@ -173,9 +179,13 @@ namespace Selen.Sites {
             }
             autoCatalogXML = XDocument.Load(autoCatalogFile);
             Log.Add(_l + "автокаталог загружен!");
-        }
-        private string GetMake(RootObject b) {
-            //склеиваю название и описание
+        });
+        private string GetApplication(RootObject b) {
+            //проверяю заполнение атрибута
+            if (b.attributes!=null && b.attributes.Any(a=>a.Attribute.id== applicationAttribureId)) {
+                return b.attributes.Find(f => f.Attribute.id == applicationAttribureId).Value.name.ToString();
+            }
+            //если атрибут не заполнен, пытаюсь определить из названия и описания
             var desc = (b.name + " " + b.HtmlDecodedDescription())
                        .ToLowerInvariant()
                        .Replace("vw ", "volkswagen ")
@@ -204,8 +214,9 @@ namespace Selen.Sites {
                 Log.Add("GetMake: " + b.name + " пропущен - не удалось определить автопроизводителя");
             return null;
         }
-        //
-        public Task GetGenerationsAsync() => Task.Factory.StartNew(() => {
+        public async Task UpdateApplicationsAsync(List<RootObject> bus) {
+            //обновляю автокаталог
+            await GetAutoCatalogXmlAsync();
             var list = new List<string>();
             foreach (var make in autoCatalogXML.Element("Catalog").Elements("Make"))
                 foreach (var model in make.Elements("Model"))
@@ -219,7 +230,8 @@ namespace Selen.Sites {
                         list.Add(name.ToString());
                     }
             File.WriteAllText(@"..\avito_generations.txt", list.Aggregate((a, b) => a + "\n" + b));
-        });
+            //await Applications.UpdateApplicationListAsync(list);
+        }
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
             var name = b.name.ToLowerInvariant()

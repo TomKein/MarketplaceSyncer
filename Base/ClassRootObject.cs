@@ -1,4 +1,5 @@
-﻿using Selen.Base;
+﻿using Newtonsoft.Json;
+using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
@@ -510,7 +511,7 @@ namespace Selen {
                     return arr;
                 } catch (Exception x) {
                     Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер в полях: \nдлина " +
-                        this.length + " \nширина " + this.width + " \nвысота " + this.height+"\n"+ x.Message);
+                        this.length + " \nширина " + this.width + " \nвысота " + this.height + "\n" + x.Message);
                 }
             }
             //если характеристики не указаны, либо указаны неверно,
@@ -541,5 +542,54 @@ namespace Selen {
             return null;
 
         }
+    }
+    //применимость
+    public static class Applications {
+        static List<ApplicationItem> list { get; set; }
+        public static async Task GetApplicationListAsync() {
+            if (list == null) {
+                list = new List<ApplicationItem>();
+                for (int i = 0; ; i++) {
+                    var s = await Class365API.RequestAsync("get", "attributesforgoodsvalues", new Dictionary<string, string> {
+                        { "attribute_id" , "2543011"},
+                        {"limit", "10"},
+                        {"page", i.ToString()},
+                    });
+                    //if (s.Contains("name"))
+                        list.AddRange(JsonConvert.DeserializeObject<List<ApplicationItem>>(s));
+                    //else
+                        break;
+                }
+            }
+        }
+        public static async Task UpdateApplicationListAsync(List<string> newList) {
+            try {
+                if (list == null)
+                    await GetApplicationListAsync();
+                var updated = false;
+                foreach (var newApp in newList) {
+                    if (!list.Any(a => a.name == newApp)) {
+                        var s = await Class365API.RequestAsync("post", "attributesforgoodsvalues", new Dictionary<string, string> {
+                            { "attribute_id", "2543011"},
+                            { "name", newApp }
+                        });
+                        await Task.Delay(300);
+                        if (s.Contains("updated")) {
+                            Log.Add("UpdateApplicationListAsync: " + newApp + " - применимость добавлена успешно");
+                            updated = true;
+                        }
+                    }
+                }
+                if (updated)
+                    await GetApplicationListAsync();
+            } catch (Exception x) {
+                Log.Add(x.Message);
+            }
+        }
+    }
+    public class ApplicationItem {
+        public string id { get; set; }
+        public string name { get; set; }
+        //        public string attribute_id { get; set; }
     }
 }
