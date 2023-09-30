@@ -53,6 +53,7 @@ namespace Selen {
                 richTextBoxDesc.Text = _bus[_busIndex].description;
                 labelPrice.Text = "Цена: " + _bus[_busIndex].price;
                 labelAmount.Text = "Кол-во: " + _bus[_busIndex].amount;
+                labelId.Text = "Index: " + _busIndex + "/" + _bus.Count;
                 var byteArray = _wc.DownloadData(_bus[_busIndex].images[0].url);
                 var ms = new MemoryStream(byteArray);
                 pictureBoxImage.Image = Bitmap.FromStream(ms);
@@ -61,11 +62,15 @@ namespace Selen {
             }
         }
         //получить индекс карточки для обработки
-        private void GoNextGood() {
-            for (int b = _busIndex + 1; b < _bus.Count; b++) {
+        private void GoNextGood(bool back = false) {
+            var adding = back ? -1 : 1;
+            for (int b = _busIndex + adding; b < _bus.Count && b>-1; b += adding) {
                 if (_bus[b].attributes != null &&
                     _bus[b].attributes.Any(c => c.Attribute.id == applicationAttribureId) ||
-                    _bus[b].images.Count == 0)
+                    _bus[b].images.Count == 0 ||
+                    _bus[b].GroupName() == "Автохимия" ||
+                    _bus[b].GroupName() == "Масла" ||
+                    _bus[b].GroupName().Contains("Инструменты"))
                     continue;
                 _busIndex = b;
                 return;
@@ -112,7 +117,8 @@ namespace Selen {
                                                                    .ToLowerInvariant()
                                                                    .Split(' ')
                                                                    .Where(w => w.Length > 1)
-                                                                   .Select(s => s.Trim(new char[] { '/', ',', '.', ':', '-', '!' }));
+                                                                   .Select(s => s.Trim(new char[] { '/', ',', '.', ':', '-', '!',
+                                                                                                    '(', ')', '\\', '[', ']' }));
             for (int i = 10; i > 0; i--) {
                 var genSearch = _generations.Where(gen => textWords.Count(tw => gen.ToLowerInvariant().Contains(tw)) >= i);
                 if (genSearch.Count() > 0) {
@@ -168,10 +174,10 @@ namespace Selen {
                 _bus[_busIndex].attributes.Add(
                 new Attributes() {
                     Attribute = new Attribute() { id = applicationAttribureId },
-                    Value = new Value() { value = applicationValue }
+                    Value = new Value() { name = applicationValue }
                 });
                 Log.Add(_l + _bus[_busIndex].name + " - добавлена характеристика применимость - " + applicationValue);
-                _bus[_busIndex].updated = DateTime.Now.ToString();
+                //_bus[_busIndex].updated = DateTime.Now.ToString();
             }
         }
         private void dataGridViewSelect_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e) {
@@ -189,18 +195,6 @@ namespace Selen {
         private void dataGridViewAvito_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e) {
             _dtSelected.Rows.Add(dataGridViewAvito.Rows[e.RowIndex].Cells[0].Value);
         }
-        //сохранить значения и перейти к следующей карточке
-        async void buttonOk_ClickAsync(object sender, EventArgs e) {
-            await ApplyNewApplicationsAsync();
-            GoNextGood();
-            await FillGoodInfo();
-            await GridSelectedFillAsync();
-        }
-        async void buttonSkip_Click(object sender, EventArgs e) {
-            GoNextGood();
-            await FillGoodInfo();
-            await GridSelectedFillAsync();
-        }
         async void richTextBoxDesc_TextChanged(object sender, EventArgs e) {
             if (String.IsNullOrEmpty(textBoxName.Text) || String.IsNullOrEmpty(richTextBoxDesc.Text))
                 return;
@@ -216,7 +210,27 @@ namespace Selen {
             if (s.Contains("updated"))
                 Log.Add("business.ru: " + _bus[_busIndex].name + " - описание карточки обновлено - " + _bus[_busIndex].description);
             else
-                Log.Add("business.ru: ошибка сохранения изменений " + _bus[_busIndex].name + " - " + s );
+                Log.Add("business.ru: ошибка сохранения изменений " + _bus[_busIndex].name + " - " + s);
+        }
+
+        //сохранить значения и перейти к следующей карточке
+        async void buttonOk_ClickAsync(object sender, EventArgs e) {
+            await ApplyNewApplicationsAsync();
+            GoNextGood();
+            await FillGoodInfo();
+            await GridSelectedFillAsync();
+        }
+        //пропустить
+        async void buttonSkip_Click(object sender, EventArgs e) {
+            GoNextGood();
+            await FillGoodInfo();
+            await GridSelectedFillAsync();
+        }
+        //вернуться к предыдущей карточке
+        async void buttonBack_Click(object sender, EventArgs e) {
+            GoNextGood(back: true);
+            await FillGoodInfo();
+            await GridSelectedFillAsync();
         }
     }
 }
