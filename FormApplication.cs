@@ -10,13 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using AngleSharp.Html;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using DocumentFormat.OpenXml.Presentation;
-using Google.Protobuf.WellKnownTypes;
 using Newtonsoft.Json;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.Information;
 using Selen.Tools;
 
 namespace Selen {
@@ -24,9 +18,10 @@ namespace Selen {
 
         List<RootObject> _bus;
         List<string> _generations;
+        List<string> _attributes;
         WebClient _wc;
         string _genFile = @"..\avito_generations.txt";
-        readonly string applicationAttribureId = "2543011";
+        readonly string _applicationAttribureId = "2543011";
         string _l = "FormApplication: ";
         int _busIndex = -1;
         DataTable _dtSelected = new DataTable();
@@ -34,8 +29,12 @@ namespace Selen {
         public FormApplication(List<RootObject> bus) {
             InitializeComponent();
             _bus = bus;
+            _busIndex = _bus.Count();
             var t = File.ReadAllLines(_genFile);
             _generations = new List<string>(t);
+            _attributes = _bus.Where(w=>w.attributes!=null && w.attributes.Any(a=>a.Attribute.id == _applicationAttribureId))
+                              .Select(s=>s.attributes.First(f=>f.Attribute.id== _applicationAttribureId).Value.name)
+                              .Distinct().ToList();
             _wc = new WebClient();
         }
         //загрузка формы
@@ -66,7 +65,7 @@ namespace Selen {
             var adding = back ? -1 : 1;
             for (int b = _busIndex + adding; b < _bus.Count && b>-1; b += adding) {
                 if (_bus[b].attributes != null &&
-                    _bus[b].attributes.Any(c => c.Attribute.id == applicationAttribureId) ||
+                    _bus[b].attributes.Any(c => c.Attribute.id == _applicationAttribureId) ||
                     _bus[b].images.Count == 0 ||
                     _bus[b].GroupName() == "Автохимия" ||
                     _bus[b].GroupName() == "Масла" ||
@@ -116,14 +115,28 @@ namespace Selen {
             var textWords = (_bus[_busIndex].name + " " + _bus[_busIndex].HtmlDecodedDescription())
                                                                    .ToLowerInvariant()
                                                                    .Split(' ')
-                                                                   .Where(w => w.Length > 1)
+                                                                   .Where(w => w.Length > 1)?
                                                                    .Select(s => s.Trim(new char[] { '/', ',', '.', ':', '-', '!',
                                                                                                     '(', ')', '\\', '[', ']' }));
             for (int i = 10; i > 0; i--) {
+                var genSearch = _attributes.Where(gen => textWords.Count(tw => gen.ToLowerInvariant().Contains(tw)) >= i);
+                if (genSearch.Any()) {
+                    foreach (var gen in genSearch) {
+                        if (!dt.AsEnumerable().Any(a => a.ItemArray.Contains(gen))) {
+                            dt.Rows.Add(gen);
+                        }
+                    }
+                    //break;
+                }
+            }
+            for (int i = 10; i > 0; i--) {
                 var genSearch = _generations.Where(gen => textWords.Count(tw => gen.ToLowerInvariant().Contains(tw)) >= i);
-                if (genSearch.Count() > 0) {
+                if (genSearch.Any()) {
                     foreach (var item in genSearch) {
-                        dt.Rows.Add(item);
+                        //if (!dt.Rows.Contains(item.ToString())) {
+                        if (!dt.AsEnumerable().Any(a=>a.ItemArray.Contains(item))) {
+                            dt.Rows.Add(item);
+                        }
                     }
                     break;
                 }
@@ -167,13 +180,13 @@ namespace Selen {
             //добавляю атрибут в карточку
             s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
                     {"good_id", _bus[_busIndex].id},
-                    {"attribute_id", applicationAttribureId},
+                    {"attribute_id", _applicationAttribureId},
                     {"value_id", attributesforgoodsvalues[0].id.ToString()}
                 });
             if (s != null && s.Contains("updated")) {
                 _bus[_busIndex].attributes.Add(
                 new Attributes() {
-                    Attribute = new Attribute() { id = applicationAttribureId },
+                    Attribute = new Attribute() { id = _applicationAttribureId },
                     Value = new Value() { name = applicationValue }
                 });
                 Log.Add(_l + _bus[_busIndex].name + " - добавлена характеристика применимость - " + applicationValue);
@@ -187,9 +200,10 @@ namespace Selen {
         private void dataGridViewSelect_RowsRemoved(object sender, DataGridViewRowsRemovedEventArgs e) {
             labelSelectedApplications.Text = "Выбранные применимости: " + dataGridViewSelect.RowCount;
         }
-        //удаляю строку по двойному клику
+        //сохраняю значение по двойному клику на нем
         private void dataGridViewSelect_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
-            _dtSelected.Rows[e.RowIndex].Delete();
+            //_dtSelected.Rows[e.RowIndex].Delete();
+            buttonOk_ClickAsync(sender, e);
         }
         //копирую строку по двойному клику
         private void dataGridViewAvito_CellContentDoubleClick(object sender, DataGridViewCellEventArgs e) {
@@ -215,20 +229,24 @@ namespace Selen {
 
         //сохранить значения и перейти к следующей карточке
         async void buttonOk_ClickAsync(object sender, EventArgs e) {
+            Application.UseWaitCursor = true;
+            buttonOk.Enabled = false;
             await ApplyNewApplicationsAsync();
             GoNextGood();
             await FillGoodInfo();
             await GridSelectedFillAsync();
+            buttonOk.Enabled = true;
+            Application.UseWaitCursor = false;
         }
         //пропустить
         async void buttonSkip_Click(object sender, EventArgs e) {
-            GoNextGood();
+            GoNextGood(back: true);
             await FillGoodInfo();
             await GridSelectedFillAsync();
         }
         //вернуться к предыдущей карточке
         async void buttonBack_Click(object sender, EventArgs e) {
-            GoNextGood(back: true);
+            GoNextGood();
             await FillGoodInfo();
             await GridSelectedFillAsync();
         }

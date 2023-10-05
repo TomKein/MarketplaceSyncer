@@ -23,9 +23,10 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.labelId = new System.Windows.Forms.Label();
             this.labelAmount = new System.Windows.Forms.Label();
             this.labelPrice = new System.Windows.Forms.Label();
             this.buttonBack = new System.Windows.Forms.Button();
@@ -49,7 +50,6 @@
             this.panel7 = new System.Windows.Forms.Panel();
             this.labelSelectedApplications = new System.Windows.Forms.Label();
             this.mySqlDataAdapter1 = new MySql.Data.MySqlClient.MySqlDataAdapter();
-            this.labelId = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
             this.panel4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxImage)).BeginInit();
@@ -92,6 +92,15 @@
             this.panel4.Padding = new System.Windows.Forms.Padding(8);
             this.panel4.Size = new System.Drawing.Size(466, 352);
             this.panel4.TabIndex = 1;
+            // 
+            // labelId
+            // 
+            this.labelId.AutoSize = true;
+            this.labelId.Location = new System.Drawing.Point(12, 312);
+            this.labelId.Name = "labelId";
+            this.labelId.Size = new System.Drawing.Size(36, 13);
+            this.labelId.TabIndex = 9;
+            this.labelId.Text = "Index:";
             // 
             // labelAmount
             // 
@@ -218,14 +227,14 @@
             this.dataGridViewAvito.AllowUserToResizeRows = false;
             this.dataGridViewAvito.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewAvito.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-            dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            dataGridViewCellStyle3.ForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.SystemColors.Window;
-            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.ControlText;
-            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-            this.dataGridViewAvito.DefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.dataGridViewAvito.DefaultCellStyle = dataGridViewCellStyle1;
             this.dataGridViewAvito.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridViewAvito.Location = new System.Drawing.Point(0, 0);
             this.dataGridViewAvito.MultiSelect = false;
@@ -332,15 +341,6 @@
             this.mySqlDataAdapter1.InsertCommand = null;
             this.mySqlDataAdapter1.SelectCommand = null;
             this.mySqlDataAdapter1.UpdateCommand = null;
-            // 
-            // labelId
-            // 
-            this.labelId.AutoSize = true;
-            this.labelId.Location = new System.Drawing.Point(12, 312);
-            this.labelId.Name = "labelId";
-            this.labelId.Size = new System.Drawing.Size(36, 13);
-            this.labelId.TabIndex = 9;
-            this.labelId.Text = "Index:";
             // 
             // FormApplication
             // 
