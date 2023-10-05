@@ -40,7 +40,7 @@ namespace Selen {
         //загрузка формы
         void FormApplication_Load(object sender, EventArgs e) {
             GridFillAsync();
-            GoNextGood();
+            GoNextGood(back: true);
             FillGoodInfo();
             GridSelectedFillAsync();
         }
@@ -71,9 +71,11 @@ namespace Selen {
                     _bus[b].GroupName() == "Масла" ||
                     _bus[b].GroupName().Contains("Инструменты"))
                     continue;
+                if (b == 0) { b = _bus.Count(); }
                 _busIndex = b;
                 return;
             }
+            _busIndex = 0;
         }
         //заполняю таблицу применимостей на форме
         async Task GridFillAsync() {
