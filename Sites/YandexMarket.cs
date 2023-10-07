@@ -152,10 +152,13 @@ namespace Selen.Sites {
                             var condition = new XElement("condition", new XAttribute("type", "preowned"));
                             //внешний вид - хороший, есть следы использования
                             condition.Add(new XElement("quality", "good"));
+
                             //описание состояния - ищу строку в описании
-                            var reason = (b.DescriptionList(3000).Where(w => !RootObject.IsNew(w))?.First())
-                                         ?? "Б/у оригинал, в хорошем состоянии!";
-                            condition.Add(new XElement("reason", reason));
+                            //var reason = (b.DescriptionList(3000).Where(w => !RootObject.IsNew(w))?.First())
+                            //             ?? "Б/у оригинал, в хорошем состоянии!";
+                            //condition.Add(new XElement("reason", reason));
+                            description = b.DescriptionList(390, _addDesc);
+                            condition.Add(new XElement("reason", description.Aggregate((a1, a2) => a1 + "\r\n" + a2)));
                             //сохраняю в оффер
                             offer.Add(condition);
                         }
@@ -212,7 +215,10 @@ namespace Selen.Sites {
             //вес от 50 кг или размер более 200 -- наценка 3000 р
             if (overPrice < 3000 && (weight >= 50 || length >= 200))
                 overPrice = 3000;
-            return b.price + overPrice;
+            //скидка на всё 3% и округление рублей до десятков в меньшую сторону
+            //таким образом, скидка будет 3% или чуть более
+            var newPrice = (int)((0.97*(b.price + overPrice)) / 10);
+            return 10 * newPrice; 
         }
     }
 }

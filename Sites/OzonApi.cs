@@ -546,7 +546,59 @@ namespace Selen.Sites {
                 a.typeId = 970744686;
                 a.typeName = "Катушка зажигания";
                 a.additionalAttributes = GetCountAttribute();
+            } else if ((n.StartsWith("фара") || n.StartsWith("фары")) &&                 //световые приборы
+                n.Contains("птф")|| n.Contains("противотуман")) {
+                a.categoryId = 85797378;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 367249975;
+                a.typeName = "Фары противотуманные (ПТФ)";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.StartsWith("фара") ||                                         
+                n.StartsWith("фары")) {
+                a.categoryId = 33697184;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970687095;
+                a.typeName = "Фара автомобильная";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.StartsWith("фонарь") || 
+                n.StartsWith("фонари")) {
+                a.categoryId = 85797441;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970687094;
+                a.typeName = "Задний фонарь автомобильный";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.StartsWith("насос гур") ||                                    //рулевое управление
+                n.StartsWith("гидроусилитель")||
+                n.StartsWith("насос гидроусилителя")) {
+                a.categoryId = 85832653;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98858;
+                a.typeName = "Насос ГУР";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.StartsWith("насос топливный") ||                             //топливная система
+                n.StartsWith("топливный насос")) {
+                a.categoryId = 85843113;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 98860;
+                a.typeName = "Насос топливный";
+                a.additionalAttributes = GetCountAttribute();
+            } else if (n.StartsWith("зеркало") &&                                    //зеркала
+                (n.Contains("прав")|| n.Contains("лев"))) {
+                a.categoryId = 99426212;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 970695250;
+                a.typeName = "Зеркало боковое";
+                a.additionalAttributes = GetCountAttribute();
+                a.additionalAttributes.Add(GetSideAttribute(n));
+            } else if (n.StartsWith("зеркало")) {
+                a.categoryId = 28305306;
+                GetBrend(ref a.brendId, ref a.brendName, bus);
+                a.typeId = 93362;
+                a.typeName = "Зеркало заднего вида";
+                a.additionalAttributes = GetCountAttribute();
+                a.additionalAttributes.Add(GetSideAttribute(n));
             }
+
 
             return a;
 
@@ -555,6 +607,19 @@ namespace Selen.Sites {
                 //await Task.Delay(3000);
 
         }
+        //Сторона установки (параметр)
+        object GetSideAttribute(string n) => new {
+                      complex_id = 0,
+                      id = 22329,
+                      values = new[] {
+                          new {
+                              value = n.Contains("лев") ? "Слева"
+                                                        : n.Contains("прав") ? "Справа"
+                                                                             : "Универсальное"
+                          }
+                      }
+            };
+
         //Количество штук (обязательный параметр)
         List<object> GetCountAttribute(int cnt = 1) =>
             new List<object> {

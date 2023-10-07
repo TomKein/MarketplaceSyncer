@@ -515,7 +515,8 @@ namespace Selen.Sites {
                 name.Contains("сплиттер") ||
                 name.StartsWith("твиттер")) {
                 d.Add("TypeId", "20");                              //Аудио- и видеотехника          
-            } else if (name.StartsWith("диск торм")) {
+            } else if (name.StartsWith("диск торм")||
+                name.StartsWith("трос") &&(name.Contains("тормоз")|| name.Contains("ручник"))) {
                 d.Add("TypeId", "11-628");                          //Тормозная система
             } else if (name.Contains("докатка") ||
                  name.StartsWith("колесо")) {

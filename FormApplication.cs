@@ -234,7 +234,7 @@ namespace Selen {
             Application.UseWaitCursor = true;
             buttonOk.Enabled = false;
             await ApplyNewApplicationsAsync();
-            GoNextGood();
+            GoNextGood(back: true);
             await FillGoodInfo();
             await GridSelectedFillAsync();
             buttonOk.Enabled = true;
