@@ -93,8 +93,8 @@ namespace Selen.Sites {
                     if (b == -1)
                         throw new Exception("карточка с id = " + item.offer_id + " не найдена!");
                     //если товар не привязан к карточке, либо неверный sku в ссылке
-                    if (!_bus[b].ozon.Contains("http") || 
-                        _bus[b].ozon.Split('/').Last().Length < 3 || 
+                    if (!_bus[b].ozon.Contains("http") ||
+                        _bus[b].ozon.Split('/').Last().Length < 3 ||
                         checkAll) {
                         //запросим все данные о товаре
                         var productInfo = await GetProductInfoAsync(_bus[b]);
@@ -147,12 +147,110 @@ namespace Selen.Sites {
                     productInfo = await GetProductInfoAsync(bus);
                 await UpdateProductStocks(bus, productInfo);
                 await UpdateProductPriceAsync(bus, productInfo);
-                //TODO добавить проверку описаний await UpdateProductDecription()
+                await UpdateProduct(bus, productInfo);
                 //TODO добавить проверку и обновление фотографий await UpdateProductImages()
             } catch (Exception x) {
                 Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
             }
         }
+        //обновление описаний товаров
+        private async Task UpdateProduct(RootObject good, ProductInfo productInfo) {
+            try {
+                if (good.name != productInfo.name) {
+                    if (_brends == null)
+                        _brends = await GetAttibuteValuesAsync();
+                    //проверяем группу товара
+                    var attributes = await GetAttributesAsync(good);
+                    if (attributes.typeId == 0)
+                        return;
+                    //формирую объект запроса
+                    var data = new {
+                        items = new[] {
+                            new{
+                                attributes = new List<object> {
+                                    new {                        //Бренд
+                                        complex_id = 0,
+                                        id = 85,
+                                        values = new[] {
+                                            new {
+                                                dictionary_value_id = attributes.brendId,
+                                                value = attributes.brendName
+                                            }
+                                        }
+                                    },
+                                    new {                        //Партномер (артикул производителя)
+                                        complex_id = 0,          //в нашем случае артикул
+                                        id = 7236,
+                                        values = new[] {
+                                            new {
+                                                value = good.part
+                                            }
+                                        }
+                                    },
+                                    new {                        //Тип товара
+                                        complex_id = 0,
+                                        id = 8229,
+                                        values = new[] {
+                                            new {
+                                                dictionary_value_id = attributes.typeId,
+                                                value = attributes.typeName
+                                            }
+                                        }
+                                    },
+                                    new {                        //Название модели (для объединения в одну карточку)
+                                        complex_id = 0,          //в нашем случае дублируем name карточки бизнес.ру
+                                        id = 9048,
+                                        values = new[] {
+                                            new {
+                                                value = good.name
+                                            }
+                                        }
+                                    },
+                                   new {                        //Аннотация Описание товара
+                                        complex_id = 0,
+                                        id = 4191,
+                                        values = new[] {
+                                            new {
+                                                value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
+                                            }
+                                        }
+                                    }
+                                },
+                                name = good.name,
+                                currency_code="RUB",
+                                offer_id=good.id,
+                                category_id=attributes.categoryId,
+                                price = GetNewPrice(good).ToString(),
+                                old_price = GetOldPrice(GetNewPrice(good)).ToString(),
+                                weight = (int)(good.GetWeight()*1000),         //Вес с упаковкой, г
+                                weight_unit = "g",
+                                depth = int.Parse(good.width)*10,                      //глубина, мм
+                                height = int.Parse(good.height)*10,                    //высота, мм
+                                width = int.Parse(good.length)*10,                    //высота, мм
+                                dimension_unit = "mm",
+                                primary_image = good.images.First().url,                //главное фото
+                                images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
+                                vat="0.0"
+
+                            }
+                        }
+                    };
+                    if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
+                        data.items[0].attributes.AddRange(attributes.additionalAttributes);
+                    var s = await PostRequestAsync(data, "/v2/product/import");
+                    var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
+                    if (res.task_id != default(int)) {
+                        Log.Add(_l + good.name + " - товар отправлен на озон!");
+                    } else {
+                        Log.Add(_l + good.name + " ошибка отправки товара на озон!");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add(_l + " ошибка обновления описаний - " + x.Message);
+            }
+
+        }
+
         //обновление остатков товара на озон
         private async Task UpdateProductStocks(RootObject bus, ProductInfo productInfo) {
             try {
@@ -339,15 +437,15 @@ namespace Selen.Sites {
                                             }
                                         }
                                     },
-                                   //new {                        //Аннотация Описание товара
-                                    //    complex_id = 0,
-                                    //    id = 4191,
-                                    //    values = new[] {
-                                    //        new {
-                                    //            value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
-                                    //        }
-                                    //    }
-                                    //}
+                                   new {                        //Аннотация Описание товара
+                                        complex_id = 0,
+                                        id = 4191,
+                                        values = new[] {
+                                            new {
+                                                value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
+                                            }
+                                        }
+                                    }
                                 },
                                 name = good.name,
                                 currency_code="RUB",
@@ -463,7 +561,7 @@ namespace Selen.Sites {
                 a.typeId = 970725296;
                 a.typeName = "Суппорты тормозные";
                 a.additionalAttributes = GetCountAttribute();
-            } else if (n.Contains("цилиндр") && 
+            } else if (n.Contains("цилиндр") &&
                 n.Contains("главный") &&
                 (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
                 a.categoryId = 85842992;
@@ -547,20 +645,20 @@ namespace Selen.Sites {
                 a.typeName = "Катушка зажигания";
                 a.additionalAttributes = GetCountAttribute();
             } else if ((n.StartsWith("фара") || n.StartsWith("фары")) &&                 //световые приборы
-                n.Contains("птф")|| n.Contains("противотуман")) {
+                n.Contains("птф") || n.Contains("противотуман")) {
                 a.categoryId = 85797378;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
                 a.typeId = 367249975;
                 a.typeName = "Фары противотуманные (ПТФ)";
                 a.additionalAttributes = GetCountAttribute();
-            } else if (n.StartsWith("фара") ||                                         
+            } else if (n.StartsWith("фара") ||
                 n.StartsWith("фары")) {
                 a.categoryId = 33697184;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
                 a.typeId = 970687095;
                 a.typeName = "Фара автомобильная";
                 a.additionalAttributes = GetCountAttribute();
-            } else if (n.StartsWith("фонарь") || 
+            } else if (n.StartsWith("фонарь") ||
                 n.StartsWith("фонари")) {
                 a.categoryId = 85797441;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -568,7 +666,7 @@ namespace Selen.Sites {
                 a.typeName = "Задний фонарь автомобильный";
                 a.additionalAttributes = GetCountAttribute();
             } else if (n.StartsWith("насос гур") ||                                    //рулевое управление
-                n.StartsWith("гидроусилитель")||
+                n.StartsWith("гидроусилитель") ||
                 n.StartsWith("насос гидроусилителя")) {
                 a.categoryId = 85832653;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
@@ -583,7 +681,7 @@ namespace Selen.Sites {
                 a.typeName = "Насос топливный";
                 a.additionalAttributes = GetCountAttribute();
             } else if (n.StartsWith("зеркало") &&                                    //зеркала
-                (n.Contains("прав")|| n.Contains("лев"))) {
+                (n.Contains("прав") || n.Contains("лев"))) {
                 a.categoryId = 99426212;
                 GetBrend(ref a.brendId, ref a.brendName, bus);
                 a.typeId = 970695250;
@@ -602,23 +700,23 @@ namespace Selen.Sites {
 
             return a;
 
-                //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
-                //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
-                //await Task.Delay(3000);
+            //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
+            //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
+            //await Task.Delay(3000);
 
         }
         //Сторона установки (параметр)
         object GetSideAttribute(string n) => new {
-                      complex_id = 0,
-                      id = 22329,
-                      values = new[] {
+            complex_id = 0,
+            id = 22329,
+            values = new[] {
                           new {
                               value = n.Contains("лев") ? "Слева"
                                                         : n.Contains("прав") ? "Справа"
                                                                              : "Универсальное"
                           }
                       }
-            };
+        };
 
         //Количество штук (обязательный параметр)
         List<object> GetCountAttribute(int cnt = 1) =>

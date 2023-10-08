@@ -402,7 +402,7 @@ namespace Selen.Sites {
             try {
                 await Task.Factory.StartNew(() => {
                     var n = _db.GetParamInt("gde.checkUrlCount");
-                    for (int i = 0; i < n;) {
+                    for (int i = 0; i < n; i++) {
                         var b = _rnd.Next(_bus.Count);
                         if (string.IsNullOrEmpty(_bus[b].gde)) continue;
                         _dr.Navigate(_bus[b].gde);
@@ -423,12 +423,10 @@ namespace Selen.Sites {
                             _bus[b].price >= _creditPriceMin &&
                             _bus[b].price <= _creditPriceMax &&
                             !desc.Contains(_creditDescription) ||
-
                             photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)) {
                             Log.Add(_l + _bus[b].name + " - обновляю объявление");
                             EditOffer(b);
                         }
-                        i++;
                     }
                 });
             } catch (Exception x) {
