@@ -156,94 +156,92 @@ namespace Selen.Sites {
         //обновление описаний товаров
         private async Task UpdateProduct(RootObject good, ProductInfo productInfo) {
             try {
-                if (good.name != productInfo.name) {
-                    if (_brends == null)
-                        _brends = await GetAttibuteValuesAsync();
-                    //проверяем группу товара
-                    var attributes = await GetAttributesAsync(good);
-                    if (attributes.typeId == 0)
-                        return;
-                    //формирую объект запроса
-                    var data = new {
-                        items = new[] {
-                            new{
-                                attributes = new List<object> {
-                                    new {                        //Бренд
-                                        complex_id = 0,
-                                        id = 85,
-                                        values = new[] {
-                                            new {
-                                                dictionary_value_id = attributes.brendId,
-                                                value = attributes.brendName
-                                            }
-                                        }
-                                    },
-                                    new {                        //Партномер (артикул производителя)
-                                        complex_id = 0,          //в нашем случае артикул
-                                        id = 7236,
-                                        values = new[] {
-                                            new {
-                                                value = good.part
-                                            }
-                                        }
-                                    },
-                                    new {                        //Тип товара
-                                        complex_id = 0,
-                                        id = 8229,
-                                        values = new[] {
-                                            new {
-                                                dictionary_value_id = attributes.typeId,
-                                                value = attributes.typeName
-                                            }
-                                        }
-                                    },
-                                    new {                        //Название модели (для объединения в одну карточку)
-                                        complex_id = 0,          //в нашем случае дублируем name карточки бизнес.ру
-                                        id = 9048,
-                                        values = new[] {
-                                            new {
-                                                value = good.name
-                                            }
-                                        }
-                                    },
-                                   new {                        //Аннотация Описание товара
-                                        complex_id = 0,
-                                        id = 4191,
-                                        values = new[] {
-                                            new {
-                                                value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
-                                            }
+                if (_brends == null)
+                    _brends = await GetAttibuteValuesAsync();
+                //проверяем группу товара
+                var attributes = await GetAttributesAsync(good);
+                if (attributes.typeId == 0)
+                    return;
+                //формирую объект запроса
+                var data = new {
+                    items = new[] {
+                        new{
+                            attributes = new List<object> {
+                                new {                        //Бренд
+                                    complex_id = 0,
+                                    id = 85,
+                                    values = new[] {
+                                        new {
+                                            dictionary_value_id = attributes.brendId,
+                                            value = attributes.brendName
                                         }
                                     }
                                 },
-                                name = good.name,
-                                currency_code="RUB",
-                                offer_id=good.id,
-                                category_id=attributes.categoryId,
-                                price = GetNewPrice(good).ToString(),
-                                old_price = GetOldPrice(GetNewPrice(good)).ToString(),
-                                weight = (int)(good.GetWeight()*1000),         //Вес с упаковкой, г
-                                weight_unit = "g",
-                                depth = int.Parse(good.width)*10,                      //глубина, мм
-                                height = int.Parse(good.height)*10,                    //высота, мм
-                                width = int.Parse(good.length)*10,                    //высота, мм
-                                dimension_unit = "mm",
-                                primary_image = good.images.First().url,                //главное фото
-                                images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
-                                vat="0.0"
+                                new {                        //Партномер (артикул производителя)
+                                    complex_id = 0,          //в нашем случае артикул
+                                    id = 7236,
+                                    values = new[] {
+                                        new {
+                                            value = good.part
+                                        }
+                                    }
+                                },
+                                new {                        //Тип товара
+                                    complex_id = 0,
+                                    id = 8229,
+                                    values = new[] {
+                                        new {
+                                            dictionary_value_id = attributes.typeId,
+                                            value = attributes.typeName
+                                        }
+                                    }
+                                },
+                                new {                        //Название модели (для объединения в одну карточку)
+                                    complex_id = 0,          //в нашем случае дублируем name карточки бизнес.ру
+                                    id = 9048,
+                                    values = new[] {
+                                        new {
+                                            value = good.name
+                                        }
+                                    }
+                                },
+                                new {                        //Аннотация Описание товара
+                                    complex_id = 0,
+                                    id = 4191,
+                                    values = new[] {
+                                        new {
+                                            value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
+                                        }
+                                    }
+                                }
+                            },
+                            name = good.name,
+                            currency_code="RUB",
+                            offer_id=good.id,
+                            category_id=attributes.categoryId,
+                            price = GetNewPrice(good).ToString(),
+                            old_price = GetOldPrice(GetNewPrice(good)).ToString(),
+                            weight = (int)(good.GetWeight()*1000),         //Вес с упаковкой, г
+                            weight_unit = "g",
+                            depth = int.Parse(good.width)*10,                      //глубина, мм
+                            height = int.Parse(good.height)*10,                    //высота, мм
+                            width = int.Parse(good.length)*10,                    //высота, мм
+                            dimension_unit = "mm",
+                            primary_image = good.images.First().url,                //главное фото
+                            images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
+                            vat="0.0"
 
-                            }
                         }
-                    };
-                    if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
-                        data.items[0].attributes.AddRange(attributes.additionalAttributes);
-                    var s = await PostRequestAsync(data, "/v2/product/import");
-                    var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
-                    if (res.task_id != default(int)) {
-                        Log.Add(_l + good.name + " - товар отправлен на озон!");
-                    } else {
-                        Log.Add(_l + good.name + " ошибка отправки товара на озон!");
                     }
+                };
+                if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
+                    data.items[0].attributes.AddRange(attributes.additionalAttributes);
+                var s = await PostRequestAsync(data, "/v2/product/import");
+                var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
+                if (res.task_id != default(int)) {
+                    Log.Add(_l + good.name + " - товар отправлен на озон!");
+                } else {
+                    Log.Add(_l + good.name + " ошибка отправки товара на озон!");
                 }
             } catch (Exception x) {
                 Log.Add(_l + " ошибка обновления описаний - " + x.Message);

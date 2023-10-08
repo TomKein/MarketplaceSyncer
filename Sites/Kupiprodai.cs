@@ -94,13 +94,13 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("//input[@name='pass']", _db.GetParamStr("kupiprodai.password"));
                     _dr.ButtonClick("//input[@value='Войти']");
                     //если в кабинет не попали - ждем ручной вход
-                    for (int i = 0; i < 30; i++) {
+                    for (int i = 0; i < 10; i++) {
                         if (_dr.GetElementsCount("//span[@id='nickname']") > 0)
                             return;
                         Log.Add(_l + "ожидаю вход");
                         Thread.Sleep(30000);
                     }
-                    throw new Exception("превышено ожидание авторизации");
+                    throw new Exception("timed out - превышено ожидание авторизации");
                 }
                 SaveCookies();
             });
