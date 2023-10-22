@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.161";
+        string _version = "1.162";
 
         DB _db = new DB();
 
@@ -884,7 +884,8 @@ namespace Selen {
                         }
                         var new_part = _bus[b].part.Replace(" ", "")
                             .Replace(".", "")
-                            .Replace("/", "")
+                            .Split('\\').First()
+                            .Split('/').First()
                             .Split(',').First()
                             .Replace("_", "")
                             .ToUpper();
@@ -1280,28 +1281,28 @@ namespace Selen {
             if (cnt == 0)
                 return;
             //список карточек с фото, но без остатка, с ценой и с поступлениями на карточку, отсортированный с самых старых
+            //для новых товаров оставляем фото в карточке в 30 раз дольше (30 дней -> 900)
             var buschk = _bus.Where(b => b.images.Count > 0 &&
                                         b.amount <= 0 &&
                                         b.price > 0 &&
                                         b.remains.Count > 0 &&
-                                        DateTime.Now.AddDays(-days) > DateTime.Parse(b.updated))
+                                        DateTime.Now.AddDays(-days * (b.IsNew()?30:1)) > DateTime.Parse(b.updated))
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
             var lastDate = DateTime.Now.AddYears(-2).ToString();
             for (int b = 0; cnt > 0 && b < buschk.Count; b++) {
                 try {
-                    //количество реализаций товара
+                    //количество реализаций товара за 2 года
                     var s = await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
                                     {"good_id", buschk[b].id},
                                     {"updated[from]", lastDate}
                                 });
-
-
                     var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s)
                                                   .OrderBy(o => DateTime.Parse(o.updated));
                     DateTime controlDate;
                     if (realizations.Any())
+                        //за каждую реализацию добавляю 10 дней.
                         controlDate = DateTime.Parse(realizations.Last().updated).AddDays(days + 10 * realizations.Count());
                     else
                         controlDate = DateTime.Parse(buschk[b].updated).AddDays(days);
@@ -1370,9 +1371,9 @@ namespace Selen {
             var dt = DateTime.Now;
             if (dt.DayOfWeek == DayOfWeek.Sunday)
                 return false;
-            if (dt.Hour >= 19 || dt.Hour < 9)
+            if (dt.Hour >= 17 || (dt.AddMinutes(30).Hour < 10)) //c 9-30 до 17
                 return false;
-            if (dt.DayOfWeek == DayOfWeek.Saturday && dt.Hour >= 15)
+            if (dt.DayOfWeek == DayOfWeek.Saturday && dt.Hour >= 15) // суб до 15
                 return false;
             return true;
         }

@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Selen.Tools;
 using Selen.Base;
 using System.IO;
+using System.Web.UI;
 
 namespace Selen.Sites {
     public class OzonApi {
@@ -22,7 +23,7 @@ namespace Selen.Sites {
         readonly float _oldPriceProcent = 10;
         ProductList _productList;                     //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon_productList.json";
-        readonly int _updateFreq = 24;                //частота обновления списка (часов)
+        readonly int _updateFreq = 480;               //частота обновления списка (часов)
         List<RootObject> _bus;                        //ссылка на товары
         DB _db = DB._db;                              //база данных
         static bool _isProductListCheckNeeds = true;
@@ -41,7 +42,7 @@ namespace Selen.Sites {
             await CheckProductListAsync();
             await UpdateProductsAsync();
             await AddProductsAsync();
-            if (RootObject.ScanTime.Day < DateTime.Now.Day)
+            if (RootObject.ScanTime.Month < DateTime.Now.Month)
                 await CheckProductLinksAsync(checkAll: true);
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
@@ -156,8 +157,11 @@ namespace Selen.Sites {
         //обновление описаний товаров
         private async Task UpdateProduct(RootObject good, ProductInfo productInfo) {
             try {
-                if (_brends == null)
-                    _brends = await GetAttibuteValuesAsync();
+                if (_brends == null) {
+                    _brends = await GetAttibuteValuesAsync(category_id: 92120918);
+                    _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
+                    _brends.AddRange(await GetAttibuteValuesAsync(category_id: 61852812));
+                }
                 //проверяем группу товара
                 var attributes = await GetAttributesAsync(good);
                 if (attributes.typeId == 0)
@@ -236,6 +240,7 @@ namespace Selen.Sites {
                 };
                 if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
                     data.items[0].attributes.AddRange(attributes.additionalAttributes);
+
                 var s = await PostRequestAsync(data, "/v2/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                 if (res.task_id != default(int)) {
@@ -248,7 +253,6 @@ namespace Selen.Sites {
             }
 
         }
-
         //обновление остатков товара на озон
         private async Task UpdateProductStocks(RootObject bus, ProductInfo productInfo) {
             try {
@@ -370,8 +374,11 @@ namespace Selen.Sites {
                 return;
             if (_isProductListCheckNeeds)
                 await CheckProductListAsync();
-            if (_brends == null)
-                _brends = await GetAttibuteValuesAsync();
+            if (_brends == null) {
+                _brends = await GetAttibuteValuesAsync(category_id: 92120918);
+                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
+                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 61852812));
+            }
             //список карточек которые еще не добавлены на озон
             var goods = _bus.Where(w => w.amount > 0
                                      && w.price > 0
@@ -464,6 +471,7 @@ namespace Selen.Sites {
                             }
                         }
                     };
+
                     if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
                         data.items[0].attributes.AddRange(attributes.additionalAttributes);
                     //var testJson = JsonConvert.SerializeObject(data);
@@ -731,7 +739,7 @@ namespace Selen.Sites {
             };
         //бренд
         void GetBrend(ref int id, ref string name, RootObject bus) {
-            var m = bus.GetManufacture().ToLowerInvariant() ?? "";
+            var m = bus.GetManufacture(ozon:true).ToLowerInvariant() ?? "";
             if (m == "vag") {
                 id = 115840909;
                 name = "VAG (VW/Audi/Skoda/Seat)";
@@ -845,7 +853,22 @@ namespace Selen.Sites {
             File.WriteAllText(@"..\ozon_categories.json", s);
             Log.Add(_l + "GetCategoriesAsync - получено категорий " + res.Count);
         }
-
+        //запрос атрибутов товара (пока не используется, на будущее)
+        private async Task<ProductsInfoAttributes> GetProductAttributesAsync(ProductInfo productInfo) {
+            try {
+                var data = new {
+                    filer = new {
+                        product_id = new List<object> { new[] { productInfo.id } }
+                    },
+                    limit = 1000
+                };
+                var s = await PostRequestAsync(data, "/v3/products/info/attributes");
+                return JsonConvert.DeserializeObject<ProductsInfoAttributes>(s);
+            } catch (Exception x) {
+                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
+                throw;
+            }
+        }
     }
     public class Attributes {
         public int categoryId;
@@ -1018,15 +1041,7 @@ namespace Selen.Sites {
         public string weight_unit { get; set; }
         public int width { get; set; }
     }
-    public class Attribute {
-        public int complex_id { get; set; }
-        public int id { get; set; }
-        public Value[] values { get; set; }
-    }
-    public class Value {
-        public int dictionary_value_id { get; set; }
-        public string value { get; set; }
-    }
+
     /////////////////////////////////////////
     public class ProductList {
         public List<ProductListItem> items { get; set; }
@@ -1107,6 +1122,55 @@ namespace Selen.Sites {
         public string title { get; set; }
         public Category[] children { get; set; }
     }
+    ////////////////////////////////////////////////////////
+
+    public class ProductsInfoAttributes {
+        public ProductsInfoAttr[] result { get; set; }
+        public int total { get; set; }
+        public string last_id { get; set; }
+    }
+
+    public class ProductsInfoAttr {
+        public int id { get; set; }
+        public string barcode { get; set; }
+        public int category_id { get; set; }
+        public string name { get; set; }
+        public string offer_id { get; set; }
+        public int height { get; set; }
+        public int depth { get; set; }
+        public int width { get; set; }
+        public string dimension_unit { get; set; }
+        public int weight { get; set; }
+        public string weight_unit { get; set; }
+        public Image[] images { get; set; }
+        public string image_group_id { get; set; }
+        public object[] images360 { get; set; }
+        public object[] pdf_list { get; set; }
+        public Attribute[] attributes { get; set; }
+        public object[] complex_attributes { get; set; }
+        public string color_image { get; set; }
+        public string last_id { get; set; }
+        public int description_category_id { get; set; }
+    }
+
+    public class Image {
+        public string file_name { get; set; }
+        public bool _default { get; set; }
+        public int index { get; set; }
+    }
+
+    public class Attribute {
+        public int attribute_id { get; set; }
+        public int complex_id { get; set; }
+        public Value[] values { get; set; }
+    }
+
+    public class Value {
+        public int dictionary_value_id { get; set; }
+        public string value { get; set; }
+    }
+
+
 
 
 

@@ -409,9 +409,14 @@ namespace Selen {
         }
         //производители
         private static string[] manufactures;
-        public string GetManufacture() {
-            //использую характеристику в карточке
-            var manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
+        public string GetManufacture(bool ozon=false) {
+            //проверяю сперва характеристику для озона
+            Attributes manufacture = null;
+            if (ozon)
+                manufacture = attributes?.Find(f => f.Attribute.id == "2583395"); //Бренд для озон
+            //использую основную характеристику в карточке
+            if (manufacture == null )
+                manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
                 return manufacture.Value.name;
             }
