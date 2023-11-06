@@ -232,6 +232,14 @@ namespace Selen {
             } else
                 return defaultValidity;
         }
+        public string GetPackQuantity() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2597286"); //Количество в упаковке, шт
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.value;
+            } else
+                return "1";
+        }
 
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
@@ -409,13 +417,13 @@ namespace Selen {
         }
         //производители
         private static string[] manufactures;
-        public string GetManufacture(bool ozon=false) {
+        public string GetManufacture(bool ozon = false) {
             //проверяю сперва характеристику для озона
             Attributes manufacture = null;
             if (ozon)
                 manufacture = attributes?.Find(f => f.Attribute.id == "2583395"); //Бренд для озон
             //использую основную характеристику в карточке
-            if (manufacture == null )
+            if (manufacture == null)
                 manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
                 return manufacture.Value.name;
@@ -550,7 +558,359 @@ namespace Selen {
     }
     public class ApplicationItem {
         public string id { get; set; }
-        public string name { get; set; }        
+        public string name { get; set; }
         public string attribute_id { get; set; }
     }
+
+    //////////////////////////////////
+    
+    public class Realization {
+        public string id { get; set; }
+        public string number { get; set; }
+        public string date { get; set; }
+        //public Author_Employee author_employee { get; set; }
+        //public Responsible_Employee responsible_employee { get; set; }
+        //public Organization organization { get; set; }
+        //public Partner partner { get; set; }
+        public Status status { get; set; }
+        //public string contract_id { get; set; }
+        public Currency currency { get; set; }
+        public string currency_value { get; set; }
+        //public int nds_include { get; set; }
+        //public bool held { get; set; }
+        //public string comment { get; set; }
+        //public string customer_order_id { get; set; }
+        //public string delivery_order_id { get; set; }
+        //public string reservation_id { get; set; }
+        //public Shipper shipper { get; set; }
+        //public Consignee consignee { get; set; }
+        public string sum { get; set; }
+        public string updated { get; set; }
+        //public bool deleted { get; set; }
+        //public int[] departments_ids { get; set; }
+        public Good[] goods { get; set; }
+    }
+
+    public class Author_Employee {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string last_name { get; set; }
+        public string first_name { get; set; }
+        public string middle_name { get; set; }
+        //public string email { get; set; }
+        //public bool active { get; set; }
+        //public bool active_retail { get; set; }
+        //public int department_id { get; set; }
+        //public int role_id { get; set; }
+        //public string birthday { get; set; }
+        //public string phoneip { get; set; }
+        //public int sex { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+    }
+
+    public class Responsible_Employee {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string last_name { get; set; }
+        public string first_name { get; set; }
+        public string middle_name { get; set; }
+        //public string email { get; set; }
+        //public bool active { get; set; }
+        //public bool active_retail { get; set; }
+        //public int department_id { get; set; }
+        //public int role_id { get; set; }
+        //public string birthday { get; set; }
+        //public string phoneip { get; set; }
+        //public int sex { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+    }
+
+    public class Organization {
+        public string id { get; set; }
+        public string model { get; set; }
+        //public string organization_type_id { get; set; }
+        //public string legacy_type_id { get; set; }
+        //public string name { get; set; }
+        //public string full_name { get; set; }
+        //public string inn { get; set; }
+        //public object kpp { get; set; }
+        //public string ogrn { get; set; }
+        //public string okpo { get; set; }
+        //public object okved { get; set; }
+        //public object oktmo { get; set; }
+        //public string default_buypricetype_id { get; set; }
+        //public string default_salepricetype_id { get; set; }
+        //public int vat_accounting { get; set; }
+        //public bool archive { get; set; }
+        //public object suz_oms_id { get; set; }
+        //public object suz_oms_connection { get; set; }
+        //public object suz_client_token { get; set; }
+        //public object suz_client_token_timeout { get; set; }
+        //public string supervisor_first_name { get; set; }
+        //public string supervisor_second_name { get; set; }
+        //public string supervisor_last_name { get; set; }
+        //public string accountant_first_name { get; set; }
+        //public string accountant_second_name { get; set; }
+        //public string accountant_last_name { get; set; }
+        //public string cashier_first_name { get; set; }
+        //public string cashier_second_name { get; set; }
+        //public string cashier_last_name { get; set; }
+        //public string employees_status_id { get; set; }
+        //public string address_legal { get; set; }
+        //public string address_actual { get; set; }
+        //public object kbk { get; set; }
+        //public object edo_id { get; set; }
+        //public object address_legal_gar_guid { get; set; }
+        //public object address_actual_gar_guid { get; set; }
+        //public string updated { get; set; }
+    }
+
+    public class Partner {
+        public string id { get; set; }
+        public string model { get; set; }
+        //public string organization_type_id { get; set; }
+        public string legacy_type_id { get; set; }
+        public string name { get; set; }
+        //public string full_name { get; set; }
+        //public bool customer { get; set; }
+        //public bool supplier { get; set; }
+        //public bool competitor { get; set; }
+        //public bool partner { get; set; }
+        //public bool potential { get; set; }
+        //public object inn { get; set; }
+        //public object kpp { get; set; }
+        //public object ogrn { get; set; }
+        //public object okpo { get; set; }
+        //public object address_legal { get; set; }
+        //public object address_actual { get; set; }
+        //public object note { get; set; }
+        //public string status_id { get; set; }
+        //public string responsible_employee_id { get; set; }
+        //public object category_id { get; set; }
+        //public object kind_id { get; set; }
+        //public object region_id { get; set; }
+        //public object size_id { get; set; }
+        //public int code { get; set; }
+        //public bool shared { get; set; }
+        //public object address_legal_gar_guid { get; set; }
+        //public object address_actual_gar_guid { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+        //public int[] departments_ids { get; set; }
+    }
+
+    public class Status {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+        public int point_group_id { get; set; }
+        //public string color { get; set; }
+        //public bool _default { get; set; }
+        //public int sort { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+    }
+
+    public class Currency {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+        //public string short_name { get; set; }
+        //public string name_iso { get; set; }
+        //public string code_iso { get; set; }
+        //public string symbol_iso { get; set; }
+        //public string okv { get; set; }
+        //public bool _default { get; set; }
+        //public bool user { get; set; }
+        //public object user_value { get; set; }
+        //public string name1 { get; set; }
+        //public string name2 { get; set; }
+        //public string name3 { get; set; }
+    }
+
+    public class Shipper {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string organization_type_id { get; set; }
+        public string legacy_type_id { get; set; }
+        public string name { get; set; }
+        public string full_name { get; set; }
+        //public string inn { get; set; }
+        //public object kpp { get; set; }
+        //public string ogrn { get; set; }
+        //public string okpo { get; set; }
+        //public object okved { get; set; }
+        //public object oktmo { get; set; }
+        //public string default_buypricetype_id { get; set; }
+        //public string default_salepricetype_id { get; set; }
+        //public int vat_accounting { get; set; }
+        //public bool archive { get; set; }
+        //public object suz_oms_id { get; set; }
+        //public object suz_oms_connection { get; set; }
+        //public object suz_client_token { get; set; }
+        //public object suz_client_token_timeout { get; set; }
+        //public string supervisor_first_name { get; set; }
+        //public string supervisor_second_name { get; set; }
+        //public string supervisor_last_name { get; set; }
+        //public string accountant_first_name { get; set; }
+        //public string accountant_second_name { get; set; }
+        //public string accountant_last_name { get; set; }
+        //public string cashier_first_name { get; set; }
+        //public string cashier_second_name { get; set; }
+        //public string cashier_last_name { get; set; }
+        //public string employees_status_id { get; set; }
+        //public string address_legal { get; set; }
+        //public string address_actual { get; set; }
+        //public object kbk { get; set; }
+        //public object edo_id { get; set; }
+        //public object address_legal_gar_guid { get; set; }
+        //public object address_actual_gar_guid { get; set; }
+        //public string updated { get; set; }
+    }
+
+    public class Consignee {
+        public string id { get; set; }
+        public string model { get; set; }
+        //public object organization_type_id { get; set; }
+        public string legacy_type_id { get; set; }
+        public string name { get; set; }
+        public string full_name { get; set; }
+        //public bool customer { get; set; }
+        //public bool supplier { get; set; }
+        //public bool competitor { get; set; }
+        //public bool partner { get; set; }
+        //public bool potential { get; set; }
+        //public object inn { get; set; }
+        //public object kpp { get; set; }
+        //public object ogrn { get; set; }
+        //public object okpo { get; set; }
+        //public object address_legal { get; set; }
+        //public object address_actual { get; set; }
+        //public object note { get; set; }
+        //public string status_id { get; set; }
+        //public string responsible_employee_id { get; set; }
+        //public object category_id { get; set; }
+        //public object kind_id { get; set; }
+        //public object region_id { get; set; }
+        //public object size_id { get; set; }
+        //public int code { get; set; }
+        //public bool shared { get; set; }
+        //public object address_legal_gar_guid { get; set; }
+        //public object address_actual_gar_guid { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+        //public int[] departments_ids { get; set; }
+    }
+
+    public class Good {
+        public string id { get; set; }
+        public Good1 good { get; set; }
+        public string amount { get; set; }
+        public string price { get; set; }
+        public Measure measure { get; set; }
+        public Price_Type price_type { get; set; }
+        //public object discount_type { get; set; }
+        //public object discount_value { get; set; }
+        public string sum { get; set; }
+        public object modification_id { get; set; }
+        public Store store { get; set; }
+        public Nds nds { get; set; }
+        public string updated { get; set; }
+        public object[] marking_number { get; set; }
+        public object[] serial_number { get; set; }
+    }
+
+
+
+    public class Good1 {
+        public string id { get; set; }
+        //public string model { get; set; }
+        public string name { get; set; }
+        //public string full_name { get; set; }
+        //public int nds_id { get; set; }
+        //public string group_id { get; set; }
+        //public string part { get; set; }
+        //public string store_code { get; set; }
+        //public string type { get; set; }
+        //public bool archive { get; set; }
+        //public string description { get; set; }
+        //public string country_id { get; set; }
+        //public bool allow_serialnumbers { get; set; }
+        //public bool allow_serialnumbers_unique { get; set; }
+        //public string weight { get; set; }
+        //public string volume { get; set; }
+        //public string code { get; set; }
+        //public string store_box { get; set; }
+        //public string remains_min { get; set; }
+        //public string partner_id { get; set; }
+        //public string responsible_employee_id { get; set; }
+        //public string feature { get; set; }
+        //public string weighing_plu { get; set; }
+        //public string cost { get; set; }
+        //public string measure_id { get; set; }
+        //public string good_type_code { get; set; }
+        //public int payment_subject_sign { get; set; }
+        //public string marking_type { get; set; }
+        //public bool allow_marking { get; set; }
+        //public string taxation { get; set; }
+        //public bool require_marking_for_sale { get; set; }
+        //public string length { get; set; }
+        //public string width { get; set; }
+        //public string height { get; set; }
+        //public bool oversized { get; set; }
+        //public string pack { get; set; }
+        //public string hscode_id { get; set; }
+        //public string updated_remains_prices { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+        //public int[] departments_ids { get; set; }
+        //public string[] images { get; set; }
+    }
+
+    public class Measure {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+        //public string short_name { get; set; }
+        //public bool _default { get; set; }
+        //public string okei { get; set; }
+        //public bool archive { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+    }
+
+    public class Price_Type {
+        public string id { get; set; }
+        public string model { get; set; }
+        public string name { get; set; }
+        //public string responsible_employee_id { get; set; }
+        //public string organization_id { get; set; }
+        //public string currency_id { get; set; }
+        //public string owner_employee_id { get; set; }
+        //public bool archive { get; set; }
+        //public string updated { get; set; }
+        //public bool deleted { get; set; }
+        //public object departments_ids { get; set; }
+    }
+
+    //public class Store {
+    //    public string id { get; set; }
+    //    public string model { get; set; }
+    //    public string name { get; set; }
+    //    public string responsible_employee_id { get; set; }
+    //    public int debit_type { get; set; }
+    //    public bool deny_negative_balance { get; set; }
+    //    public string updated { get; set; }
+    //    public bool deleted { get; set; }
+    //}
+
+    public class Nds {
+        public int id { get; set; }
+        //public string model { get; set; }
+        public string name { get; set; }
+        public string value { get; set; }
+    }
+
 }

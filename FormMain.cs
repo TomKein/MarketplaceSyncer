@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.162";
+        string _version = "1.164";
 
         DB _db = new DB();
 
@@ -399,6 +399,7 @@ namespace Selen {
             await PhotoClearAsync();//очистка ненужных фото
             await ArchivateAsync();//архивирование старых карточек
             await CheckDescriptions();
+            await CheckRealisationsAsync(); //проверка реализаций, добавление расходов
         }
         //проверка ссылок в черновиках
         async Task CheckUrls() {
@@ -1494,15 +1495,53 @@ namespace Selen {
             form.Dispose();
             ChangeStatus(sender, ButtonStates.Active);
         }
+        //проверка реализаций, добавление расходов
+        async Task CheckRealisationsAsync() {
+            //запрашиваю реализации за последние 2 часа от последней синхронизации
+            var s = await Class365API.RequestAsync("get", "realizations", new Dictionary<string, string>{
+                        {"extended", "true"},
+                        {"with_goods", "true"},
+                        {"updated[from]", _scanTime.AddHours(-1).ToString()},
+                    });
+            var realizations = JsonConvert.DeserializeObject<List<Realization>>(s);
+            //проверяю статус
+            foreach (var realization in realizations) {
+                if (realization.status.id == "363" || realization.status.name == "ЯНДЕКС МАРКЕТ" ||
+                 realization.status.id == "365" || realization.status.name == "ОЗОН") {
+                    //если озон или маркет, проверяю цены
+                    foreach (var good in realization.goods) {
+                        //цена, которая должна быть в реализации
+                        var busPrice = _bus.First(f => f.id == good.good.id).price;
+                        var priceCorrected = (0.9 * busPrice).ToString("F0");
+                        //если цена в реализации отличается, корректируем
+                        if (good.price != priceCorrected) {
+                            s= await Class365API.RequestAsync("put", "realizationgoods", new Dictionary<string, string> {
+                                { "id", good.id },
+                                { "realization_id", realization.id },
+                                { "good_id", good.good.id },
+                                { "amount", good.amount },
+                                { "price", priceCorrected }
+                            });
+                            if (s.Contains("updated"))
+                                Log.Add("CheckRealisationsAsync: "+realization.number+" - " + good.good.name + 
+                                    " - цена в отгрузке скорректирована: " + busPrice + " -> " + priceCorrected);
+                        }
+                    }
+                }
+            }
+        }
+
         //метод для тестов
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
 
-                await _ozon.GetCategoriesAsync();
-                //await GetNewGoodsForOzon();
+                await CheckRealisationsAsync();
+
 
                 {
+                    //await _ozon.GetCategoriesAsync();
+                    //await GetNewGoodsForOzon();
 
                     //await ReplaceTextAsync("Фиат Пунто 1 1.2", "Фиат Пунто 176, 1.2, 1996г. 3-х дверка");
                     //_drom.CheckOffersAsync();
