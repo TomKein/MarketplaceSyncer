@@ -245,9 +245,63 @@ namespace Selen {
         //Атрибут Комплектация
         public string GetComplectation() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "?????"); 
+            var quantity = attributes?.Find(f => f.Attribute.id == "2543016"); 
             if (quantity != null && quantity.Value.value != "") {
                 return quantity.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Гарантия
+        public string GetGaranty() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2539132");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Альтернативные артикулы
+        public string GetAlternatives() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2543012");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Количество заводских упаковок
+        public string GetFabricBoxCount() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2543424");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Цвет товара
+        public string GetColor() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2543422");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.name;
+            } else
+                return null;
+        }
+        //Атрибут Вид техники
+        public string GetTechType() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2543335");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.name;
+            } else
+                return null;
+        }
+        //Атрибут Класс опасности товара
+        public string GetDangerClass() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2604819");
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.name;
             } else
                 return null;
         }

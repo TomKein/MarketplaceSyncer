@@ -164,7 +164,7 @@ namespace Selen.Sites {
                         }
                         //срок годности 
                         if (!b.IsGroupSolidParts())  //если группа масла, автохимия, аксессуары
-                            offer.Add(new XElement("period-of-validity-days", b.GetValidity()));
+                            offer.Add(new XElement("period-of-validity-days", b.GetValidity().Split(' ').First()));
                         //квант продажи
                         var quant = b.GetQuantOfSell();
                         if (!string.IsNullOrEmpty(quant)) {

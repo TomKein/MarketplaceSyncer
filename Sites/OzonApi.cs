@@ -10,6 +10,9 @@ using Selen.Tools;
 using Selen.Base;
 using System.IO;
 using System.Web.UI;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.Xml.Linq;
 
 namespace Selen.Sites {
     public class OzonApi {
@@ -29,6 +32,9 @@ namespace Selen.Sites {
         static bool _isProductListCheckNeeds = true;
         bool _hasNext = false;                        //для запросов
         List<AttributeValue> _brends;                 //список брендов озон
+        List<AttributeValue> _color;                  //список цветов озон
+        List<AttributeValue> _techType;               //список вид техники
+        List<AttributeValue> _dangerClass;            //список класс опасности
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
             _url = _db.GetParamStr("ozon.url");
@@ -39,6 +45,20 @@ namespace Selen.Sites {
         //главный метод
         public async Task SyncAsync() {
             _bus = FormMain._bus;
+            if (_brends == null) {
+                _brends = await GetAttibuteValuesAsync(category_id: 92120918);
+                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
+                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 61852812));
+            }
+            if (_color == null) {
+                _color = await GetAttibuteValuesAsync(attribute_id: 10096);
+            }
+            if (_techType == null) {
+                _techType = await GetAttibuteValuesAsync(attribute_id: 7206);
+            }
+            if (_dangerClass == null) {
+                _dangerClass = await GetAttibuteValuesAsync(attribute_id: 9782);
+            }
             await CheckProductListAsync();
             await UpdateProductsAsync();
             await AddProductsAsync();
@@ -272,11 +292,6 @@ namespace Selen.Sites {
         //обновление описаний товаров
         private async Task UpdateProduct(RootObject good, ProductInfo productInfo) {
             try {
-                if (_brends == null) {
-                    _brends = await GetAttibuteValuesAsync(category_id: 92120918);
-                    _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
-                    _brends.AddRange(await GetAttibuteValuesAsync(category_id: 61852812));
-                }
                 //проверяем группу товара
                 var attributes = await GetAttributesAsync(good);
                 if (attributes.typeId == 0)
@@ -350,11 +365,6 @@ namespace Selen.Sites {
                 return;
             if (_isProductListCheckNeeds)
                 await CheckProductListAsync();
-            if (_brends == null) {
-                _brends = await GetAttibuteValuesAsync(category_id: 92120918);
-                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
-                _brends.AddRange(await GetAttibuteValuesAsync(category_id: 61852812));
-            }
             //список карточек которые еще не добавлены на озон
             var goods = _bus.Where(w => w.amount > 0
                                      && w.price > 0
@@ -905,6 +915,11 @@ namespace Selen.Sites {
             a.additionalAttributes.AddAttribute(GetDescriptionAttribute(bus));
             a.additionalAttributes.AddAttribute(GetModelNameAttribute(bus));
             a.additionalAttributes.AddAttribute(GetComplectationAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetAlternativesAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetFabricBoxCountAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetColorAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetTechTypeAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetDangerClassAttribute(bus));
             return a;
 
             //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
@@ -914,10 +929,11 @@ namespace Selen.Sites {
         }
 
 
+        //Атрибут Применимость
+        //Атрибут Квант продажи, шт
+        //Атрибут Срок годности, дней
 
         //Атрибут ОЕМ-номер
-        //Атрибут Альтернативные артикулы
-        //Атрибут Вид техники
         //Атрибут Внешний диаметр, см
         //Атрибут Внутренний диаметр, см
         //Атрибут Высота, см
@@ -926,7 +942,6 @@ namespace Selen.Sites {
         //Атрибут Ключевые слова
         //Атрибут Код ТН ВЭД
         //Атрибут Количество в упаковке
-        //Атрибут Количество заводских упаковок
         //Атрибут Количество отверстий
         //Атрибут Материал
         //Атрибут Место установки
@@ -934,36 +949,90 @@ namespace Selen.Sites {
         //Атрибут Страна-изготовитель
         //Атрибут Тип двигателя
         //Атрибут Толщина, см
-        //Атрибут Цвет товара
+
+
+
         //Атрибут Класс опасности
+        Attribute GetDangerClassAttribute(RootObject good) {
+            var value = good.GetDangerClass();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 9782,
+                values = new Value[] {
+                    new Value{
+                        dictionary_value_id = _dangerClass.Find(f=>f.value.Contains(value)).id,
+                        value = value
+                    }
+                }
+            };
+        }
 
 
 
-
-
-        //Атрибут Срок годности, дней
-
-
-
-
-
-
-        //Атрибут Применимость
-
-
-
-
-
-        //Атрибут Квант продажи, шт
-
-
-
-
-
-
-
-
-
+        //Атрибут Вид техники
+        Attribute GetTechTypeAttribute(RootObject good) {
+            var value = good.GetTechType();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7206,
+                values = new Value[] {
+                    new Value{
+                        dictionary_value_id = _techType.Find(f=>f.value==value).id,
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Цвет товара
+        Attribute GetColorAttribute(RootObject good) {
+            var value = good.GetColor();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 10096,
+                values = new Value[] {
+                    new Value{
+                        dictionary_value_id = _color.Find(f=>f.value==value).id,
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Количество заводских упаковок
+        Attribute GetFabricBoxCountAttribute(RootObject good) {
+            var value = good.GetFabricBoxCount();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 11650,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Альтернативные артикулы
+        Attribute GetAlternativesAttribute(RootObject good) {
+            var value = good.GetAlternatives();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 11031,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
         //Атрибут Комплектация
         Attribute GetComplectationAttribute(RootObject good) {
             var value = good.GetComplectation();
