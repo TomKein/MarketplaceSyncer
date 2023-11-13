@@ -322,21 +322,20 @@ namespace Selen.Sites {
                         }
                     }
                 };
-                if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
-                    data.items[0].attributes.AddRange(attributes.additionalAttributes);
+                //переносим в объект запроса атрибуты из товара озон, которые уже есть
                 foreach (var item in productFullInfo[0].attributes) {
-                    if (item.id != 4180 &&
-                    item.id != 9024 &&
-                    item.id != 9048 &&
-                    item.id != 4191 &&
-                    item.id != 22387 &&
+                    //пропускаю некоторые атрибуты
+                    if (item.id != 4180 &&                                          //название
+                    item.id != 9024 &&                                              //Артикул
+                    item.id != 9048 &&                                              //Название модели (для объединения в одну карточку)
+                    item.id != 4191 &&                                              //Аннотация
+                    item.id != 22387 &&                                             //Группа товара
                     item.values.Length > 0) {
                         var values = new Value {
-                            value = item.values[0].value
+                            value = item.values[0].value,
+                            dictionary_value_id = item.values[0].dictionary_value_id
                         };
-                        if (item.values[0].dictionary_value_id != 0)
-                            values.dictionary_value_id = item.values[0].dictionary_value_id;
-
+                        //если такой атрибут уже есть - удаляю из списка и добавляю
                         var i = data.items[0].attributes.Find(a => a.id == item.id);
                         if (i != null)
                             data.items[0].attributes.Remove(i);
@@ -346,6 +345,30 @@ namespace Selen.Sites {
                             values = new Value[] { values }
                         });
                     }
+                }
+                //теперь добавлю характеристики из карточки
+                if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
+                    foreach (var item in attributes.additionalAttributes) {
+                        var values = new Value {
+                            value = item.values[0].value,
+                            dictionary_value_id = item.values[0].dictionary_value_id
+                        };
+                        //если такой атрибут уже есть - удаляю из списка и добавляю
+                        var i = data.items[0].attributes.Find(a => a.id == item.id);
+                        if (i != null) {
+                            //проверяю бренд
+                            if (i.id == 85 && i.values[0].value != item.values[0].value) {
+                                Log.Add(_l + good.name + " - заменить бренд в бизнесе! - " + item.values[0].value + " на " + i.values[0].value);
+                                //временно пропускаю карточку, чтобы не слетать на модерацию по бренду
+                                continue; 
+                            }
+                            data.items[0].attributes.Remove(i); 
+                        }
+                        data.items[0].attributes.Add(new Attribute {
+                            id = item.id,
+                            complex_id = item.complex_id,
+                            values = new Value[] { values }
+                        });
                 }
                 var s = await PostRequestAsync(data, "/v2/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
