@@ -369,7 +369,7 @@ namespace Selen.Sites {
                             complex_id = item.complex_id,
                             values = new Value[] { values }
                         });
-                }
+                    }
                 var s = await PostRequestAsync(data, "/v2/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                 if (res.task_id != default(int)) {
