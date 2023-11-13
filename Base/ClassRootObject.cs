@@ -224,22 +224,34 @@ namespace Selen {
             } else
                 defaultValidity = "P" + validity + "Y";
         }
+        //Атрибут Срок годности, лет
         public string GetValidity() {
             //использую характеристику в карточке
-            var validity = attributes?.Find(f => f.Attribute.id == "2283760"); //Срок годности, лет
+            var validity = attributes?.Find(f => f.Attribute.id == "2283760");
             if (validity != null && validity.Value.name != "") {
                 return validity.Value.name;
             } else
                 return defaultValidity;
         }
+        //Атрибут Количество в упаковке, шт
         public string GetPackQuantity() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2597286"); //Количество в упаковке, шт
+            var quantity = attributes?.Find(f => f.Attribute.id == "2597286"); 
             if (quantity != null && quantity.Value.value != "") {
                 return quantity.Value.value;
             } else
                 return "1";
         }
+        //Атрибут Комплектация
+        public string GetComplectation() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "?????"); 
+            if (quantity != null && quantity.Value.value != "") {
+                return quantity.Value.value;
+            } else
+                return null;
+        }
+
 
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
