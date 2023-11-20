@@ -49,6 +49,7 @@ namespace Selen {
         DateTime _scanTime;
         //писать лог
         bool _writeLog = true;
+        Random _rnd = new Random();
         //конструктор формы
         public FormMain() {
             InitializeComponent();
@@ -266,6 +267,17 @@ namespace Selen {
                     await Class365API.RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
                         {"updated[from]", lastLiteScanTime}
                     })));
+                //добавляю в запрос карточки без атрибутов - беру рандом 10 штук за раз
+                //(костыль от глюка бизнес.ру, который иногда отдает пустые атрибуты)
+                var ids2 = _bus.Where(w => w.attributes == null && w.images.Count > 0 && w.amount > 0)
+                               .Select(p => new GoodIds { good_id = p.id }).ToList();
+                Log.Add("GoLiteSync: карточек с пустыми атрибутами - " + ids2.Count);
+                if (ids2.Count > 0) {
+                    Log.Add("GoLiteSync:" + _bus.Where(w => w.attributes == null && w.images.Count > 0 && w.amount > 0)
+                           .Select(sel => sel.name).Aggregate((a, b) => a + "\n" + b));
+                    var i = _rnd.Next(ids2.Count > 10 ? ids2.Count - 10 : ids2.Count);
+                    ids.AddRange(ids2.Skip(i).Take(10));
+                }
 
                 //stage = "запросим изменения атрибутов...";
                 //ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
@@ -569,6 +581,7 @@ namespace Selen {
                 //d.Add("type", "1");
                 //d.Add("limit", pageLimitBase.ToString());
                 //d.Add("page", i.ToString());
+                d.Add("with_attributes", "1");
                 d.Add("with_additional_fields", "1");
                 d.Add("with_remains", "1");
                 d.Add("with_prices", "1");

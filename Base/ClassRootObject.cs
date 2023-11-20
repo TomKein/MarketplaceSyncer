@@ -301,7 +301,16 @@ namespace Selen {
             //использую характеристику в карточке
             var quantity = attributes?.Find(f => f.Attribute.id == "2604819");
             if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.name;
+                return quantity.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Срок годности
+        public string GetExpirationDays() {
+            //использую характеристику в карточке
+            var quantity = attributes?.Find(f => f.Attribute.id == "2283760");
+            if (quantity != null && quantity.Value.value != "") {
+                return (int.Parse(quantity.Value.name)*365).ToString();
             } else
                 return null;
         }
