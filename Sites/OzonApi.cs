@@ -9,10 +9,6 @@ using Newtonsoft.Json;
 using Selen.Tools;
 using Selen.Base;
 using System.IO;
-using System.Web.UI;
-using DocumentFormat.OpenXml.Office2010.Excel;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System.Xml.Linq;
 
 namespace Selen.Sites {
     public class OzonApi {
@@ -35,6 +31,11 @@ namespace Selen.Sites {
         List<AttributeValue> _color;                  //список цветов озон
         List<AttributeValue> _techType;               //список вид техники
         List<AttributeValue> _dangerClass;            //список класс опасности
+        List<AttributeValue> _motorType;              //список Тип двигателя
+        List<AttributeValue> _manufactureCoutry;      //список Страна-изготовитель
+        List<AttributeValue> _material;               //список Материал
+        List<AttributeValue> _placement;              //список Места установки
+        List<AttributeValue> _place;                  //список Расположение детали
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
             _url = _db.GetParamStr("ozon.url");
@@ -58,6 +59,21 @@ namespace Selen.Sites {
             }
             if (_dangerClass == null) {
                 _dangerClass = await GetAttibuteValuesAsync(attribute_id: 9782);
+            }
+            if (_manufactureCoutry == null) {
+                _manufactureCoutry = await GetAttibuteValuesAsync(attribute_id: 4389);
+            }           
+            if (_material == null) {
+                _material = await GetAttibuteValuesAsync(attribute_id: 7199);
+            }
+            if (_place == null) {
+                _place = await GetAttibuteValuesAsync(attribute_id: 20189);
+            }
+            if (_placement == null) {
+                _placement = await GetAttibuteValuesAsync(attribute_id: 7367);
+            }
+            if (_motorType == null) {
+                _motorType = await GetAttibuteValuesAsync(attribute_id: 8303);
             }
             await CheckProductListAsync();
             await UpdateProductsAsync();
@@ -470,6 +486,8 @@ namespace Selen.Sites {
         } 
         //получить атрибуты и категорию товара на озон
         async Task<Attributes> GetAttributesAsync(RootObject bus) {
+            try {
+
             var n = bus.name.ToLowerInvariant();
             var a = new Attributes();
             if (n.StartsWith("генератор ")) {
@@ -946,6 +964,10 @@ namespace Selen.Sites {
             //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
             //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
             //await Task.Delay(3000);
+            } catch (Exception x) {
+                Log.Add("GetAttributesAsync: "+x.Message);
+                throw;
+            }
 
         }
 
