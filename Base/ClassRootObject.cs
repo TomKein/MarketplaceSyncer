@@ -245,77 +245,120 @@ namespace Selen {
         //Атрибут Комплектация
         public string GetComplectation() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2543016"); 
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.value;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543016"); 
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
             } else
                 return null;
         }
         //Атрибут Гарантия
         public string GetGaranty() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2539132");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.value;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2539132");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
             } else
                 return null;
         }
         //Атрибут Альтернативные артикулы
         public string GetAlternatives() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2543012");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.value;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543012");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
             } else
                 return null;
         }
         //Атрибут Количество заводских упаковок
         public string GetFabricBoxCount() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2543424");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.value;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543424");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
             } else
                 return null;
         }
         //Атрибут Цвет товара
         public string GetColor() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2543422");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.name;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543422");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.name;
             } else
                 return null;
         }
         //Атрибут Вид техники
         public string GetTechType() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2543335");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.name;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543335");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.name;
             } else
                 return null;
         }
         //Атрибут Класс опасности товара
         public string GetDangerClass() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2604819");
-            if (quantity != null && quantity.Value.value != "") {
-                return quantity.Value.value;
+            var attribute = attributes?.Find(f => f.Attribute.id == "2604819");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут OEM-номер
+        public string GetOEM() {
+            //использую характеристику в карточке
+            var attribute = attributes?.Find(f => f.Attribute.id == "2535412");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Страна-изготовитель
+        public string GetManufacture() {
+            //использую характеристику в карточке
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543306");
+            if (attribute != null && attribute.Value.name != "") {
+                return attribute.Value.name;
+            } else
+                return null;
+        }      
+        //Атрибут Материал
+        public string GetMaterial() {
+            //использую характеристику в карточке
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543138");
+            if (attribute != null && attribute.Value.name != "") {
+                return attribute.Value.name;
             } else
                 return null;
         }
         //Атрибут Срок годности
         public string GetExpirationDays() {
             //использую характеристику в карточке
-            var quantity = attributes?.Find(f => f.Attribute.id == "2283760");
-            if (quantity != null && quantity.Value.value != "") {
-                return (int.Parse(quantity.Value.name)*365).ToString();
+            var attribute = attributes?.Find(f => f.Attribute.id == "2283760");
+            if (attribute != null && attribute.Value.name != "") {
+                return (int.Parse(attribute.Value.name)*365).ToString();
             } else
                 return null;
         }
-
-
+        //Атрибут Расположение детали
+        public string GetPlace() {
+            //использую характеристику в карточке
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543152");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Кратность покупки
+        public string GetMultiplicity() {
+            //использую характеристику в карточке
+            var attribute = attributes?.Find(f => f.Attribute.id == "2299154");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
             if (group_id == "169326" || //Корневая группа

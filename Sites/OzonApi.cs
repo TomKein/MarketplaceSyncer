@@ -928,6 +928,11 @@ namespace Selen.Sites {
             a.additionalAttributes.AddAttribute(GetTechTypeAttribute(bus));
             a.additionalAttributes.AddAttribute(GetDangerClassAttribute(bus));
             a.additionalAttributes.AddAttribute(GetExpirationDaysAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetMaterialAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetManufactureAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetOEMAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetPlaceAttribute(bus));
+            a.additionalAttributes.AddAttribute(GetMultiplicityAttribute(bus));
             return a;
 
             ///для определение категорий вызываем метод Дерево категорий и типов товаров (версия 2)
@@ -944,11 +949,10 @@ namespace Selen.Sites {
 
         }
 
+        //Оригинальные запчасти ?? 9104  dictionary_id": 1835
 
         //Атрибут Применимость
-        //Атрибут Квант продажи, шт
 
-        //Атрибут ОЕМ-номер
         //Атрибут Внешний диаметр, см
         //Атрибут Внутренний диаметр, см
         //Атрибут Высота, см
@@ -958,13 +962,85 @@ namespace Selen.Sites {
         //Атрибут Код ТН ВЭД
         //Атрибут Количество в упаковке
         //Атрибут Количество отверстий
-        //Атрибут Материал
         //Атрибут Место установки
-        //Атрибут Расположение детали
-        //Атрибут Страна-изготовитель
         //Атрибут Тип двигателя
         //Атрибут Толщина, см
 
+        //Атрибут Квант продажи, шт (Кратность покупки)
+        Attribute GetMultiplicityAttribute(RootObject good) {
+            var value = good.GetMultiplicity();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 21497,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Расположение детали
+        Attribute GetPlaceAttribute(RootObject good) {
+            var value = good.GetPlace();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 20189,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут ОЕМ-номер
+        Attribute GetOEMAttribute(RootObject good) {
+            var value = good.GetOEM();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7324,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Страна-изготовитель
+        Attribute GetManufactureAttribute(RootObject good) {
+            var value = good.GetManufacture();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 4389,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Материал
+        Attribute GetMaterialAttribute(RootObject good) {
+            var value = good.GetMaterial();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7199,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
         //Атрибут Срок годности, дней
         Attribute GetExpirationDaysAttribute(RootObject good) {
             var value = good.GetExpirationDays();
@@ -980,8 +1056,6 @@ namespace Selen.Sites {
                 }
             };
         }
-
-
         //Атрибут Класс опасности
         Attribute GetDangerClassAttribute(RootObject good) {
             var value = good.GetDangerClass();
