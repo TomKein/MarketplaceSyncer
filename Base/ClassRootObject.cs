@@ -9,7 +9,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using System.Windows.Forms;
 
 namespace Selen {
     public class realizationgoods {
@@ -163,6 +162,7 @@ namespace Selen {
         public string length { get; set; }
         public string width { get; set; }
         public string height { get; set; }
+        public string hscode_id { get; set; }
         public static DateTime ScanTime { get; set; }
         public static List<RootGroupsObject> Groups { get; set; }
         public int price {
@@ -340,7 +340,9 @@ namespace Selen {
         public string GetExpirationDays() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2283760");
             if (attribute != null && attribute.Value.name != "") {
-                return (int.Parse(attribute.Value.name)*365).ToString();
+                if (attribute.Value.name.Contains("недел"))
+                    return (int.Parse(attribute.Value.name.Split(' ').First())*7).ToString();
+                return (int.Parse(attribute.Value.name.Split(' ').First())*365).ToString();
             } else
                 return null;
         }
@@ -372,7 +374,7 @@ namespace Selen {
         public string GetThickness() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543314");
             if (attribute != null && attribute.Value.value != "") {
-                return (int.Parse(attribute.Value.value)*10).ToString(); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
             } else
                 return null;
         }
@@ -380,7 +382,7 @@ namespace Selen {
         public string GetHeight() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543149");
             if (attribute != null && attribute.Value.value != "") {
-                return (int.Parse(attribute.Value.value)*10).ToString(); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
             } else
                 return null;
         }
@@ -388,7 +390,15 @@ namespace Selen {
         public string GetLengthAttr() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543150");
             if (attribute != null && attribute.Value.value != "") {
-                return (int.Parse(attribute.Value.value)*10).ToString(); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
+            } else
+                return null;
+        }
+        //Атрибут Объем, л
+        public string GetVolume() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2614266");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
             } else
                 return null;
         }

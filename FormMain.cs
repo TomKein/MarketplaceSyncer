@@ -843,8 +843,8 @@ namespace Selen {
                     _bus[b].store_code = _bus[b].store_code ?? "";
                     if (_bus[b].part.Contains(" ")
                         || _bus[b].part.Contains(".")
-                        || _bus[b].part.Contains("/") && _bus[b].images.Count > 0
-                        || _bus[b].part.Contains(",") && _bus[b].images.Count > 0
+                        //|| _bus[b].part.Contains("/") && _bus[b].images.Count > 0
+                        //|| _bus[b].part.Contains(",") && _bus[b].images.Count > 0
                         || _bus[b].part.Contains("_")
                         || _bus[b].store_code.Contains(" ")
                         || _bus[b].store_code.Contains(".")
@@ -854,7 +854,7 @@ namespace Selen {
                         || _bus[b].name.EndsWith(" ")
                         || _bus[b].name.Contains("  ")
                         || _bus[b].name.Contains(";")
-                        || _bus[b].name.Contains(@"\")
+                        //|| _bus[b].name.Contains(@"\")
                         || _bus[b].name.Contains("!")
                         || _bus[b].name.Contains("\t")
                         || _bus[b].name.Contains("\u00a0")
@@ -898,9 +898,6 @@ namespace Selen {
                         }
                         var new_part = _bus[b].part.Replace(" ", "")
                             .Replace(".", "")
-                            .Split('\\').First()
-                            .Split('/').First()
-                            .Split(',').First()
                             .Replace("_", "")
                             .ToUpper();
 
@@ -1028,7 +1025,9 @@ namespace Selen {
         async Task AddPartNumsAsync() {
             try {
                 var i = 0;
-                foreach (var item in _bus.Where(w => (!string.IsNullOrEmpty(w.description) && w.description.Contains("№") && string.IsNullOrEmpty(w.part)))) {
+                foreach (var item in _bus.Where(w => (!string.IsNullOrEmpty(w.description) 
+                                                    && w.description.Contains("№") 
+                                                    && string.IsNullOrEmpty(w.Part)))) {
                     Log.Add("business.ru: обнаружен пустой артикул - " + item.name);
                     //ищем номера в описании
                     string num = item.description

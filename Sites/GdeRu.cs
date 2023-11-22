@@ -277,8 +277,7 @@ namespace Selen.Sites {
                     Log.Add(_l + _bus[b].gde + " ссылка успешно сохранена");
                     return;
                 }
-                await Task.Delay(5000);
-                _dr.Refresh();
+                await Task.Factory.StartNew(() => { _dr.Refresh(); });
             }
             throw new Exception("ссылка не объявление не найдена");
         }

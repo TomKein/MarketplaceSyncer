@@ -36,6 +36,7 @@ namespace Selen.Sites {
         List<AttributeValue> _material;               //список Материал
         List<AttributeValue> _placement;              //список Места установки
         List<AttributeValue> _place;                  //список Расположение детали
+        List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
             _url = _db.GetParamStr("ozon.url");
@@ -314,7 +315,8 @@ namespace Selen.Sites {
                     return;
                 //Запрашиваю атрибуты товара с озон
                 var productFullInfo = await GetProductFullInfoAsync(productInfo);
-
+                File.WriteAllText(@"..\ozon\product_" + productFullInfo.First().offer_id + ".json", 
+                    JsonConvert.SerializeObject(productFullInfo));
                 //формирую объект запроса
                 var data = new {
                     items = new[] {
@@ -600,7 +602,7 @@ namespace Selen.Sites {
                     a.typeName = "Ручка дверная автомобильная";
                 } else if (n.Contains("ручка") &&
                     n.Contains("стеклоподъемника")) {
-                    a.categoryId = 1000002306;
+                    a.categoryId = 99606705;
                     a.typeId = 970945542;
                     a.typeName = "Ручка стеклоподъемника";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
@@ -662,12 +664,16 @@ namespace Selen.Sites {
                     a.typeName = "Указатель поворота";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if ((n.StartsWith("фара") || n.StartsWith("фары")) &&
-                    n.Contains("птф") || n.Contains("противотуман") ||
-                    (n.StartsWith("заглушка") &&                                       
-                    (n.Contains("бампер") || n.Contains("туман")))) {
+                    n.Contains("птф") || n.Contains("противотуман") ) {
                     a.categoryId = 33697184;//Фары, фонари и составляющие
                     a.typeId = 367249975;
                     a.typeName = "Фары противотуманные (ПТФ)";
+                    a.additionalAttributes.AddAttribute(GetCountAttribute());
+                } else if ((n.StartsWith("заглушка") &&                                   //Пластик кузова, молдинги, подкрылки
+                    (n.Contains("бампер") || n.Contains("туман")))) {
+                    a.categoryId = 27332774;//Защита внешних частей автомобиля
+                    a.typeId = 970954154;
+                    a.typeName = "Заглушка бампера автомобиля";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.StartsWith("фара") ||
                     n.StartsWith("фары")) {
@@ -807,17 +813,9 @@ namespace Selen.Sites {
                     a.additionalAttributes.AddAttribute(GetPackQuantityAttribute(bus));
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.StartsWith("гайка  ")) {                                   //Гайка, шайба
-
                     a.categoryId = 87716822;//74190355 Автокрепеж
-
-
-                    var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
-                    Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
-                    await Task.Delay(3000);
-
-                 
-                    a.typeId = 11111;
-                    a.typeName = "";
+                    a.typeId = 94544;
+                    a.typeName = "Гайка";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.StartsWith("герметик ")) {                                 //Автохимия - Герметик, клей
                     a.categoryId = 33717355;
@@ -851,7 +849,7 @@ namespace Selen.Sites {
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.Contains("заслонка") &&                                    //Дроссельная заслонка
                     n.Contains("дроссел")) {
-                    a.categoryId = 85842795;
+                    a.categoryId = 33698198;
                     a.typeId = 98826;
                     a.typeName = "Заслонка дроссельная";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
@@ -869,7 +867,7 @@ namespace Selen.Sites {
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if ((n.StartsWith("колонка") || n.StartsWith("вал")) &&          //Вал рулевой
                     n.Contains("рулев")) {
-                    a.categoryId = 85831225;
+                    a.categoryId = 85833342;//Рулевая рейка и составляющие
                     a.typeId = 970984870;
                     a.typeName = "Вал рулевой";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
@@ -905,17 +903,9 @@ namespace Selen.Sites {
                     a.typeName = "Масло моторное";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.Contains("масло") && n.Contains("трансмис")) {             //Автохимия - Трансмиссионное, гидравлическое масла
-
                     a.categoryId = 81105347;
-
-
-                    var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
-                    Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
-                    await Task.Delay(3000);
-
-
-                    a.typeId = 111211;
-                    a.typeName = "";
+                    a.typeId = 970637220;
+                    a.typeName = "Масло индустриальное";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.Contains("набор") && n.Contains("инструмента")) {          //Набор для ремонта авто
                     a.categoryId = 27332791;
@@ -957,6 +947,8 @@ namespace Selen.Sites {
                 a.additionalAttributes.AddAttribute(GetLengthAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetMotorTypeAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetPlacementAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetVolumeAttribute(bus));
+                a.additionalAttributes.AddAttribute(await GetTNVEDAttribute(bus,a));
                 return a;
 
                 ///для определение категорий вызываем метод Дерево категорий и типов товаров (версия 2)
@@ -971,7 +963,7 @@ namespace Selen.Sites {
                 //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
                 //await Task.Delay(3000);
             } catch (Exception x) {
-                Log.Add("GetAttributesAsync: "+x.Message);
+                Log.Add("GetAttributesAsync: "+x.Message+x.InnerException?.Message);
                 throw;
             }
 
@@ -979,10 +971,7 @@ namespace Selen.Sites {
 
         //Оригинальные запчасти ?? 9104  dictionary_id": 1835
         //Напряжение?? 5381 "dictionary_id": 48
-
-        //Атрибут Код ТН ВЭД ??  22232  "dictionary_id": 124412395
         //Атрибут Применимость
-
         //Атрибут Внешний диаметр, см
         //Атрибут Внутренний диаметр, см
         //Атрибут Гарантия
@@ -990,6 +979,56 @@ namespace Selen.Sites {
         //Атрибут Количество отверстий
 
 
+
+
+
+        //Атрибут Код ТН ВЭД 
+        async Task<Attribute> GetTNVEDAttribute(RootObject good, Attributes attributes) {
+            var value = good.hscode_id;
+            if (value == null)
+                return null;
+            await UpdateVedAsync(attributes.categoryId);
+            var t = new Value {
+                value = _tnved.Find(f => f.value.Contains(value))?.value,
+                dictionary_value_id = _tnved.Find(f => f.value.Contains(value))?.id??0
+            };
+            if (t.dictionary_value_id == 0 || t.value==null) return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 22232,
+                values = new Value[] {
+                    t
+                }
+            };
+        }
+        //обновление тнвэд для каждой категории
+        private async Task UpdateVedAsync(int categoryId) {
+            var file = @"..\tnved_" + categoryId+".json";
+            //если файл свежий - загружаем с диска
+            var lastWriteTime = File.GetLastWriteTime(file);
+            if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
+                _tnved = JsonConvert.DeserializeObject<List<AttributeValue>>(
+                    File.ReadAllText(file));
+            } else {
+                _tnved = await GetAttibuteValuesAsync(category_id: categoryId, attribute_id: 22232);
+                File.WriteAllText(file, JsonConvert.SerializeObject(_tnved));
+            }
+        }
+        //Атрибут Объем, л
+        Attribute GetVolumeAttribute(RootObject good) {
+            var value = good.GetVolume();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7194,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
         //Атрибут Место установки
         Attribute GetPlacementAttribute(RootObject good) {
             var value = good.GetPlacement();
@@ -1285,7 +1324,8 @@ namespace Selen.Sites {
             id = 9048,
             values = new Value[] {
                 new Value{
-                    value = good.name
+                    //value = good.name
+                    value = good.Part
                 }
             }
         };
@@ -1337,7 +1377,7 @@ namespace Selen.Sites {
         Attribute GetBrendAttribute(RootObject bus) {
             int id;
             string name;
-            var m = bus.GetManufacture(ozon: true).ToLowerInvariant() ?? "";
+            var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
             if (m == "vag") {
                 id = 115840909;
                 name = "VAG (VW/Audi/Skoda/Seat)";
@@ -1367,7 +1407,7 @@ namespace Selen.Sites {
                 id = 7236,
                 values = new Value[] {
                     new Value{
-                        value = bus.part
+                        value = bus.Part
                     }
                 }
             };
@@ -1462,7 +1502,7 @@ namespace Selen.Sites {
             foreach (var good in goods) {
                 s.Append(good.id);
                 s.Append(splt);
-                s.Append(good.part);
+                s.Append(good.Part);
                 s.Append(splt);
                 s.Append(good.name);
                 s.Append(splt);
