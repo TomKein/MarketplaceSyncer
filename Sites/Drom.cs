@@ -540,6 +540,8 @@ namespace Selen.Sites {
                 var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item-content__additional')]")).Text;
                 var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
                 var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
+                var id = url.Split('-').Last().Split('.').First();
+
                 //количество фото
                 var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
                 if (img == 0)
