@@ -176,8 +176,8 @@ namespace Selen.Sites {
                         //доступность
                         ad.Add(new XElement("Availability", "В наличии"));
                         //номер запчасти
-                        if (!string.IsNullOrEmpty(b.part))
-                            ad.Add(new XElement("OEM", b.part));
+                        if (!string.IsNullOrEmpty(b.Part))
+                            ad.Add(new XElement("OEM", b.Part));
                         //оригинальность
                         ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //имя менеджера
