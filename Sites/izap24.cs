@@ -119,7 +119,7 @@ namespace Selen.Sites {
                     s.Append(m[1]).Append(";");                         //mark
                     s.Append(m[2]).Append(";");                         //model
                     s.Append(offer.price.ToString("0")).Append(";");    //price
-                    s.Append(offer.part).Append(";");                   //part
+                    s.Append(offer.Part).Append(";");                   //part
                     var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
                                     .Groups[1].Value;
                     if (offer.price >= creditPriceMin && offer.price <= creditPriceMax)

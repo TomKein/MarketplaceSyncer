@@ -406,6 +406,14 @@ namespace Selen {
             }
             return true;
         }
+        //Артикул
+        [JsonIgnore]
+        public string Part { get {
+                return part?.Split('\\')?.First()
+                           .Split('/').First()
+                           .Split(',').First();
+            }
+        }
         public string NameLimit(int length) {
             var t = name;
             while (t.Length > length) {
@@ -626,7 +634,7 @@ namespace Selen {
                 var n = new StringBuilder();
                 foreach (var part in name.Split(' ')) {
                     //если слово не содержится в марке и не является номером запчасти, то берем его
-                    if (!best[0].Contains(part.ToLowerInvariant()) && part != this.part)
+                    if (!best[0].Contains(part.ToLowerInvariant()) && part != this.Part)
                         n.Append(part).Append(" ");
                     //иначе завершаем проверку
                     else

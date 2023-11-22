@@ -138,8 +138,8 @@ namespace Selen.Sites {
                         if (vendor != null)
                             offer.Add(new XElement("vendor", vendor));
                         //артикул
-                        if (!string.IsNullOrEmpty(b.part))
-                            offer.Add(new XElement("vendorCode", b.part));
+                        if (!string.IsNullOrEmpty(b.Part))
+                            offer.Add(new XElement("vendorCode", b.Part));
                         //количество 
                         offer.Add(new XElement("count", b.amount));
                         //вес

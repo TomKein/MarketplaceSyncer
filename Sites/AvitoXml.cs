@@ -113,8 +113,8 @@ namespace Selen.Sites {
                         //оригинальность
                         ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //номер запчасти
-                        if (!string.IsNullOrEmpty(b.part))
-                            ad.Add(new XElement("OEM", b.part));
+                        if (!string.IsNullOrEmpty(b.Part))
+                            ad.Add(new XElement("OEM", b.Part));
                         //производитель
                         var brand = b.GetManufacture();
                         if (!string.IsNullOrEmpty(brand))

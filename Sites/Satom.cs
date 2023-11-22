@@ -102,7 +102,7 @@ namespace Selen.Sites {
                     //идентификатор товара
                     ws.Cells[i, 17].Value = _bus[b].id;
                     //артикул
-                    ws.Cells[i, 22].Value = _bus[b].part ?? "";
+                    ws.Cells[i, 22].Value = _bus[b].Part ?? "";
                     //статус
                     ws.Cells[i, 39].Value = "опубликован";
                     //состояние
@@ -136,9 +136,9 @@ namespace Selen.Sites {
 
 
                     //артикул
-                    if (!String.IsNullOrEmpty(_bus[b].part)) {
+                    if (!String.IsNullOrEmpty(_bus[b].Part)) {
                         ws.Cells[i, 46].Value = "Номер запчасти";
-                        ws.Cells[i, 47].Value = _bus[b].part;
+                        ws.Cells[i, 47].Value = _bus[b].Part;
                     }
                     //следующая строка
                     i++;

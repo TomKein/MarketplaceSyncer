@@ -410,7 +410,7 @@ namespace Selen.Sites {
             //список карточек которые еще не добавлены на озон
             var goods = _bus.Where(w => w.amount > 0
                                      && w.price > 0
-                                     && w.part != null
+                                     && w.Part != null
                                      && w.images.Count > 0
                                      && w.height != null
                                      && w.length != null
