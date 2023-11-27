@@ -402,6 +402,14 @@ namespace Selen {
             } else
                 return null;
         }
+        //Атрибут Количество в упаковке
+        public string GetCountInBox() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2597286");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
             if (group_id == "169326" || //Корневая группа
