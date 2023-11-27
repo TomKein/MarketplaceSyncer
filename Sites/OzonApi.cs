@@ -325,8 +325,8 @@ namespace Selen.Sites {
                             name = good.name,
                             currency_code="RUB",
                             offer_id=good.id,
-                            //category_id=attributes.categoryId,
-                            category_id=productFullInfo[0].category_id,
+                            category_id=attributes.categoryId,
+                            //category_id=productFullInfo[0].category_id,
                             price = GetNewPrice(good).ToString(),
                             old_price = GetOldPrice(GetNewPrice(good)).ToString(),
                             weight = (int)(good.GetWeight()*1000),                  //Вес с упаковкой, г
@@ -515,8 +515,8 @@ namespace Selen.Sites {
                     a.typeId = 970876396;
                     a.typeName = "Регулятор генератора";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
-                } else if (n.StartsWith("стартер ")) {
-                    a.categoryId = 85844628;
+                } else if (n.StartsWith("стартер ")) {                                  //стартер
+                    a.categoryId = 85844628;//Стартер автомобильный и составляющие
                     a.typeId = 98941;
                     a.typeName = "Стартер в сборе";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
@@ -623,6 +623,12 @@ namespace Selen.Sites {
                     a.categoryId = 85833530; //Радиатор автомобильный и составляющие
                     a.typeId = 970781671;
                     a.typeName = "Радиатор кондиционера";
+                    a.additionalAttributes.AddAttribute(GetCountAttribute());
+                } else if (n.Contains("бачок ") &&                                      //Расширительный бачок для авто
+                    n.Contains("расширит")) {
+                    a.categoryId = 85833530; //Радиатор автомобильный и составляющие
+                    a.typeId = 970885027;
+                    a.typeName = "Бачок расширительный для автомобиля";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if ((n.Contains("мотор") || n.StartsWith("вентилятор")) &&       //вентилятор охлаждения
                     (n.Contains("охлаждения") || n.Contains("двс"))) {
@@ -737,12 +743,6 @@ namespace Selen.Sites {
                     a.categoryId = 85817600;
                     a.typeId = 970707039;
                     a.typeName = "Бачок стеклоомывателя";
-                    a.additionalAttributes.AddAttribute(GetCountAttribute());
-                } else if (n.Contains("бачок ") &&                                      //Расширительный бачок для авто
-                    n.Contains("расширит")) {
-                    a.categoryId = 87892132;
-                    a.typeId = 970885027;
-                    a.typeName = "Бачок расширительный для автомобиля";
                     a.additionalAttributes.AddAttribute(GetCountAttribute());
                 } else if (n.StartsWith("блок управ") &&
                     (n.Contains("отопител") || n.Contains("печк"))) {                   //Блок управления для авто
