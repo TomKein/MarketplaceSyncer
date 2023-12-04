@@ -21,7 +21,7 @@ namespace Selen.Sites {
         readonly string _l = "ozon: ";                //префикс для лога
         readonly float _oldPriceProcent = 10;
         ProductList _productList;                     //список товаров, получаемый из /v2/product/list
-        readonly string _productListFile = @"..\ozon_productList.json";
+        readonly string _productListFile = @"..\ozon\ozon_productList.json";
         readonly int _updateFreq = 48;               //частота обновления списка (часов)
         List<RootObject> _bus;                        //ссылка на товары
         DB _db = DB._db;                              //база данных
@@ -36,6 +36,7 @@ namespace Selen.Sites {
         List<AttributeValue> _material;               //список Материал
         List<AttributeValue> _placement;              //список Места установки
         List<AttributeValue> _place;                  //список Расположение детали
+        List<AttributeValue> _side;                   //список Сторона установки
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -75,6 +76,9 @@ namespace Selen.Sites {
             }
             if (_motorType == null) {
                 _motorType = await GetAttibuteValuesAsync(attribute_id: 8303);
+            }
+            if (_side == null) {
+                _side = await GetAttibuteValuesAsync(attribute_id: 22329);
             }
             await CheckProductListAsync();
             await UpdateProductsAsync();
@@ -398,6 +402,21 @@ namespace Selen.Sites {
                 } else {
                     Log.Add(_l + good.name + " ошибка отправки товара на озон!" + " ===> " + s);
                 }
+
+                ////
+                var res2 = new ProductImportInfo();
+                await Task.Delay(10000);
+                var data2 = new {
+                    task_id = res.task_id.ToString()
+                };
+                s = await PostRequestAsync(data2, "/v1/product/import/info");
+                res2 = JsonConvert.DeserializeObject<ProductImportInfo>(s);
+                Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
+                if (res2.items.First().errors.Length > 0)
+                    Log.Add(_l + good.name + " ошибка - " + s);
+                ////
+
+
             } catch (Exception x) {
                 Log.Add(_l + " ошибка обновления описаний - " + x.Message);
             }
@@ -428,7 +447,7 @@ namespace Selen.Sites {
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
                                      && !_productList.items.Any(_ => w.id == _.offer_id));
-            SaveToFile(goods2, @"..\ozonGoodListForAdding_all.csv");
+            SaveToFile(goods2, @"..\ozon\ozonGoodListForAdding_all.csv");
             int i = 0;
             foreach (var good in goods) {
                 try {
@@ -501,8 +520,8 @@ namespace Selen.Sites {
                     a.categoryId = 61852812;//Генератор автомобильный и комплектующие
                     a.typeId = 970892942;
                     a.typeName = "Щетки генератора";
-                } else if (n.Contains("генератор") &&                                   //Комплектующие генератора для авто
-                    n.Contains("реле")) {
+                } else if ((n.Contains("генератор")||n.Contains("напряжен")) &&                                   //Комплектующие генератора для авто
+                    (n.Contains("реле")||n.Contains("регулятор"))) {
                     a.categoryId = 61852812;//Генератор автомобильный и комплектующие
                     a.typeId = 970863594;
                     a.typeName = "Регулятор напряжения генератора";
@@ -519,6 +538,15 @@ namespace Selen.Sites {
                     a.categoryId = 85844628;//Стартер автомобильный и составляющие
                     a.typeId = 970863600;
                     a.typeName = "Бендикс стартера";
+                } else if (n.StartsWith("вилк") && n.Contains("стартер")) {
+                    a.categoryId = 85844628;//Стартер автомобильный и составляющие
+                    a.typeId = 971072669;
+                    a.typeName = "Вилка стартера";
+                } else if (n.Contains("втягивающее") && 
+                    (n.Contains("реле") || n.Contains("стартер"))) {
+                    a.categoryId = 85844628;//Стартер автомобильный и составляющие
+                    a.typeId = 98910;
+                    a.typeName = "Реле втягивающее стартера";
                 } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) &&//выхлопная система
                     (n.Contains("универсальная") || n.Contains("площадка"))) {
                     a.categoryId = 33698293;//Выхлопная труба и составляющие
@@ -529,7 +557,10 @@ namespace Selen.Sites {
                     a.typeId = 971043197;
                     a.typeName = "Хомут для глушителя";
                 } else if (n.Contains("труба") &&
-                    (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная"))) {
+                    (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная")) ||
+                    n.StartsWith("изгиб трубы глушителя") ||
+                    n.StartsWith("труба прямая")
+                    ) {
                     a.categoryId = 33698293;//Выхлопная труба и составляющие
                     a.typeId = 98954;
                     a.typeName = "Труба глушителя";
@@ -716,7 +747,8 @@ namespace Selen.Sites {
                     a.typeId = 970885026;
                     a.typeName = "Блок управления отопителем";
                 } else if (n.StartsWith("блок ") &&                                     //Блок управления для авто
-                    (n.Contains("управления дв") || n.Contains("комфорт"))) {
+                    (n.Contains("управления эур") ||n.Contains("управления дв") || 
+                     n.Contains("комфорт")|| n.Contains("электрон")|| n.Contains("bsi"))) {
                     a.categoryId = 85843091;
                     a.typeId = 971005681;
                     a.typeName = "Блок управления";
@@ -776,6 +808,40 @@ namespace Selen.Sites {
                     a.categoryId = 33717369;
                     a.typeId = 92227;
                     a.typeName = "Ключ жидкий";
+                } else if (n.StartsWith("присадк") && n.Contains("антигель")) {         //Автохимия - Присадки
+                    a.categoryId = 79268071;
+                    a.typeId = 92261;
+                    a.typeName = "Антигель";
+                } else if (n.StartsWith("присадк") && n.Contains("очист") &&
+                    (n.Contains("топл") || n.Contains("инж") || n.Contains("карб") || n.Contains("форс"))) {
+                    a.categoryId = 98327483;
+                    a.typeId = 92243;
+                    a.typeName = "Очиститель топливной системы";
+                } else if (n.StartsWith("триботехническ") ||
+                    (n.Contains("присад") && n.Contains("робот"))) {
+                    a.categoryId = 79268071;
+                    a.typeId = 92258;
+                    a.typeName = "Присадка в масло";
+                } else if (n.StartsWith("присадк")) {
+                    a.categoryId = 79268071;
+                    a.typeId = 92259;
+                    a.typeName = "Присадка в топливо";
+                } else if (n.StartsWith("очиститель") && n.Contains("конд")) {
+                    a.categoryId = 98327483;
+                    a.typeId = 92246;
+                    a.typeName = "Очиститель кондиционера";
+                } else if (n.Contains("очист") && n.Contains("охл")) {
+                    a.categoryId = 79268071;
+                    a.typeId = 970952444;
+                    a.typeName = "Очиститель системы охлаждения";
+                } else if ((n.Contains("раскоксовка")||n.Contains("промывка")) && n.Contains("двигат")) {
+                    a.categoryId = 98327483;
+                    a.typeId = 970892544;
+                    a.typeName = "Раскоксовка двигателя";
+                } else if (n.StartsWith("антифриз")) {                                  //Автохимия - Антифриз, тосол
+                    a.categoryId = 33717357;
+                    a.typeId = 92224;
+                    a.typeName = "Антифриз";
                 } else if (n.StartsWith("замок") && n.Contains("двер")) {               //Замок двери
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 970950655;
@@ -853,9 +919,45 @@ namespace Selen.Sites {
                     a.categoryId = 28000060;
                     a.typeId = 95562;
                     a.typeName = "Огнетушитель автомобильный";
+                } else if (n.StartsWith("стеклоподъемник")) {                           //Стеклоподъемник
+                    a.categoryId = 86472353; //Стеклоподъемник автомобильный
+                    a.typeId = 970744186;
+                    a.typeName = "Стеклоподъемник";
+                } else if (n.StartsWith("брызговик")) {                                 //Брызговики
+                    a.categoryId = 27332785; //Брызговики
+                    a.typeId = 94655;
+                    a.typeName = "Брызговики";
+                } else if (n.StartsWith("вкладыши шатуна")) {                           //Вкладыши шатуна
+                    a.categoryId = 85812214; 
+                    a.typeId = 970892948;
+                    a.typeName = "Вкладыш шатунный";
+                } else if (n.StartsWith("прокладк") && n.Contains("поддон")) {       //Прокладки и сальники
+                    a.categoryId = 85810218;
+                    a.typeId = 98894;
+                    a.typeName = "Прокладка двигателя";
+                } else if (n.StartsWith("прокладк") && 
+                    (n.Contains("гбц") || n.StartsWith("клапан"))) {
+                    a.categoryId = 85810218;
+                    a.typeId = 970782913;
+                    a.typeName = "Прокладка ГБЦ";
+                } else if (n.StartsWith("прокладк") &&
+                    (n.Contains("трубы") || n.Contains("катализ") || n.Contains("глушит"))) {
+                    a.categoryId = 85810218;
+                    a.typeId = 971072768;
+                    a.typeName = "Прокладка глушителя";
+                } else if (n.StartsWith("прокладк") &&
+                    n.Contains("впуск") && n.Contains("коллект")) {
+                    a.categoryId = 85810218;
+                    a.typeId = 971738348;
+                    a.typeName = "Прокладка впускного коллектора";
+                } else if (n.StartsWith("прокладк") &&
+                    (n.Contains("радиатор") || n.Contains("масл"))) {
+                    a.categoryId = 85810218;
+                    a.typeId = 971749438;
+                    a.typeName = "Прокладка для системы охлаждения автомобиля";
                 } else
                     return a;
-                a.additionalAttributes.AddAttribute(GetSideAttribute(n));
+                a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetPackQuantityAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetCountAttribute());
                 a.additionalAttributes.AddAttribute(GetTypeOfProductAttribute(a.typeId, a.typeName));
@@ -882,8 +984,10 @@ namespace Selen.Sites {
                 a.additionalAttributes.AddAttribute(GetMotorTypeAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetPlacementAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetVolumeAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetVolumeMLAttribute(bus));
                 a.additionalAttributes.AddAttribute(await GetTNVEDAttribute(bus, a));
                 a.additionalAttributes.AddAttribute(GetCountInBoxAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetCountOfHolesAttribute(bus));
                 return a;
 
                 ///для определение категорий вызываем метод Дерево категорий и типов товаров (версия 2)
@@ -910,8 +1014,25 @@ namespace Selen.Sites {
         //Атрибут Внешний диаметр, см
         //Атрибут Внутренний диаметр, см
         //Атрибут Гарантия
-        //Атрибут Количество отверстий
+        
+        
 
+
+        //Атрибут Количество отверстий
+        Attribute GetCountOfHolesAttribute(RootObject good) {
+            var value = good.GetCountOfHoles();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 20407,
+                values = new Value[] {
+                new Value{
+                    value = value
+                }
+            }
+            };
+        }
 
         //Атрибут Количество в упаковке
         Attribute GetCountInBoxAttribute(RootObject good) {
@@ -951,7 +1072,7 @@ namespace Selen.Sites {
         }
         //обновление тнвэд для каждой категории
         private async Task UpdateVedAsync(int categoryId) {
-            var file = @"..\tnved_" + categoryId + ".json";
+            var file = @"..\ozon\tnved_" + categoryId + ".json";
             //если файл свежий - загружаем с диска
             var lastWriteTime = File.GetLastWriteTime(file);
             if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
@@ -970,6 +1091,21 @@ namespace Selen.Sites {
             return new Attribute {
                 complex_id = 0,
                 id = 7194,
+                values = new Value[] {
+                    new Value{
+                        value = value
+                    }
+                }
+            };
+        }
+        //Атрибут Объем, мл
+        Attribute GetVolumeMLAttribute(RootObject good) {
+            var value = good.GetVolumeML();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 5710,
                 values = new Value[] {
                     new Value{
                         value = value
@@ -1256,17 +1392,22 @@ namespace Selen.Sites {
             };
         }
         //Сторона установки (параметр)
-        Attribute GetSideAttribute(string n) => new Attribute {
+        Attribute GetSideAttribute(RootObject good) {
+            var value = good.GetSide();
+            if (value == null)
+                return null;
+            return new Attribute {
             complex_id = 0,
             id = 22329,
             values = new Value[] {
                           new Value{
-                              value = n.Contains("лев") ? "Слева"
-                                                        : n.Contains("прав") ? "Справа"
-                                                                             : "Универсальное"
+                        dictionary_value_id = _side.Find(f=>f.value==value).id,
+                        value = value
                           }
                       }
         };
+        }
+
         //Атрибут Название модели (для объединения в одну карточку) (в нашем случае дублируем name карточки бизнес.ру)
         Attribute GetModelNameAttribute(RootObject good) => new Attribute {
             complex_id = 0,
@@ -1362,7 +1503,7 @@ namespace Selen.Sites {
             };
         //Запрос списка атрибутов с озон (значения по умолчанию - для получения списка брендов
         public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id = 85, int category_id = 61852812) {
-            var attributeValuesFile = @"..\ozon_attr_" + attribute_id + "_cat_" + category_id + ".json";
+            var attributeValuesFile = @"..\ozon\ozon_attr_" + attribute_id + "_cat_" + category_id + ".json";
             var lastWriteTime = File.GetLastWriteTime(attributeValuesFile);
             if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
                 var res = JsonConvert.DeserializeObject<List<AttributeValue>>(
@@ -1397,7 +1538,7 @@ namespace Selen.Sites {
             };
             var s = await PostRequestAsync(data, "/v2/category/tree");
             var res = JsonConvert.DeserializeObject<List<Category>>(s);
-            File.WriteAllText(@"..\ozon_categories.json", s);
+            File.WriteAllText(@"..\ozon\ozon_categories.json", s);
             Log.Add(_l + "GetCategoriesAsync - получено категорий " + res.Count);
         }
         //Запрос атрибутов существующего товара озон
@@ -1419,7 +1560,7 @@ namespace Selen.Sites {
             }
         }
         //Сохранение списка карточек, которые можно добавить на озон в виде таблицы
-        void SaveToFile(IEnumerable<RootObject> goods, string fname = @"..\ozonGoodListForAdding.csv") {
+        void SaveToFile(IEnumerable<RootObject> goods, string fname = @"..\ozon\ozonGoodListForAdding.csv") {
             StringBuilder s = new StringBuilder();
             var splt = "\t";
             s.Append("id");

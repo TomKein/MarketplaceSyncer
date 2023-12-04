@@ -340,15 +340,24 @@ namespace Selen {
         public string GetExpirationDays() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2283760");
             if (attribute != null && attribute.Value.name != "") {
+                var val = float.Parse(attribute.Value.name.Split(' ').First().Replace(".", ","));
                 if (attribute.Value.name.Contains("недел"))
-                    return (int.Parse(attribute.Value.name.Split(' ').First())*7).ToString();
-                return (int.Parse(attribute.Value.name.Split(' ').First())*365).ToString();
+                    return (val * 7).ToString("F0");
+                return (val * 365).ToString("F0");
             } else
                 return null;
         }
         //Атрибут Расположение детали
         public string GetPlace() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543152");
+            if (attribute != null && attribute.Value.name != "") {
+                return attribute.Value.name;
+            } else
+                return null;
+        }
+        //Атрибут Сторона установки
+        public string GetSide() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2627738");
             if (attribute != null && attribute.Value.name != "") {
                 return attribute.Value.name;
             } else
@@ -398,13 +407,29 @@ namespace Selen {
         public string GetVolume() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2614266");
             if (attribute != null && attribute.Value.value != "") {
-                return attribute.Value.value;
+                return attribute.Value.value.Replace(".", ",");
+            } else
+                return null;
+        }
+        //Атрибут Объем, мл
+        public string GetVolumeML() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2627783");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value.Replace(".", ",").Split(',').First();
             } else
                 return null;
         }
         //Атрибут Количество в упаковке
         public string GetCountInBox() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2597286");
+            if (attribute != null && attribute.Value.value != "") {
+                return attribute.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Количество отверстий
+        public string GetCountOfHoles() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543014");
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
