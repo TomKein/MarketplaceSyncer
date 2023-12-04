@@ -229,8 +229,13 @@ namespace Selen.Sites {
                 var weight = b.weight ?? _defWeigth;
                 if (weight == 0)
                     weight = _defWeigth;
-                _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
+
+                //проверка заполнения веса
+                var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value");
+                if (string.IsNullOrEmpty(w) || float.Parse(w) != b.GetWeight()) {
+                    _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
                     weight.ToString("0.00").Replace(",", ".") + OpenQA.Selenium.Keys.Tab);
+                }
             }
         }
         async Task SaveUrlAsync(int b) {
@@ -337,7 +342,9 @@ namespace Selen.Sites {
             }
         }
         void SetDesc(RootObject b) {
-            var d = b.DescriptionList(2999, _addDesc);
+            var d = b.DescriptionList(2979, _addDesc);
+            var amount = b.amount>0 ? b.amount.ToString()+" "+b.MesureName : "нет";
+            d.Insert(0, "В наличии: " + amount);
             if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             d.Add(OpenQA.Selenium.Keys.Tab);
@@ -475,18 +482,13 @@ namespace Selen.Sites {
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен адрес самовывоза");
                                 }
                                 //проверка заполнения веса
-                                var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value").Replace(".", ",");
-                                if (string.IsNullOrEmpty(w) || float.Parse(w) != _bus[b].GetWeight()) {
-                                    SetWeight(_bus[b]);
-                                    Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен вес " + _bus[b].weight);
-                                    Thread.Sleep(5000);
-                                }
+                                SetWeight(_bus[b]);
                                 //проверка фото
                                 CheckPhotos(_bus[b]);
                                 //проверка описания
                                 if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax) {
                                     var d = _dr.GetElementAttribute("//label[text()='Текст объявления']/../../div/textarea", "value");
-                                    if (!d.Contains(_creditDescription))
+                                    if (!d.Contains("В наличии"))
                                         SetDesc(_bus[b]);
                                 }
                                 Thread.Sleep(3000);

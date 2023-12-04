@@ -190,6 +190,16 @@ namespace Selen {
                 };
             }
         }
+        //Артикул
+        [JsonIgnore]
+        public string Part => part?.Split('\\')?.First()
+                                   .Split('/').First()
+                                   .Split(',').First();
+        //Название единиц измерения
+        [JsonIgnore]
+        public string MesureName => measure_id == "11" ? "пара"
+                                  : measure_id == "13" ? "компл."
+                                                       : "шт.";
         //вес товара по умолчанию
         static float defaultWeight;
         public static void UpdateDefaultWeight() {
@@ -448,14 +458,6 @@ namespace Selen {
                 return false;
             }
             return true;
-        }
-        //Артикул
-        [JsonIgnore]
-        public string Part { get {
-                return part?.Split('\\')?.First()
-                           .Split('/').First()
-                           .Split(',').First();
-            }
         }
         public string NameLimit(int length) {
             var t = name;
