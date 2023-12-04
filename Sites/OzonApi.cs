@@ -672,6 +672,15 @@ namespace Selen.Sites {
                     a.categoryId = 85835327;//Катушки и провода зажигания
                     a.typeId = 98812;
                     a.typeName = "Выключатель зажигания";
+                } else if (n.StartsWith("трамблер")) {                                  //трамблер
+                    a.categoryId = 85835327;//Катушки и провода зажигания
+                    a.typeId = 971072773;
+                    a.typeName = "Распределитель зажигания";
+                } else if ((n.StartsWith("провода")&&
+                    (n.Contains("высоков") || n.Contains(" в/в")))) {                     //провода зажигания
+                    a.categoryId = 85835327;//Катушки и провода зажигания
+                    a.typeId = 98893;
+                    a.typeName = "Комплект высоковольтных проводов";
                 } else if (n.StartsWith("датчик") ||
                     n.StartsWith("обманка датчика")) {                                  //Датчик для авто
                     a.categoryId = 85843109;
