@@ -1524,7 +1524,7 @@ namespace Selen {
                     foreach (var good in realization.goods) {
                         //цена, которая должна быть в реализации
                         var busPrice = _bus.First(f => f.id == good.good.id).price;
-                        var priceCorrected = (0.9 * busPrice).ToString("F0");
+                        var priceCorrected = (0.8 * busPrice).ToString("F0");
                         //если цена в реализации отличается, корректируем
                         if (good.price != priceCorrected) {
                             s= await Class365API.RequestAsync("put", "realizationgoods", new Dictionary<string, string> {

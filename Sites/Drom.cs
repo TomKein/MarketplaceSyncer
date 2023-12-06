@@ -66,9 +66,9 @@ namespace Selen.Sites {
                 //дополнительное описание
                 _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
                 //рассрочка 
-                _creditPriceMin = _db.GetParamInt("creditPriceMin"); 
+                _creditPriceMin = _db.GetParamInt("creditPriceMin");
                 _creditPriceMax = _db.GetParamInt("creditPriceMax");
-                _creditDescription = _db.GetParamStr("creditDescription"); 
+                _creditDescription = _db.GetParamStr("creditDescription");
 
                 Log.Add("drom.ru: начало выгрузки...");
                 await AuthAsync();
@@ -171,7 +171,9 @@ namespace Selen.Sites {
         }
         //заполнить наименование
         void SetTitle(RootObject b) {
-            _dr.WriteToSelector("//input[@name='subject']", b.name);
+            var w = _dr.GetElementAttribute("//input[@name='subject']", "value");
+            if (string.IsNullOrEmpty(w) || w != b.name)
+                _dr.WriteToSelector("//input[@name='subject']", b.name);
         }
 
         void Delete() {
@@ -232,9 +234,9 @@ namespace Selen.Sites {
 
                 //проверка заполнения веса
                 var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value");
-                if (string.IsNullOrEmpty(w) || float.Parse(w) != b.GetWeight()) {
+                if (string.IsNullOrEmpty(w) || float.Parse(w.Replace(".", ",")) != b.GetWeight()) {
                     _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
-                    weight.ToString("0.00").Replace(",", ".") + OpenQA.Selenium.Keys.Tab);
+                    weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
                 }
             }
         }
@@ -326,7 +328,9 @@ namespace Selen.Sites {
             cl.Dispose();
         }
         void SetPart(RootObject b) {
-            _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.Part + OpenQA.Selenium.Keys.Tab);
+            var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
+            if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part)
+                _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.Part + OpenQA.Selenium.Keys.Tab);
         }
         void PressOkButton() {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");
@@ -343,7 +347,7 @@ namespace Selen.Sites {
         }
         void SetDesc(RootObject b) {
             var d = b.DescriptionList(2979, _addDesc);
-            var amount = b.amount>0 ? b.amount.ToString()+" "+b.MesureName : "нет";
+            var amount = b.amount > 0 ? b.amount.ToString() + " " + b.MesureName : "нет";
             d.Insert(0, "В наличии: " + amount);
             if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
@@ -351,11 +355,14 @@ namespace Selen.Sites {
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
         }
         void SetPrice(RootObject b) {
-            var desc = b.description.ToLowerInvariant();
-            if (desc.Contains("залог:")) {
-                var price = desc.Replace("залог:", "|").Split('|').Last().Trim().Replace("р", " ").Split(' ').First();
-                _dr.WriteToSelector("//input[@name='price']", price);
-            } else
+            var w = _dr.GetElementAttribute("//input[@name='price']", "value");
+            if (string.IsNullOrEmpty(w) || w != b.price.ToString())
+
+                //    var desc = b.description.ToLowerInvariant();
+                //if (desc.Contains("залог:")) {
+                //    var price = desc.Replace("залог:", "|").Split('|').Last().Trim().Replace("р", " ").Split(' ').First();
+                //    _dr.WriteToSelector("//input[@name='price']", price);
+                //} else
                 _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
         }
         void Up(RootObject b) {
@@ -474,24 +481,24 @@ namespace Selen.Sites {
                             if (_bus[b].amount > 0 &&
                                 _bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
-                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление "+(i+1)+" (" + b + " / " + _bus.Count + ")");
+                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление " + (i + 1) + " (" + b + " / " + _bus.Count + ")");
                                 _dr.Navigate(_bus[b].drom);
+                                Thread.Sleep(1000);
                                 //адрес самовывоза из профиля
-                                if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background").Contains("rgb(255, 255, 255)")) { 
+                                if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background").Contains("rgb(255, 255, 255)")) {
                                     _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
                                     Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен адрес самовывоза");
                                 }
-                                //проверка заполнения веса
+                                SetPart(_bus[b]);
                                 SetWeight(_bus[b]);
+                                SetPrice(_bus[b]);
                                 //проверка фото
                                 CheckPhotos(_bus[b]);
                                 //проверка описания
-                                if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax) {
-                                    var d = _dr.GetElementAttribute("//label[text()='Текст объявления']/../../div/textarea", "value");
-                                    if (!d.Contains("В наличии"))
-                                        SetDesc(_bus[b]);
-                                }
-                                Thread.Sleep(3000);
+                                var d = _dr.GetElementAttribute("//label[text()='Текст объявления']/../../div/textarea", "value");
+                                if (!d.Contains("В наличии"))
+                                    SetDesc(_bus[b]);
+                                Thread.Sleep(2000);
                             } else
                                 i--;
                             _db.SetParam("drom.checkOfferIndex", (++b).ToString());
