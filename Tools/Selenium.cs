@@ -127,7 +127,7 @@ namespace Selen.Tools {
             if (sl != null) {
                 Actions a = new Actions(_drv);
                 a.MoveToElement(we).Click().Perform();
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
                 a.KeyDown(Keys.Control).SendKeys("a").KeyUp(Keys.Control).Perform();
                 Thread.Sleep(500);
                 a.SendKeys(Keys.Backspace).Perform();

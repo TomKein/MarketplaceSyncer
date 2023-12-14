@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.165";
+        string _version = "1.166";
 
         DB _db = new DB();
 
@@ -996,6 +996,7 @@ namespace Selen {
                 button_Kupiprodai.Enabled &&
                 button_Avito.Enabled &&
                 button_Gde.Enabled &&
+                button_ozon.Enabled &&
                 button_Youla.Enabled
                 )
             )

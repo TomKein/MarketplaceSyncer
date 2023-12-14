@@ -206,34 +206,33 @@ namespace Selen.Sites {
         }
         //выкладываю объявления
         public async Task AddAsync() {
-            var count = await _db.GetParamIntAsync("kupiprodai.addCount");
-            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
-                if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
-                    !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
-                    _bus[b].amount > 0 &&
-                    _bus[b].price > 0 &&
-                    _bus[b].images.Count > 0) {
-                    try {
-                        await Task.Factory.StartNew(() => {
-                            _dr.Navigate("https://vip.kupiprodai.ru/add/");
-                            SetTitle(b,twice:true);
-                            SetCategory(b);
-                            //SetImages(b);
-                            SetDesc(b);
-                            SetPrice(b);
-                            PressOkButton();
-                        });
-                        //сохраняем ссылку
-                        await SaveUrlAsync(b);
-                        count--;
-                        Log.Add(_l + _bus[b].name + " - объявление добавлено, осталось " + count);
-                    } catch (Exception x) {
-                        if (x.Message.Contains("timed out"))
-                            throw;
-                        Log.Add(_l + "ошибка добавления! - " + _bus[b].name + " - " + x.Message);
-                        break;
+            try {
+                var count = await _db.GetParamIntAsync("kupiprodai.addCount");
+                for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
+                    if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
+                        !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
+                        _bus[b].amount > 0 &&
+                        _bus[b].price > 0 &&
+                        _bus[b].images.Count > 0) {
+                            await Task.Factory.StartNew(() => {
+                                _dr.Navigate("https://vip.kupiprodai.ru/add/");
+                                SetTitle(b,twice:true);
+                                SetCategory(b);
+                                //SetImages(b);
+                                SetDesc(b);
+                                SetPrice(b);
+                                PressOkButton();
+                            });
+                            //сохраняем ссылку
+                            await SaveUrlAsync(b);
+                            count--;
+                            Log.Add(_l + _bus[b].name + " - объявление добавлено, осталось " + count);
                     }
                 }
+            } catch (Exception x) {
+                if (x.Message.Contains("timed out"))
+                    throw;
+                Log.Add(_l + "ошибка добавления! - " + x.Message);
             }
         }
         //сохраняю ссылки на объявление в карточку
