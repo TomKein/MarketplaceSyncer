@@ -88,10 +88,14 @@ namespace Selen.Sites {
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
-            foreach (var bus in _bus.Where(w => w.IsTimeUpDated()
-                                             && !string.IsNullOrEmpty(w.ozon)
-                                             && w.ozon.Contains("http"))) {
-                await UpdateProductAsync(bus);
+            try {
+                foreach (var bus in _bus.Where(w => w.IsTimeUpDated()
+                                                 && !string.IsNullOrEmpty(w.ozon)
+                                                 && w.ozon.Contains("http"))) {
+                    await UpdateProductAsync(bus);
+                }
+            } catch (Exception x) {
+                Log.Add(_l+ "UpdateProductsAsync - " + x.Message);
             }
         }
         //проверяем список товаров озон
@@ -320,8 +324,7 @@ namespace Selen.Sites {
                 //Запрашиваю атрибуты товара с озон
                 var productFullInfo = await GetProductFullInfoAsync(productInfo);
                 File.WriteAllText(@"..\ozon\product_" + productFullInfo.First().offer_id + ".json",
-                    JsonConvert.SerializeObject(productFullInfo));
-                //формирую объект запроса
+                    JsonConvert.SerializeObject(productFullInfo));                //формирую объект запроса
                 var data = new {
                     items = new[] {
                         new{
@@ -548,7 +551,7 @@ namespace Selen.Sites {
                     a.typeId = 98910;
                     a.typeName = "Реле втягивающее стартера";
                 } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) &&//выхлопная система
-                    (n.Contains("универсальная") || n.Contains("площадка"))) {
+                    (n.Contains("универсальная") || n.Contains("площадка")|| n.Contains("глушителя"))) {
                     a.categoryId = 33698293;//Выхлопная труба и составляющие
                     a.typeId = 98818;
                     a.typeName = "Гофра глушителя";
@@ -630,7 +633,7 @@ namespace Selen.Sites {
                     a.typeId = 970945542;
                     a.typeName = "Ручка стеклоподъемника";
                 } else if ((n.Contains("радиатор") || n.StartsWith("диффузор")) &&      //Радиатор охлаждения для авто
-                    n.Contains("охлаждения")) {
+                    (n.Contains("охлаждения")||n.Contains("вентилятор"))) {
                     a.categoryId = 85833530; //Радиатор автомобильный и составляющие
                     a.typeId = 970782911;
                     a.typeName = "Радиатор охлаждения";
@@ -695,6 +698,10 @@ namespace Selen.Sites {
                     a.categoryId = 33697184;//Фары, фонари и составляющие
                     a.typeId = 367249975;
                     a.typeName = "Фары противотуманные (ПТФ)";
+                } else if (n.StartsWith("катафот")) {
+                    a.categoryId = 92265227;
+                    a.typeId = 92198;
+                    a.typeName = "Светоотражатель";
                 } else if ((n.StartsWith("заглушка") &&                                   //Пластик кузова, молдинги, подкрылки
                     (n.Contains("бампер") || n.Contains("туман")))) {
                     a.categoryId = 27332774;//Защита внешних частей автомобиля
@@ -772,7 +779,7 @@ namespace Selen.Sites {
                     a.typeName = "Вилка сцепления";
                 } else if (n.Contains("диск ") &&                                       //Диск сцепления
                     n.Contains("сцеплени")) {
-                    a.categoryId = 33698203;//Цилиндр сцепления и комплектующие
+                    a.categoryId = 85835774;//Сцепление автомобильное и комплектующие
                     a.typeId = 98823;
                     a.typeName = "Диск сцепления";
                 } else if (n.Contains("цилиндр ") &&                                    //Цилиндр сцепления
@@ -785,26 +792,40 @@ namespace Selen.Sites {
                     a.categoryId = 33698203;//Цилиндр сцепления и комплектующие
                     a.typeId = 98964;
                     a.typeName = "Цилиндр сцепления рабочий";
+                } else if (n.StartsWith("корзина") &&                                       //Корзина сцепления
+                    n.Contains("сцеплени")) {
+                    a.categoryId = 85835774;//Сцепление автомобильное и комплектующие
+                    a.typeId = 970854836;
+                    a.typeName = "Корзина сцепления";
+                } else if (n.StartsWith("комплект") &&                                       //Комплект сцепления
+                    n.Contains("сцеплени")) {
+                    a.categoryId = 85835774;//Сцепление автомобильное и комплектующие
+                    a.typeId = 98840;
+                    a.typeName = "Комплект сцепления";
                 } else if (n.Contains("вал ") &&                                        //Вал коробки передач для авто
                     (n.Contains("первичный") || n.Contains("вторичный"))) {
                     a.categoryId = 85817294;//КПП и составляющие
                     a.typeId = 971072319;
                     a.typeName = "Вал промежуточный";
-                } else if (n.Contains("втулка") &&                                      //Сайлентблок, втулка подвески
+                } else if (n.Contains("втулка") &&                                      //Втулка сайлентблока
                     n.Contains("сайлен")) {
                     a.categoryId = 85828600;//Рычаг, тяга подвески и составляющие
                     a.typeId = 970889765;
                     a.typeName = "Втулка сайлентблока";
-                } else if (n.Contains("втулка ") &&                                     //Сайлентблок, втулка подвески
+                } else if (n.Contains("втулка ") &&                                     //Втулка подвески
                     n.Contains("подвес")) {
                     a.categoryId = 85828600;//Рычаг, тяга подвески и составляющие
                     a.typeId = 970863598;
                     a.typeName = "Втулка подвески";
-                } else if (n.Contains("втулка ") &&                                     //Сайлентблок, втулка подвески
+                } else if (n.Contains("втулка ") &&                                     //Втулка стабилизатора
                     n.Contains("стабилиз")) {
                     a.categoryId = 85828600;//Рычаг, тяга подвески и составляющие
                     a.typeId = 970840966;
                     a.typeName = "Втулка стабилизатора";
+                } else if (n.StartsWith("сайлентблок")){                                //Сайлентблок
+                    a.categoryId = 85828600;//Рычаг, тяга подвески и составляющие
+                    a.typeId = 98928;
+                    a.typeName = "Сайлентблок";
                 } else if (n.StartsWith("гайка  ")) {                                   //Гайка, шайба
                     a.categoryId = 87716822;//74190355 Автокрепеж
                     a.typeId = 94544;
@@ -855,7 +876,8 @@ namespace Selen.Sites {
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 970950655;
                     a.typeName = "Замок двери автомобиля";
-                } else if (n.StartsWith("замок") && n.Contains("капот")) {              //Замок капота
+                } else if (n.StartsWith("замок") && n.Contains("капот")||
+                    n.StartsWith("комплект замка капота")) {                            //Замок капота
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 970892946;
                     a.typeName = "Замок капота";
@@ -863,7 +885,17 @@ namespace Selen.Sites {
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 321057673;
                     a.typeName = "Замок для багажников";
-                } else if (n.Contains("личин")) {                                       //Замок автомобильный
+                } else if (n.StartsWith("трос")&&
+                    n.Contains("замка")&& n.Contains("двери")) {                       //Трос замка двери
+                    a.categoryId = 92145042;//Замки автомобильные
+                    a.typeId = 971072793;
+                    a.typeName = "Трос замка двери";
+                } else if (n.StartsWith("трос")&&
+                    n.Contains("лючка") && n.Contains("бак")) {                       //Трос открывания
+                    a.categoryId = 92145042;//Замки автомобильные
+                    a.typeId = 971049579;
+                    a.typeName = "Трос открывания";
+                } else if (n.Contains("личин")) {                                       //Личинка замка
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 971072745;
                     a.typeName = "Личинка замка";
@@ -916,6 +948,11 @@ namespace Selen.Sites {
                     a.categoryId = 81105347;
                     a.typeId = 970637220;
                     a.typeName = "Масло индустриальное";
+                } else if ((n.StartsWith("жидкость") || n.Contains("масло")) && 
+                    (n.Contains("гур")||n.Contains("гидравлическое"))) {             //Автохимия - Трансмиссионное, гидравлическое масла
+                    a.categoryId = 81105347;
+                    a.typeId = 92229;
+                    a.typeName = "Жидкость для гидроусилителя";
                 } else if (n.Contains("набор") && n.Contains("инструмента")) {          //Набор для ремонта авто
                     a.categoryId = 27332791;
                     a.typeId = 971437067;
@@ -940,7 +977,8 @@ namespace Selen.Sites {
                     a.categoryId = 85812214; 
                     a.typeId = 970892948;
                     a.typeName = "Вкладыш шатунный";
-                } else if (n.StartsWith("прокладк") && n.Contains("поддон")) {       //Прокладки и сальники
+                } else if (n.StartsWith("прокладк") && 
+                    (n.Contains("поддон")||n.Contains("топлив"))) {       //Прокладки и сальники
                     a.categoryId = 85810218;
                     a.typeId = 98894;
                     a.typeName = "Прокладка двигателя";
@@ -964,6 +1002,59 @@ namespace Selen.Sites {
                     a.categoryId = 85810218;
                     a.typeId = 971749438;
                     a.typeName = "Прокладка для системы охлаждения автомобиля";
+                } else if (n.StartsWith("кольцо") &&
+                    n.Contains("форсун") ) {
+                    a.categoryId = 85810218;
+                    a.typeId = 98839;
+                    a.typeName = "Кольцо, прокладка форсунки";
+                } else if (n.StartsWith("камера") &&                                        //Камера заднего вида
+                    n.Contains("задн") && n.Contains("вид")) {
+                    a.categoryId = 81050058;
+                    a.typeId = 94746;
+                    a.typeName = "Камера заднего вида";
+                } else if (n.StartsWith("клапан") &&                                        //Клапан впускной
+                    n.Contains("впуск")) {
+                    a.categoryId = 85812214;
+                    a.typeId = 98828;
+                    a.typeName = "Клапан впускной";
+                } else if (n.StartsWith("колпач") &&                                        //Колпачки маслосъёмные
+                    n.Contains("маслос")) {
+                    a.categoryId = 85810218;
+                    a.typeId = 98838;
+                    a.typeName = "Колпачок маслосъемный";
+                } else if (n.StartsWith("комплект") &&                                        //Комплект ГРМ
+                    n.Contains("грм")) {
+                    a.categoryId = 85814516;
+                    a.typeId = 970782921;
+                    a.typeName = "Ремкомплект ремня ГРМ";
+                } else if ((n.StartsWith("молдинг") ||                                        //Молдинг (ресничка) фары 
+                    n.StartsWith("ресничка")) && 
+                    n.Contains("фар")) {
+                    a.categoryId = 27332774;
+                    a.typeId = 970682241;
+                    a.typeName = "Накладка на фары";
+                } else if (n.StartsWith("крышка") &&                                        //Крышка бачка 
+                    n.Contains("бачка") && 
+                    (n.Contains("расшир") || n.Contains("сцепл"))) {
+                    a.categoryId = 85833530;
+                    a.typeId = 971072740;
+                    a.typeName = "Крышка бачка расширительного";
+                } else if (n.StartsWith("моторчик") &&                                        //Моторчик заднего дворника 
+                    n.Contains("зад") && 
+                    (n.Contains("дворник") || n.Contains("стеклооч"))) {
+                    a.categoryId = 86470408;
+                    a.typeId = 970892937;
+                    a.typeName = "Мотор стеклоочистителя";
+                } else if (n.StartsWith("трапеция") &&                                        //Трапеция, рычаг стеклоочистителя 
+                    (n.Contains("дворник") || n.Contains("стеклооч"))) {
+                    a.categoryId = 86470408;
+                    a.typeId = 970885007;
+                    a.typeName = "Трапеция стеклоочистителя";
+                } else if (n.StartsWith("подшипник") &&                                        //Ступица, подшипник колеса 
+                    (n.Contains("ступи") || n.Contains("колес"))) {
+                    a.categoryId = 36201238;
+                    a.typeId = 98883;
+                    a.typeName = "Подшипник ступицы";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -997,6 +1088,9 @@ namespace Selen.Sites {
                 a.additionalAttributes.AddAttribute(await GetTNVEDAttribute(bus, a));
                 a.additionalAttributes.AddAttribute(GetCountInBoxAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetCountOfHolesAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetGarantyAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetDiameterOutAttribute(bus));
+                a.additionalAttributes.AddAttribute(GetDiameterInAttribute(bus));
                 return a;
 
                 ///для определение категорий вызываем метод Дерево категорий и типов товаров (версия 2)
@@ -1020,13 +1114,55 @@ namespace Selen.Sites {
         //Оригинальные запчасти ?? 9104  dictionary_id": 1835
         //Напряжение?? 5381 "dictionary_id": 48
         //Атрибут Применимость
+
+
+
+
         //Атрибут Внешний диаметр, см
+        Attribute GetDiameterOutAttribute(RootObject good) {
+            var value = good.GetDiameterOut();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7366,
+                values = new Value[] {
+                new Value{
+                    value = value
+                }
+            }
+            };
+        }
         //Атрибут Внутренний диаметр, см
+        Attribute GetDiameterInAttribute(RootObject good) {
+            var value = good.GetDiameterIn();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 7368,
+                values = new Value[] {
+                new Value{
+                    value = value
+                }
+            }
+            };
+        }
         //Атрибут Гарантия
-        
-        
-
-
+        Attribute GetGarantyAttribute(RootObject good) {
+            var value = good.GetGaranty();
+            if (value == null)
+                return null;
+            return new Attribute {
+                complex_id = 0,
+                id = 4385,
+                values = new Value[] {
+                new Value{
+                    value = value
+                }
+            }
+            };
+        }
         //Атрибут Количество отверстий
         Attribute GetCountOfHolesAttribute(RootObject good) {
             var value = good.GetCountOfHoles();
@@ -1406,15 +1542,15 @@ namespace Selen.Sites {
             if (value == null)
                 return null;
             return new Attribute {
-            complex_id = 0,
-            id = 22329,
-            values = new Value[] {
-                          new Value{
+                complex_id = 0,
+                id = 22329,
+                values = new Value[] {
+                    new Value{
                         dictionary_value_id = _side.Find(f=>f.value==value).id,
                         value = value
-                          }
-                      }
-        };
+                    }
+                }
+            };
         }
 
         //Атрибут Название модели (для объединения в одну карточку) (в нашем случае дублируем name карточки бизнес.ру)

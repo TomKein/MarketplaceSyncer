@@ -197,7 +197,7 @@ namespace Selen {
                                    .Split(',').First();
         //Название единиц измерения
         [JsonIgnore]
-        public string MesureName => measure_id == "11" ? "пара"
+        public string MeasureName => measure_id == "11" ? "пара"
                                   : measure_id == "13" ? "компл."
                                                        : "шт.";
         //вес товара по умолчанию
@@ -260,7 +260,7 @@ namespace Selen {
         }
         //Атрибут Гарантия
         public string GetGaranty() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2539132");
+            var attribute = attributes?.Find(f => f.Attribute.id == "162692");
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -442,6 +442,22 @@ namespace Selen {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543014");
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
+            } else
+                return null;
+        }
+        //Атрибут Внешний диаметр, мм
+        public string GetDiameterOut() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543013");
+            if (attribute != null && attribute.Value.value != "") {
+                return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
+            } else
+                return null;
+        }
+        //Атрибут Внутренний диаметр, мм
+        public string GetDiameterIn() {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543147");
+            if (attribute != null && attribute.Value.value != "") {
+                return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
                 return null;
         }
