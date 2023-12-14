@@ -16,6 +16,7 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     class Drom {
+        readonly string _l = "drom.ru: ";     //префикс для лога
         public Selenium _dr;               //браузер
         DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
@@ -70,7 +71,7 @@ namespace Selen.Sites {
                 _creditPriceMax = _db.GetParamInt("creditPriceMax");
                 _creditDescription = _db.GetParamStr("creditDescription");
 
-                Log.Add("drom.ru: начало выгрузки...");
+                Log.Add(_l+"начало выгрузки...");
                 await AuthAsync();
                 await GetDromPhotos();
                 await UpAsync();
@@ -78,15 +79,15 @@ namespace Selen.Sites {
                 await AddAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
-                Log.Add("drom.ru: выгрузка завершена");
+                Log.Add(_l+"выгрузка завершена");
             } catch (Exception x) {
-                Log.Add("drom.ru: ошибка синхронизации! - " + x.Message);
+                Log.Add(_l+"ошибка синхронизации! - " + x.Message);
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
-                    Log.Add("drom.ru: ошибка браузера! - " + x.Message);
+                    Log.Add(_l+"ошибка браузера! - " + x.Message);
                     _dr.Quit();
                     _dr = null;
                 }
@@ -135,7 +136,12 @@ namespace Selen.Sites {
         }
 
         void Edit(RootObject b) {
+            if (b.drom.Contains("tin/ht")) {
+                Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
+                return;
+            }
             _dr.Navigate(b.drom, "//input[@name='subject']");
+            Thread.Sleep(2000);
             SetTitle(b);
             CheckPhotos(b);
             SetPrice(b);
@@ -144,9 +150,9 @@ namespace Selen.Sites {
             SetPart(b);
             SetWeight(b);
             PressOkButton();
-            Log.Add("drom.ru: " + b.name + " - объявление обновлено");
+            Log.Add(_l + b.name + " - объявление обновлено");
             if (b.amount <= 0) {
-                Delete();
+                Delete(b);
             } else
                 Up(b);
         }
@@ -166,7 +172,7 @@ namespace Selen.Sites {
                 }
                 //загружаю новые фото
                 SetImages(b);
-                Log.Add("drom.ru: " + b.name + " - фотографии обновлены");
+                Log.Add(_l + b.name + " - фотографии обновлены");
             }
         }
         //заполнить наименование
@@ -176,15 +182,16 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='subject']", b.name);
         }
 
-        void Delete() {
+        void Delete(RootObject b) {
             //переход на страницу объявления, если он нужен
             _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
             if (_dr.GetElementsCount("//a[contains(@class,'doDelete')]") > 0) {
-                Log.Add("drom.ru: удаляю объявление...");
                 _dr.ButtonClick("//a[contains(@class,'doDelete')]");
                 PressServiseSubmitButton();
                 if (_dr.GetElementsCount("//h2[contains(text(),'удалили')]") > 0)
-                    Log.Add("drom.ru: объявление удалено");
+                    Log.Add(_l + b.name+" объявление удалено");
+                else 
+                    Log.Add(_l + b.name+" ошибка - объявление не удалено!");
             }
         }
 
@@ -217,10 +224,10 @@ namespace Selen.Sites {
                     try {
                         await t;
                         await SaveUrlAsync(b);
-                        Log.Add("drom.ru: добавлено объявление - " + _bus[b].name);
+                        Log.Add(_l+ _bus[b].name+ "объявление добавлено");
                         count--;
                     } catch (Exception x) {
-                        Log.Add("drom.ru: ошибка добавления! - " + _bus[b].name + " - " + x.Message);
+                        Log.Add(_l+ _bus[b].name+ "ошибка добавления!");
                         break;
                     }
                 }
@@ -326,6 +333,7 @@ namespace Selen.Sites {
                 }
             }
             cl.Dispose();
+            Thread.Sleep(2000);
         }
         void SetPart(RootObject b) {
             var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
@@ -377,7 +385,7 @@ namespace Selen.Sites {
                 PressServiseSubmitButton();
                 _dr.ButtonClick("//a[contains(@href,'publish')]");
                 if (_dr.GetElementsCount("//h2[contains(text(),'нельзя продлить')]") > 0) {
-                    Log.Add("drom.ru: " + b.name + "+ - ошибка, объявление нельзя восстановить, удаляю ссылку!");
+                    Log.Add(_l + b.name + " - ошибка - объявление нельзя восстановить, ссылка удалена!");
                     b.drom = "";
                     Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                         {"id", b.id},
@@ -466,7 +474,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine("drom.ru: ошибка парсинга! - " + x.Message + " - " + x.InnerException.Message);
+                Debug.WriteLine(_l + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
         public async Task CheckOffersAsync() {
@@ -481,13 +489,13 @@ namespace Selen.Sites {
                             if (_bus[b].amount > 0 &&
                                 _bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
-                                Log.Add("drom.checkOffers: " + _bus[b].name + " - проверяю объявление " + (i + 1) + " (" + b + " / " + _bus.Count + ")");
+                                Log.Add(_l + _bus[b].name + " - проверяю объявление " + (i + 1) + " (" + b + " / " + _bus.Count + ")");
                                 _dr.Navigate(_bus[b].drom);
                                 Thread.Sleep(1000);
                                 //адрес самовывоза из профиля
                                 if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background").Contains("rgb(255, 255, 255)")) {
                                     _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
-                                    Log.Add("drom.checkOffers: " + _bus[b].name + " - установлен адрес самовывоза");
+                                    Log.Add(_l + _bus[b].name + " - установлен адрес самовывоза");
                                 }
                                 SetPart(_bus[b]);
                                 SetWeight(_bus[b]);
@@ -510,7 +518,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine("drom.checkOffers: ошибка! - " + x.Message + " - " + x.InnerException.Message);
+                Debug.WriteLine(_l + "ошибка! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
 
@@ -519,21 +527,21 @@ namespace Selen.Sites {
                 CheckItem(drom[i]);
             }
         }
-        void CheckItem(RootObject item) {
-            var i = _bus.FindIndex(f => f.drom.Contains(item.id));
-            if (i < 0 && !item.description.Contains("далено")) {
-                _dr.Navigate(item.drom);
-                Delete();
+        void CheckItem(RootObject b) {
+            var i = _bus.FindIndex(f => f.drom.Contains(b.id));
+            if (i < 0 && !b.description.Contains("далено")) {
+                _dr.Navigate(b.drom);
+                Delete(b);
             }
             if (i > -1 &&
-                ((item.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
+                ((b.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
 
                     && DateTime.Now.Minute < 50 //ограничитель периода
                                                 //&& _bus[i].price > 500
 
                 ) ||
-                !item.description.Contains("далено") && _bus[i].amount <= 0 ||
-                (item.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
+                !b.description.Contains("далено") && _bus[i].amount <= 0 ||
+                (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
                 )) {
                 Edit(_bus[i]);
             }
@@ -575,7 +583,7 @@ namespace Selen.Sites {
                         var imgUrls = new List<string>();
                         try {
                             await Task.Factory.StartNew(() => {
-                                Log.Add("drom.ru: " + _bus[b].name + " нет фотографий в карточке!");
+                                Log.Add(_l + _bus[b].name + " нет фотографий в карточке!");
                                 _dr.Navigate(_bus[b].drom);
                                 //получаю количество фотографий 
                                 var imgCount = _dr.GetElementsCount("//div[@class='grid-item-wrapper']/img[contains(@src,'drom.ru')]");
@@ -621,9 +629,9 @@ namespace Selen.Sites {
                                     + biz[0].images.Count);
                             //обновляю ссылку на фото
                             _bus[b].images = biz[0].images;
-                            Log.Add("drom.ru: " + imgUrls.Count + " фото обновлено!");
+                            Log.Add(_l + imgUrls.Count + " фото обновлено!");
                         } catch (Exception x) {
-                            Log.Add("drom.ru: " + _bus[b].name + " - ошибка загрузки фотографий - " + x.Message);
+                            Log.Add(_l + _bus[b].name + " - ошибка загрузки фотографий - " + x.Message);
                         }
                     }
                 }
