@@ -360,6 +360,7 @@ namespace Selen.Sites {
             if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             d.Add(OpenQA.Selenium.Keys.Tab);
+            _dr.ClickToSelector("//textarea[@name='text']");
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
         }
         void SetPrice(RootObject b) {

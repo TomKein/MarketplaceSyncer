@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.166";
+        string _version = "1.167";
 
         DB _db = new DB();
 
@@ -417,6 +417,8 @@ namespace Selen {
         async Task CheckUrls() {
             for (int b = 0; b < _bus.Count; b++) {
                 if (_bus[b].GroupName().Contains("РАЗБОРКА") &&
+                    _bus[b].amount == 0 &&
+                    _bus[b].price == 0 &&
                     (!string.IsNullOrEmpty(_bus[b].drom) ||
                     !string.IsNullOrEmpty(_bus[b].vk) ||
                     !string.IsNullOrEmpty(_bus[b].kp) ||
