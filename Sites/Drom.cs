@@ -141,11 +141,12 @@ namespace Selen.Sites {
                 return;
             }
             _dr.Navigate(b.drom, "//input[@name='subject']");
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
             SetTitle(b);
             CheckPhotos(b);
             SetPrice(b);
             SetOptions(b);
+            SetAddress(b);
             SetDesc(b);
             SetPart(b);
             SetWeight(b);
@@ -335,6 +336,14 @@ namespace Selen.Sites {
             cl.Dispose();
             Thread.Sleep(2000);
         }
+        //адрес самовывоза из профиля
+        void SetAddress(RootObject b) {
+            if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background")
+                .Contains("rgb(255, 255, 255)")) {
+                _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
+                Log.Add(_l + b.name + " - установлен адрес самовывоза");
+            }
+        }
         void SetPart(RootObject b) {
             var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
             if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part)
@@ -359,6 +368,10 @@ namespace Selen.Sites {
             d.Insert(0, "В наличии: " + amount);
             if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
+            //проверяю текст в поле, если он не изменился - пропускаю обновление
+            var w = _dr.GetElementAttribute("//textarea[@name='text']", "value");
+            if (w == d.Aggregate((r, l) => r + "\r\n" + l))
+                return; 
             d.Add(OpenQA.Selenium.Keys.Tab);
             _dr.ClickToSelector("//textarea[@name='text']");
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
@@ -483,33 +496,28 @@ namespace Selen.Sites {
                 await Task.Factory.StartNew(() => {
                     int b = _db.GetParamInt("drom.checkOfferIndex");
                     int cnt = _db.GetParamInt("drom.checkOffersCount");
-                    for (int i = 0; i < cnt; i++) {
+                    for (int i = 0; i < cnt;) {
                         try {
                             if (b >= _bus.Count)
                                 b = 0;
-                            if (_bus[b].amount > 0 &&
-                                _bus[b].images.Count > 0 &&
+                            if (
+                                _bus[b].amount > 0 &&
+                                //_bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
-                                Log.Add(_l + _bus[b].name + " - проверяю объявление " + (i + 1) + " (" + b + " / " + _bus.Count + ")");
+                                Log.Add(_l + _bus[b].name + " - проверяю объявление " + (i + 1) + 
+                                    " (" + b + " / " + _bus.Count + ")");
+                                //Edit(_bus[b]);
                                 _dr.Navigate(_bus[b].drom);
                                 Thread.Sleep(1000);
-                                //адрес самовывоза из профиля
-                                if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background").Contains("rgb(255, 255, 255)")) {
-                                    _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
-                                    Log.Add(_l + _bus[b].name + " - установлен адрес самовывоза");
-                                }
+                                SetAddress(_bus[b]);
                                 SetPart(_bus[b]);
                                 SetWeight(_bus[b]);
                                 SetPrice(_bus[b]);
-                                //проверка фото
                                 CheckPhotos(_bus[b]);
-                                //проверка описания
-                                var d = _dr.GetElementAttribute("//label[text()='Текст объявления']/../../div/textarea", "value");
-                                if (!d.Contains("В наличии"))
-                                    SetDesc(_bus[b]);
+                                SetDesc(_bus[b]);
                                 Thread.Sleep(2000);
-                            } else
-                                i--;
+                                i++;
+                            } 
                             _db.SetParam("drom.checkOfferIndex", (++b).ToString());
                         } catch {
                             _dr.Refresh();
