@@ -494,6 +494,7 @@ namespace Selen.Sites {
                 name.StartsWith("шкив помпы") ||
                 name.StartsWith("вентиляционный дефлектор") ||
                 name.StartsWith("заслонка воздушная") ||
+                name.StartsWith("тройник системы охлаждения") ||
                 name.StartsWith("теплообменник") ||
                 name.StartsWith("моторчик засл")) {
                 d.Add("TypeId", "16-521");                              //Система охлаждения
@@ -671,6 +672,7 @@ namespace Selen.Sites {
                   name.StartsWith("расходомер") ||
                   name.StartsWith("эбу") ||
                   name.StartsWith("конденсатор") ||
+                  name.StartsWith("заслонка отопителя") ||
                   b.GroupName() == "Электрика, зажигание") {
                 d.Add("TypeId", "11-630");                          //Электрооборудование
             } else if (name.StartsWith("ящик") ||
@@ -788,6 +790,7 @@ namespace Selen.Sites {
                   name.Contains("опор") && name.Contains("амортизат") ||
                   (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
                   name.StartsWith("сайлентблок") ||
+                  name.StartsWith("втулка сайлентблока") ||
                   name.StartsWith("привод ") ||
                   name.StartsWith("мкпп ") ||
                   name.StartsWith("акпп ")) {
@@ -992,6 +995,7 @@ namespace Selen.Sites {
                 name.StartsWith("комплект прокладок") ||
                 name.StartsWith("хомут ") ||
                 name.StartsWith("сальник привода") ||
+                name.StartsWith("сальник промежуточного вала") ||
                 name.StartsWith("сальник №")) {
                 d.Add("TypeId", "11-621");                          //Запчасти для ТО
             }

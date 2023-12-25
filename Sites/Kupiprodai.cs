@@ -189,8 +189,13 @@ namespace Selen.Sites {
             _dr.WriteToSelector("input[name*='price']", _bus[b].price.ToString());
         }
         //пишу описание
-        void SetDesc(int b) {
-            var d = _bus[b].DescriptionList(2999, _addDesc);
+        void SetDesc(int b, bool min=false ) {
+            int len;
+            if (min)
+                len = 100;
+            else
+                len = 2999;
+            var d = _bus[b].DescriptionList(len, _addDesc);
             if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             _dr.WriteToSelector(".form_content_long2 textarea", sl: d);
@@ -200,7 +205,7 @@ namespace Selen.Sites {
             do {
                 _dr.ButtonClick("input[name='captcha']");
                 while (_dr.GetElementsCount("input[name='captcha']") > 0 && _dr.GetElementAttribute("input[name='captcha']", "value").Length != 6)
-                    Thread.Sleep(1000);
+                    Thread.Sleep(500);
                 _dr.ButtonClick("input[type='submit']");
             } while (_dr.GetElementsCount("input[name='captcha']") > 0);
         }
@@ -219,7 +224,7 @@ namespace Selen.Sites {
                                 SetTitle(b,twice:true);
                                 SetCategory(b);
                                 //SetImages(b);
-                                SetDesc(b);
+                                SetDesc(b, min:true);
                                 SetPrice(b);
                                 PressOkButton();
                             });
