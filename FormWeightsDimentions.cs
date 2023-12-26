@@ -235,9 +235,17 @@ namespace Selen {
         private void dataGridView_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
             if (e.ColumnIndex == 0)
                 try {
-                    Clipboard.SetText(dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString());
+                    var id = dataGridView.Rows[e.RowIndex].Cells[0].Value.ToString();
+                    var busIndex = _bus.FindIndex(b => b.id == id);
+                    Clipboard.SetText(id);
+
+                    var form = new FormImage(busIndex);
+                    form.Owner = this;
+                    form.ShowDialog();
+                    form.Dispose();
+
                 } catch (Exception x) {
-                    Log.Add("ошибка копирования в буфер обмена - "+x.Message);
+                    Log.Add(x.Message);
                 }
         }
 

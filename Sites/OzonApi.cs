@@ -514,7 +514,7 @@ namespace Selen.Sites {
                         Log.Add(_l + good.name + " ошибка - " + s);
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add(_l + x.Message + x.InnerException?.Message);
+                    Log.Add(_l + good.name +" - "+ x.Message + x.InnerException?.Message);
                 }
                 if (++i >= count)
                     break;
