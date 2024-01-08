@@ -16,7 +16,7 @@ using Selen.Base;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.168";
+        string _version = "1.169";
 
         DB _db = new DB();
 
@@ -1032,25 +1032,15 @@ namespace Selen {
                                                     && w.description.Contains("№") 
                                                     && string.IsNullOrEmpty(w.Part)))) {
                     Log.Add("business.ru: обнаружен пустой артикул - " + item.name);
-                    //ищем номера в описании
-                    string num = item.description
-                            .Split('№')[1]
-                            .Replace("&nbsp;", " ")
-                            .Replace("&thinsp;", " ")
-                            .Trim(' ')
-                            .Replace("<", " ")
-                            .Replace("</p>", " ")
-                            .Replace("\n", " ")
-                            .Split(' ')[0]
-                            .Split(',')[0];
-                    if (num.Length > 0) {
-                        item.part = num;
+                    var nums = item.GetDescriptionNumbers();
+                    if (nums.Count > 0) {
+                        item.part = nums[0];
                         await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", item.id},
                                 {"name", item.name},
-                                {"part", num}
+                                {"part", item.part}
                         });
-                        Log.Add("business.ru: добавлен артикул - " + num);
+                        Log.Add("business.ru: добавлен артикул - " + item.part);
                         Thread.Sleep(1000);
                     }
                     i++;

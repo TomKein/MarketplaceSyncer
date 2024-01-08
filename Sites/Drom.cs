@@ -149,6 +149,7 @@ namespace Selen.Sites {
             SetAddress(b);
             SetDesc(b);
             SetPart(b);
+            SetAlternativeParts(b);
             SetWeight(b);
             PressOkButton();
             Log.Add(_l + b.name + " - объявление обновлено");
@@ -212,6 +213,7 @@ namespace Selen.Sites {
                         _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                         _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
                         SetPart(_bus[b]);
+                        SetAlternativeParts(_bus[b]);
                         SetImages(_bus[b]);
                         SetDesc(_bus[b]);
                         SetPrice(_bus[b]);
@@ -225,10 +227,10 @@ namespace Selen.Sites {
                     try {
                         await t;
                         await SaveUrlAsync(b);
-                        Log.Add(_l+ _bus[b].name+ "объявление добавлено");
+                        Log.Add(_l+ _bus[b].name+ " объявление добавлено");
                         count--;
                     } catch (Exception x) {
-                        Log.Add(_l+ _bus[b].name+ "ошибка добавления!");
+                        Log.Add(_l+ _bus[b].name+ " ошибка добавления! - " + x.Message);
                         break;
                     }
                 }
@@ -348,6 +350,22 @@ namespace Selen.Sites {
             var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
             if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part)
                 _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.Part + OpenQA.Selenium.Keys.Tab);
+        }
+        void SetAlternativeParts(RootObject b) {
+            var descNums = b.GetDescriptionNumbers();
+            var oem = b.GetOEM();
+            if (!string.IsNullOrEmpty(oem) && oem != b.part)
+                descNums.Add(oem);
+            var alt = b.GetAlternatives();
+            if (!string.IsNullOrEmpty(alt) && alt != b.part) 
+                descNums.Add(alt);
+            var numbers = descNums.Where(x=>x!=b.part)
+                                  .Distinct()
+                                  .Take(5)
+                                  .Aggregate((n1, n2) => n1 + ", " + n2);
+            var w = _dr.GetElementAttribute("//textarea[@name='autoPartsSubstituteNumbers']", "value");
+            if (w != numbers)
+                _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", numbers + OpenQA.Selenium.Keys.Tab);
         }
         void PressOkButton() {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");
@@ -474,10 +492,10 @@ namespace Selen.Sites {
             int count = await _db.GetParamIntAsync("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
-                    var pages = GetPagesCount("all") / 2;//todo убрать
+                    var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
                         try {
-                            var drom = ParsePage(_rnd.Next(1, pages));
+                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 4));
                             CheckPage(drom);
                         } catch {
                             //i--;
@@ -511,6 +529,7 @@ namespace Selen.Sites {
                                 Thread.Sleep(1000);
                                 SetAddress(_bus[b]);
                                 SetPart(_bus[b]);
+                                SetAlternativeParts(_bus[b]);
                                 SetWeight(_bus[b]);
                                 SetPrice(_bus[b]);
                                 CheckPhotos(_bus[b]);

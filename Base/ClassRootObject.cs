@@ -260,7 +260,7 @@ namespace Selen {
         }
         //Атрибут Гарантия
         public string GetGaranty() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "162692");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2539132");
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -461,6 +461,20 @@ namespace Selen {
             } else
                 return null;
         }
+        //Номера из описания
+        public List<string> GetDescriptionNumbers() {
+            return description.Split('№')
+                              .Select(s => s.Replace("&nbsp;", " ")
+                                            .Replace("&thinsp;", " ")
+                                            .Trim(' ')
+                                            .Replace("<", " ")
+                                            .Replace("</p>", " ")
+                                            .Replace("\n", " ")
+                                            .Replace(",", " ")
+                                            .Split(' ')[0])
+                              .ToList();
+        }
+
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
             if (group_id == "169326" || //Корневая группа

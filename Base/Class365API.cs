@@ -20,22 +20,16 @@ namespace Selen {
         public string request_count { get; set; }
     }
 
-    static class Class365API {
+    public class Class365API {
         //поля
-        private static string secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
-
-        private static string app_id = "768289";
-
-        private static Uri baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
-
-        static RootResponse rr = new RootResponse();
-
-        static Dictionary<string, string> data = new Dictionary<string, string>();
-
-        private static HttpClient hc = new HttpClient();
-
-        private static object locker = new object();
-        private static bool flag = false;
+        private static string _secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
+        private static string _appId = "768289";
+        private static Uri _baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
+        static RootResponse _rr = new RootResponse();
+        static Dictionary<string, string> _data = new Dictionary<string, string>();
+        private static HttpClient _hc = new HttpClient();
+        private static object _locker = new object();
+        private static bool _flag = false;
 
         //конструктор
         //public static Class365API() { }
@@ -47,36 +41,36 @@ namespace Selen {
         {
             await Task.Delay(1000);
             //1
-            data["app_id"] = app_id;
+            _data["app_id"] = _appId;
             //2
             var sb = new StringBuilder();
-            foreach (var key in data.Keys.OrderBy(x => x, StringComparer.Ordinal)) {
+            foreach (var key in _data.Keys.OrderBy(x => x, StringComparer.Ordinal)) {
                 sb.Append("&")
                   .Append(key)
                   .Append("=")
-                  .Append(data[key]);
+                  .Append(_data[key]);
             }
             //3
             sb.Remove(0,1);//убираем первый &
             string ps = sb.ToString();
             //4 - кодировка в мд5
-            byte[] hash = Encoding.ASCII.GetBytes(secret + ps);
+            byte[] hash = Encoding.ASCII.GetBytes(_secret + ps);
             MD5 md5 = new MD5CryptoServiceProvider();
             byte[] hashenc = md5.ComputeHash(hash);
             //5
             ps += "&app_psw=" + GetMd5(hashenc);
             //6
-            Uri url = new Uri(baseAdr, "repair.json?" + ps);
-            HttpResponseMessage res = await hc.GetAsync(url);
+            Uri url = new Uri(_baseAdr, "repair.json?" + ps);
+            HttpResponseMessage res = await _hc.GetAsync(url);
             var js = await res.Content.ReadAsStringAsync();
 
             if (res.StatusCode != HttpStatusCode.OK || js.Contains("Превышение лимита")) {
-                rr.token = "";
+                _rr.token = "";
                 Log.Add("business.ru: ошибка получения токена авторизации! - " + res.StatusCode.ToString());
                 await Task.Delay(60000);
             } else {
                 //сохраним токен
-                rr = JsonConvert.DeserializeObject<RootResponse>(js);
+                _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                 Log.Add("business.ru: получен новый токен!");
             }
             await Task.Delay(1000);
@@ -84,13 +78,13 @@ namespace Selen {
 
         public static async Task<string> RequestAsync(string action, string model, Dictionary<string, string> par)
         {
-            while (flag) { await Task.Delay(5000); }
-            lock (locker) {
-                flag = true; }
+            while (_flag) { await Task.Delay(5000); }
+            lock (_locker) {
+                _flag = true; }
             HttpResponseMessage httpResponseMessage = null;
 
             //1.добавляем к словарю параметров app_id
-            par["app_id"] = app_id;
+            par["app_id"] = _appId;
             //2.сортиовка параметров
             SortedDictionary<string, string> parSorted = new SortedDictionary<string, string>(new PhpKSort());
             foreach (var key in par.Keys) {
@@ -101,39 +95,39 @@ namespace Selen {
             do {
                 //проверяем токен
                 try {
-                    while (rr == null || rr.token == "" || rr.token == null) {
+                    while (_rr == null || _rr.token == "" || _rr.token == null) {
                         await RepairAsync();
                     }
                     //3.считаем хэш строку
-                    byte[] hash = Encoding.UTF8.GetBytes(rr.token + secret + qstr);
+                    byte[] hash = Encoding.UTF8.GetBytes(_rr.token + _secret + qstr);
                     MD5 md5 = new MD5CryptoServiceProvider();
                     byte[] hashenc = md5.ComputeHash(hash);
                     //4.прибавляем полученный пароль к строке запроса
                     qstr += "&app_psw=" + GetMd5(hashenc);
 
                     //5.готовим ссылку
-                    string url = baseAdr + model + ".json";
+                    string url = _baseAdr + model + ".json";
 
                     //6.выполняем соответствующий запрос
                     if (action.ToUpper() == "GET") {
-                        httpResponseMessage = await hc.GetAsync(url + "?" + qstr);
+                        httpResponseMessage = await _hc.GetAsync(url + "?" + qstr);
                     } else if (action.ToUpper() == "PUT") {
                         HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/json");
-                        httpResponseMessage = await hc.PutAsync(url, content);
+                        httpResponseMessage = await _hc.PutAsync(url, content);
                     } else if (action.ToUpper() == "POST") {
                         HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/x-www-form-urlencoded");
-                        httpResponseMessage = await hc.PostAsync(url, content);
+                        httpResponseMessage = await _hc.PostAsync(url, content);
                     } else if (action.ToUpper() == "DELETE") {
                         //HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/x-www-form-urlencoded");
-                        httpResponseMessage = await hc.DeleteAsync(url + "?" + qstr);
+                        httpResponseMessage = await _hc.DeleteAsync(url + "?" + qstr);
                     }
                     if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
                         var js = await httpResponseMessage.Content.ReadAsStringAsync();
-                        rr = JsonConvert.DeserializeObject<RootResponse>(js);
+                        _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                         //todo добавить параметр в настройки
                         Thread.Sleep(100);
-                        flag = false;
-                        return rr != null ? JsonConvert.SerializeObject(rr.result) : "";
+                        _flag = false;
+                        return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                     } 
                     Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
                     await RepairAsync();
@@ -143,18 +137,16 @@ namespace Selen {
                     Log.Add("business.ru: ошибка запроса к бизнес.ру - " + x.Message);
                     await Task.Delay(30000);
                     qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
-                    rr.token = "";
-                    flag = false;
+                    _rr.token = "";
+                    _flag = false;
                 }
             } while (true);
         }
-
         private static string GetMd5(byte[] hashenc) {
             StringBuilder md5_str = new StringBuilder();
             foreach (var b in hashenc) {
                 md5_str.Append(b.ToString("x2"));
             }
-
             return md5_str.ToString();
         }
     }

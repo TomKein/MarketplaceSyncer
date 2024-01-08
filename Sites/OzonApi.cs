@@ -351,12 +351,15 @@ namespace Selen.Sites {
                 };
                 //переносим в объект запроса атрибуты из товара озон, которые уже есть
                 foreach (var item in productFullInfo[0].attributes) {
-                    //пропускаю некоторые атрибуты
-                    if (item.id != 4180 &&                                          //название
+                                                                                    //Пропускаю некоторые атрибуты
+                    if (item.id != 4180 &&                                          //Название
                     item.id != 9024 &&                                              //Артикул
                     item.id != 9048 &&                                              //Название модели (для объединения в одну карточку)
                     item.id != 4191 &&                                              //Аннотация
                     item.id != 22387 &&                                             //Группа товара
+                    
+                    item.id != 85 &&                                                //Бренд (теперь используем Без бренда,
+                                                                                    //убрать если нужно сохранять бренд, уже установленных в товарах)
                     item.values.Length > 0) {
                         var values = new Value {
                             value = item.values[0].value,
@@ -1322,7 +1325,7 @@ namespace Selen.Sites {
                     a.typeId = 96179;
                     a.typeName = "Фильтр топливный";
                 } else if (n.StartsWith("фланец ") && 
-                    (n.Contains("карбюратора")|| n.Contains("моновпрыск"))) {              //Фланец карбюратора 
+                    (n.Contains("карбюратор")|| n.Contains("моновпрыск"))) {              //Фланец карбюратора 
                     a.categoryId = 33698197;
                     a.typeId = 971061543;
                     a.typeName = "Ремкомплект карбюратора";
@@ -1923,27 +1926,30 @@ namespace Selen.Sites {
             };
         //Атрибут Бренд
         Attribute GetBrendAttribute(RootObject bus) {
-            int id;
-            string name;
-            var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
-            if (m == "vag") {
-                id = 115840909;
-                name = "VAG (VW/Audi/Skoda/Seat)";
-            } else if (_brends.Any(a => a.value.ToLowerInvariant() == m)) {
-                var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
-                id = attribute.id;
-                name = attribute.value;
-            } else {
-                id = 0;
-                name = "Нет бренда";
-            }
+            //int id;
+            //string name;
+            //var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
+            //if (m == "vag") {
+            //    id = 115840909;
+            //    name = "VAG (VW/Audi/Skoda/Seat)";
+            //} else if (m == "chery") {
+            //    id = 0;
+            //    name = "Нет бренда";
+            //} else if (_brends.Any(a => a.value.ToLowerInvariant() == m)) {
+            //    var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
+            //    id = attribute.id;
+            //    name = attribute.value;
+            //} else {
+            //    id = 0;
+            //    name = "Нет бренда";
+            //}
             return new Attribute {
                 complex_id = 0,
                 id = 85,
                 values = new Value[] {
                     new Value{
-                        dictionary_value_id = id,
-                        value = name
+                        dictionary_value_id = 0,//126745801 //id,
+                        value = "Нет бренда"    //name
                     }
                 }
             };
