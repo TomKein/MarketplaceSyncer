@@ -14,18 +14,15 @@ namespace Selen.Base {
     /// 3. связь с таблицей settings
     /// 4. связь с таблицей goods
     /// </summary>
-    class DB {
+    public class DB {
         //строка подключения mysql
         //readonly string filenameConnectionString = @"..\connection.bak";
-        readonly string filenameConnectionString = @"..\connection.ini";
-        //ссылка на экземпляр себя
-        public static DB _db;
+        static readonly string filenameConnectionString = @"..\connection.ini";
         //создаю подключение
-        public MySqlConnection connection = null;
-        private readonly object _lock = new object();
+        public static MySqlConnection connection;
+        static readonly object _lock = new object();
         //конструктор по умолчанию - открывает соединение сразу
-        public DB() {
-            if (_db!=null) return;
+        static DB() {
             try {
                 string connectionString = File.ReadAllText(filenameConnectionString);
                 connection = new MySqlConnection(connectionString);
@@ -36,7 +33,6 @@ namespace Selen.Base {
                 MySqlCommand command = new MySqlCommand(query, connection);
                 command.ExecuteNonQuery();
                 //сохраняю ссылку на себя
-                _db = this;
             } catch (Exception x) {
                 Debug.WriteLine(x.Message);
             }
@@ -46,29 +42,29 @@ namespace Selen.Base {
             CloseConnection();
         }
         //открыть соединение
-        public void OpenConnection() {
+        public static void OpenConnection() {
             if (connection.State == ConnectionState.Closed) { 
                 connection.Open();
                 Thread.Sleep(1000);
             }
         }
         //закрыть соединение
-        public void CloseConnection() {
+        public static void CloseConnection() {
             if (connection.State == ConnectionState.Open)
                 connection.Close();
                 Thread.Sleep(1000);
         }
         //ссылка на текущее соединение
-        public MySqlConnection GetConnection() {
+        public static MySqlConnection GetConnection() {
             return connection;
         }
         //исполнить sql строку с возвратом данных в виде таблицы
-        public DataTable SqlQuery(string query) {
+        public static DataTable SqlQuery(string query) {
             MySqlCommand command = new MySqlCommand(query, connection);
             return ExecuteCommandQuery(command);
         }
         //вызов комманды с получением данных в виде таблицы
-        private DataTable ExecuteCommandQuery(MySqlCommand query) {
+        private static DataTable ExecuteCommandQuery(MySqlCommand query) {
             DataTable table = new DataTable();
             MySqlDataAdapter adapter = new MySqlDataAdapter();
             adapter.SelectCommand = query;
@@ -91,7 +87,7 @@ namespace Selen.Base {
             return table;
         }
         //вызов комманды без получения данных, возвращает количество затронутых строк
-        private int ExecuteCommandNonQuery(MySqlCommand command) {
+        static int ExecuteCommandNonQuery(MySqlCommand command) {
             int result = 0;
             lock (_lock) {
                 for (int i = 0; ; i++) {
@@ -112,7 +108,7 @@ namespace Selen.Base {
             return result;
         }
         //изменение названия параметра в таблице settings
-        public int UpdateParamName(string nameOld, string nameNew) {
+        public static int UpdateParamName(string nameOld, string nameNew) {
             var query = "UPDATE settings SET name = '" + nameNew + "' WHERE name = '" + nameOld + "';";
             //создаем команду
             MySqlCommand command = new MySqlCommand(query, connection);
@@ -120,7 +116,7 @@ namespace Selen.Base {
             return ExecuteCommandNonQuery(command);
         }
         //добавление либо обновление параметра в таблице settings
-        public int SetParam(string name, string value) {
+        public static int SetParam(string name, string value) {
             //запрос для сохранения настроек
             string query = "INSERT INTO `settings` (`name`, `value`) " +
                            "VALUES (@name, @value) " +
@@ -133,17 +129,17 @@ namespace Selen.Base {
             return ExecuteCommandNonQuery(command);
         }
         //обновление параметра асинхронно
-        public async Task<int> SetParamAsync(string name, string value) {
+        public static async Task<int> SetParamAsync(string name, string value) {
             return await Task.Factory.StartNew(() => {
                 return SetParam(name, value);
             });
         }
         //получаю строку асинхронно
-        public async Task<string> GetParamStrAsync(string key) => await Task.Factory.StartNew(() => {
+        public static async Task<string> GetParamStrAsync(string key) => await Task.Factory.StartNew(() => {
             return GetParamStr(key);
         });
         //получаем настройки как строку
-        public string GetParamStr(string key) {
+        public static string GetParamStr(string key) {
             //запрос для получения настроек
             var query = "SELECT `value` " +
                         "FROM `settings` " +
@@ -157,7 +153,7 @@ namespace Selen.Base {
             return First(result);
         }
         //получаем настройки как число
-        public int GetParamInt(string key) {
+        public static int GetParamInt(string key) {
             //перевызываем метод получения строки
             var result = GetParamStr(key);
             //приводим к числовому типу
@@ -167,7 +163,7 @@ namespace Selen.Base {
             return -1;
         }
         //получаем настройки как число c плавающей точкой
-        public float GetParamFloat(string key) {
+        public static float GetParamFloat(string key) {
             //перевызываем метод получения строки
             var result = GetParamStr(key).Replace(".", ",");
             //приводим к числовому типу
@@ -177,7 +173,7 @@ namespace Selen.Base {
             return -1;
         }
         //получаем настройки как число long
-        public long GetParamLong(string key) {
+        public static long GetParamLong(string key) {
             //перевызываем метод получения строки
             var result = GetParamStr(key);
             //приводим к числовому типу
@@ -187,12 +183,12 @@ namespace Selen.Base {
             return -1;
         }
         //получаю число асинхронно
-        public async Task<int> GetParamIntAsync(string key) => await Task.Factory.StartNew(() => {
+        public static async Task<int> GetParamIntAsync(string key) => await Task.Factory.StartNew(() => {
             return GetParamInt(key);
         });
 
         //получаем настройки как булевое значение
-        public bool GetParamBool(string key) {
+        public static bool GetParamBool(string key) {
             //перевызываем метод получения строки
             var result = GetParamStr(key).ToLowerInvariant();
             switch (result) {
@@ -205,11 +201,11 @@ namespace Selen.Base {
             }
         }
         //получаю настройку как булево значение асинхронно
-        public async Task<bool> GetParamBoolAsync(string key) => await Task.Factory.StartNew(() => {
+        public static async Task<bool> GetParamBoolAsync(string key) => await Task.Factory.StartNew(() => {
             return GetParamBool(key);
         });
         //получаем параметр как дату-время
-        public DateTime GetParamDateTime(string key) {
+        public static DateTime GetParamDateTime(string key) {
             //перевызываем метод получения строки
             var result = GetParamStr(key);
             //приводим тип к дате
@@ -220,11 +216,11 @@ namespace Selen.Base {
             return DateTime.MinValue;
         }
         //получаем параметр как дату-время
-        public async Task<DateTime> GetParamDateTimeAsync(string key) {
+        public static async Task<DateTime> GetParamDateTimeAsync(string key) {
             return await Task.Factory.StartNew(() => { return GetParamDateTime(key); });
         }
         //получаем параметры
-        public async Task<DataTable> GetParamsAsync(string filter = null) {
+        public static async Task<DataTable> GetParamsAsync(string filter = null) {
             return await Task.Factory.StartNew(() => {
                 //строка запроса
                 string query = "SELECT * FROM settings";
@@ -236,7 +232,7 @@ namespace Selen.Base {
             });
         }
         //возвращает первый элемент из таблицы как строку
-        private string First(DataTable dataTable) {
+        private static string First(DataTable dataTable) {
             //если строк больше 0, возвращаем значение первого столбца первой строки
             if (dataTable.Rows.Count > 0)
                 return dataTable.Rows[0].ItemArray[0].ToString();
@@ -244,7 +240,7 @@ namespace Selen.Base {
             return null;
         }
         //метод для записи логов в базу
-        public void AddLogAsync(string message, string site = "") {
+        public static void AddLogAsync(string message, string site = "") {
             Task.Factory.StartNew(() => {
                 //запрос для записи в лог
                 var query = "INSERT INTO `logs` (`datetime`, `site`, `text`) " +
@@ -262,14 +258,14 @@ namespace Selen.Base {
             });
         }
         //удаляю из лога записи старше 30 дней
-        private void TruncLog() {
+        private static void TruncLog() {
             var query = "DELETE FROM `logs`" +
                         "WHERE DATE_SUB(CURDATE(),INTERVAL 90 DAY) > `datetime`";
             MySqlCommand command = new MySqlCommand(query, connection);
             ExecuteCommandNonQuery(command);
         }
         //метод для запроса логов из базы
-        public async Task<DataTable> GetLogAsync(string filter, int limit = 100) {
+        public static async Task<DataTable> GetLogAsync(string filter, int limit = 100) {
             return await Task.Factory.StartNew(() => {
                 var query = "SELECT * FROM logs ";
                 //если параметр не нулевой - добавляем в запрос
@@ -283,7 +279,7 @@ namespace Selen.Base {
             });
         }
         //запрос карточки товара из базы данных
-        public string GetGood(string arg, string text) {
+        public static string GetGood(string arg, string text) {
             //формируем строку запроса sql
             var query = "SELECT json " +
                         "FROM goods " +
@@ -300,7 +296,7 @@ namespace Selen.Base {
         //dateTime - строка с временем изменения карточки
         //json - строковое представление карточки товара
         //возвращает число измененных строк
-        public int SetGood(int id, string updated, string json) {
+        public static int SetGood(int id, string updated, string json) {
             //строка запроса
             var query = "INSERT INTO `goods` (`id`, `json`, `updated`) " +
                         "VALUES (@id, @json, @updated) " +

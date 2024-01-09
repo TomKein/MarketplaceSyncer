@@ -7,7 +7,6 @@ using Selen.Tools;
 namespace Selen {
     public partial class FormSettings : Form {
         //ссылка на объект для работы с бд
-        DB _db = DB._db;
         //сохраняю имя параметра
         string _name = null;
         //сохраняю значение параметра
@@ -19,7 +18,7 @@ namespace Selen {
         //метод заполнения таблицы значениями параметров из таблицы settings бд
         async Task GridFillAsync() {
             //получаю таблицу параметров, в качестве параметра передаю значение поля для поиска
-            var dt = await _db.GetParamsAsync(textBox_Search.Text);
+            var dt = await DB.GetParamsAsync(textBox_Search.Text);
             //даю таблицу датагриду
             dataGridView.DataSource = dt;
             //первый столбец (ключи) ставлю только для чтения
@@ -48,13 +47,13 @@ namespace Selen {
             var value = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
             //если изменили имя параметра
             if (name != _name) {
-                var res1 = _db.UpdateParamName(_name, name);
+                var res1 = DB.UpdateParamName(_name, name);
                 if (res1 > 0) Log.Add("БД: обновлено имя параметра " + _name + " => " + name);
             }
             //если изменили значение параметра
             else if (value != _value) {
                 //отправляю запрос на изменение значения параметра в таблицу бд
-                var res = _db.SetParam(name, value);
+                var res = DB.SetParam(name, value);
                 if (res > 0) Log.Add("БД: сохранено " + name + " = " + value);
             }
             else Log.Add("БД: без изменений");
@@ -68,7 +67,7 @@ namespace Selen {
             GridFillAsync();
         }
         private async void FormSettings_FormClosed(object sender, FormClosedEventArgs e) {
-            Log.Level = await _db.GetParamIntAsync("logSize");
+            Log.Level = await DB.GetParamIntAsync("logSize");
         }
     }
 }

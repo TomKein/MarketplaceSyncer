@@ -17,11 +17,11 @@ namespace Selen {
 
         private void ImageForm_Shown(object sender, EventArgs e) {
             FormMain main = this.Owner as FormMain;
-            this.Text = FormMain._bus[_i].name;
+            this.Text = Class365API._bus[_i].name;
             WebClient cl = new WebClient();
             for (int i = 0; i < 3; i++) {
                 try {
-                    var byteArray = cl.DownloadData(FormMain._bus[_i].images[0].url);
+                    var byteArray = cl.DownloadData(Class365API._bus[_i].images[0].url);
                     var ms = new MemoryStream(byteArray);
                     var bm = Bitmap.FromStream(ms);
                     var h = 800;

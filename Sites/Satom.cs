@@ -47,7 +47,7 @@ namespace Selen.Sites {
         }
 
         public void GenerateXlsx() {
-            string[] _addDesc = JsonConvert.DeserializeObject<string[]>(DB._db.GetParamStr("satom.addDescription"));
+            string[] _addDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("satom.addDescription"));
             //готовлю файл
             File.Copy(_ftmp, _fexp, overwrite: true);
             Log.Add("satom: шаблон скопирован");
@@ -59,9 +59,9 @@ namespace Selen.Sites {
             //беру первую таблицу
             var ws = excelPackage.Workbook.Worksheets.First();
             //цены для рассрочки
-            var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
-            var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
-            var creditDescription = DB._db.GetParamStr("creditDescription");
+            var creditPriceMin = DB.GetParamInt("creditPriceMin");
+            var creditPriceMax = DB.GetParamInt("creditPriceMax");
+            var creditDescription = DB.GetParamStr("creditDescription");
             //перебираю карточки товара
             for (int b = 0, i = 2; b < _bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем

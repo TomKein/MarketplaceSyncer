@@ -11,7 +11,6 @@ namespace Selen.Tools {
 
     static class Log {
         //сохраняю ссылку на объект базы данных
-        static DB _db = DB._db;
         //событие - изменение лога
         public static event EventDelegate LogUpdate = null;
         //объект для потокобезопасности при работе со списком
@@ -33,13 +32,14 @@ namespace Selen.Tools {
         //s - строка, которая должна быть записана
         //writeDb - писать лог в базу данных
         public static void Add(string s, bool writeDb = true, bool writeToFile = false) {
-            if (writeDb) _db.AddLogAsync(s);
+            if (writeDb)
+                DB.AddLogAsync(s);
             var dt = DateTime.Now;
             s = dt + ": " + s;
             lock (_thisLock) {
                 if (writeToFile) File.AppendAllText(@"..\log.txt", s+"\r\n", System.Text.Encoding.UTF8);
                 else _log.Add(s);
-                if (_log.Count > Level) _log.RemoveRange(0, 10);
+                if (Level > 10 && _log.Count > Level) _log.RemoveRange(0, 10);
             }
             if (!writeToFile)
                 LogUpdate.Invoke();

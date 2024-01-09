@@ -18,7 +18,6 @@ namespace Selen.Sites {
     class Drom {
         readonly string _l = "drom.ru: ";     //префикс для лога
         public Selenium _dr;               //браузер
-        DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
         int _creditPriceMin;        //цены для рассрочки
@@ -32,12 +31,11 @@ namespace Selen.Sites {
         Random _rnd = new Random();
         //конструктор
         public Drom() {
-            _db = DB._db;
         }
         public void LoadCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
-                var c = _db.GetParamStr("drom.cookies");
+                var c = DB.GetParamStr("drom.cookies");
                 _dr.LoadCookies(c);
                 Thread.Sleep(1000);
             }
@@ -47,7 +45,7 @@ namespace Selen.Sites {
                 _dr.Navigate("https://baza.drom.ru/kaluzhskaya-obl/");
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
-                    _db.SetParam("drom.cookies", c);
+                    DB.SetParam("drom.cookies", c);
             }
         }
         public void Quit() {
@@ -59,17 +57,17 @@ namespace Selen.Sites {
                 //сохраняю список товаров
                 _bus = bus;
                 //получаю номер ссылки в карточке
-                _url = await _db.GetParamStrAsync("drom.url");
+                _url = await DB.GetParamStrAsync("drom.url");
                 //заполнение веса
-                _addWeights = await _db.GetParamBoolAsync("drom.addWeights");
+                _addWeights = await DB.GetParamBoolAsync("drom.addWeights");
                 //вес по умолчанию
-                _defWeigth = _db.GetParamFloat("defaultWeigth");
+                _defWeigth = DB.GetParamFloat("defaultWeigth");
                 //дополнительное описание
-                _addDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("drom.addDescription"));
+                _addDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("drom.addDescription"));
                 //рассрочка 
-                _creditPriceMin = _db.GetParamInt("creditPriceMin");
-                _creditPriceMax = _db.GetParamInt("creditPriceMax");
-                _creditDescription = _db.GetParamStr("creditDescription");
+                _creditPriceMin = DB.GetParamInt("creditPriceMin");
+                _creditPriceMax = DB.GetParamInt("creditPriceMax");
+                _creditDescription = DB.GetParamStr("creditDescription");
 
                 Log.Add(_l+"начало выгрузки...");
                 await AuthAsync();
@@ -103,8 +101,8 @@ namespace Selen.Sites {
                 }
                 _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
                 if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
-                    _dr.WriteToSelector("#sign", _db.GetParamStr("drom.login")); //ввод логина
-                    _dr.WriteToSelector("#password", _db.GetParamStr("drom.password")); //пароля
+                    _dr.WriteToSelector("#sign", DB.GetParamStr("drom.login")); //ввод логина
+                    _dr.WriteToSelector("#password", DB.GetParamStr("drom.password")); //пароля
                     _dr.ButtonClick("#signbutton"); //жмем кнопку входа
                     while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
                         Thread.Sleep(30000);
@@ -198,7 +196,7 @@ namespace Selen.Sites {
         }
 
         public async Task AddAsync() {
-            var count = await _db.GetParamIntAsync("drom.addCount");
+            var count = await DB.GetParamIntAsync("drom.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
@@ -359,10 +357,11 @@ namespace Selen.Sites {
             var alt = b.GetAlternatives();
             if (!string.IsNullOrEmpty(alt) && alt != b.part) 
                 descNums.Add(alt);
-            var numbers = descNums.Where(x=>x!=b.part)
-                                  .Distinct()
-                                  .Take(5)
-                                  .Aggregate((n1, n2) => n1 + ", " + n2);
+
+            var t1 = descNums.Where(x => x != b.part)?
+                             .Distinct()?
+                             .Take(5);
+            var numbers = t1.Any() ? t1.Aggregate((n1, n2) => n1 + ", " + n2):"";
             var w = _dr.GetElementAttribute("//textarea[@name='autoPartsSubstituteNumbers']", "value");
             if (w != numbers)
                 _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", numbers + OpenQA.Selenium.Keys.Tab);
@@ -489,7 +488,7 @@ namespace Selen.Sites {
             return 1;
         }
         public async Task CheckPagesAsync() {
-            int count = await _db.GetParamIntAsync("drom.checkPagesCount");
+            int count = await DB.GetParamIntAsync("drom.checkPagesCount");
             try {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("all");
@@ -512,8 +511,8 @@ namespace Selen.Sites {
         public async Task CheckOffersAsync() {
             try {
                 await Task.Factory.StartNew(() => {
-                    int b = _db.GetParamInt("drom.checkOfferIndex");
-                    int cnt = _db.GetParamInt("drom.checkOffersCount");
+                    int b = DB.GetParamInt("drom.checkOfferIndex");
+                    int cnt = DB.GetParamInt("drom.checkOffersCount");
                     for (int i = 0; i < cnt;) {
                         try {
                             if (b >= _bus.Count)
@@ -536,8 +535,8 @@ namespace Selen.Sites {
                                 SetDesc(_bus[b]);
                                 Thread.Sleep(2000);
                                 i++;
-                            } 
-                            _db.SetParam("drom.checkOfferIndex", (++b).ToString());
+                            }
+                            DB.SetParam("drom.checkOfferIndex", (++b).ToString());
                         } catch {
                             _dr.Refresh();
                             Thread.Sleep(20000);
@@ -603,7 +602,7 @@ namespace Selen.Sites {
         //добавляем фото с дром в карточки товаров
         async Task GetDromPhotos() {
             //если загрузка фотографий включена в настройках
-            if (await _db.GetParamBoolAsync("loadPhotosFromDromToBusiness")) {
+            if (await DB.GetParamBoolAsync("loadPhotosFromDromToBusiness")) {
                 //перебираю карточки товара
                 for (int b = 0; b < _bus.Count; b++) {
                     //если есть ссылка на дром, нет фото, остаток и цена положительные

@@ -20,7 +20,7 @@ namespace Selen.Sites {
 
         public void GetSatomXml() {
             //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
-            var period = DB._db.GetParamInt("satomRequestPeriod");
+            var period = DB.GetParamInt("satomRequestPeriod");
             if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
                 try {
                     Log.Add(_l + "запрашиваю новый каталог xml с satom...");
@@ -42,14 +42,14 @@ namespace Selen.Sites {
         public async Task GenerateXML(List<RootObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
-                var uploadInterval = DB._db.GetParamInt("yandex.uploadInterval");
+                var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
                 if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                     return false;
                 //загружаю xml с satom
                 GetSatomXml();
                 //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    DB._db.GetParamStr("yandex.addDescription"));
+                    DB.GetParamStr("yandex.addDescription"));
                 //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
                 var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
                 //обновляю вес товара по умолчанию
@@ -94,7 +94,7 @@ namespace Selen.Sites {
                 ////пороговая длина для максимальной наценки из настроек
                 //var overPriceThresLength = DB._db.GetParamInt("yandex.overPriceThresWeight");
                 //старая цена из настроек
-                var oldPriceProcent = DB._db.GetParamFloat("yandex.oldPriceProcent");
+                var oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
                 //для каждой карточки
                 foreach (var b in bus) {
                     try {
@@ -193,7 +193,7 @@ namespace Selen.Sites {
                 return true;
             });
             //если файл сгенерирован и его размер ок
-            if (await gen && new FileInfo(filename).Length > await DB._db.GetParamIntAsync("yandex.xmlMinSize"))
+            if (await gen && new FileInfo(filename).Length > await DB.GetParamIntAsync("yandex.xmlMinSize"))
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
         }

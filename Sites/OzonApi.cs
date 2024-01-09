@@ -24,7 +24,6 @@ namespace Selen.Sites {
         readonly string _productListFile = @"..\ozon\ozon_productList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
         List<RootObject> _bus;                        //ссылка на товары
-        DB _db = DB._db;                              //база данных
         static bool _isProductListCheckNeeds = true;
         bool _hasNext = false;                        //для запросов
         List<AttributeValue> _brends;                 //список брендов озон
@@ -40,15 +39,15 @@ namespace Selen.Sites {
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
-            _url = _db.GetParamStr("ozon.url");
-            _clientID = _db.GetParamStr("ozon.id");
-            _apiKey = _db.GetParamStr("ozon.apiKey");
-            _oldPriceProcent = _db.GetParamFloat("ozon.oldPriceProcent");
-            _updateFreq = _db.GetParamInt("ozon.updateFreq");
+            _url = DB.GetParamStr("ozon.url");
+            _clientID = DB.GetParamStr("ozon.id");
+            _apiKey = DB.GetParamStr("ozon.apiKey");
+            _oldPriceProcent = DB.GetParamFloat("ozon.oldPriceProcent");
+            _updateFreq = DB.GetParamInt("ozon.updateFreq");
         }
         //главный метод
         public async Task SyncAsync() {
-            _bus = FormMain._bus;
+            _bus = Class365API._bus;
             if (_brends == null) {
                 _brends = await GetAttibuteValuesAsync(category_id: 92120918);
                 _brends.AddRange(await GetAttibuteValuesAsync(category_id: 17027495));
@@ -430,7 +429,7 @@ namespace Selen.Sites {
         }
         //добавление новых товаров на ozon
         async Task AddProductsAsync() {
-            var count = await _db.GetParamIntAsync("ozon.countToAdd");
+            var count = await DB.GetParamIntAsync("ozon.countToAdd");
             if (count == 0)
                 return;
             if (_isProductListCheckNeeds)

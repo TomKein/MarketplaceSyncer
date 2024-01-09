@@ -18,7 +18,6 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     class VK {
-        DB _db;
         public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
         public List<Market> vkMark = new List<Market>();
         VkApi _vk = new VkApi();
@@ -75,18 +74,17 @@ namespace Selen.Sites {
 
         //запрос параметров из настроек
         async Task GetParamsAsync() => await Task.Factory.StartNew(() => {
-            _db = DB._db;
-            _marketId = _db.GetParamLong("vk.marketId");
-            _pageLimitVk = _db.GetParamInt("vk.pageLimit");
-            _url = _db.GetParamStr("vk.url");
-            _dopDesc = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc"));
-            _dopDesc2 = JsonConvert.DeserializeObject<string[]>(_db.GetParamStr("vk.dopDesc2"));
-            _addCount = _db.GetParamInt("vk.addCount");
-            _catalogCheckInterval = _db.GetParamInt("vk.catalogCheckInterval");
+            _marketId = DB.GetParamLong("vk.marketId");
+            _pageLimitVk = DB.GetParamInt("vk.pageLimit");
+            _url = DB.GetParamStr("vk.url");
+            _dopDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("vk.dopDesc"));
+            _dopDesc2 = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("vk.dopDesc2"));
+            _addCount = DB.GetParamInt("vk.addCount");
+            _catalogCheckInterval = DB.GetParamInt("vk.catalogCheckInterval");
             //рассрочка 
-            _creditPriceMin = _db.GetParamInt("creditPriceMin");
-            _creditPriceMax = _db.GetParamInt("creditPriceMax");
-            _creditDescription = _db.GetParamStr("creditDescription");
+            _creditPriceMin = DB.GetParamInt("creditPriceMin");
+            _creditPriceMax = DB.GetParamInt("creditPriceMax");
+            _creditDescription = DB.GetParamStr("creditDescription");
         });
         //редактирую объявление
         private void Edit(int b) {
@@ -228,7 +226,7 @@ namespace Selen.Sites {
         }
         //запрос всех объявлений на ВК
         private async Task GetVKAsync() => await Task.Factory.StartNew(() => {
-            int checkCount = _db.GetParamInt("vk.checkCount");
+            int checkCount = DB.GetParamInt("vk.checkCount");
             vkMark.Clear();
             for (int v = 0; ; v++) {
                 int num = vkMark.Count;
@@ -237,7 +235,7 @@ namespace Selen.Sites {
                         _vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
                     if (num == vkMark.Count) {
                         Log.Add("vk.com: получено объявлений " + vkMark.Count);
-                        _db.SetParam("vk.checkCount", num.ToString());
+                        DB.SetParam("vk.checkCount", num.ToString());
                         MarketCount = num;
                         break;
                     }
@@ -252,7 +250,7 @@ namespace Selen.Sites {
         });
         //проверка каталога объявлений на вк
         async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
-            var ccl = _db.GetParamInt("vk.catalogCheckLimit");
+            var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
                 //ищем индекс в карточках товаров
                 var id = vkMark[i].Id.ToString();
@@ -291,7 +289,7 @@ namespace Selen.Sites {
         async Task CheckBusAsync() {
             UrlsCount = _bus.Count(b => b.vk.Contains("http"));
             Log.Add("vk.com: ссылок в карточках товаров " + UrlsCount);
-            var ccl = _db.GetParamInt("vk.catalogCheckLimit");
+            var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
             for (int b = 0; b < _bus.Count && ccl > 0; b++) {
                 //если нет ссылки перехожу к следующей
@@ -360,11 +358,11 @@ namespace Selen.Sites {
         private async Task IsVKAuthorizatedAsync() => await Task.Factory.StartNew(() => {
             _vk.VkApiVersion.SetVersion(5, 131);
             _vk.Authorize(new ApiAuthParams {
-                ApplicationId = ulong.Parse(_db.GetParamStr("vk.applicationId")),
-                Login = _db.GetParamStr("vk.login"),
-                Password = _db.GetParamStr("vk.password"),
+                ApplicationId = ulong.Parse(DB.GetParamStr("vk.applicationId")),
+                Login = DB.GetParamStr("vk.login"),
+                Password = DB.GetParamStr("vk.password"),
                 Settings = Settings.All,
-                AccessToken = _db.GetParamStr("vk.accessToken")
+                AccessToken = DB.GetParamStr("vk.accessToken")
             });
         });
     }

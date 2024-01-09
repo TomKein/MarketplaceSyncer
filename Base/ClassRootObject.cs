@@ -203,7 +203,7 @@ namespace Selen {
         //вес товара по умолчанию
         static float defaultWeight;
         public static void UpdateDefaultWeight() {
-            defaultWeight = DB._db.GetParamFloat("defaultWeigth");
+            defaultWeight = DB.GetParamFloat("defaultWeigth");
             if (defaultWeight == 0) {
                 Log.Add("defaultWeigth: ошибка - значение в настройках 0! установлено значение 1 кг");
                 defaultWeight = 1f;
@@ -218,7 +218,7 @@ namespace Selen {
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
-            defaultVolume = DB._db.GetParamFloat("defaultVolume");
+            defaultVolume = DB.GetParamFloat("defaultVolume");
             if (defaultVolume == 0) {
                 Log.Add("defaultVolume: ошибка - значение в настройках 0! установлено значение 0.02 м3");
                 defaultVolume = 0.02f;
@@ -227,7 +227,7 @@ namespace Selen {
         //срок годности по умолчанию
         static string defaultValidity;
         public static void UpdateDefaultValidity() {
-            var validity = DB._db.GetParamStr("defaultValidity");
+            var validity = DB.GetParamStr("defaultValidity");
             if (string.IsNullOrEmpty(validity)) {
                 Log.Add("defaultValidity: ошибка - значение в настройках 0! установлено значение 1 год");
                 defaultValidity = "P1Y";
@@ -464,6 +464,7 @@ namespace Selen {
         //Номера из описания
         public List<string> GetDescriptionNumbers() {
             return description.Split('№')
+                              .Skip(1)
                               .Select(s => s.Replace("&nbsp;", " ")
                                             .Replace("&thinsp;", " ")
                                             .Trim(' ')
@@ -737,7 +738,7 @@ namespace Selen {
         //перечитать из таблицы настроек
         public static void ResetManufactures() {
             if (manufactures == null || DateTime.Now.Ticks % 10000 == 0)
-                manufactures = DB._db.GetParamStr("manufactures").Split(',');
+                manufactures = DB.GetParamStr("manufactures").Split(',');
         }
         //метод определения размеров
         public string GetDimentionsString() {

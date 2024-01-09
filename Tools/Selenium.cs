@@ -22,7 +22,7 @@ namespace Selen.Tools {
             ChromeDriverService chromeservice = ChromeDriverService.CreateDefaultService();
             chromeservice.HideCommandPromptWindow = true;
             var chromeOptions = new ChromeOptions();
-            if (DB._db.GetParamBool("headlessChrome")) {
+            if (DB.GetParamBool("headlessChrome")) {
                 chromeOptions.AddArgument("headless");
                 chromeOptions.AddArgument("disable-gpu");
                 chromeOptions.AddArgument("window-size=1920,1080");

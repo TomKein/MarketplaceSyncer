@@ -18,7 +18,7 @@ namespace Selen.Sites {
         XDocument satomYML;
         public void GetSatomXml() {
             //загружаю xml с satom: если файлу больше 6 часов - пытаюсь запросить новый, иначе загружаю с диска
-            var period = DB._db.GetParamInt("satomRequestPeriod");
+            var period = DB.GetParamInt("satomRequestPeriod");
             if (File.Exists(satomFile) && File.GetLastWriteTime(satomFile).AddHours(period) < DateTime.Now) {
                 try {
                     Log.Add(_l + "запрашиваю новый каталог xml с satom...");
@@ -60,10 +60,10 @@ namespace Selen.Sites {
         //генерация xml - не ипользуется
         public async Task GenerateXML(List<RootObject> _bus) {
             //количество объявлений в тарифе
-            var offersLimit = await DB._db.GetParamIntAsync("youla.offersLimit");
+            var offersLimit = await DB.GetParamIntAsync("youla.offersLimit");
             //доп. описание
             string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    await DB._db.GetParamStrAsync("youla.addDescription"));
+                    await DB.GetParamStrAsync("youla.addDescription"));
             //время в нужном формате
             var dt = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             //создаю новый xml
@@ -124,18 +124,18 @@ namespace Selen.Sites {
         public async Task GenerateXML_avito(List<RootObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
-                var uploadInterval = DB._db.GetParamInt("youla.uploadInterval");
+                var uploadInterval = DB.GetParamInt("youla.uploadInterval");
                 if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                     return false;
                 //загружаю xml с satom
                 GetSatomXml();
                 //количество объявлений в тарифе
-                var offersLimit = DB._db.GetParamInt("youla.offersLimit");
+                var offersLimit = DB.GetParamInt("youla.offersLimit");
                 //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                        DB._db.GetParamStr("youla.addDescription"));
+                        DB.GetParamStr("youla.addDescription"));
                 //уровень цены
-                var priceLevel = DB._db.GetParamInt("youla.priceLevel");
+                var priceLevel = DB.GetParamInt("youla.priceLevel");
                 //создаю новый xml
                 var xml = new XDocument();
                 //корневой элемент yml_catalog
@@ -199,7 +199,7 @@ namespace Selen.Sites {
                 return true;
             });
             //если файл сгенерирован и его размер ок
-            if (await gen && new FileInfo(filename).Length > await DB._db.GetParamIntAsync("youla.xmlMinSize")) { 
+            if (await gen && new FileInfo(filename).Length > await DB.GetParamIntAsync("youla.xmlMinSize")) { 
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(filename);
             }

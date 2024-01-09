@@ -16,7 +16,6 @@ namespace Selen.Sites {
     class GdeRu {
         string _l = "gde.ru: ";
         public Selenium _dr;               //браузер
-        DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
         int _creditPriceMin;        //цены для рассрочки
@@ -26,13 +25,12 @@ namespace Selen.Sites {
         Random _rnd = new Random(); //генератор случайных чисел
         //конструктор
         public GdeRu() {
-            _db = DB._db;
         }
         //загрузка кукис
         public void LoadCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://kaluga.gde.ru/user/login");
-                var c = _db.GetParamStr("gde.cookies");
+                var c = DB.GetParamStr("gde.cookies");
                 _dr.LoadCookies(c);
                 Thread.Sleep(1000);
             }
@@ -43,7 +41,7 @@ namespace Selen.Sites {
                 _dr.Navigate("https://kaluga.gde.ru/user/login");
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
-                    _db.SetParam("gde.cookies", c);
+                    DB.SetParam("gde.cookies", c);
             }
         }
         //закрытие браузера
@@ -53,13 +51,13 @@ namespace Selen.Sites {
         }
         //старт главного цикла синхронизации
         public async Task<bool> StartAsync(List<RootObject> bus) {
-            if (await _db.GetParamBoolAsync("gde.syncEnable")) {
+            if (await DB.GetParamBoolAsync("gde.syncEnable")) {
                 Log.Add(_l+"начало выгрузки...");
                 _bus = bus;
                 //рассрочка 
-                _creditPriceMin = _db.GetParamInt("creditPriceMin");
-                _creditPriceMax = _db.GetParamInt("creditPriceMax");
-                _creditDescription = _db.GetParamStr("creditDescription");
+                _creditPriceMin = DB.GetParamInt("creditPriceMin");
+                _creditPriceMax = DB.GetParamInt("creditPriceMax");
+                _creditDescription = DB.GetParamStr("creditDescription");
                 for (int i = 0; ; i++) {
                     try {
                         await AuthAsync();
@@ -89,18 +87,18 @@ namespace Selen.Sites {
         //авторизация
         async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
-                _url = _db.GetParamStr("gde.url");
+                _url = DB.GetParamStr("gde.url");
                 _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    _db.GetParamStr("gde.addDescription"));
+                    DB.GetParamStr("gde.addDescription"));
                 if (_dr == null) {
                     _dr = new Selenium(waitSeconds:120);
                     LoadCookies();
                 }
                 _dr.Navigate("https://kaluga.gde.ru/user/login");
-                var login = _db.GetParamStr("gde.login");
+                var login = DB.GetParamStr("gde.login");
                 if (!_dr.GetElementText("#LoginForm_email").Contains(login)) {
                     _dr.WriteToSelector("#LoginForm_email", login);
-                    _dr.WriteToSelector("#LoginForm_password", _db.GetParamStr("gde.password"));
+                    _dr.WriteToSelector("#LoginForm_password", DB.GetParamStr("gde.password"));
                     _dr.ButtonClick("//fieldset//input[@type='submit']");
                     //если в кабинет не попали - ждем ручной вход
                     for (int i = 0; ; i++) {
@@ -209,11 +207,11 @@ namespace Selen.Sites {
         }
         //пишу адрес
         private void SetAddr() {
-            _dr.WriteToSelector("#AInfoForm_address", _db.GetParamStr("gde.address"));
+            _dr.WriteToSelector("#AInfoForm_address", DB.GetParamStr("gde.address"));
         }
         //пишу телефон
         private void SetPhone() {
-            _dr.WriteToSelector("#AInfoForm_phone", _db.GetParamStr("gde.phone"));
+            _dr.WriteToSelector("#AInfoForm_phone", DB.GetParamStr("gde.phone"));
         }
         //галочка "бесплатно"
         private void CheckFreeOfCharge() {
@@ -232,7 +230,7 @@ namespace Selen.Sites {
         }
         //выкладываю объявления
         public async Task AddAsync() {
-            var count = await _db.GetParamIntAsync("gde.addCount");
+            var count = await DB.GetParamIntAsync("gde.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0 && DateTime.Now.Minute < 50; b--) {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
                      !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
@@ -357,7 +355,7 @@ namespace Selen.Sites {
             var ElementString = _dr.GetElementText("//ul[@class='tabs-list']/li[@class='active']");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
-            var checkPagesProcent = await _db.GetParamIntAsync("gde.checkPagesProcent");
+            var checkPagesProcent = await DB.GetParamIntAsync("gde.checkPagesProcent");
             for (int i = 0; i < pageCount && DateTime.Now.Minute < 50; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) > checkPagesProcent) continue;
@@ -400,7 +398,7 @@ namespace Selen.Sites {
         async Task CheckUrls() {
             try {
                 await Task.Factory.StartNew(() => {
-                    var n = _db.GetParamInt("gde.checkUrlCount");
+                    var n = DB.GetParamInt("gde.checkUrlCount");
                     for (int i = 0; i < n; i++) {
                         var b = _rnd.Next(_bus.Count);
                         if (string.IsNullOrEmpty(_bus[b].gde)) continue;

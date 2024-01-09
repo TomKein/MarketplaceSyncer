@@ -54,7 +54,7 @@ namespace Selen.Sites {
         //старт выгрузки
         public async Task<bool> SyncAsync(List<RootObject> bus) {
             //интервал проверки
-                var uploadInterval = await DB._db.GetParamIntAsync("izap24.uploadInterval");
+                var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
             if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                 return true;
             Log.Add(_l + "начало выгрузки...");
@@ -81,9 +81,9 @@ namespace Selen.Sites {
         private async Task CreateCsvAsync() {
             await Task.Factory.StartNew(() => {
                 //цены для рассрочки
-                var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
-                var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
-                var creditDescription = DB._db.GetParamStr("creditDescription");
+                var creditPriceMin = DB.GetParamInt("creditPriceMin");
+                var creditPriceMax = DB.GetParamInt("creditPriceMax");
+                var creditDescription = DB.GetParamStr("creditDescription");
                 //получаю список товаров
                 var offers = _bus.Where(w =>
                     w.images.Count > 0 &&                           //есть фото

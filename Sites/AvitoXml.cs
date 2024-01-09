@@ -23,21 +23,25 @@ namespace Selen.Sites {
 
         //генерация xml
         public async Task GenerateXML(List<RootObject> _bus) {
+            if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
+                Log.Add(_l + "синхронизация отключена!");
+                return;
+            }
             await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
                 //количество объявлений в тарифе
-                var offersLimit = DB._db.GetParamInt("avito.offersLimit");
+                var offersLimit = DB.GetParamInt("avito.offersLimit");
                 //ценовой порог
-                var priceLevel = DB._db.GetParamInt("avito.priceLevel");
+                var priceLevel = DB.GetParamInt("avito.priceLevel");
                 //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    DB._db.GetParamStr("avito.addDescription"));
+                    DB.GetParamStr("avito.addDescription"));
                 string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
-                    DB._db.GetParamStr("avito.addDescription2"));
+                    DB.GetParamStr("avito.addDescription2"));
                 //цены для рассрочки
-                var creditPriceMin = DB._db.GetParamInt("creditPriceMin");
-                var creditPriceMax = DB._db.GetParamInt("creditPriceMax");
-                var creditDescription = DB._db.GetParamStr("creditDescription");
+                var creditPriceMin = DB.GetParamInt("creditPriceMin");
+                var creditPriceMax = DB.GetParamInt("creditPriceMax");
+                var creditDescription = DB.GetParamStr("creditDescription");
                 //обновляю объем товара по умолчанию
                 RootObject.UpdateDefaultVolume();
                 //обновляю вес товара по умолчанию
@@ -153,7 +157,7 @@ namespace Selen.Sites {
                 xmlStock.Save(filenameStock);
             });
             //если размер файла в порядке
-            if (new FileInfo(filename).Length > await DB._db.GetParamIntAsync("avito.xmlMinSize")) {
+            if (new FileInfo(filename).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
                 //отправляю файлы на сервер
                 await SftpClient.FtpUploadAsync(filename);
                 await SftpClient.FtpUploadAsync(filenameStock);
@@ -162,7 +166,7 @@ namespace Selen.Sites {
 
         public Task GetAutoCatalogXmlAsync() => Task.Factory.StartNew(() => {
             //загружаю xml с авто: если файлу больше 24 часов - пытаюсь запросить новый, иначе загружаю с диска
-            var period = DB._db.GetParamInt("avito.autoCatalogPeriod");
+            var period = DB.GetParamInt("avito.autoCatalogPeriod");
             if (!File.Exists(autoCatalogFile) || File.GetLastWriteTime(autoCatalogFile).AddHours(period) < DateTime.Now) {
                 try {
                     Log.Add(_l + "запрашиваю новый автокаталог xml с avito...");

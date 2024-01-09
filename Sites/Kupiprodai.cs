@@ -15,7 +15,6 @@ using Newtonsoft.Json;
 namespace Selen.Sites {
     class Kupiprodai {
         public Selenium _dr;               //браузер
-        DB _db;                     //база данных
         string _url;                //ссылка в карточке товара
         string[] _addDesc;          //дополнительное описание
         int _creditPriceMin;        //цены для рассрочки
@@ -26,13 +25,12 @@ namespace Selen.Sites {
         string _l = "kupiprodai.ru: "; //для записи в лог
         //конструктор
         public Kupiprodai() {
-            _db = DB._db;
         }
         //загрузка кукис
         public void LoadCookies() {
             if (_dr != null) {
                 _dr.Navigate("https://kupiprodai.ru/404", tryCount: 1);
-                var c = _db.GetParamStr("kupiprodai.cookies");
+                var c = DB.GetParamStr("kupiprodai.cookies");
                 _dr.LoadCookies(c);
             }
         }
@@ -42,7 +40,7 @@ namespace Selen.Sites {
                 _dr.Navigate("https://vip.kupiprodai.ru/", tryCount: 1);
                 var c = _dr.SaveCookies();
                 if (c.Length > 20)
-                    _db.SetParam("kupiprodai.cookies", c);
+                    DB.SetParam("kupiprodai.cookies", c);
             }
         }
         //закрытие браузера
@@ -55,13 +53,13 @@ namespace Selen.Sites {
             Log.Add(_l + "начало выгрузки...");
             try {
                 _bus = bus;
-                _url = await _db.GetParamStrAsync("kupiprodai.url");
+                _url = await DB.GetParamStrAsync("kupiprodai.url");
                 _addDesc = JsonConvert.DeserializeObject<string[]>(
-                    _db.GetParamStr("kupiprodai.addDescription"));
+                    DB.GetParamStr("kupiprodai.addDescription"));
                 //рассрочка 
-                _creditPriceMin = _db.GetParamInt("creditPriceMin");
-                _creditPriceMax = _db.GetParamInt("creditPriceMax");
-                _creditDescription = _db.GetParamStr("creditDescription");
+                _creditPriceMin = DB.GetParamInt("creditPriceMin");
+                _creditPriceMax = DB.GetParamInt("creditPriceMax");
+                _creditDescription = DB.GetParamStr("creditDescription");
                 await AuthAsync();
                 await EditAsync();
                 await DelNoActiveAsync();
@@ -90,8 +88,8 @@ namespace Selen.Sites {
                 }
                 _dr.Navigate("https://kupiprodai.ru/login");
                 if (_dr.GetElementsCount("//span[@id='nickname']") == 0) {
-                    _dr.WriteToSelector("//input[@name='login']", _db.GetParamStr("kupiprodai.login"));
-                    _dr.WriteToSelector("//input[@name='pass']", _db.GetParamStr("kupiprodai.password"));
+                    _dr.WriteToSelector("//input[@name='login']", DB.GetParamStr("kupiprodai.login"));
+                    _dr.WriteToSelector("//input[@name='pass']", DB.GetParamStr("kupiprodai.password"));
                     _dr.ButtonClick("//input[@value='Войти']");
                     //если в кабинет не попали - ждем ручной вход
                     for (int i = 0; i < 10; i++) {
@@ -212,7 +210,7 @@ namespace Selen.Sites {
         //выкладываю объявления
         public async Task AddAsync() {
             try {
-                var count = await _db.GetParamIntAsync("kupiprodai.addCount");
+                var count = await DB.GetParamIntAsync("kupiprodai.addCount");
                 for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                     if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
                         !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
@@ -331,7 +329,7 @@ namespace Selen.Sites {
             var ElementString = _dr.GetElementText("//*[@id='tag_act']/*");
             var pageCountString = Regex.Match(ElementString, @"\d+").Groups[0].Value;
             var pageCount = string.IsNullOrEmpty(pageCountString) ? 0 : int.Parse(pageCountString) / 20;
-            var checkPagesProcent = await _db.GetParamIntAsync("kupiprodai.checkPagesProcent");
+            var checkPagesProcent = await DB.GetParamIntAsync("kupiprodai.checkPagesProcent");
             for (int i = 0; i < pageCount; i++) {
                 //пропуск страниц
                 if (_rnd.Next(100) >= checkPagesProcent)
@@ -372,7 +370,7 @@ namespace Selen.Sites {
         async Task CheckUrls() {
             try {
                 await Task.Factory.StartNew(() => {
-                    var n = _db.GetParamInt("kupiprodai.checkUrlCount");
+                    var n = DB.GetParamInt("kupiprodai.checkUrlCount");
                     for (int i = 0; i < n;) {
                         var b = _rnd.Next(_bus.Count);
                         if (string.IsNullOrEmpty(_bus[b].kp))

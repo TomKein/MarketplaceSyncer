@@ -31,7 +31,7 @@ namespace Selen {
         public FormWeightsDimentions(List<RootObject> bus) {
             InitializeComponent();
             _bus = bus;
-            _tableSize = DB._db.GetParamInt("tableWeightsDimentionsSize");
+            _tableSize = DB.GetParamInt("tableWeightsDimentionsSize");
         }
         //метод заполнения таблицы 
         async Task GridFillAsync() {

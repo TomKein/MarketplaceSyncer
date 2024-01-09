@@ -25,17 +25,14 @@ namespace Selen {
         /// содержимое этого метода с помощью редактора кода.
         /// </summary>
         private void InitializeComponent() {
-            this.components = new System.ComponentModel.Container();
             this.button_Drom = new System.Windows.Forms.Button();
             this.button_BaseGet = new System.Windows.Forms.Button();
             this.button_Avito = new System.Windows.Forms.Button();
             this.logBox = new System.Windows.Forms.RichTextBox();
             this.button_PriceLevelsReport = new System.Windows.Forms.Button();
             this.button_Vk = new System.Windows.Forms.Button();
-            this.checkBox_SyncSites = new System.Windows.Forms.CheckBox();
             this.label_Bus = new System.Windows.Forms.Label();
             this.label_Vk = new System.Windows.Forms.Label();
-            this.timer_sync = new System.Windows.Forms.Timer(this.components);
             this.label_Drom = new System.Windows.Forms.Label();
             this.button_Descriptions = new System.Windows.Forms.Button();
             this.button_TestPartners = new System.Windows.Forms.Button();
@@ -47,7 +44,7 @@ namespace Selen {
             this.button_Kupiprodai = new System.Windows.Forms.Button();
             this.button_KupiprodaiAdd = new System.Windows.Forms.Button();
             this.label_Kp = new System.Windows.Forms.Label();
-            this.button_PricesCorrection = new System.Windows.Forms.Button();
+            this.button_PricesIncomeCorrection = new System.Windows.Forms.Button();
             this.button_Gde = new System.Windows.Forms.Button();
             this.label_Gde = new System.Windows.Forms.Label();
             this.label_Cdek = new System.Windows.Forms.Label();
@@ -60,13 +57,13 @@ namespace Selen {
             this.button_Youla = new System.Windows.Forms.Button();
             this.button_Izap24 = new System.Windows.Forms.Button();
             this.panel_bottom = new System.Windows.Forms.Panel();
+            this.button_application = new System.Windows.Forms.Button();
             this.button_WeightsDimensions = new System.Windows.Forms.Button();
             this.button_Test = new System.Windows.Forms.Button();
             this.panel_Filter = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_application = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -75,7 +72,7 @@ namespace Selen {
             // 
             // button_Drom
             // 
-            this.button_Drom.Location = new System.Drawing.Point(5, 112);
+            this.button_Drom.Location = new System.Drawing.Point(5, 93);
             this.button_Drom.Name = "button_Drom";
             this.button_Drom.Size = new System.Drawing.Size(113, 23);
             this.button_Drom.TabIndex = 4;
@@ -85,7 +82,7 @@ namespace Selen {
             // 
             // button_BaseGet
             // 
-            this.button_BaseGet.Location = new System.Drawing.Point(5, 60);
+            this.button_BaseGet.Location = new System.Drawing.Point(5, 41);
             this.button_BaseGet.Name = "button_BaseGet";
             this.button_BaseGet.Size = new System.Drawing.Size(113, 21);
             this.button_BaseGet.TabIndex = 1;
@@ -95,7 +92,7 @@ namespace Selen {
             // 
             // button_Avito
             // 
-            this.button_Avito.Location = new System.Drawing.Point(5, 84);
+            this.button_Avito.Location = new System.Drawing.Point(5, 65);
             this.button_Avito.Name = "button_Avito";
             this.button_Avito.Size = new System.Drawing.Size(113, 25);
             this.button_Avito.TabIndex = 3;
@@ -130,7 +127,7 @@ namespace Selen {
             // 
             // button_Vk
             // 
-            this.button_Vk.Location = new System.Drawing.Point(5, 187);
+            this.button_Vk.Location = new System.Drawing.Point(5, 168);
             this.button_Vk.Name = "button_Vk";
             this.button_Vk.Size = new System.Drawing.Size(113, 23);
             this.button_Vk.TabIndex = 7;
@@ -138,22 +135,10 @@ namespace Selen {
             this.button_Vk.UseVisualStyleBackColor = true;
             this.button_Vk.Click += new System.EventHandler(this.ButtonVkCom_Click);
             // 
-            // checkBox_SyncSites
-            // 
-            this.checkBox_SyncSites.AutoSize = true;
-            this.checkBox_SyncSites.Checked = true;
-            this.checkBox_SyncSites.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox_SyncSites.Location = new System.Drawing.Point(6, 4);
-            this.checkBox_SyncSites.Name = "checkBox_SyncSites";
-            this.checkBox_SyncSites.Size = new System.Drawing.Size(124, 17);
-            this.checkBox_SyncSites.TabIndex = 35;
-            this.checkBox_SyncSites.Text = "синхронизация вкл";
-            this.checkBox_SyncSites.UseVisualStyleBackColor = true;
-            // 
             // label_Bus
             // 
             this.label_Bus.AutoSize = true;
-            this.label_Bus.Location = new System.Drawing.Point(120, 64);
+            this.label_Bus.Location = new System.Drawing.Point(120, 45);
             this.label_Bus.Name = "label_Bus";
             this.label_Bus.Size = new System.Drawing.Size(16, 13);
             this.label_Bus.TabIndex = 36;
@@ -162,22 +147,16 @@ namespace Selen {
             // label_Vk
             // 
             this.label_Vk.AutoSize = true;
-            this.label_Vk.Location = new System.Drawing.Point(120, 192);
+            this.label_Vk.Location = new System.Drawing.Point(120, 173);
             this.label_Vk.Name = "label_Vk";
             this.label_Vk.Size = new System.Drawing.Size(16, 13);
             this.label_Vk.TabIndex = 38;
             this.label_Vk.Text = "...";
             // 
-            // timer_sync
-            // 
-            this.timer_sync.Enabled = true;
-            this.timer_sync.Interval = 60000;
-            this.timer_sync.Tick += new System.EventHandler(this.timer_sync_Tick);
-            // 
             // label_Drom
             // 
             this.label_Drom.AutoSize = true;
-            this.label_Drom.Location = new System.Drawing.Point(120, 117);
+            this.label_Drom.Location = new System.Drawing.Point(120, 98);
             this.label_Drom.Name = "label_Drom";
             this.label_Drom.Size = new System.Drawing.Size(16, 13);
             this.label_Drom.TabIndex = 58;
@@ -191,7 +170,7 @@ namespace Selen {
             this.button_Descriptions.TabIndex = 59;
             this.button_Descriptions.Text = "Описания";
             this.button_Descriptions.UseVisualStyleBackColor = true;
-            this.button_Descriptions.Click += new System.EventHandler(this.ButtonPutDesc_Click);
+            this.button_Descriptions.Click += new System.EventHandler(this.ButtonDescriptionsEdit_Click);
             // 
             // button_TestPartners
             // 
@@ -206,7 +185,7 @@ namespace Selen {
             // label_Auto
             // 
             this.label_Auto.AutoSize = true;
-            this.label_Auto.Location = new System.Drawing.Point(115, 216);
+            this.label_Auto.Location = new System.Drawing.Point(115, 197);
             this.label_Auto.Name = "label_Auto";
             this.label_Auto.Size = new System.Drawing.Size(0, 13);
             this.label_Auto.TabIndex = 66;
@@ -215,7 +194,7 @@ namespace Selen {
             // 
             this.label_Youla.AutoSize = true;
             this.label_Youla.Enabled = false;
-            this.label_Youla.Location = new System.Drawing.Point(120, 296);
+            this.label_Youla.Location = new System.Drawing.Point(120, 277);
             this.label_Youla.Name = "label_Youla";
             this.label_Youla.Size = new System.Drawing.Size(16, 13);
             this.label_Youla.TabIndex = 85;
@@ -224,7 +203,7 @@ namespace Selen {
             // label_lastSyncTime
             // 
             this.label_lastSyncTime.AutoSize = true;
-            this.label_lastSyncTime.Location = new System.Drawing.Point(3, 22);
+            this.label_lastSyncTime.Location = new System.Drawing.Point(3, 3);
             this.label_lastSyncTime.Name = "label_lastSyncTime";
             this.label_lastSyncTime.Size = new System.Drawing.Size(119, 13);
             this.label_lastSyncTime.TabIndex = 98;
@@ -235,7 +214,7 @@ namespace Selen {
             this.dateTimePicker1.CalendarForeColor = System.Drawing.Color.Red;
             this.dateTimePicker1.CustomFormat = "dd/MM/yyyy HH:mm";
             this.dateTimePicker1.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dateTimePicker1.Location = new System.Drawing.Point(5, 37);
+            this.dateTimePicker1.Location = new System.Drawing.Point(5, 18);
             this.dateTimePicker1.MaxDate = new System.DateTime(2099, 12, 31, 0, 0, 0, 0);
             this.dateTimePicker1.MinDate = new System.DateTime(2017, 1, 1, 0, 0, 0, 0);
             this.dateTimePicker1.Name = "dateTimePicker1";
@@ -247,7 +226,7 @@ namespace Selen {
             // 
             // button_Satom
             // 
-            this.button_Satom.Location = new System.Drawing.Point(5, 213);
+            this.button_Satom.Location = new System.Drawing.Point(5, 194);
             this.button_Satom.Name = "button_Satom";
             this.button_Satom.Size = new System.Drawing.Size(113, 23);
             this.button_Satom.TabIndex = 10;
@@ -257,7 +236,7 @@ namespace Selen {
             // 
             // button_Kupiprodai
             // 
-            this.button_Kupiprodai.Location = new System.Drawing.Point(5, 138);
+            this.button_Kupiprodai.Location = new System.Drawing.Point(5, 119);
             this.button_Kupiprodai.Name = "button_Kupiprodai";
             this.button_Kupiprodai.Size = new System.Drawing.Size(113, 23);
             this.button_Kupiprodai.TabIndex = 5;
@@ -267,7 +246,7 @@ namespace Selen {
             // 
             // button_KupiprodaiAdd
             // 
-            this.button_KupiprodaiAdd.Location = new System.Drawing.Point(5, 160);
+            this.button_KupiprodaiAdd.Location = new System.Drawing.Point(5, 141);
             this.button_KupiprodaiAdd.Name = "button_KupiprodaiAdd";
             this.button_KupiprodaiAdd.Size = new System.Drawing.Size(113, 23);
             this.button_KupiprodaiAdd.TabIndex = 112;
@@ -278,25 +257,25 @@ namespace Selen {
             // label_Kp
             // 
             this.label_Kp.AutoSize = true;
-            this.label_Kp.Location = new System.Drawing.Point(120, 143);
+            this.label_Kp.Location = new System.Drawing.Point(120, 124);
             this.label_Kp.Name = "label_Kp";
             this.label_Kp.Size = new System.Drawing.Size(16, 13);
             this.label_Kp.TabIndex = 114;
             this.label_Kp.Text = "...";
             // 
-            // button_PricesCorrection
+            // button_PricesIncomeCorrection
             // 
-            this.button_PricesCorrection.Location = new System.Drawing.Point(416, 8);
-            this.button_PricesCorrection.Name = "button_PricesCorrection";
-            this.button_PricesCorrection.Size = new System.Drawing.Size(92, 23);
-            this.button_PricesCorrection.TabIndex = 115;
-            this.button_PricesCorrection.Text = "Корекция цен закупки";
-            this.button_PricesCorrection.UseVisualStyleBackColor = true;
-            this.button_PricesCorrection.Click += new System.EventHandler(this.Button_PricesCheck_Click);
+            this.button_PricesIncomeCorrection.Location = new System.Drawing.Point(416, 8);
+            this.button_PricesIncomeCorrection.Name = "button_PricesIncomeCorrection";
+            this.button_PricesIncomeCorrection.Size = new System.Drawing.Size(92, 23);
+            this.button_PricesIncomeCorrection.TabIndex = 115;
+            this.button_PricesIncomeCorrection.Text = "Корекция цен закупки";
+            this.button_PricesIncomeCorrection.UseVisualStyleBackColor = true;
+            this.button_PricesIncomeCorrection.Click += new System.EventHandler(this.Button_PricesCheck_Click);
             // 
             // button_Gde
             // 
-            this.button_Gde.Location = new System.Drawing.Point(5, 239);
+            this.button_Gde.Location = new System.Drawing.Point(5, 220);
             this.button_Gde.Name = "button_Gde";
             this.button_Gde.Size = new System.Drawing.Size(113, 23);
             this.button_Gde.TabIndex = 9;
@@ -307,7 +286,7 @@ namespace Selen {
             // label_Gde
             // 
             this.label_Gde.AutoSize = true;
-            this.label_Gde.Location = new System.Drawing.Point(120, 244);
+            this.label_Gde.Location = new System.Drawing.Point(120, 225);
             this.label_Gde.Name = "label_Gde";
             this.label_Gde.Size = new System.Drawing.Size(16, 13);
             this.label_Gde.TabIndex = 118;
@@ -316,7 +295,7 @@ namespace Selen {
             // label_Cdek
             // 
             this.label_Cdek.AutoSize = true;
-            this.label_Cdek.Location = new System.Drawing.Point(120, 271);
+            this.label_Cdek.Location = new System.Drawing.Point(120, 252);
             this.label_Cdek.Name = "label_Cdek";
             this.label_Cdek.Size = new System.Drawing.Size(16, 13);
             this.label_Cdek.TabIndex = 122;
@@ -350,7 +329,6 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_Youla);
-            this.panel_Buttons.Controls.Add(this.checkBox_SyncSites);
             this.panel_Buttons.Controls.Add(this.button_Izap24);
             this.panel_Buttons.Controls.Add(this.dateTimePicker1);
             this.panel_Buttons.Controls.Add(this.button_Drom);
@@ -378,7 +356,7 @@ namespace Selen {
             // 
             // button_ozon
             // 
-            this.button_ozon.Location = new System.Drawing.Point(5, 344);
+            this.button_ozon.Location = new System.Drawing.Point(5, 325);
             this.button_ozon.Name = "button_ozon";
             this.button_ozon.Size = new System.Drawing.Size(113, 23);
             this.button_ozon.TabIndex = 151;
@@ -390,7 +368,7 @@ namespace Selen {
             // 
             this.label_YandexMarket.AutoSize = true;
             this.label_YandexMarket.Enabled = false;
-            this.label_YandexMarket.Location = new System.Drawing.Point(120, 323);
+            this.label_YandexMarket.Location = new System.Drawing.Point(120, 304);
             this.label_YandexMarket.Name = "label_YandexMarket";
             this.label_YandexMarket.Size = new System.Drawing.Size(16, 13);
             this.label_YandexMarket.TabIndex = 150;
@@ -398,7 +376,7 @@ namespace Selen {
             // 
             // button_YandexMarket
             // 
-            this.button_YandexMarket.Location = new System.Drawing.Point(5, 318);
+            this.button_YandexMarket.Location = new System.Drawing.Point(5, 299);
             this.button_YandexMarket.Name = "button_YandexMarket";
             this.button_YandexMarket.Size = new System.Drawing.Size(113, 23);
             this.button_YandexMarket.TabIndex = 149;
@@ -408,7 +386,7 @@ namespace Selen {
             // 
             // button_Youla
             // 
-            this.button_Youla.Location = new System.Drawing.Point(5, 292);
+            this.button_Youla.Location = new System.Drawing.Point(5, 273);
             this.button_Youla.Name = "button_Youla";
             this.button_Youla.Size = new System.Drawing.Size(113, 23);
             this.button_Youla.TabIndex = 148;
@@ -418,7 +396,7 @@ namespace Selen {
             // 
             // button_Izap24
             // 
-            this.button_Izap24.Location = new System.Drawing.Point(4, 266);
+            this.button_Izap24.Location = new System.Drawing.Point(4, 247);
             this.button_Izap24.Name = "button_Izap24";
             this.button_Izap24.Size = new System.Drawing.Size(114, 23);
             this.button_Izap24.TabIndex = 147;
@@ -437,12 +415,22 @@ namespace Selen {
             this.panel_bottom.Controls.Add(this.button_Settings);
             this.panel_bottom.Controls.Add(this.button_SaveCookie);
             this.panel_bottom.Controls.Add(this.button_TestPartners);
-            this.panel_bottom.Controls.Add(this.button_PricesCorrection);
+            this.panel_bottom.Controls.Add(this.button_PricesIncomeCorrection);
             this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel_bottom.Location = new System.Drawing.Point(0, 427);
             this.panel_bottom.Name = "panel_bottom";
             this.panel_bottom.Size = new System.Drawing.Size(784, 34);
             this.panel_bottom.TabIndex = 147;
+            // 
+            // button_application
+            // 
+            this.button_application.Location = new System.Drawing.Point(294, 7);
+            this.button_application.Name = "button_application";
+            this.button_application.Size = new System.Drawing.Size(92, 24);
+            this.button_application.TabIndex = 125;
+            this.button_application.Text = "Применимость";
+            this.button_application.UseVisualStyleBackColor = true;
+            this.button_application.Click += new System.EventHandler(this.button_application_Click);
             // 
             // button_WeightsDimensions
             // 
@@ -509,16 +497,6 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 427);
             this.panel4.TabIndex = 149;
             // 
-            // button_application
-            // 
-            this.button_application.Location = new System.Drawing.Point(294, 7);
-            this.button_application.Name = "button_application";
-            this.button_application.Size = new System.Drawing.Size(92, 24);
-            this.button_application.TabIndex = 125;
-            this.button_application.Text = "Применимость";
-            this.button_application.UseVisualStyleBackColor = true;
-            this.button_application.Click += new System.EventHandler(this.button_application_Click);
-            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -553,10 +531,8 @@ namespace Selen {
         private System.Windows.Forms.RichTextBox logBox;
         private System.Windows.Forms.Button button_PriceLevelsReport;
         private System.Windows.Forms.Button button_Vk;
-        private System.Windows.Forms.CheckBox checkBox_SyncSites;
         private System.Windows.Forms.Label label_Bus;
         private System.Windows.Forms.Label label_Vk;
-        private System.Windows.Forms.Timer timer_sync;
         private System.Windows.Forms.Label label_Drom;
         private System.Windows.Forms.Button button_Descriptions;
         private System.Windows.Forms.Button button_TestPartners;
@@ -568,7 +544,7 @@ namespace Selen {
         private System.Windows.Forms.Button button_Kupiprodai;
         private System.Windows.Forms.Button button_KupiprodaiAdd;
         private System.Windows.Forms.Label label_Kp;
-        private System.Windows.Forms.Button button_PricesCorrection;
+        private System.Windows.Forms.Button button_PricesIncomeCorrection;
         private System.Windows.Forms.Button button_Gde;
         private System.Windows.Forms.Label label_Gde;
         private System.Windows.Forms.Label label_Cdek;
