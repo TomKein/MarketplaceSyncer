@@ -25,6 +25,7 @@ namespace Selen.Base {
         private readonly object _lock = new object();
         //конструктор по умолчанию - открывает соединение сразу
         public DB() {
+            if (_db!=null) return;
             try {
                 string connectionString = File.ReadAllText(filenameConnectionString);
                 connection = new MySqlConnection(connectionString);

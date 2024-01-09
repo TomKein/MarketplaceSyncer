@@ -31,6 +31,28 @@ namespace Selen {
         private static object _locker = new object();
         private static bool _flag = false;
 
+
+        //поля для переноса из формы
+        public static List<RootGroupsObject> _busGroups = new List<RootGroupsObject>();
+        public static List<RootObject> _bus = new List<RootObject>();
+        public static List<RootObject> lightSyncGoods = new List<RootObject>();
+        DB _db = new DB();
+        string _busFileName = @"..\bus.json";
+        int _pageLimitBase = 250;
+        //флаг - нужен рескан базы
+        bool _isBusinessNeedRescan = false;
+        //флаг - можно запускать новый цикл синхронизации
+        bool _isBusinessCanBeScan = false;
+        //время запуска очередной синхронизации
+        DateTime _syncStartTime;
+        DateTime _scanTime;
+
+
+
+
+
+
+
         //конструктор
         //public static Class365API() { }
 
