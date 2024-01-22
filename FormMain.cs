@@ -17,9 +17,8 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.170";
+        string _version = "1.171";
 
-        //DB _db = new DB();
 
         VK _vk = new VK();
         Drom _drom = new Drom();
@@ -44,7 +43,8 @@ namespace Selen {
         public FormMain() {
             InitializeComponent();
             Class365API.syncAllEvent += SyncAllAsync;
-            _timer.Interval = 50000;
+            Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
+            _timer.Interval = 5000;
             _timer.Elapsed += timer_sync_Tick;
             _timer.Start();
         }
@@ -235,7 +235,6 @@ namespace Selen {
         async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await Class365API.BaseGetAsync();
-            label_Bus.Text = Class365API._labelBusText;
             dateTimePicker1.Value = Class365API._syncStartTime;
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -256,7 +255,6 @@ namespace Selen {
             _saveCookiesBeforeClose = await DB.GetParamBoolAsync("saveCookiesBeforeClose");
             await CheckMultiRunAsync();
             await Class365API.LoadBusJSON();
-            label_Bus.Text = Class365API._labelBusText;
             button_BaseGet.BackColor = Color.GreenYellow;
         }
         //проверка на параллельный запуск
@@ -323,7 +321,7 @@ namespace Selen {
         }
         private async void Button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            await ChangePostingsPrices();
+            await Class365API.ChangePostingsPrices();
             await Task.Delay(1000);//ChangeRemainsPrices();
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -412,6 +410,10 @@ namespace Selen {
         void Button_LogFilterClear_Click(object sender, EventArgs e) {
             textBox_LogFilter.Text = "";
         }
+        async Task PropertiesUpdateHandler() {
+            //label_Bus.Invoke(new Action<string>((a)=>label_Bus.Text = a),Class365API.LabelBusText);
+            label_Bus.Invoke(new Action(()=>label_Bus.Text = Class365API.LabelBusText));
+        }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
             if (Class365API._isBusinessCanBeScan)
@@ -453,106 +455,7 @@ namespace Selen {
             fw.Dispose();
             ChangeStatus(sender, ButtonStates.Active);
         }
-        //массовое изменение цен закупки на товары введенных на остатки
-        async Task ChangeRemainsPrices(int procent = 80) { //TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
-            //цикл для пагинации запросов
-            for (int i = 1; ; i++) {
-                //запрашиваю товары из документов "ввод на остатки"
-                var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
-                        {"limit", Class365API._pageLimitBase.ToString()},
-                        {"page", i.ToString()},
-                    });
-                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
-                if (s.Length <= 4)
-                    break;
-                //десериализую json в список товаров
-                var remainGoods = JsonConvert.DeserializeObject<List<RemainGoods>>(s);
-                //перебираю товары из списка
-                foreach (var rg in remainGoods) {
-                    //индекс карточки товара
-                    var indBus = Class365API._bus.FindIndex(f => f.id == rg.good_id);
-                    //если индекс и остаток положительный
-                    if (indBus > -1 && Class365API._bus[indBus].amount > 0) {
-                        //цена ввода на остатки (цена закупки)
-                        var priceIn = rg.FloatPrice;
-                        //цена отдачи (розничная)
-                        var priceOut = Class365API._bus[indBus].price;
-                        //процент цены закупки от цены отдачи
-                        var procentCurrent = 100 * priceIn / priceOut;
-                        //если процент различается более чем на 5%
-                        if (Math.Abs(procentCurrent - procent) > 5) {
-                            //новая цена закупки
-                            var newPrice = priceOut * procent * 0.01;
-                            //- меняем цену закупки
-                            s = await Class365API.RequestAsync("put", "remaingoods", new Dictionary<string, string> {
-                                { "id", rg.id },
-                                { "remain_id",rg.remain_id },
-                                { "good_id", rg.good_id},
-                                { "price", newPrice.ToString("#.##")},
-                            });
-                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
-                            await Task.Delay(50);
-                        }
-                    }
-                }
-            }
-        }
-        //массовое изменение цен закупки в оприходованиях
-        async Task ChangePostingsPrices(int procent = 80) {//TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
-            //цикл для пагинации запросов
-            for (int i = 1; ; i++) {
-                //запрашиваю товары из документов "Оприходования"
-                var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
-                        {"limit", Class365API._pageLimitBase.ToString()},
-                        {"updated[from]", DateTime.Now.AddHours(-10).ToString("dd.MM.yyyy")},
-                        {"page", i.ToString()},
-                    });
-                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
-                if (s.Length <= 4)
-                    break;
-                //десериализую json в список товаров
-                var postingGoods = JsonConvert.DeserializeObject<List<PostingGoods>>(s);
-                //перебираю товары из списка
-                foreach (var pg in postingGoods) {
-                    //индекс карточки товара
-                    var indBus = Class365API._bus.FindIndex(f => f.id == pg.good_id);
-                    //если индекс и остаток положительный
-                    if (indBus > -1 && Class365API._bus[indBus].amount > 0 && Class365API._bus[indBus].price > 0) {
-                        //цена ввода на остатки (цена закупки)
-                        var priceIn = pg.FloatPrice;
-                        //цена отдачи (розничная)
-                        var priceOut = Class365API._bus[indBus].price;
-                        //процент цены закупки от цены отдачи
-                        var procentCurrent = 100 * priceIn / priceOut;
-                        //если процент различается более чем на 5%
-                        if (Math.Abs(procentCurrent - procent) > 5) {
-                            //новая цена закупки
-                            var newPrice = priceOut * procent * 0.01;
-                            //- меняем цену закупки
-                            s = await Class365API.RequestAsync("put", "postinggoods", new Dictionary<string, string> {
-                                { "id", pg.id },
-                                { "posting_id",pg.posting_id },
-                                { "good_id", pg.good_id},
-                                { "price", newPrice.ToString("#.##")},
-                            });
-                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
-                            await Task.Delay(1000);
-                        }
-                    }
-                }
-            }
-        }
-        //отчет остатки по уровню цен
-        async void PriceLevelsRemainsReport(object sender, EventArgs e) {
-            var priceLevelsStr = DB.GetParamStr("priceLevelsForRemainsReport");
-            var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
-            foreach (var price in priceLevels) {
-                var x = Class365API._bus.Count(w => w.images.Count > 0 && w.price >= price && w.amount > 0);
-                Log.Add("позиций фото, положительным остатком и ценой " + price + "+ : " + x);
-            }
-        }
+
         //заполнить применимость
         private void button_application_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -560,6 +463,12 @@ namespace Selen {
             form.Owner = this;
             form.ShowDialog();
             form.Dispose();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
+        //отчет остатки по уровню цен
+        async void PriceLevelsRemainsReport(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            await Class365API.PriceLevelsRemainsReport();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //метод для тестов

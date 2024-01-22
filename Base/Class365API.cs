@@ -15,32 +15,41 @@ using Selen.Base;
 using Selen.Tools;
 
 namespace Selen {
-    public delegate Task SyncAllEventDelegate();
+    public delegate Task SyncEventDelegate();
     public class Class365API {
         static readonly string _secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
         static readonly string _appId = "768289";
-        static string _l = "class365: ";
-        private static Uri _baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
+        static readonly string _l = "class365: ";
+        static readonly Uri _baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
         static RootResponse _rr = new RootResponse();
         static Dictionary<string, string> _data = new Dictionary<string, string>();
-        private static HttpClient _hc = new HttpClient();
+        static HttpClient _hc = new HttpClient();
         public static List<RootGroupsObject> _busGroups = new List<RootGroupsObject>();
         public static List<RootObject> _bus = new List<RootObject>();
         public static List<RootObject> lightSyncGoods = new List<RootObject>();
-        public static readonly string _busFileName = @"..\bus.json";
+        private static System.Timers.Timer _timer = new System.Timers.Timer();
+        static readonly string _busFileName = @"..\bus.json";
         public static readonly int _pageLimitBase = 250;
         public static bool _isBusinessNeedRescan = false;
         public static bool _isBusinessCanBeScan = false;
         public static DateTime _syncStartTime;
         public static DateTime _scanTime;
         public static DateTime _lastScanTime;
-        public static string _labelBusText;
         static Random _rnd = new Random();
         private static object _locker = new object();
         private static bool _flag = false;
-        private static System.Timers.Timer _timer = new System.Timers.Timer();
+        static string _labelBusText;
+        public static string LabelBusText { 
+            get { 
+                return _labelBusText;
+            } set {
+                _labelBusText = value;
+                updatePropertiesEvent.Invoke();
+            } }
 
-        public static event SyncAllEventDelegate syncAllEvent = null;
+        public static event SyncEventDelegate syncAllEvent = null;
+        public static event SyncEventDelegate updatePropertiesEvent = null;
+
 
         static Class365API() {
             _timer.Interval = 20000;
@@ -185,10 +194,11 @@ namespace Selen {
             await GetBusGoodsAsync2();
             var tlog = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.amount > 0 && c.price > 0);
             Log.Add(_l+"получено товаров с остатками " + tlog);
-            _labelBusText = tlog;
+            LabelBusText = tlog;
             await SaveBusAsync();
             _isBusinessNeedRescan = false;
             await syncAllEvent();
+            _isBusinessCanBeScan = true;
             Log.Add(_l+"полный цикл синхронизации завершен");
         }
         public static async Task GetBusGoodsAsync2() {
@@ -372,11 +382,9 @@ namespace Selen {
                 //lastScanTime сохраним когда перенесем изменения в объявления!!)
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
-                _labelBusText = _bus.Count + "/" + _bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
-                if (!isBusFileOld) {
-                    await DB.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-liteScanTimeShift).ToString());
-                    await DB.SetParamAsync("controlBus", _bus.Count.ToString());
-                }
+                LabelBusText = _bus.Count + "/" + _bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
+                await DB.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-liteScanTimeShift).ToString());
+                await DB.SetParamAsync("controlBus", _bus.Count.ToString());
 
                 ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
                 ///пока события не реализованы в проекте, поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
@@ -889,7 +897,7 @@ namespace Selen {
                     _bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
                 });
                 Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
-                _labelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
+                LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
                 
             }
             _isBusinessCanBeScan = true;
@@ -1097,7 +1105,106 @@ namespace Selen {
                 }
             }
         }
-
+        //массовое изменение цен закупки на товары введенных на остатки
+        public static async Task ChangeRemainsPrices(int procent = 80) { //TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
+            //цикл для пагинации запросов
+            for (int i = 1; ; i++) {
+                //запрашиваю товары из документов "ввод на остатки"
+                var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
+                        {"limit", Class365API._pageLimitBase.ToString()},
+                        {"page", i.ToString()},
+                    });
+                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
+                if (s.Length <= 4)
+                    break;
+                //десериализую json в список товаров
+                var remainGoods = JsonConvert.DeserializeObject<List<RemainGoods>>(s);
+                //перебираю товары из списка
+                foreach (var rg in remainGoods) {
+                    //индекс карточки товара
+                    var indBus = Class365API._bus.FindIndex(f => f.id == rg.good_id);
+                    //если индекс и остаток положительный
+                    if (indBus > -1 && Class365API._bus[indBus].amount > 0) {
+                        //цена ввода на остатки (цена закупки)
+                        var priceIn = rg.FloatPrice;
+                        //цена отдачи (розничная)
+                        var priceOut = Class365API._bus[indBus].price;
+                        //процент цены закупки от цены отдачи
+                        var procentCurrent = 100 * priceIn / priceOut;
+                        //если процент различается более чем на 5%
+                        if (Math.Abs(procentCurrent - procent) > 5) {
+                            //новая цена закупки
+                            var newPrice = priceOut * procent * 0.01;
+                            //- меняем цену закупки
+                            s = await Class365API.RequestAsync("put", "remaingoods", new Dictionary<string, string> {
+                                { "id", rg.id },
+                                { "remain_id",rg.remain_id },
+                                { "good_id", rg.good_id},
+                                { "price", newPrice.ToString("#.##")},
+                            });
+                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
+                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                            await Task.Delay(50);
+                        }
+                    }
+                }
+            }
+        }
+        //массовое изменение цен закупки в оприходованиях
+        public static async Task ChangePostingsPrices(int procent = 80) {//TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
+            //цикл для пагинации запросов
+            for (int i = 1; ; i++) {
+                //запрашиваю товары из документов "Оприходования"
+                var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
+                        {"limit", Class365API._pageLimitBase.ToString()},
+                        {"updated[from]", DateTime.Now.AddHours(-10).ToString("dd.MM.yyyy")},
+                        {"page", i.ToString()},
+                    });
+                //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
+                if (s.Length <= 4)
+                    break;
+                //десериализую json в список товаров
+                var postingGoods = JsonConvert.DeserializeObject<List<PostingGoods>>(s);
+                //перебираю товары из списка
+                foreach (var pg in postingGoods) {
+                    //индекс карточки товара
+                    var indBus = Class365API._bus.FindIndex(f => f.id == pg.good_id);
+                    //если индекс и остаток положительный
+                    if (indBus > -1 && Class365API._bus[indBus].amount > 0 && Class365API._bus[indBus].price > 0) {
+                        //цена ввода на остатки (цена закупки)
+                        var priceIn = pg.FloatPrice;
+                        //цена отдачи (розничная)
+                        var priceOut = Class365API._bus[indBus].price;
+                        //процент цены закупки от цены отдачи
+                        var procentCurrent = 100 * priceIn / priceOut;
+                        //если процент различается более чем на 5%
+                        if (Math.Abs(procentCurrent - procent) > 5) {
+                            //новая цена закупки
+                            var newPrice = priceOut * procent * 0.01;
+                            //- меняем цену закупки
+                            s = await Class365API.RequestAsync("put", "postinggoods", new Dictionary<string, string> {
+                                { "id", pg.id },
+                                { "posting_id",pg.posting_id },
+                                { "good_id", pg.good_id},
+                                { "price", newPrice.ToString("#.##")},
+                            });
+                            if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
+                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                            await Task.Delay(1000);
+                        }
+                    }
+                }
+            }
+        }
+        //отчет остатки по уровню цен
+        public static async Task PriceLevelsRemainsReport() => await Task.Factory.StartNew(() => {
+            var priceLevelsStr = DB.GetParamStr("priceLevelsForRemainsReport");
+            var priceLevels = JsonConvert.DeserializeObject<int[]>(priceLevelsStr);
+            foreach (var price in priceLevels) {
+                var x = _bus.Count(w => w.images.Count > 0 && w.price >= price && w.amount > 0);
+                Log.Add("позиций фото, положительным остатком и ценой " + price + "+ : " + x);
+            }
+        });
     }
 }
 
