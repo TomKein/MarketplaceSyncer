@@ -37,6 +37,10 @@ namespace Selen.Sites {
         List<AttributeValue> _place;                  //список Расположение детали
         List<AttributeValue> _side;                   //список Сторона установки
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
+        
+        //производители, для которых не выгружаем номера и артикулы
+        readonly string[] _exceptManufactures = { "chery", "general motors" }; 
+
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
             _url = DB.GetParamStr("ozon.url");
@@ -95,7 +99,7 @@ namespace Selen.Sites {
                     await UpdateProductAsync(bus);
                 }
             } catch (Exception x) {
-                Log.Add(_l+ "UpdateProductsAsync - " + x.Message);
+                Log.Add(_l + "UpdateProductsAsync - " + x.Message);
             }
         }
         //проверяем список товаров озон
@@ -350,13 +354,13 @@ namespace Selen.Sites {
                 };
                 //переносим в объект запроса атрибуты из товара озон, которые уже есть
                 foreach (var item in productFullInfo[0].attributes) {
-                                                                                    //Пропускаю некоторые атрибуты
+                    //Пропускаю некоторые атрибуты
                     if (item.id != 4180 &&                                          //Название
                     item.id != 9024 &&                                              //Артикул
                     item.id != 9048 &&                                              //Название модели (для объединения в одну карточку)
                     item.id != 4191 &&                                              //Аннотация
                     item.id != 22387 &&                                             //Группа товара
-                    
+
                     item.id != 85 &&                                                //Бренд (теперь используем Без бренда,
                                                                                     //убрать если нужно сохранять бренд, уже установленных в товарах)
                     item.values.Length > 0) {
@@ -454,7 +458,7 @@ namespace Selen.Sites {
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
                                      && !_productList.items.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e=> w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
+                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods);
             var goods2 = _bus.Where(w => w.amount > 0
                                      && w.price > 0
@@ -462,9 +466,9 @@ namespace Selen.Sites {
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
                                      && !_productList.items.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e=> w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
+                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods2, @"..\ozon\ozonGoodListForAdding_all.csv");
-            Log.Add(_l + "карточек для добавления: " + goods.Count()+" ("+goods2.Count()+")");
+            Log.Add(_l + "карточек для добавления: " + goods.Count() + " (" + goods2.Count() + ")");
             int i = 0;
             foreach (var good in goods) {
                 try {
@@ -516,7 +520,7 @@ namespace Selen.Sites {
                         Log.Add(_l + good.name + " ошибка - " + s);
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add(_l + good.name +" - "+ x.Message + x.InnerException?.Message);
+                    Log.Add(_l + good.name + " - " + x.Message + x.InnerException?.Message);
                 }
                 if (++i >= count)
                     break;
@@ -918,7 +922,7 @@ namespace Selen.Sites {
                     a.categoryId = 33698198;
                     a.typeId = 98826;
                     a.typeName = "Заслонка дроссельная";
-                } else if ((n.StartsWith("защита")|| n.StartsWith("пыльник")) &&         //Защита нижней части автомобиля
+                } else if ((n.StartsWith("защита") || n.StartsWith("пыльник")) &&         //Защита нижней части автомобиля
                     (n.Contains("двиг") || n.Contains("карт") || n.Contains("двс"))) {
                     a.categoryId = 33304846;
                     a.typeId = 970594170;
@@ -1098,8 +1102,8 @@ namespace Selen.Sites {
                     a.categoryId = 36201237;
                     a.typeId = 98863;
                     a.typeName = "Опора амортизатора";
-                } else if ((n.StartsWith("опора")||n.StartsWith("подуш")) && 
-                    (n.Contains("двс")||n.Contains("двигател"))) {                         //Опора двигателя 
+                } else if ((n.StartsWith("опора") || n.StartsWith("подуш")) &&
+                    (n.Contains("двс") || n.Contains("двигател"))) {                         //Опора двигателя 
                     a.categoryId = 33696914;
                     a.typeId = 970782919;
                     a.typeName = "Опора двигателя";
@@ -1144,7 +1148,7 @@ namespace Selen.Sites {
                     a.typeId = 970891893;
                     a.typeName = "Поддон картера двигателя";
                 } else if (n.StartsWith("подкрыл") &&                                     //подкрылки 
-                    (n.Contains("перед") || n.Contains("зад") || n.Contains("лев")|| n.Contains("прав"))) {
+                    (n.Contains("перед") || n.Contains("зад") || n.Contains("лев") || n.Contains("прав"))) {
                     a.categoryId = 33304847;
                     a.typeId = 94663;
                     a.typeName = "Подкрылки";
@@ -1159,8 +1163,7 @@ namespace Selen.Sites {
                     a.typeId = 98878;
                     a.typeName = "Подшипник выжимной";
                 } else if (n.Contains("подшипник") &&          //Подшипник опоры амортизатора
-                    (n.Contains("стойк") || n.Contains("аморт") || n.Contains("опор"))) 
-                    {
+                    (n.Contains("стойк") || n.Contains("аморт") || n.Contains("опор"))) {
                     a.categoryId = 36201237;
                     a.typeId = 98877;
                     a.typeName = "Подшипник амортизатора";
@@ -1169,12 +1172,12 @@ namespace Selen.Sites {
                     a.categoryId = 33717350;
                     a.typeId = 92256;
                     a.typeName = "Полироль автомобильный";
-                } else if ((n.StartsWith("помпа")|| n.StartsWith("насос ")) &&           //Помпа водяная
+                } else if ((n.StartsWith("помпа") || n.StartsWith("насос ")) &&           //Помпа водяная
                   (n.Contains("водян") || n.Contains("охлажд"))) {
                     a.categoryId = 39653253;
                     a.typeId = 98857;
                     a.typeName = "Водяной насос (помпа)";
-                } else if (n.StartsWith("поршень")|| n.StartsWith("поршни"))          //Поршень
+                } else if (n.StartsWith("поршень") || n.StartsWith("поршни"))          //Поршень
                   {
                     a.categoryId = 85812214;
                     a.typeId = 970782910;
@@ -1194,14 +1197,14 @@ namespace Selen.Sites {
                     a.categoryId = 33717356;
                     a.typeId = 92257;
                     a.typeName = "Преобразователь ржавчины";
-                } else if ((n.Contains("привод") || n.Contains("полуось")) && 
-                    (n.Contains("лев")||n.Contains("прав")))                             //Привод 
+                } else if ((n.Contains("привод") || n.Contains("полуось")) &&
+                    (n.Contains("лев") || n.Contains("прав")))                             //Привод 
                    {
                     a.categoryId = 85817289;
                     a.typeId = 98888;
                     a.typeName = "Привод в сборе";
-                } else if (n.Contains("раскоксовыв") && 
-                    (n.Contains("двигателя") ||n.Contains("двс")))                      //Раскоксовывание двигателя 
+                } else if (n.Contains("раскоксовыв") &&
+                    (n.Contains("двигателя") || n.Contains("двс")))                      //Раскоксовывание двигателя 
                    {
                     a.categoryId = 98327483;
                     a.typeId = 970892544;
@@ -1213,13 +1216,13 @@ namespace Selen.Sites {
                     a.typeId = 970740203;
                     a.typeName = "Датчик массового расхода воздуха";
                 } else if (n.StartsWith("реле ") &&
-                    n.Contains("поворот") )              //Реле поворотов
+                    n.Contains("поворот"))              //Реле поворотов
                    {
                     a.categoryId = 39653253;
                     a.typeId = 971072777;
                     a.typeName = "Реле указателей поворота";
                 } else if (n.StartsWith("реле ") &&
-                    n.Contains("бензо") )              //Реле бензонасоса
+                    n.Contains("бензо"))              //Реле бензонасоса
                    {
                     a.categoryId = 39653253;
                     a.typeId = 971047416;
@@ -1248,7 +1251,7 @@ namespace Selen.Sites {
                     a.typeId = 98917;
                     a.typeName = "Ремкомплект суппорта";
                 } else if (n.StartsWith("решетка") &&
-                    (n.Contains("бампер")||n.Contains("радиатор")))    //решетка бампера радиатора
+                    (n.Contains("бампер") || n.Contains("радиатор")))    //решетка бампера радиатора
                    {
                     a.categoryId = 100186418;
                     a.typeId = 97666;
@@ -1265,8 +1268,7 @@ namespace Selen.Sites {
                     a.typeId = 971032883;
                     a.typeName = "Рычаг тормоза";
                 } else if (n.StartsWith("рычаг") &&          //Рычаг подвески
-                    (n.Contains("подвеск") || n.Contains("зад") || n.Contains("лев") || n.Contains("прав"))) 
-                    {
+                    (n.Contains("подвеск") || n.Contains("зад") || n.Contains("лев") || n.Contains("прав"))) {
                     a.categoryId = 85828600;
                     a.typeId = 970849745;
                     a.typeName = "Рычаг подвески";
@@ -1294,8 +1296,7 @@ namespace Selen.Sites {
                     a.typeId = 970977226;
                     a.typeName = "Автостекло";
                 } else if ((n.StartsWith("стекло ") && n.Contains("зеркала")) ||              //Стекло зеркала 
-                   (n.Contains("зеркальный") && n.Contains("элемент")))
-                    {
+                   (n.Contains("зеркальный") && n.Contains("элемент"))) {
                     a.categoryId = 28305306;
                     a.typeId = 971092521;
                     a.typeName = "Элемент зеркальный";
@@ -1323,12 +1324,12 @@ namespace Selen.Sites {
                     a.categoryId = 33698213;
                     a.typeId = 96179;
                     a.typeName = "Фильтр топливный";
-                } else if (n.StartsWith("фланец ") && 
-                    (n.Contains("карбюратор")|| n.Contains("моновпрыск"))) {              //Фланец карбюратора 
+                } else if (n.StartsWith("фланец ") &&
+                    (n.Contains("карбюратор") || n.Contains("моновпрыск"))) {              //Фланец карбюратора 
                     a.categoryId = 33698197;
                     a.typeId = 971061543;
                     a.typeName = "Ремкомплект карбюратора";
-                } else if (n.StartsWith("форсунка ") && 
+                } else if (n.StartsWith("форсунка ") &&
                     (n.Contains("омывателя") || n.Contains("фар"))) {              //Форсунка омывателя 
                     a.categoryId = 85817600;
                     a.typeId = 970863584;
@@ -1698,6 +1699,10 @@ namespace Selen.Sites {
         }
         //Атрибут ОЕМ-номер
         Attribute GetOEMAttribute(RootObject good) {
+            var man = good.GetManufacture(true)?
+                          .ToLowerInvariant();
+            if (_exceptManufactures.Contains(man))
+                return null;
             var value = good.GetOEM();
             if (value == null)
                 return null;
@@ -1823,6 +1828,10 @@ namespace Selen.Sites {
         }
         //Атрибут Альтернативные артикулы
         Attribute GetAlternativesAttribute(RootObject good) {
+            var man = good.GetManufacture(true)?
+                          .ToLowerInvariant();
+            if (_exceptManufactures.Contains(man))
+                return null;
             var value = good.GetAlternatives();
             if (value == null)
                 return null;
@@ -1868,24 +1877,34 @@ namespace Selen.Sites {
             };
         }
 
-        //Атрибут Название модели (для объединения в одну карточку) (в нашем случае дублируем name карточки бизнес.ру)
-        Attribute GetModelNameAttribute(RootObject good) => new Attribute {
-            complex_id = 0,
-            id = 9048,
-            values = new Value[] {
+        //Атрибут Название модели (для объединения в одну карточку)
+        //(в нашем случае дублируем name карточки бизнес.ру)
+        Attribute GetModelNameAttribute(RootObject bus) {
+            var part = bus.GetManufacture(true)?
+              .ToLowerInvariant() == "chery" ? bus.id
+                                             : bus.part;
+            return new Attribute {
+                complex_id = 0,
+                id = 9048,
+                values = new Value[] {
                 new Value{
-                    //value = good.name
-                    value = good.Part
+                    //value = bus.name
+                    //value = bus.Part
+                    value = part
                 }
             }
-        };
+            };
+        }
+
         //Атрибут Аннотация Описание товара
         Attribute GetDescriptionAttribute(RootObject good) => new Attribute {
             complex_id = 0,
             id = 4191,
             values = new Value[] {
                 new Value{
-                    value = good.DescriptionList().Aggregate((a,b)=>a+"<br>"+b)
+                    value = good.DescriptionList()
+                                .Aggregate((a,b)=>a+"<br>"+b)
+                                .Replace("оригинал","opигинaл") //замена букв на латиницу, чтобы озон не ругался
                 }
             }
         };
@@ -1954,16 +1973,22 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Партномер (артикул производителя) (в нашем случае артикул)
-        Attribute GetPartAttribute(RootObject bus) =>
-            new Attribute {
+        Attribute GetPartAttribute(RootObject bus) {
+            var man = bus.GetManufacture(true)?
+                         .ToLowerInvariant();
+            var part = _exceptManufactures.Contains(man)? bus.id
+                                                        : bus.part;
+            return new Attribute {
                 complex_id = 0,
                 id = 7236,
                 values = new Value[] {
                     new Value{
-                        value = bus.Part
+                        //value = bus.Part
+                        value = part
                     }
                 }
             };
+        }
         //Запрос списка атрибутов с озон (значения по умолчанию - для получения списка брендов
         public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id = 85, int category_id = 61852812) {
             var attributeValuesFile = @"..\ozon\ozon_attr_" + attribute_id + "_cat_" + category_id + ".json";
