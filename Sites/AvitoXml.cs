@@ -244,11 +244,25 @@ namespace Selen.Sites {
             if (name.StartsWith("масло ")) {
                 d.Add("TypeId", "4-942");                           //Масла и автохимия
             } else if (name.StartsWith("фиксаторы") ||
-                name.StartsWith("набор") && name.Contains("инструмент") ||
+                name.StartsWith("набор ") && name.Contains("инструмент") ||
+                name.StartsWith("набор ") && name.Contains("ключ") ||
+                name.Contains("бандаж") && name.Contains("глушителя") ||
                 name.StartsWith("набор фиксаторов") ||
                 name.StartsWith("домкрат") ||
                 name.StartsWith("щетка для дрели") ||
                 name.StartsWith("ключ балонный") ||
+                name.StartsWith("стяжка пружин") ||
+                name.StartsWith("штангенциркуль") ||
+                name.StartsWith("трещотка ") ||
+                name.StartsWith("лопата саперная") ||
+                name.StartsWith("автотестер ") ||
+                name.StartsWith("ключ ") ||
+                name.StartsWith("отвертка ") ||
+                name.StartsWith("бокорезы ") ||
+                name.StartsWith("воронка с фильтром ") ||
+                name.StartsWith("щетка мет") ||
+                name.StartsWith("головка")&&
+                (name.Contains("торц") || name.Contains("удлин") || name.Contains("шестиг")) ||
                 name.StartsWith("струна")) {
                 d.Add("TypeId", "4-963");                          //Инструменты
             } else if (name.StartsWith("венец") ||
@@ -654,6 +668,7 @@ namespace Selen.Sites {
                   name.StartsWith("панель приб") ||
                   name.StartsWith("переключател") ||
                   name.StartsWith("предохранит") ||
+                  name.StartsWith("набор ")&&name.Contains("предохранит") ||
                   name.StartsWith("привод центр") ||
                   name.StartsWith("прикуриват") ||
                   name.StartsWith("провод") ||
@@ -677,6 +692,7 @@ namespace Selen.Sites {
                   name.StartsWith("эбу") ||
                   name.StartsWith("конденсатор") ||
                   name.StartsWith("заслонка отопителя") ||
+                  name.StartsWith("вакуумный переключатель") ||
                   b.GroupName() == "Электрика, зажигание") {
                 d.Add("TypeId", "11-630");                          //Электрооборудование
             } else if (name.StartsWith("ящик") ||
@@ -764,6 +780,7 @@ namespace Selen.Sites {
                  name.StartsWith("рейлинг") ||
                  name.StartsWith("дуги крыши") ||
                  name.StartsWith("трос ") ||
+                 name.StartsWith("тросик замк") ||
                  name.StartsWith("передняя панель") ||
                  (name.Contains("мотор") || name.Contains("трапеция"))
                                          && name.Contains("стеклоочист") ||
@@ -863,6 +880,8 @@ namespace Selen.Sites {
                    name.Contains("коллектора") ||
                    name.StartsWith("бензобак") ||
                    name.StartsWith("труба прямая")||
+                   name.StartsWith("адаптер") && name.Contains("топливн") ||
+                   name.StartsWith("штуцер топлив") ||
                    name.StartsWith("изгиб трубы глушителя")
                    ) {
                 d.Add("TypeId", "11-627");                          //Топливная и выхлопная системы
@@ -920,6 +939,7 @@ namespace Selen.Sites {
                  name.StartsWith("ремкомплект задних колодок") ||
                  name.StartsWith("колодки тормоз") ||
                  name.StartsWith("колодки бараб") ||
+                 name.StartsWith("переходник тормозной") ||
                  name.StartsWith("распределитель торм") ||
                  name.Contains("abs") && (name.StartsWith("насос") || name.StartsWith("блок")) ||
                  name.Contains("планка") && name.Contains("тормоза") ||
@@ -1000,6 +1020,7 @@ namespace Selen.Sites {
                 name.StartsWith("хомут ") ||
                 name.StartsWith("сальник привода") ||
                 name.StartsWith("сальник промежуточного вала") ||
+                name.StartsWith("соединитель патрубк") ||
                 name.StartsWith("сальник №")) {
                 d.Add("TypeId", "11-621");                          //Запчасти для ТО
             }
