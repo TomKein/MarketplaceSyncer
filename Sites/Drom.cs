@@ -354,14 +354,14 @@ namespace Selen.Sites {
             var oem = b.GetOEM();
             if (!string.IsNullOrEmpty(oem) && oem != b.part)
                 descNums.Add(oem);
-            var alt = b.GetAlternatives();
-            if (!string.IsNullOrEmpty(alt) && alt != b.part) 
-                descNums.Add(alt);
+            var alt = b.GetAlternatives()?.Split(',');
+            if (alt!=null && alt.Any()) 
+                descNums.AddRange(alt);
 
             var t1 = descNums.Where(x => x != b.part)?
                              .Distinct()?
                              .Take(5);
-            var numbers = t1.Any() ? t1.Aggregate((n1, n2) => n1 + ", " + n2):"";
+            var numbers = t1.Any() ? t1.Aggregate((n1, n2) => n1 + ", " + n2).Replace("\\","").Replace("/",""):"";
             var w = _dr.GetElementAttribute("//textarea[@name='autoPartsSubstituteNumbers']", "value");
             if (w != numbers)
                 _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", numbers + OpenQA.Selenium.Keys.Tab);
@@ -494,7 +494,7 @@ namespace Selen.Sites {
                     var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
                         try {
-                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 4));
+                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 6));
                             CheckPage(drom);
                         } catch {
                             //i--;
@@ -513,14 +513,16 @@ namespace Selen.Sites {
                 await Task.Factory.StartNew(() => {
                     int b = DB.GetParamInt("drom.checkOfferIndex");
                     int cnt = DB.GetParamInt("drom.checkOffersCount");
+                    var checkOtOfStock = DB.GetParamBool("drom.checkOffersOutOfStock");
                     for (int i = 0; i < cnt;) {
                         try {
                             if (b >= _bus.Count)
                                 b = 0;
                             if (
-                                _bus[b].amount > 0 &&
+                                (_bus[b].amount > 0 || checkOtOfStock) &&
                                 //_bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
+                                i++;
                                 Log.Add(_l + _bus[b].name + " - проверяю объявление " + (i + 1) + 
                                     " (" + b + " / " + _bus.Count + ")");
                                 //Edit(_bus[b]);
@@ -534,7 +536,6 @@ namespace Selen.Sites {
                                 CheckPhotos(_bus[b]);
                                 SetDesc(_bus[b]);
                                 Thread.Sleep(2000);
-                                i++;
                             }
                             DB.SetParam("drom.checkOfferIndex", (++b).ToString());
                         } catch {

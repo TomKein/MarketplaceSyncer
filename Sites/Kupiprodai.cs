@@ -205,7 +205,7 @@ namespace Selen.Sites {
                 while (_dr.GetElementsCount("input[name='captcha']") > 0 && _dr.GetElementAttribute("input[name='captcha']", "value").Length != 6)
                     Thread.Sleep(500);
                 _dr.ButtonClick("input[type='submit']");
-            } while (_dr.GetElementsCount("input[name='captcha']") > 0);
+            } while (_dr.GetElementsCount("//div[@id='tag_act']/span")==0 && _dr.GetElementsCount("input[name='captcha']") > 0);
         }
         //выкладываю объявления
         public async Task AddAsync() {

@@ -261,6 +261,11 @@ namespace Selen.Sites {
                 name.StartsWith("бокорезы ") ||
                 name.StartsWith("воронка с фильтром ") ||
                 name.StartsWith("щетка мет") ||
+                name.StartsWith("мультиметр цифровой") ||
+                name.StartsWith("лампа переносная") ||
+                name.StartsWith("манометр ") ||
+                name.StartsWith("набор для ремонта") ||
+                name.StartsWith("знак аварийной") ||
                 name.StartsWith("головка")&&
                 (name.Contains("торц") || name.Contains("удлин") || name.Contains("шестиг")) ||
                 name.StartsWith("струна")) {
@@ -962,6 +967,7 @@ namespace Selen.Sites {
                   name.StartsWith("скобы приёмной трубы") ||
                   name.StartsWith("скоба лампы") ||
                   name.StartsWith("крюк буксировочный") ||
+                  name.StartsWith("адаптер") && name.Contains("щет") ||
                   name.Contains("держатель")) {
                 d.Add("TypeId", "16-815");                          //Крепления
             } else if (name.Contains("грм") ||
@@ -1011,14 +1017,16 @@ namespace Selen.Sites {
                 name.StartsWith("трубк") && name.Contains("турб")
                 ) {
                 d.Add("TypeId", "16-842");                           //Турбины, компрессоры
-            } else if (b.group_id == "289732"                       //  "Автохимия"
-                || name.StartsWith("огнетушитель") ) { 
+            } else if (b.group_id == "289732" ||                      //  "Автохимия"
+                name.StartsWith("огнетушитель")||
+                name.StartsWith("салфетка ")) { 
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
             } else if (name.StartsWith("прокладка") ||
                 name.StartsWith("свеча зажиг") ||
                 name.StartsWith("комплект прокладок") ||
                 name.StartsWith("хомут ") ||
                 name.StartsWith("сальник привода") ||
+                name.StartsWith("кольцо уплотнительное") ||
                 name.StartsWith("сальник промежуточного вала") ||
                 name.StartsWith("соединитель патрубк") ||
                 name.StartsWith("сальник №")) {

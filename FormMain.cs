@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.171";
+        string _version = "1.172";
 
 
         VK _vk = new VK();
@@ -247,13 +247,13 @@ namespace Selen {
             //меняю заголовок окна
             this.Text += _version;
             var currentVersion = await DB.GetParamStrAsync("version");
-            if (!_version.Contains(currentVersion)) {
-                Log.Add("доступна новая версия " + currentVersion);
-            }
             _writeLog = await DB.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = DB.GetParamDateTime("lastScanTime");
             _saveCookiesBeforeClose = await DB.GetParamBoolAsync("saveCookiesBeforeClose");
             await CheckMultiRunAsync();
+            if (!_version.Contains(currentVersion)) {
+                Log.Add("доступна новая версия " + currentVersion);
+            }
             await Class365API.LoadBusJSON();
             button_BaseGet.BackColor = Color.GreenYellow;
         }

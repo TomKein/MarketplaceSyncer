@@ -249,7 +249,7 @@ namespace Selen.Sites {
             throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count + ", checkCount = " + checkCount);
         });
         //проверка каталога объявлений на вк
-        async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
+        async Task CheckVKAsync() => await Task.Factory.StartNew(() =>  {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
                 //ищем индекс в карточках товаров
@@ -263,22 +263,21 @@ namespace Selen.Sites {
                     ) {
                     try {
                         _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
-                        Log.Add("vk.com: " + vkMark[i].Title + " - удалено! (ост. " + --ccl + ")");
+                        Log.Add("vk.com: " + b + " " + vkMark[i].Title + " - удалено! (ост. " + --ccl + ")");
                         Thread.Sleep(2000);
                     } catch (Exception x) {
                         Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
                         Thread.Sleep(2000);
                     }
-                    //если изменилась цена, наименование или карточка товара - редактирую
-                } else if (_bus[b].price != vkMark[i].Price.Amount / 100
-
-                    && DateTime.Now.Minute < 48 || //ограничение периода
-
+                //если изменилась цена, наименование или карточка товара - редактирую
+                } else if (_bus[b].price != vkMark[i].Price.Amount / 100 || 
                     _bus[b].name != vkMark[i].Title || //не совпадает название
 
                     _bus[b].price >= _creditPriceMin && //цена в диапазоне
                     _bus[b].price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем
                     !vkMark[i].Description.Contains(_creditDescription) ||
+
+                    (vkMark[i].Description.Contains("Наложенный платёж")&& ccl-- > 0) ||
 
                     _bus[b].IsTimeUpDated()) {
                     Edit(b);

@@ -39,7 +39,7 @@ namespace Selen.Sites {
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         
         //производители, для которых не выгружаем номера и артикулы
-        readonly string[] _exceptManufactures = { "chery", "general motors" }; 
+        readonly string[] _exceptManufactures = { "general motors" }; 
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -1371,6 +1371,27 @@ namespace Selen.Sites {
                     a.categoryId = 99615343;
                     a.typeId = 971026652;
                     a.typeName = "Подушка безопасности";
+                } else if (n.StartsWith("эмаль ")) {                             //эмали
+                    a.categoryId = 32451132;
+                    a.typeId = 96664;
+                    a.typeName = "Эмаль";
+                } else if (n.StartsWith("хомут ")) {                           //хомуты
+                    a.categoryId = 87717033;
+                    a.typeId = 94561;
+                    a.typeName = "Хомут";
+                } else if (n.StartsWith("ключ комбинированный")) {            //Ключи
+                    a.categoryId = 45393031;
+                    a.typeId = 92082;
+                    a.typeName = "Ключ";
+                } else if (n.StartsWith("отвертк")) {            //отвертки
+                    a.categoryId = 45393034;
+                    a.typeId = 92108;
+                    a.typeName = "Отвертка";
+                } else if (n.StartsWith("головка") && 
+                    (n.Contains("удлин")||n.Contains("торц")||n.Contains("шести"))) {            //головки
+                    a.categoryId = 32451092;
+                    a.typeId = 92145;
+                    a.typeName = "Торцевая головка";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -1944,30 +1965,32 @@ namespace Selen.Sites {
             };
         //Атрибут Бренд
         Attribute GetBrendAttribute(RootObject bus) {
-            //int id;
-            //string name;
-            //var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
+            int id;
+            string name;
+            var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
             //if (m == "vag") {
             //    id = 115840909;
             //    name = "VAG (VW/Audi/Skoda/Seat)";
             //} else if (m == "chery") {
             //    id = 0;
             //    name = "Нет бренда";
-            //} else if (_brends.Any(a => a.value.ToLowerInvariant() == m)) {
-            //    var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
-            //    id = attribute.id;
-            //    name = attribute.value;
-            //} else {
-            //    id = 0;
-            //    name = "Нет бренда";
-            //}
+            //} else
+            if (m== "chery" && _brends.Any(a => a.value.ToLowerInvariant() == m)) {
+                var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
+                id = attribute.id;
+                name = attribute.value;
+            } else {
+                id = 0;
+                name = "Нет бренда";
+            }
             return new Attribute {
                 complex_id = 0,
                 id = 85,
                 values = new Value[] {
                     new Value{
-                        dictionary_value_id = 0,//126745801 //id,
-                        value = "Нет бренда"    //name
+                        //dictionary_value_id = 0,//126745801 //id,
+                        dictionary_value_id = id,
+                        value = name
                     }
                 }
             };

@@ -102,12 +102,16 @@ namespace Selen {
         });
         //создаю таблицу рекомендаций применимостей
         async Task GridSelectedFillAsync() {
-            _dtSelected = await GetDataTableSelectedAsync();
-            dataGridViewSelect.DataSource = _dtSelected;
-            dataGridViewSelect.AllowUserToAddRows = false;
-            dataGridViewSelect.Columns[0].MinimumWidth = 180;
-            dataGridViewSelect.Columns[0].Width = 280;
-            dataGridViewSelect.Columns[0].ReadOnly = true;
+            try {
+                _dtSelected = await GetDataTableSelectedAsync();
+                dataGridViewSelect.DataSource = _dtSelected;
+                dataGridViewSelect.AllowUserToAddRows = false;
+                dataGridViewSelect.Columns[0].MinimumWidth = 180;
+                dataGridViewSelect.Columns[0].Width = 280;
+                dataGridViewSelect.Columns[0].ReadOnly = true;
+            } catch (Exception x) {
+                Log.Add(_l+ "GridSelectedFillAsync - "+x.Message);
+            }
         }
         //фильтр для таблицы рекомендаций
         async Task<DataTable> GetDataTableSelectedAsync() => await Task.Factory.StartNew(() => {
