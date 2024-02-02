@@ -108,7 +108,7 @@ namespace Selen.Sites {
                 var startTime = DateTime.Now;
                 //если файл свежий и товары не добавляли - загружаем с диска
                 var lastWriteTime = File.GetLastWriteTime(_productListFile);
-                if (lastWriteTime.AddHours(_updateFreq) > startTime
+                if ((startTime < lastWriteTime.AddDays(_updateFreq) || startTime.Hour >= 1)
                     && !_isProductListCheckNeeds) {
                     _productList = JsonConvert.DeserializeObject<ProductList>(
                         File.ReadAllText(_productListFile));
@@ -1924,8 +1924,22 @@ namespace Selen.Sites {
             values = new Value[] {
                 new Value{
                     value = good.DescriptionList()
+                                .Where(w=>!w.ToLower().Contains("оригинал")
+                                        &&!w.ToLower().Contains("новая")
+                                        &&!w.ToLower().Contains("новые")
+                                        &&!w.ToLower().Contains("новое")
+                                        &&!w.ToLower().Contains("новый")
+                                        &&!w.ToLower().Contains("недочет")
+                                        &&!w.ToLower().Contains("недочёт")
+                                        &&!w.ToLower().Contains("наличии")
+                                        &&!w.ToLower().Contains("упаковк")
+                                        &&!w.ToLower().Contains("без короб")
+                                        &&!w.ToLower().Contains("уценка")
+                                        &&!w.ToLower().Contains("уценен")
+                                        &&!w.ToLower().Contains("уценён")
+                                        &&!w.ToLower().Contains("витринн")
+                                )
                                 .Aggregate((a,b)=>a+"<br>"+b)
-                                .Replace("оригинал","opигинaл") //замена букв на латиницу, чтобы озон не ругался
                 }
             }
         };
