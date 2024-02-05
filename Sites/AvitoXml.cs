@@ -486,6 +486,7 @@ namespace Selen.Sites {
                     (name.Contains("кондиц") || name.Contains("отопи") || name.Contains("охлаж")) ||
 
                 name.Contains("помпа") ||
+                name.Contains("водяной") && name.Contains("насос")||
                 name.StartsWith("моторчик отоп") ||
                 name.Contains("термостат") ||
                 name.StartsWith("корпус") && name.Contains("отопител") ||
