@@ -165,7 +165,7 @@ namespace Selen.Sites {
             //количество фотографий, которое должно быть в объявлении
             int countMust = b.images.Count;
             //если расхождение и в карточке количество не нулевое
-            if (countMust != countReal && countMust > 1) {
+            if (countMust != countReal && countMust > 0) {
                 //удаляю все фото, которые есть объявлении
                 for (; countReal > 0; countReal--) {
                     _dr.ButtonClick("//a[text()='Удалить']", 10000);

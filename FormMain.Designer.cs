@@ -37,10 +37,8 @@ namespace Selen {
             this.button_Descriptions = new System.Windows.Forms.Button();
             this.button_TestPartners = new System.Windows.Forms.Button();
             this.label_Auto = new System.Windows.Forms.Label();
-            this.label_Youla = new System.Windows.Forms.Label();
             this.label_lastSyncTime = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
-            this.button_Satom = new System.Windows.Forms.Button();
             this.button_Kupiprodai = new System.Windows.Forms.Button();
             this.button_KupiprodaiAdd = new System.Windows.Forms.Button();
             this.label_Kp = new System.Windows.Forms.Label();
@@ -54,7 +52,6 @@ namespace Selen {
             this.button_ozon = new System.Windows.Forms.Button();
             this.label_YandexMarket = new System.Windows.Forms.Label();
             this.button_YandexMarket = new System.Windows.Forms.Button();
-            this.button_Youla = new System.Windows.Forms.Button();
             this.button_Izap24 = new System.Windows.Forms.Button();
             this.panel_bottom = new System.Windows.Forms.Panel();
             this.button_application = new System.Windows.Forms.Button();
@@ -110,7 +107,7 @@ namespace Selen {
             this.logBox.Location = new System.Drawing.Point(139, 0);
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(645, 402);
+            this.logBox.Size = new System.Drawing.Size(645, 282);
             this.logBox.TabIndex = 16;
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.RichTextBox1_TextChanged);
@@ -190,16 +187,6 @@ namespace Selen {
             this.label_Auto.Size = new System.Drawing.Size(0, 13);
             this.label_Auto.TabIndex = 66;
             // 
-            // label_Youla
-            // 
-            this.label_Youla.AutoSize = true;
-            this.label_Youla.Enabled = false;
-            this.label_Youla.Location = new System.Drawing.Point(120, 277);
-            this.label_Youla.Name = "label_Youla";
-            this.label_Youla.Size = new System.Drawing.Size(16, 13);
-            this.label_Youla.TabIndex = 85;
-            this.label_Youla.Text = "...";
-            // 
             // label_lastSyncTime
             // 
             this.label_lastSyncTime.AutoSize = true;
@@ -223,16 +210,6 @@ namespace Selen {
             this.dateTimePicker1.TabIndex = 99;
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
             this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
-            // 
-            // button_Satom
-            // 
-            this.button_Satom.Location = new System.Drawing.Point(5, 194);
-            this.button_Satom.Name = "button_Satom";
-            this.button_Satom.Size = new System.Drawing.Size(113, 23);
-            this.button_Satom.TabIndex = 10;
-            this.button_Satom.Text = "Satom.ru";
-            this.button_Satom.UseVisualStyleBackColor = true;
-            this.button_Satom.Click += new System.EventHandler(this.ButtonSatom_Click);
             // 
             // button_Kupiprodai
             // 
@@ -275,7 +252,7 @@ namespace Selen {
             // 
             // button_Gde
             // 
-            this.button_Gde.Location = new System.Drawing.Point(5, 220);
+            this.button_Gde.Location = new System.Drawing.Point(5, 194);
             this.button_Gde.Name = "button_Gde";
             this.button_Gde.Size = new System.Drawing.Size(113, 23);
             this.button_Gde.TabIndex = 9;
@@ -286,7 +263,7 @@ namespace Selen {
             // label_Gde
             // 
             this.label_Gde.AutoSize = true;
-            this.label_Gde.Location = new System.Drawing.Point(120, 225);
+            this.label_Gde.Location = new System.Drawing.Point(120, 199);
             this.label_Gde.Name = "label_Gde";
             this.label_Gde.Size = new System.Drawing.Size(16, 13);
             this.label_Gde.TabIndex = 118;
@@ -295,7 +272,7 @@ namespace Selen {
             // label_Cdek
             // 
             this.label_Cdek.AutoSize = true;
-            this.label_Cdek.Location = new System.Drawing.Point(120, 252);
+            this.label_Cdek.Location = new System.Drawing.Point(120, 226);
             this.label_Cdek.Name = "label_Cdek";
             this.label_Cdek.Size = new System.Drawing.Size(16, 13);
             this.label_Cdek.TabIndex = 122;
@@ -328,7 +305,6 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.button_ozon);
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_YandexMarket);
-            this.panel_Buttons.Controls.Add(this.button_Youla);
             this.panel_Buttons.Controls.Add(this.button_Izap24);
             this.panel_Buttons.Controls.Add(this.dateTimePicker1);
             this.panel_Buttons.Controls.Add(this.button_Drom);
@@ -340,23 +316,21 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.label_Drom);
             this.panel_Buttons.Controls.Add(this.label_Auto);
             this.panel_Buttons.Controls.Add(this.label_Cdek);
-            this.panel_Buttons.Controls.Add(this.label_Youla);
             this.panel_Buttons.Controls.Add(this.label_Gde);
             this.panel_Buttons.Controls.Add(this.button_Gde);
             this.panel_Buttons.Controls.Add(this.label_lastSyncTime);
             this.panel_Buttons.Controls.Add(this.label_Kp);
-            this.panel_Buttons.Controls.Add(this.button_Satom);
             this.panel_Buttons.Controls.Add(this.button_KupiprodaiAdd);
             this.panel_Buttons.Controls.Add(this.button_Kupiprodai);
             this.panel_Buttons.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel_Buttons.Location = new System.Drawing.Point(0, 0);
             this.panel_Buttons.Name = "panel_Buttons";
-            this.panel_Buttons.Size = new System.Drawing.Size(139, 427);
+            this.panel_Buttons.Size = new System.Drawing.Size(139, 307);
             this.panel_Buttons.TabIndex = 146;
             // 
             // button_ozon
             // 
-            this.button_ozon.Location = new System.Drawing.Point(5, 325);
+            this.button_ozon.Location = new System.Drawing.Point(5, 273);
             this.button_ozon.Name = "button_ozon";
             this.button_ozon.Size = new System.Drawing.Size(113, 23);
             this.button_ozon.TabIndex = 151;
@@ -368,7 +342,7 @@ namespace Selen {
             // 
             this.label_YandexMarket.AutoSize = true;
             this.label_YandexMarket.Enabled = false;
-            this.label_YandexMarket.Location = new System.Drawing.Point(120, 304);
+            this.label_YandexMarket.Location = new System.Drawing.Point(120, 252);
             this.label_YandexMarket.Name = "label_YandexMarket";
             this.label_YandexMarket.Size = new System.Drawing.Size(16, 13);
             this.label_YandexMarket.TabIndex = 150;
@@ -376,7 +350,7 @@ namespace Selen {
             // 
             // button_YandexMarket
             // 
-            this.button_YandexMarket.Location = new System.Drawing.Point(5, 299);
+            this.button_YandexMarket.Location = new System.Drawing.Point(5, 247);
             this.button_YandexMarket.Name = "button_YandexMarket";
             this.button_YandexMarket.Size = new System.Drawing.Size(113, 23);
             this.button_YandexMarket.TabIndex = 149;
@@ -384,19 +358,9 @@ namespace Selen {
             this.button_YandexMarket.UseVisualStyleBackColor = true;
             this.button_YandexMarket.Click += new System.EventHandler(this.ButtonYandexMarket_Click);
             // 
-            // button_Youla
-            // 
-            this.button_Youla.Location = new System.Drawing.Point(5, 273);
-            this.button_Youla.Name = "button_Youla";
-            this.button_Youla.Size = new System.Drawing.Size(113, 23);
-            this.button_Youla.TabIndex = 148;
-            this.button_Youla.Text = "Youla.ru";
-            this.button_Youla.UseVisualStyleBackColor = true;
-            this.button_Youla.Click += new System.EventHandler(this.ButtonYoula_Click);
-            // 
             // button_Izap24
             // 
-            this.button_Izap24.Location = new System.Drawing.Point(4, 247);
+            this.button_Izap24.Location = new System.Drawing.Point(4, 221);
             this.button_Izap24.Name = "button_Izap24";
             this.button_Izap24.Size = new System.Drawing.Size(114, 23);
             this.button_Izap24.TabIndex = 147;
@@ -417,7 +381,7 @@ namespace Selen {
             this.panel_bottom.Controls.Add(this.button_TestPartners);
             this.panel_bottom.Controls.Add(this.button_PricesIncomeCorrection);
             this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_bottom.Location = new System.Drawing.Point(0, 427);
+            this.panel_bottom.Location = new System.Drawing.Point(0, 307);
             this.panel_bottom.Name = "panel_bottom";
             this.panel_bottom.Size = new System.Drawing.Size(784, 34);
             this.panel_bottom.TabIndex = 147;
@@ -458,7 +422,7 @@ namespace Selen {
             this.panel_Filter.Controls.Add(this.textBox_LogFilter);
             this.panel_Filter.Controls.Add(this.button_LogFilterClear);
             this.panel_Filter.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_Filter.Location = new System.Drawing.Point(139, 402);
+            this.panel_Filter.Location = new System.Drawing.Point(139, 282);
             this.panel_Filter.Name = "panel_Filter";
             this.panel_Filter.Padding = new System.Windows.Forms.Padding(2);
             this.panel_Filter.Size = new System.Drawing.Size(645, 25);
@@ -494,7 +458,7 @@ namespace Selen {
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(784, 427);
+            this.panel4.Size = new System.Drawing.Size(784, 307);
             this.panel4.TabIndex = 149;
             // 
             // FormMain
@@ -502,7 +466,7 @@ namespace Selen {
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Gray;
-            this.ClientSize = new System.Drawing.Size(784, 461);
+            this.ClientSize = new System.Drawing.Size(784, 341);
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel_bottom);
             this.MaximizeBox = false;
@@ -537,10 +501,8 @@ namespace Selen {
         private System.Windows.Forms.Button button_Descriptions;
         private System.Windows.Forms.Button button_TestPartners;
         private System.Windows.Forms.Label label_Auto;
-        private System.Windows.Forms.Label label_Youla;
         private System.Windows.Forms.Label label_lastSyncTime;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
-        private System.Windows.Forms.Button button_Satom;
         private System.Windows.Forms.Button button_Kupiprodai;
         private System.Windows.Forms.Button button_KupiprodaiAdd;
         private System.Windows.Forms.Label label_Kp;
@@ -558,7 +520,6 @@ namespace Selen {
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.Button button_Izap24;
         private System.Windows.Forms.Button button_Test;
-        private System.Windows.Forms.Button button_Youla;
         private System.Windows.Forms.Label label_YandexMarket;
         private System.Windows.Forms.Button button_YandexMarket;
         private System.Windows.Forms.Button button_WeightsDimensions;

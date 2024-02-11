@@ -17,16 +17,15 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.172";
-
+        string _version = "1.173";
 
         VK _vk = new VK();
         Drom _drom = new Drom();
         Izap24 _izap24 = new Izap24();
         Kupiprodai _kupiprodai = new Kupiprodai();
         GdeRu _gde = new GdeRu();
-        Satom _sat = new Satom();
         OzonApi _ozon = new OzonApi();
+
         static System.Timers.Timer _timer = new System.Timers.Timer();
 
         bool _saveCookiesBeforeClose;
@@ -155,23 +154,6 @@ namespace Selen {
             else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
-        //YOULA.RU
-        async void ButtonYoula_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
-                await Task.Delay(30000);
-            var youlaXml = new YoulaXml();
-            await youlaXml.GenerateXML_avito(Class365API._bus);
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-        //SATOM.RU
-        async void ButtonSatom_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
-                await Task.Delay(30000);
-            await _sat.SyncAsync(Class365API._bus);
-            ChangeStatus(sender, ButtonStates.Active);
-        }
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -202,11 +184,7 @@ namespace Selen {
             await Task.Delay(10000);
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
-            button_Satom.Invoke(new Action(() => button_Satom.PerformClick()));
-            await Task.Delay(10000);
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
-            await Task.Delay(10000);
-            button_Youla.Invoke(new Action(() => button_Youla.PerformClick()));
             await Task.Delay(10000);
             button_Gde.Invoke(new Action(() => button_Gde.PerformClick()));
             await Task.Delay(10000);
@@ -214,8 +192,6 @@ namespace Selen {
             await Task.Delay(10000);
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(10000);
-            //button_EuroAuto.PerformClick();
-            //await Task.Delay(10000);
             button_Izap24.Invoke(new Action(() => button_Izap24.PerformClick()));
             await Task.Delay(10000);
             await WaitButtonsActiveAsync();
@@ -303,8 +279,7 @@ namespace Selen {
                 button_Kupiprodai.Enabled &&
                 button_Avito.Enabled &&
                 button_Gde.Enabled &&
-                button_ozon.Enabled &&
-                button_Youla.Enabled
+                button_ozon.Enabled
                 )
             )
                 await Task.Delay(5000);
@@ -476,7 +451,9 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
- 
+                Class365API.CheckDescriptions();
+
+
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

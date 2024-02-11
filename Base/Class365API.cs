@@ -534,8 +534,8 @@ namespace Selen {
         }
         public static async Task CheckArhiveStatusAsync() {
             try {
-                foreach (var item in _bus.Where(w => w.amount > 0 && w.archive)) {
-                    Log.Add("business.ru: ошибка! карточка с положительным остатком в архиве! - " + item.name);
+                foreach (var item in _bus.Where(w => (w.amount > 0 || w.images.Count>0) && w.archive)) {
+                    Log.Add("business.ru: ошибка! карточка с положительным остатком или с фото в архиве! - " + item.name);
                     await RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", item.id},
                                 {"name", item.name},
@@ -819,8 +819,8 @@ namespace Selen {
                 return;
             //список не архивных карточек без фото, без остатка, отсортированный с самых старых
             var busQuery = _bus.Where(w => w.images.Count == 0 &&
-                                      w.amount == 0 && 
-                                      !w.archive && 
+                                      w.amount == 0 &&
+                                      !w.archive &&
                                       DateTime.Now > DateTime.Parse(w.updated).AddMonths(6))
                                .OrderBy(o => DateTime.Parse(o.updated));
             foreach (var b in busQuery) {
@@ -831,7 +831,7 @@ namespace Selen {
                                     {"updated[from]", DateTime.Now.AddYears(-2).ToString()}
                                 });
                     var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s);
-                    Log.Add(b.id + " "+b.name +" реализаций "+realizations.Count);
+                    Log.Add(b.id + " " + b.name + " реализаций " + realizations.Count);
                     if (realizations.Any())
                         continue;
                     //архивирую карточку
@@ -840,9 +840,10 @@ namespace Selen {
                                     {"name", b.name},
                                     {"archive", "1"}
                                 });
-                    Log.Add("ArchivateAsync: "+ b.id +" " + b.name + " - карточка перемещена в архив! (updated " + b.updated + ") "+cnt);
+                    Log.Add("ArchivateAsync: " + b.id + " " + b.name + " - карточка перемещена в архив! (updated " + b.updated + ") " + cnt);
                     b.archive = true;
-                    if (--cnt == 0) break;
+                    if (--cnt == 0)
+                        break;
                     //Log.Add(b.archive + " - " + _bus.Find(f => f.id == b.id).archive);
                 } catch (Exception x) {
                     Log.Add("ошибка архивирования карточки! - " + b.name + " - " + x.Message);
@@ -850,16 +851,70 @@ namespace Selen {
             }
         }
         public static async Task CheckDescriptions() {
-            for (int i = _bus.Count - 1; i > -1; i--) {
-                if (_bus[i].name.Contains("test")) { await Task.Delay(10); }
-                if (_bus[i].description?.Contains("\n") ?? false) {
-                    _bus[i].description = _bus[i].description.Replace("\n", "<br />");
-                    await RequestAsync("put", "goods", new Dictionary<string, string>() {
-                                {"id", _bus[i].id},
-                                {"name", _bus[i].name},
-                                {"description", _bus[i].description}
-                            });
-                    Log.Add("CheckDescriptions: " + _bus[i].name + " - описание обновлено\n" + _bus[i].description);
+            for (int n=10, i = _bus.Count - 1; i > -1 && n > 0; i--) {
+                try {
+
+                    var needUpdate = false;
+                    if (_bus[i].description?.Contains("\t") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("\t", " ");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалена табуляция\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("!!!") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("!!!", "!!");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние восклицания\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("</p><br />") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("</p><br />", "</p>");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("<br><br>") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("<br><br>", "<br>");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("<br /><br />") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("<br /><br />", "<br>");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("<p></p>") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("<p></p>", "");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("<br></p>") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("<br></p>", "</p>");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("</p>\n") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("</p>\n", "</p>");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("&nbsp;") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("&nbsp;", " ");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены мягкие пробелы\n" + _bus[i].description);
+                    }
+                    if (_bus[i].description?.Contains("&ndash;") ?? false) {
+                        _bus[i].description = _bus[i].description.Replace("&ndash;", "-");
+                        needUpdate = true;
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена длинного тире\n" + _bus[i].description);
+                    }
+                    if (needUpdate) {
+                        await RequestAsync("put", "goods", new Dictionary<string, string>() {
+                            {"id", _bus[i].id},
+                            {"name", _bus[i].name},
+                            {"description", _bus[i].description}
+                        });
+                        n--;
+                    }
+                } catch (Exception x) {
+                    Log.Add(x.Message);
                 }
             }
         }
@@ -944,6 +999,8 @@ namespace Selen {
                         break;
                     }
                 }
+                if (_bus[i].description.Contains("class"))
+                    flag_need_formEdit = true;
                 if (flag_need_formEdit) {
                     Form f4 = new FormEdit(_bus[i]);
                     f4.Owner = Form.ActiveForm;

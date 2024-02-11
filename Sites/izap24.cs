@@ -107,13 +107,8 @@ namespace Selen.Sites {
                         e++;
                         continue;
                     }
-                    //получаю фото с сатома и проверяю количество
-                    var photoUrls = GetSatomPhotos(offer);
-                    if (photoUrls.Count == 0) {
-                        err.Append(offer.name).AppendLine(";не найдены фото");
-                        e++;
-                        continue;
-                    }
+                    //получаю фото с бизнес.ру
+                    var photoUrls = offer.images.Select(o => o.url).ToList();
                     s.Append(offer.id).Append(";");                     //ID_EXT
                     s.Append(m[0]).Append(";");                         //name
                     s.Append(m[1]).Append(";");                         //mark
@@ -135,28 +130,6 @@ namespace Selen.Sites {
                 Log.Add(_l + "пропущено " + e + " товаров");
                 File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
             });
-        }
-        List<string> GetSatomPhotos(RootObject b) {
-            var list = new List<string>();
-            try {
-                //ищем товар в каталоге
-                var offer = satomYML.Descendants("offer")
-                    .First(w => w.Element("description").Value.Split(':').Last()
-                                 .Split('<').First().Trim() == b.id);
-                //получаем фото
-                if (offer == null) {
-                    if (b.amount < 0)
-                        return list;
-                    throw new Exception("оффер не найден в каталоге satom");
-                }
-                list = offer.Elements("picture").Select(s => s.Value).ToList();
-                //проверка наличия фото
-                if (list.Count == 0 && b.amount > 0)
-                    throw new Exception("найдено 0 фото");
-            } catch (Exception x) {
-                Log.Add(_l + "ошибка поиска в каталоге сатом! - " + x.Message);
-            }
-            return list;
         }
     }
 }
