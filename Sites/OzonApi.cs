@@ -1392,6 +1392,46 @@ namespace Selen.Sites {
                     a.categoryId = 32451092;
                     a.typeId = 92145;
                     a.typeName = "Торцевая головка";
+                } else if (n.StartsWith("шрус") && n.Contains("наружн")) {            //шрус наружный
+                    a.categoryId = 85817289;
+                    a.typeId = 98968;
+                    a.typeName = "ШРУС наружный";
+                } else if (n.StartsWith("шрус") && n.Contains("внутр")) {            //шрус внутренний
+                    a.categoryId = 85817289;
+                    a.typeId = 98969;
+                    a.typeName = "ШРУС внутренний";
+                } else if (n.StartsWith("адаптер") && n.Contains("щет")) {            //Адаптер щетки стеклоочистителя
+                    a.categoryId = 33698214;
+                    a.typeId = 95588;
+                    a.typeName = "Адаптер щетки стеклоочистителя";
+                } else if (n.StartsWith("электропроводка") && n.Contains("печ")) {            //Комплект автопроводки
+                    a.categoryId = 85843110;
+                    a.typeId = 94674;
+                    a.typeName = "Комплект автопроводки";
+                } else if (n.StartsWith("очиститель") && n.Contains("нержав")) {            //очиститель нержавейки
+                    a.categoryId = 17033691;
+                    a.typeId = 92701;
+                    a.typeName = "Специальное чистящее средство";
+                } else if (n.StartsWith("очиститель") && n.Contains("карбюр")) {            //очиститель топливной системы
+                    a.categoryId = 98327483;
+                    a.typeId = 92243;
+                    a.typeName = "Очиститель топливной системы";
+                } else if (n.Contains("насос") && n.Contains("масляный")) {            //Насос масляный
+                    a.categoryId = 86292577;
+                    a.typeId = 98859;
+                    a.typeName = "Насос масляный";
+                } else if (n.Contains("сепаратор") && n.Contains("подшипник")) {            //Сепаратор игольчатого подшипника 
+                    a.categoryId = 85817294;
+                    a.typeId = 970889785;
+                    a.typeName = "Подшипник КПП";
+                } else if (n.Contains("тяга") && n.Contains("рулевая")) {            //Тяга рулевая
+                    a.categoryId = 85833342;
+                    a.typeId = 98955;
+                    a.typeName = "Тяга рулевая";
+                } else if (n.Contains("пыльник") && n.Contains("шрус")) {            //Пыльник ШРУСа
+                    a.categoryId = 85817289;
+                    a.typeId = 98903;
+                    a.typeName = "Пыльник ШРУСа";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
