@@ -20,7 +20,7 @@ namespace Selen.Sites {
         readonly string _url;                         //номер поля в карточке
         readonly string _l = "ozon: ";                //префикс для лога
         readonly float _oldPriceProcent = 10;
-        ProductList _productList;                     //список товаров, получаемый из /v2/product/list
+        List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon\ozon_productList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
         List<RootObject> _bus;                        //ссылка на товары
@@ -107,23 +107,35 @@ namespace Selen.Sites {
             try {
                 var startTime = DateTime.Now;
                 //если файл свежий и товары не добавляли - загружаем с диска
-                var lastWriteTime = File.GetLastWriteTime(_productListFile);
-                if ((startTime < lastWriteTime.AddDays(_updateFreq) || startTime.Hour >= 1)
+                if (File.Exists(_productListFile) &&
+                    (startTime < File.GetLastWriteTime(_productListFile).AddDays(_updateFreq) || startTime.Hour >= 1)
                     && !_isProductListCheckNeeds) {
-                    _productList = JsonConvert.DeserializeObject<ProductList>(
+                    _productList = JsonConvert.DeserializeObject<List<ProductListItem>>(
                         File.ReadAllText(_productListFile));
                 } else {
-                    //TODO добавить циклическую загрузку, чтобы получать более 1000 товаров в дальнейшем
-                    var data = new {
-                        //filter = new {
-                        //    visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
-                        //},
-                        last_id = "",
-                        limit = 1000
-                    };
-                    var s = await PostRequestAsync(data, "/v2/product/list");
-                    _productList = JsonConvert.DeserializeObject<ProductList>(s);
-                    Log.Add(_l + "ProductList - успешно загружено " + _productList.items.Count + " товаров");
+                    _productList.Clear();
+                    var last_id = "";
+                    var total = 0;
+                    do {
+                        var data = new {
+                            //filter = new {
+                            //    visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
+                            //},
+                            last_id = last_id,
+                            limit = 1000
+                        };
+                        var result = await PostRequestAsync(data, "/v2/product/list");
+                        var productList = JsonConvert.DeserializeObject<ProductList>(result);
+                        last_id = productList.last_id;
+                        total = productList.total;
+                        _productList.AddRange(productList.items);
+                        Log.Add($"{_l} получено {_productList.Count} товаров");
+                    } while (_productList.Count < total);
+
+
+
+
+                    Log.Add(_l + "ProductList - успешно загружено " + _productList.Count + " товаров");
                     File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productList));
                     Log.Add(_l + _productListFile + " - сохранено");
                     File.SetLastWriteTime(_productListFile, startTime);
@@ -136,7 +148,7 @@ namespace Selen.Sites {
         }
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckProductLinksAsync(bool checkAll = false) {
-            foreach (var item in _productList.items) {
+            foreach (var item in _productList) {
                 try {
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = _bus.FindIndex(_ => _.id == item.offer_id);
@@ -329,6 +341,10 @@ namespace Selen.Sites {
                 var productFullInfo = await GetProductFullInfoAsync(productInfo);
                 File.WriteAllText(@"..\ozon\product_" + productFullInfo.First().offer_id + ".json",
                     JsonConvert.SerializeObject(productFullInfo));                //формирую объект запроса
+                if (attributes.categoryId == 111) {
+                    _isProductListCheckNeeds = true;
+                    return;
+                }
                 var data = new {
                     items = new[] {
                         new{
@@ -457,7 +473,7 @@ namespace Selen.Sites {
                                      && w.width != null
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
-                                     && !_productList.items.Any(_ => w.id == _.offer_id)
+                                     && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods);
             var goods2 = _bus.Where(w => w.amount > 0
@@ -465,7 +481,7 @@ namespace Selen.Sites {
                                      && w.images.Count > 0
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
-                                     && !_productList.items.Any(_ => w.id == _.offer_id)
+                                     && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods2, @"..\ozon\ozonGoodListForAdding_all.csv");
             Log.Add(_l + "карточек для добавления: " + goods.Count() + " (" + goods2.Count() + ")");
@@ -474,7 +490,7 @@ namespace Selen.Sites {
                 try {
                     //проверяем группу товара
                     var attributes = await GetAttributesAsync(good);
-                    if (attributes.typeId == 0)
+                    if (attributes.typeId == 0 || attributes.categoryId == 111)
                         continue;
                     //формирую объект запроса
                     var data = new {
@@ -693,12 +709,13 @@ namespace Selen.Sites {
                     a.categoryId = 85835327;//Катушки и провода зажигания
                     a.typeId = 98812;
                     a.typeName = "Выключатель зажигания";
-                } else if (n.StartsWith("трамблер")) {                                  //трамблер
+                } else if (n.StartsWith("трамблер") ||
+                           n.StartsWith("распределитель зажигания")) {                    //трамблер
                     a.categoryId = 85835327;//Катушки и провода зажигания
                     a.typeId = 971072773;
                     a.typeName = "Распределитель зажигания";
-                } else if ((n.StartsWith("провода") &&
-                    (n.Contains("высоков") || n.Contains(" в/в")))) {                     //провода зажигания
+                } else if (n.StartsWith("провод") &&
+                    (n.Contains("высоков") || n.Contains(" в/в") || n.Contains("зажиг"))) {                     //провода зажигания
                     a.categoryId = 85835327;//Катушки и провода зажигания
                     a.typeId = 98893;
                     a.typeName = "Комплект высоковольтных проводов";
@@ -860,8 +877,9 @@ namespace Selen.Sites {
                     a.categoryId = 79268071;
                     a.typeId = 92261;
                     a.typeName = "Антигель";
-                } else if (n.StartsWith("присадк") && n.Contains("очист") &&
-                    (n.Contains("топл") || n.Contains("инж") || n.Contains("карб") || n.Contains("форс"))) {
+                } else if ((n.StartsWith("присадк") || n.StartsWith("очистител")) &&
+                    (n.Contains("топл") || n.Contains("инж") || n.Contains("карбюр") ||
+                    n.Contains("форс"))) {                                  //очиститель топливной системы
                     a.categoryId = 98327483;
                     a.typeId = 92243;
                     a.typeName = "Очиститель топливной системы";
@@ -1070,7 +1088,7 @@ namespace Selen.Sites {
                     a.typeId = 970885007;
                     a.typeName = "Трапеция стеклоочистителя";
                 } else if (n.StartsWith("подшипник") &&                                   //Ступица, подшипник колеса 
-                    (n.Contains("ступи") || n.Contains("колес"))) {
+                    (n.Contains("ступи") || n.Contains("колес") || n.Contains("полуоси"))) {
                     a.categoryId = 36201238;
                     a.typeId = 98883;
                     a.typeName = "Подшипник ступицы";
@@ -1107,11 +1125,8 @@ namespace Selen.Sites {
                     a.categoryId = 33696914;
                     a.typeId = 970782919;
                     a.typeName = "Опора двигателя";
-                } else if (n.StartsWith("опор") && n.Contains("амортизатора")) {          //Опора амортизатора 
-                    a.categoryId = 36201237;
-                    a.typeId = 98863;
-                    a.typeName = "Опора амортизатора";
-                } else if (n.StartsWith("паста") && n.Contains("очистки")) {              //Паста для очистки рук 
+                } else if (n.StartsWith("паста") && n.Contains("очистки")
+                    || n.StartsWith("очиститель рук")) {                               //Паста для очистки рук 
                     a.categoryId = 98327483;
                     a.typeId = 92264;
                     a.typeName = "Средство для очистки рук";
@@ -1308,10 +1323,6 @@ namespace Selen.Sites {
                     a.categoryId = 36201238;
                     a.typeId = 98945;
                     a.typeName = "Ступица";
-                } else if (n.StartsWith("трос") && n.Contains("ручника")) {              //Трос ручника 
-                    a.categoryId = 101292869;
-                    a.typeId = 98952;
-                    a.typeName = "Трос ручного тормоза";
                 } else if (n.StartsWith("трубка ") && n.Contains("турб")) {              //Трубка турбокомпрессора 
                     a.categoryId = 86292454;
                     a.typeId = 971047420;
@@ -1412,11 +1423,7 @@ namespace Selen.Sites {
                     a.categoryId = 17033691;
                     a.typeId = 92701;
                     a.typeName = "Специальное чистящее средство";
-                } else if (n.StartsWith("очиститель") && n.Contains("карбюр")) {            //очиститель топливной системы
-                    a.categoryId = 98327483;
-                    a.typeId = 92243;
-                    a.typeName = "Очиститель топливной системы";
-                } else if (n.Contains("насос") && n.Contains("масляный")) {            //Насос масляный
+                } else if (n.Contains("насос") && n.Contains("масляный")) {              //Насос масляный
                     a.categoryId = 86292577;
                     a.typeId = 98859;
                     a.typeName = "Насос масляный";
@@ -1432,6 +1439,61 @@ namespace Selen.Sites {
                     a.categoryId = 85817289;
                     a.typeId = 98903;
                     a.typeName = "Пыльник ШРУСа";
+                } else if (n.Contains("соединитель") && n.Contains("отоп")) {            // соединители патрубки отопления
+                    a.categoryId = 86292454;
+                    a.typeId = 970740221;
+                    a.typeName = "Патрубки отопления";
+                } else if (n.Contains("воронка") && n.Contains("носик")) {            // Воронка техническая
+                    a.categoryId = 86473322;
+                    a.typeId = 92168;
+                    a.typeName = "Воронка техническая";
+                } else if (n.Contains("щетка") && n.Contains("металлическая")) {            // щетка металическая
+                    a.categoryId = 1000003987;
+                    a.typeId = 92157;
+                    a.typeName = "Щетка строительная";
+                } else if (n.StartsWith("изолента")) {            // изолента
+                    a.categoryId = 43132640;
+                    a.typeId = 94549;
+                    a.typeName = "Изолента";
+                } else if (n.Contains("холодная") && n.Contains("сварка")) {            // Холодная сварка
+                    a.categoryId = 33717355;
+                    a.typeId = 92272;
+                    a.typeName = "Холодная сварка";
+                } else if (n.Contains("трос") && n.Contains("буксировочный")) {            // Трос буксировочный
+                    a.categoryId = 27332707;
+                    a.typeId = 92207;
+                    a.typeName = "Трос буксировочный";
+                } else if (n.Contains("кольцо") && n.Contains("уплотнительное")) {            // Кольцо уплотнительное приемной трубы
+                    a.categoryId = 33698197;
+                    a.typeId = 970863596;
+                    a.typeName = "Кольцо уплотнительное для автомобиля";
+                } else if (n.StartsWith("салфетка")) {            // Салфетка микрофибра
+                    a.categoryId = 74172611;
+                    a.typeId = 269166265;
+                    a.typeName = "Салфетка автомобильная";
+                } else if (n.Contains("фиксатор") && n.Contains("резьбы")) {       // Фиксатор резьбы
+                    a.categoryId = 33717355;
+                    a.typeId = 970682158;
+                    a.typeName = "Фиксатор резьбы";
+                } else if (n.Contains("быстрый") && n.Contains("старт")) {       // Быстрый старт для двигателя
+                    a.categoryId = 98327483;
+                    a.typeId = 92228;
+                    a.typeName = "Жидкость для быстрого запуска";
+                } else if (n.StartsWith("трос") && n.Contains("спидометра")) {       // Трос спидометра
+                    a.categoryId = 101292869;
+                    a.typeId = 970889772;
+                    a.typeName = "Трос спидометра";
+                } else if (n.StartsWith("трос") && (
+                    n.Contains("ручника") ||
+                    n.Contains("тормоз") && 
+                    (n.Contains("ручн") || n.Contains("стоян")))) {       // Трос ручника
+                    a.categoryId = 101292869;
+                    a.typeId = 98952;
+                    a.typeName = "Трос ручного тормоза";
+                } else if (n.StartsWith("размораживатель") && n.Contains("замков")) {       // Размораживатель замков 
+                    a.categoryId = 33717339;
+                    a.typeId = 970742711;
+                    a.typeName = "Размораживатель замков";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -1939,19 +2001,14 @@ namespace Selen.Sites {
         }
 
         //Атрибут Название модели (для объединения в одну карточку)
-        //(в нашем случае дублируем name карточки бизнес.ру)
+        //(в нашем случае дублируем id карточки бизнес.ру)
         Attribute GetModelNameAttribute(RootObject bus) {
-            var part = bus.GetManufacture(true)?
-              .ToLowerInvariant() == "chery" ? bus.id
-                                             : bus.part;
             return new Attribute {
                 complex_id = 0,
                 id = 9048,
                 values = new Value[] {
                 new Value{
-                    //value = bus.name
-                    //value = bus.Part
-                    value = part
+                    value = bus.id
                 }
             }
             };
@@ -2369,6 +2426,8 @@ namespace Selen.Sites {
     /////////////////////////////////////////
     public class ProductList {
         public List<ProductListItem> items { get; set; }
+        public int total { get; set; }
+        public string last_id { get; set; }
     }
     public class ProductListItem {
         public int product_id { get; set; }
