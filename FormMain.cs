@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.173";
+        string _version = "1.174";
 
         VK _vk = new VK();
         Drom _drom = new Drom();
