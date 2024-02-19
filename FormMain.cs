@@ -49,9 +49,9 @@ namespace Selen {
         }
 
         private void timer_sync_Tick(object sender, ElapsedEventArgs e) {
-            if (Class365API._isBusinessNeedRescan) 
+            if (Class365API.IsBusinessNeedRescan) 
                 ChangeStatus(button_BaseGet,ButtonStates.ActiveWithProblem);
-            else if (Class365API._isBusinessCanBeScan) 
+            else if (Class365API.IsBusinessCanBeScan) 
                 ChangeStatus(button_BaseGet,ButtonStates.Active);
             else
                 ChangeStatus(button_BaseGet,ButtonStates.NoActive);
@@ -64,7 +64,7 @@ namespace Selen {
         async void ButtonAvitoRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (Class365API._isBusinessNeedRescan)
+                while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
                 var av = new AvitoXml();
                 await av.GenerateXML(Class365API._bus);
@@ -79,7 +79,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("вк начало выгрузки");
-                while (Class365API._isBusinessNeedRescan)
+                while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(20000);
                 await _vk.VkSyncAsync(Class365API._bus);
                 label_Vk.Text = _vk.MarketCount + "/" + _vk.UrlsCount;
@@ -94,7 +94,7 @@ namespace Selen {
         async void ButtonDromRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (Class365API._isBusinessNeedRescan)
+                while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
                 await _drom.DromStartAsync(Class365API._bus);
                 label_Drom.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
@@ -115,7 +115,7 @@ namespace Selen {
         //KUPIPRODAI.RU
         async void ButtonKupiprodaiRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || !button_KupiprodaiAdd.Enabled)
+            while (Class365API.IsBusinessNeedRescan || !button_KupiprodaiAdd.Enabled)
                 await Task.Delay(30000);
             if (await _kupiprodai.StartAsync(Class365API._bus))
                 ChangeStatus(sender, ButtonStates.Active);
@@ -127,7 +127,7 @@ namespace Selen {
             if (!button_Kupiprodai.Enabled)
                 return;
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan)
+            while (Class365API.IsBusinessNeedRescan)
                 await Task.Delay(30000);
             await _kupiprodai.AddAsync();
             label_Kp.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
@@ -136,7 +136,7 @@ namespace Selen {
         //GDE.RU
         async void ButtonGdeRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                 await Task.Delay(30000);
             if (await _gde.StartAsync(Class365API._bus)) {
                 label_Gde.Text = Class365API._bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
@@ -147,7 +147,7 @@ namespace Selen {
         //IZAP24.RU
         async void ButtonIzap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan)
+            while (Class365API.IsBusinessNeedRescan)
                 await Task.Delay(60000);
             if (await _izap24.SyncAsync(Class365API._bus))
                 ChangeStatus(sender, ButtonStates.Active);
@@ -158,7 +158,7 @@ namespace Selen {
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             if (Class365API.IsWorkTime()) {
-                while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
+                while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                     await Task.Delay(30000);
                 var yandexMarket = new YandexMarket();
                 await yandexMarket.GenerateXML(Class365API._bus);
@@ -168,7 +168,7 @@ namespace Selen {
         //OZON
         async void button_ozon_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                 await Task.Delay(30000);
             await _ozon.SyncAsync();
             ChangeStatus(sender, ButtonStates.Active);
@@ -205,13 +205,13 @@ namespace Selen {
             await Class365API.ArchivateAsync();//архивирование старых карточек
             await Class365API.CheckDescriptions();
             await Class365API.CheckRealisationsAsync(); //проверка реализаций, добавление расходов
-            dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API._syncStartTime));
+            dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
         }
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await Class365API.BaseGetAsync();
-            dateTimePicker1.Value = Class365API._syncStartTime;
+            dateTimePicker1.Value = Class365API.SyncStartTime;
             ChangeStatus(sender, ButtonStates.Active);
         }
         //загрузка формы
@@ -286,10 +286,10 @@ namespace Selen {
         }
         private async void dateTimePicker1_ValueChanged(object sender, EventArgs e) {
             try {
-                Class365API._scanTime = dateTimePicker1.Value;
-                await DB.SetParamAsync("lastScanTime", Class365API._scanTime.ToString());
-                await DB.SetParamAsync("liteScanTime", Class365API._scanTime.ToString());
-                RootObject.ScanTime = Class365API._scanTime;
+                Class365API.ScanTime = dateTimePicker1.Value;
+                await DB.SetParamAsync("lastScanTime", Class365API.ScanTime.ToString());
+                await DB.SetParamAsync("liteScanTime", Class365API.ScanTime.ToString());
+                RootObject.ScanTime = Class365API.ScanTime;
             } catch (Exception x) {
                 Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException?.Message);
             }
@@ -391,7 +391,7 @@ namespace Selen {
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-            if (Class365API._isBusinessCanBeScan)
+            if (Class365API.IsBusinessCanBeScan)
                 Log.Add("синхронизация остановлена!");
             this.Visible = false;
             ClearTempFiles();
@@ -422,7 +422,7 @@ namespace Selen {
         //окно веса, размеры
         private async void Button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API._isBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                 await Task.Delay(5000);
             FormWeightsDimentions fw = new FormWeightsDimentions(Class365API._bus);
             fw.Owner = this;
@@ -451,8 +451,16 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                Class365API.CheckDescriptions();
+                var s = new StringBuilder();
+                for (int i = 0; i<50; i++) {
+                    var item = new RootObject {
+                        amount = i,
+                        measure_id = "11"
+                    };
+                    s.Append(i + "  === " + item.MeasureNameCorrect+"\n");
 
+                }
+                File.WriteAllText(@"..\logtest.txt", s.ToString());
 
             } catch (Exception x) {
                 Log.Add(x.Message);

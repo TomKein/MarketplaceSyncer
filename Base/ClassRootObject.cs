@@ -198,8 +198,17 @@ namespace Selen {
         //Название единиц измерения
         [JsonIgnore]
         public string MeasureName => measure_id == "11" ? "пара"
-                                  : measure_id == "13" ? "компл."
-                                                       : "шт.";
+                                                        : measure_id == "13" ? "компл."
+                                                                             : "шт.";
+        public string MeasureNameCorrect => measure_id == "11" 
+                                                ?amount % 10 == 1 && amount != 11 
+                                                    ? "пара"
+                                                    : amount % 10 >= 1 && amount % 10 <= 4 && (amount > 20 || amount < 10)
+                                                        ? "пары"
+                                                        :"пар"
+                                            : measure_id == "13" 
+                                                ? "компл."
+                                                : "шт.";
         //вес товара по умолчанию
         static float defaultWeight;
         public static void UpdateDefaultWeight() {
@@ -761,6 +770,8 @@ namespace Selen {
                     arr[0] = float.Parse(this.length.Replace(".", ","));
                     arr[1] = float.Parse(this.width.Replace(".", ","));
                     arr[2] = float.Parse(this.height.Replace(".", ","));
+                    Array.Sort(arr);
+                    Array.Reverse(arr);
                     return arr;
                 } catch (Exception x) {
                     Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер в полях: \nдлина " +

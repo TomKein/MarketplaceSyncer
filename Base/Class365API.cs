@@ -17,8 +17,8 @@ using Selen.Tools;
 namespace Selen {
     public delegate Task SyncEventDelegate();
     public class Class365API {
-        static readonly string _secret = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
-        static readonly string _appId = "768289";
+        static readonly string SECRET = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
+        static readonly string APP_ID = "768289";
         static readonly string _l = "class365: ";
         static readonly Uri _baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
         static RootResponse _rr = new RootResponse();
@@ -28,16 +28,16 @@ namespace Selen {
         public static List<RootObject> _bus = new List<RootObject>();
         public static List<RootObject> lightSyncGoods = new List<RootObject>();
         private static System.Timers.Timer _timer = new System.Timers.Timer();
-        static readonly string _busFileName = @"..\bus.json";
-        public static readonly int _pageLimitBase = 250;
-        public static bool _isBusinessNeedRescan = false;
-        public static bool _isBusinessCanBeScan = false;
-        public static DateTime _syncStartTime;
-        public static DateTime _scanTime;
-        public static DateTime _lastScanTime;
+        static readonly string BUS_FILE_NAME = @"..\bus.json";
+        public static readonly int PAGE_LIMIT_BASE = 250;
+        public static bool IsBusinessNeedRescan { set; get; } = false;
+        public static bool IsBusinessCanBeScan { set; get; } = false;
+        public static DateTime SyncStartTime { set; get; }
+        public static DateTime ScanTime { set; get; }
+        public static DateTime LastScanTime {  set; get; } 
         static Random _rnd = new Random();
-        private static object _locker = new object();
-        private static bool _flag = false;
+        static object _locker = new object();
+        static bool _flag = false;
         static string _labelBusText;
         public static string LabelBusText {
             get {
@@ -59,20 +59,20 @@ namespace Selen {
             _timer.Start();
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
-            if (!_isBusinessCanBeScan ||
+            if (!IsBusinessCanBeScan ||
                 DateTime.Now.Hour < DB.GetParamInt("syncStartHour") ||
                 DateTime.Now.Hour >= DB.GetParamInt("syncStopHour"))
                 return;
             _timer.Stop();
             await GoLiteSync();
-            if (_isBusinessNeedRescan)
+            if (IsBusinessNeedRescan)
                 await BaseGetAsync();
             _timer.Start();
         }
         public static async Task RepairAsync() {
             await Task.Delay(1000);
             //1
-            _data["app_id"] = _appId;
+            _data["app_id"] = APP_ID;
             //2
             var sb = new StringBuilder();
             foreach (var key in _data.Keys.OrderBy(x => x, StringComparer.Ordinal)) {
@@ -85,7 +85,7 @@ namespace Selen {
             sb.Remove(0, 1);//убираем первый &
             string ps = sb.ToString();
             //4 - кодировка в мд5
-            byte[] hash = Encoding.ASCII.GetBytes(_secret + ps);
+            byte[] hash = Encoding.ASCII.GetBytes(SECRET + ps);
             MD5 md5 = new MD5CryptoServiceProvider();
             byte[] hashenc = md5.ComputeHash(hash);
             //5
@@ -114,7 +114,7 @@ namespace Selen {
             HttpResponseMessage httpResponseMessage = null;
 
             //1.добавляем к словарю параметров app_id
-            par["app_id"] = _appId;
+            par["app_id"] = APP_ID;
             //2.сортиовка параметров
             SortedDictionary<string, string> parSorted = new SortedDictionary<string, string>(new PhpKSort());
             foreach (var key in par.Keys) {
@@ -129,7 +129,7 @@ namespace Selen {
                         await RepairAsync();
                     }
                     //3.считаем хэш строку
-                    byte[] hash = Encoding.UTF8.GetBytes(_rr.token + _secret + qstr);
+                    byte[] hash = Encoding.UTF8.GetBytes(_rr.token + SECRET + qstr);
                     MD5 md5 = new MD5CryptoServiceProvider();
                     byte[] hashenc = md5.ComputeHash(hash);
                     //4.прибавляем полученный пароль к строке запроса
@@ -187,9 +187,9 @@ namespace Selen {
             return md5_str.ToString();
         }
         public static async Task BaseGetAsync() {
-            _isBusinessNeedRescan = true;
-            _isBusinessCanBeScan = false;
-            _syncStartTime = DateTime.Now;
+            IsBusinessNeedRescan = true;
+            IsBusinessCanBeScan = false;
+            SyncStartTime = DateTime.Now;
             Log.Add(_l + "старт полного цикла синхронизации");
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
@@ -197,9 +197,9 @@ namespace Selen {
             Log.Add(_l + "получено товаров с остатками " + tlog);
             LabelBusText = tlog;
             await SaveBusAsync();
-            _isBusinessNeedRescan = false;
+            IsBusinessNeedRescan = false;
             await syncAllEvent();
-            _isBusinessCanBeScan = true;
+            IsBusinessCanBeScan = true;
             Log.Add(_l + "полный цикл синхронизации завершен");
         }
         public static async Task GetBusGoodsAsync2() {
@@ -212,7 +212,7 @@ namespace Selen {
                         string s = await RequestAsync("get", "goods", new Dictionary<string, string>{
                             {"archive", "0"},
                             {"type", "1"},
-                            {"limit", _pageLimitBase.ToString()},
+                            {"limit", PAGE_LIMIT_BASE.ToString()},
                             {"page", i.ToString()},
                             {"with_additional_fields", "1"},
                             {"with_attributes", "1"},
@@ -260,22 +260,22 @@ namespace Selen {
             RootObject.Groups = _busGroups;
         }
         public static async Task GoLiteSync() {
-            _isBusinessCanBeScan = false;
+            IsBusinessCanBeScan = false;
             var stage = "";
             try {
-                _syncStartTime = DateTime.Now;
+                SyncStartTime = DateTime.Now;
                 Log.Add(_l + "GoLiteSync - запрос изменений...");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
                 var lastLiteScanTime = await DB.GetParamStrAsync("liteScanTime");
-                _lastScanTime = await DB.GetParamDateTimeAsync("lastScanTime");
-                var lastWriteBusFile = File.GetLastWriteTime(_busFileName);
+                LastScanTime = await DB.GetParamDateTimeAsync("lastScanTime");
+                var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
 
-                var isBusFileOld = lastWriteBusFile.AddMinutes(5) < _lastScanTime;
+                var isBusFileOld = lastWriteBusFile.AddMinutes(5) < LastScanTime;
                 //если файл базы устарел - полный рескан
-                if (isBusFileOld || _bus.Count <= 0 || _isBusinessNeedRescan) {
+                if (isBusFileOld || _bus.Count <= 0 || IsBusinessNeedRescan) {
                     Log.Add(@"{_l} GoLiteSync - будет произведен запрос полной базы товаров... isBusFileOld {isBusFileOld}, goods.Count {_bus.Count}, _isBusinessNeedRescan {_isBusinessNeedRescan}");
-                    _isBusinessNeedRescan = true;
-                    _isBusinessCanBeScan = true;
+                    IsBusinessNeedRescan = true;
+                    IsBusinessCanBeScan = true;
                     return;
                 }
                 //запросим новые/измененные карточки товаров
@@ -353,10 +353,10 @@ namespace Selen {
                 }
                 //если изменений слишком много или сменился день - нужен полный рескан базы
                 if (lightSyncGoods.Count >= 250 ||
-                    _lastScanTime.Day != DateTime.Now.Day) {
+                    LastScanTime.Day != DateTime.Now.Day) {
                     Log.Add(_l + "будет произведен запрос полной базы товаров...");
-                    _isBusinessNeedRescan = true;
-                    _isBusinessCanBeScan = true;
+                    IsBusinessNeedRescan = true;
+                    IsBusinessCanBeScan = true;
                     return;
                 }
                 Log.Add(_l + "изменены карточки: " + lightSyncGoods.Count + " (с фото, ценой и остатками: " +
@@ -372,7 +372,7 @@ namespace Selen {
                         _bus[ind] = lg;
                         //время обновления карточки сдвигаю на время начала цикла синхронизации
                         //для того чтобы обновлялись карточки, у которых изменился только остаток или цена
-                        _bus[ind].updated = _syncStartTime.ToString();
+                        _bus[ind].updated = SyncStartTime.ToString();
                     } else { //иначе добавляем в коллекцию
                         _bus.Add(lg);
                     }
@@ -384,7 +384,7 @@ namespace Selen {
                 //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
 
                 LabelBusText = _bus.Count + "/" + _bus.Count(c => c.amount > 0 && c.price > 0 && c.images.Count > 0);
-                await DB.SetParamAsync("liteScanTime", _syncStartTime.AddMinutes(-liteScanTimeShift).ToString());
+                await DB.SetParamAsync("liteScanTime", SyncStartTime.AddMinutes(-liteScanTimeShift).ToString());
                 await DB.SetParamAsync("controlBus", _bus.Count.ToString());
 
                 ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
@@ -394,19 +394,19 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (DateTime.Now.Minute == 55 || _lastScanTime.AddHours(1) < DateTime.Now) {
+                if (DateTime.Now.Minute == 55 || LastScanTime.AddHours(1) < DateTime.Now) {
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }
-                _isBusinessCanBeScan = true;
+                IsBusinessCanBeScan = true;
                 Log.Add(_l + "цикл синхронизации завершен");
             } catch (Exception ex) {
                 Log.Add(_l + "ошибка синхронизации: " + ex.Message + "\n"
                     + ex.Source + "\n"
                     + ex.InnerException?.Message + "\n"
                     + stage);
-                _isBusinessCanBeScan = true;
-                _isBusinessNeedRescan = true;
+                IsBusinessCanBeScan = true;
+                IsBusinessNeedRescan = true;
             }
         }
 
@@ -459,9 +459,9 @@ namespace Selen {
             try {
                 await Task.Factory.StartNew(() => {
                     if (DB.GetParamBool("saveDataBaseLocal")) {
-                        File.WriteAllText(_busFileName, JsonConvert.SerializeObject(_bus));
+                        File.WriteAllText(BUS_FILE_NAME, JsonConvert.SerializeObject(_bus));
                         Log.Add(_l + "bus.json - сохранение успешно");
-                        File.SetLastWriteTime(_busFileName, _syncStartTime);
+                        File.SetLastWriteTime(BUS_FILE_NAME, SyncStartTime);
                     }
                 });
             } catch (Exception x) {
@@ -851,59 +851,60 @@ namespace Selen {
             }
         }
         public static async Task CheckDescriptions() {
-            for (int n=10, i = _bus.Count - 1; i > -1 && n > 0; i--) {
+            var descChkCnt = await DB.GetParamIntAsync("descriptionsCheckCount");
+            for (int i = _bus.Count - 1; i > -1 && descChkCnt > 0; i--) {
                 try {
 
                     var needUpdate = false;
                     if (_bus[i].description?.Contains("\t") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("\t", " ");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалена табуляция\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалена табуляция");
                     }
                     if (_bus[i].description?.Contains("!!!") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("!!!", "!!");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние восклицания\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние восклицания");
                     }
                     if (_bus[i].description?.Contains("</p><br />") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("</p><br />", "</p>");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("<br><br>") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("<br><br>", "<br>");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("<br /><br />") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("<br /><br />", "<br>");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("<p></p>") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("<p></p>", "");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("<br></p>") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("<br></p>", "</p>");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("</p>\n") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("</p>\n", "</p>");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
                     }
                     if (_bus[i].description?.Contains("&nbsp;") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("&nbsp;", " ");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены мягкие пробелы\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены мягкие пробелы");
                     }
                     if (_bus[i].description?.Contains("&ndash;") ?? false) {
                         _bus[i].description = _bus[i].description.Replace("&ndash;", "-");
                         needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена длинного тире\n" + _bus[i].description);
+                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена длинного тире");
                     }
                     if (needUpdate) {
                         await RequestAsync("put", "goods", new Dictionary<string, string>() {
@@ -911,7 +912,8 @@ namespace Selen {
                             {"name", _bus[i].name},
                             {"description", _bus[i].description}
                         });
-                        n--;
+                        Log.Add("CheckDescriptions: " + _bus[i].description);
+                        descChkCnt--;
                     }
                 } catch (Exception x) {
                     Log.Add(x.Message);
@@ -923,7 +925,7 @@ namespace Selen {
             var s = await RequestAsync("get", "realizations", new Dictionary<string, string>{
                         {"extended", "true"},
                         {"with_goods", "true"},
-                        {"updated[from]", _scanTime.AddHours(-1).ToString()},
+                        {"updated[from]", ScanTime.AddHours(-1).ToString()},
                     });
             var realizations = JsonConvert.DeserializeObject<List<Realization>>(s);
             //проверяю статус
@@ -953,18 +955,18 @@ namespace Selen {
             }
         }
         public static async Task LoadBusJSON() {
-            if (File.Exists(_busFileName)) {
+            if (File.Exists(BUS_FILE_NAME)) {
                 await GetBusGroupsAsync();
                 Log.Add("business.ru: загружаю список товаров...");
                 await Task.Factory.StartNew(() => {
-                    var s = File.ReadAllText(_busFileName);
+                    var s = File.ReadAllText(BUS_FILE_NAME);
                     _bus = JsonConvert.DeserializeObject<List<RootObject>>(s);
                 });
                 Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
                 LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.price > 0 && c.amount > 0);
 
             }
-            _isBusinessCanBeScan = true;
+            IsBusinessCanBeScan = true;
         }
         public static async Task DescriptionsEdit() {
             //загрузим словарь
@@ -999,7 +1001,13 @@ namespace Selen {
                         break;
                     }
                 }
-                if (_bus[i].description.Contains("class"))
+
+                if (_bus[i].description
+                           .Split('<')
+                           .Skip(1)
+                           .Any(w => !w.StartsWith("p>") && 
+                                     !w.StartsWith("br") && 
+                                     !w.StartsWith("/p"))) 
                     flag_need_formEdit = true;
                 if (flag_need_formEdit) {
                     Form f4 = new FormEdit(_bus[i]);
@@ -1032,7 +1040,7 @@ namespace Selen {
                         string s = await RequestAsync("get", "partnercontactinfo", new Dictionary<string, string>
                         {
                             {"contact_info_type_id","1"},
-                            {"limit", _pageLimitBase.ToString()},
+                            {"limit", PAGE_LIMIT_BASE.ToString()},
                             {"page", i.ToString()}
                         });
 
@@ -1123,7 +1131,7 @@ namespace Selen {
         }
         //замена атрибутов с размерами на поля в карточке
         public static async Task AttributesChange(int i) {
-            for (int b = 0; b < _bus.Count && i > 0 && !_isBusinessNeedRescan; b++) {
+            for (int b = 0; b < _bus.Count && i > 0 && !IsBusinessNeedRescan; b++) {
                 try {
                     //удаляю атрибут tiuAttr 
                     if (_bus[b].attributes?.Any(f => f.Attribute.id == "77526") ?? false)
@@ -1177,7 +1185,7 @@ namespace Selen {
             for (int i = 1; ; i++) {
                 //запрашиваю товары из документов "ввод на остатки"
                 var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
-                        {"limit", Class365API._pageLimitBase.ToString()},
+                        {"limit", Class365API.PAGE_LIMIT_BASE.ToString()},
                         {"page", i.ToString()},
                     });
                 //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
@@ -1222,7 +1230,7 @@ namespace Selen {
             for (int i = 1; ; i++) {
                 //запрашиваю товары из документов "Оприходования"
                 var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
-                        {"limit", Class365API._pageLimitBase.ToString()},
+                        {"limit", Class365API.PAGE_LIMIT_BASE.ToString()},
                         {"updated[from]", DateTime.Now.AddHours(-10).ToString("dd.MM.yyyy")},
                         {"page", i.ToString()},
                     });
@@ -1274,5 +1282,5 @@ namespace Selen {
     }
 }
 
-//правильная сортировка на будущее
+//возможная правильная сортировка
 //string[] sortedKeys = form.AllKeys.OrderBy(x => x, StringComparer.Ordinal).ToArray();

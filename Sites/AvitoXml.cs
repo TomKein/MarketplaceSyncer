@@ -55,10 +55,11 @@ namespace Selen.Sites {
                 //корневой элемент для остатков
                 var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")),
                                                       new XAttribute("formatVersion", "1"));
+                var days = DB.GetParamInt("avito.daysUpdatedToUpload");
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по убыванию цены
                 var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
-                                      && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > DateTime.Now))
+                                      && (w.amount > 0 || DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.price);
                 Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
                 int i = 0;
@@ -316,7 +317,7 @@ namespace Selen.Sites {
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
                 name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно")) ||
-                name.StartsWith("фланец") && name.Contains("раздат") ||
+                name.StartsWith("фланец") && name.Contains("раздат") || name.Contains("полуоси") ||
                 name.StartsWith("фланец") && name.Contains("кардан") ||
                 name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("акпп")) ||
                 name.StartsWith("шарнир штока кпп") ||
@@ -444,7 +445,6 @@ namespace Selen.Sites {
                 name.StartsWith("траверса ") ||
                 name.StartsWith("ус ") ||
                 (name.StartsWith("ресничк") ||
-                 name.StartsWith("крышк") ||
                  name.StartsWith("планк")) && name.Contains("фар") ||
                 name.StartsWith("планка") && (
                     name.Contains("под фар") ||
@@ -584,12 +584,12 @@ namespace Selen.Sites {
                 name.StartsWith("стоп доп") ||
                 name.StartsWith("поворотник") ||
                 name.StartsWith("повторитель") ||
+                name.StartsWith("крышка фары") ||
                 name.StartsWith("патрон повор") ||
                 name.StartsWith("катафот") ||
                 name.Contains("фонар") &&
                 (name.StartsWith("плата") ||
                 name.StartsWith("провод") ||
-                name.StartsWith("крышка фары") ||
                 name.StartsWith("патрон") ||
                 name.StartsWith("крышк")) ||
                 b.GroupName() == "Световые приборы транспорта") {
@@ -814,7 +814,9 @@ namespace Selen.Sites {
                   name.StartsWith("тарелка пружины") ||
                   name.Contains("опорн") && name.Contains("чашк") && name.Contains("амортизат") ||
                   name.StartsWith("тяга ") ||
-                  name.Contains("опор") && name.Contains("амортизат") ||
+                  name.Contains("опор") && 
+                  (name.Contains("амортизат") ||
+                   name.Contains("шаров")) ||
                   (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
                   name.StartsWith("сайлентблок") ||
                   name.StartsWith("втулка сайлентблока") ||

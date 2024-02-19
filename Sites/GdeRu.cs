@@ -58,27 +58,23 @@ namespace Selen.Sites {
                 _creditPriceMin = DB.GetParamInt("creditPriceMin");
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
                 _creditDescription = DB.GetParamStr("creditDescription");
-                for (int i = 0; ; i++) {
-                    try {
-                        await AuthAsync();
-                        await EditAsync();
-                        await AddAsync();
-                        await ParseAsync();
-                        await CheckUrls();
-                        Log.Add(_l + "выгрузка завершена");
-                        return true;
-                    } catch (Exception x) {
-                        Log.Add(_l + "ошибка синхронизации! - " + x.Message);
-                        if (x.Message.Contains("timed out") ||
-                        x.Message.Contains("already closed") ||
-                        x.Message.Contains("invalid session id") ||
-                        x.Message.Contains("chrome not reachable")) {
-                            Log.Add(_l + "ошибка браузера! - " + x.Message);
-                            _dr.Quit();
-                            _dr = null;
-                        }
-                        if (i >= 2) break;
-                        await Task.Delay(10000);
+                try {
+                    await AuthAsync();
+                    await EditAsync();
+                    await AddAsync();
+                    await ParseAsync();
+                    await CheckUrls();
+                    Log.Add(_l + "выгрузка завершена");
+                    return true;
+                } catch (Exception x) {
+                    Log.Add(_l + "ошибка синхронизации! - " + x.Message);
+                    if (x.Message.Contains("timed out") ||
+                    x.Message.Contains("already closed") ||
+                    x.Message.Contains("invalid session id") ||
+                    x.Message.Contains("chrome not reachable")) {
+                        Log.Add(_l + "ошибка браузера! - " + x.Message);
+                        _dr.Quit();
+                        _dr = null;
                     }
                 }
             }
@@ -168,7 +164,7 @@ namespace Selen.Sites {
         }
         //пишу название
         private void SetTitle(int b) {
-            _dr.WriteToSelector("#AInfoForm_title", _bus[b].NameLimit(80));
+            _dr.WriteToSelector("#AInfoForm_title", _bus[b].NameLimit(80).Replace("(","").Replace(")",""));
         }
         //пишу цену
         private void SetPrice(int b) {
@@ -380,7 +376,7 @@ namespace Selen.Sites {
                         if (b == -1) {
                             _dr.Navigate("https://kaluga.gde.ru/cabinet/item/delete?id=" + ids[i]);
                         } else if (_bus[b].price.ToString() != prices[i] ||
-                                  !_bus[b].name.Contains(names[i])) {
+                                  !_bus[b].name.Contains(names[i].Replace("(","").Replace(")",""))) {
                             EditOffer(b);
                         }
                     }

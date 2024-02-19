@@ -381,7 +381,7 @@ namespace Selen.Sites {
         }
         void SetDesc(RootObject b) {
             var d = b.DescriptionList(2979, _addDesc);
-            var amount = b.amount > 0 ? b.amount.ToString() + " " + b.MeasureName : "нет";
+            var amount = b.amount > 0 ? b.amount.ToString() + " " + b.MeasureNameCorrect : "нет";
             d.Insert(0, "В наличии: " + amount);
             if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
