@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Wordprocessing;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -7,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -318,8 +316,10 @@ namespace Selen.Sites {
                 name.StartsWith("ступица") ||
                 name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно")) ||
                 name.StartsWith("фланец") && name.Contains("раздат") || name.Contains("полуоси") ||
-                name.StartsWith("фланец") && name.Contains("кардан") ||
-                name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("акпп")) ||
+                name.StartsWith("фланец") && name.Contains("кардан") || name.Contains("кпп ") ||
+                name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("сепаратор") || 
+                name.Contains("акпп") || name.Contains("дифференциала") || name.Contains("autostar")||
+                name.Contains("конический")) ||
                 name.StartsWith("шарнир штока кпп") ||
                 name.StartsWith("крышка разда") ||
                 name.StartsWith("фильтр акпп") ||
@@ -402,6 +402,7 @@ namespace Selen.Sites {
                 name.StartsWith("личинк") ||
                 name.StartsWith("комплект личинок") ||
                 name.StartsWith("комплект замка") ||
+                name.StartsWith("ответка замка") ||
                 name.StartsWith("замок") && name.Contains("двер")) {
                 //d.Add("TypeId", "16-810");                              //Замки меняю на
                 d.Add("TypeId", "11-625");                                //Салон (для авито доставки)
@@ -699,6 +700,7 @@ namespace Selen.Sites {
                   name.StartsWith("конденсатор") ||
                   name.StartsWith("заслонка отопителя") ||
                   name.StartsWith("вакуумный переключатель") ||
+                  name.StartsWith("электропроводка печки") ||
                   b.GroupName() == "Электрика, зажигание") {
                 d.Add("TypeId", "11-630");                          //Электрооборудование
             } else if (name.StartsWith("ящик") ||
@@ -774,6 +776,9 @@ namespace Selen.Sites {
                   name.StartsWith("направляющая") ||
                   name.StartsWith("ролик") && name.Contains("двер") ||
                   name.StartsWith("механизм") && name.Contains("двер") ||
+                  name.Contains("лыжный") && name.Contains("мешок") ||
+                  name.StartsWith("пластик салона")||
+                  name.StartsWith("панель блока управления") ||
                   name.StartsWith("салазка") && name.Contains("двер")
                   ) {
                 d.Add("TypeId", "11-625");                        //Салон

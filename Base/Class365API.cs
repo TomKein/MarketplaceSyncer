@@ -815,6 +815,7 @@ namespace Selen {
         }
         public static async Task ArchivateAsync() {
             var cnt = await DB.GetParamIntAsync("archivateCount");
+            var index = await DB.GetParamIntAsync("archivateLastIndex");
             if (cnt == 0)
                 return;
             //список не архивных карточек без фото, без остатка, отсортированный с самых старых
@@ -822,9 +823,15 @@ namespace Selen {
                                       w.amount == 0 &&
                                       !w.archive &&
                                       DateTime.Now > DateTime.Parse(w.updated).AddMonths(6))
-                               .OrderBy(o => DateTime.Parse(o.updated));
+                               .OrderBy(o => DateTime.Parse(o.updated))
+                               .Skip(index);
+            var queryCount = busQuery.Count();
+            Log.Add("ArchivateAsync: карточек для архивирования: " + queryCount);
+            if (queryCount == 0)
+                index = 0;
             foreach (var b in busQuery) {
                 try {
+                    index ++;
                     //количество реализаций товара за 2 года
                     var s = await RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
                                     {"good_id", b.id},
@@ -844,11 +851,11 @@ namespace Selen {
                     b.archive = true;
                     if (--cnt == 0)
                         break;
-                    //Log.Add(b.archive + " - " + _bus.Find(f => f.id == b.id).archive);
                 } catch (Exception x) {
                     Log.Add("ошибка архивирования карточки! - " + b.name + " - " + x.Message);
                 }
             }
+            await DB.SetParamAsync("archivateLastIndex", index.ToString());
         }
         public static async Task CheckDescriptions() {
             var descChkCnt = await DB.GetParamIntAsync("descriptionsCheckCount");
