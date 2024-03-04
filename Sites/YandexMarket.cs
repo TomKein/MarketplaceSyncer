@@ -60,7 +60,7 @@ namespace Selen.Sites {
                             n.Contains("крыло заднее") || n.Contains("четверть ") ||
                             n.Contains("передняя часть кузова") || n.Contains("лонжерон") ||
                             n.Contains("панель передняя") || n.Contains("морда") || 
-                            n.Contains("телевизор")
+                            n.Contains("телевизор") || n.Contains("переделка")
                             ) 
                             continue;
                         var offer = new XElement("offer", new XAttribute("id", b.id));

@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.174";
+        string _version = "1.176";
 
         VK _vk = new VK();
         Drom _drom = new Drom();
@@ -451,16 +451,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                var s = new StringBuilder();
-                for (int i = 0; i<50; i++) {
-                    var item = new RootObject {
-                        amount = i,
-                        measure_id = "11"
-                    };
-                    s.Append(i + "  === " + item.MeasureNameCorrect+"\n");
-
-                }
-                File.WriteAllText(@"..\logtest.txt", s.ToString());
+                await _ozon.GetCategoriesAsync();
 
             } catch (Exception x) {
                 Log.Add(x.Message);

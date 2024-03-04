@@ -352,7 +352,7 @@ namespace Selen.Sites {
                             name = good.name,
                             currency_code="RUB",
                             offer_id=good.id,
-                            category_id=attributes.categoryId,
+                            description_category_id=attributes.categoryId,
                             //category_id=productFullInfo[0].category_id,
                             price = GetNewPrice(good).ToString(),
                             old_price = GetOldPrice(GetNewPrice(good)).ToString(),
@@ -421,7 +421,7 @@ namespace Selen.Sites {
                             values = new Value[] { values }
                         });
                     }
-                var s = await PostRequestAsync(data, "/v2/product/import");
+                var s = await PostRequestAsync(data, "/v3/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                 if (res.task_id != default(int)) {
                     Log.Add(_l + good.name + " - товар отправлен на озон!");
@@ -500,7 +500,7 @@ namespace Selen.Sites {
                                 name = good.name,
                                 currency_code="RUB",
                                 offer_id=good.id,
-                                category_id=attributes.categoryId,
+                                description_category_id=attributes.categoryId,
                                 price = GetNewPrice(good).ToString(),
                                 old_price = GetOldPrice(GetNewPrice(good)).ToString(),
                                 weight = (int)(good.GetWeight()*1000),                      //Вес с упаковкой, г
@@ -517,7 +517,7 @@ namespace Selen.Sites {
                     };
                     if (attributes.additionalAttributes != null && attributes.additionalAttributes.Count > 0)
                         data.items[0].attributes.AddRange(attributes.additionalAttributes);
-                    var s = await PostRequestAsync(data, "/v2/product/import");
+                    var s = await PostRequestAsync(data, "/v3/product/import");
                     var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                     if (res.task_id != default(int)) {
                         Log.Add(_l + good.name + " - товар отправлен на озон!");
@@ -1390,7 +1390,8 @@ namespace Selen.Sites {
                     a.categoryId = 87717033;
                     a.typeId = 94561;
                     a.typeName = "Хомут";
-                } else if (n.StartsWith("ключ комбинированный")) {            //Ключи
+                } else if (n.StartsWith("ключ комбинированный")||
+                    n.StartsWith("набор") && n.Contains("ключ")) {             //Ключи
                     a.categoryId = 45393031;
                     a.typeId = 92082;
                     a.typeName = "Ключ";
@@ -1494,6 +1495,52 @@ namespace Selen.Sites {
                     a.categoryId = 33717339;
                     a.typeId = 970742711;
                     a.typeName = "Размораживатель замков";
+
+
+
+                } else if (n.Contains("лампа") && (n.Contains("галоген")||n.Contains("ксенон"))) {  // Автолампы 
+                    a.categoryId = 33697187;
+                    a.typeId = 367249974;
+                    a.typeName = "Лампа автомобильная";
+                    //todo atributes lapm type, connection
+                } else if (n.StartsWith("опора") && n.Contains("кпп") ||
+                    n.StartsWith("подушка коробки")) {                                          // Опоры кпп, акпп
+                    a.categoryId = 33696914;
+                    a.typeId = 98868;
+                    a.typeName = "Опора КПП";
+                } else if (n.Contains("автотестер")) {                                         // Автотестер
+                    a.categoryId = 81070531;
+                    a.typeId = 92206;
+                    a.typeName = "Тестер автомобильный";
+                } else if (n.StartsWith("предохранитель")||
+                    n.StartsWith("набор предохранителей")) {                                  // Предохранитель 
+                    a.categoryId = 85843120;
+                    a.typeId = 92190;
+                    a.typeName = "Предохранители для автомобиля";
+                    //todo atribute current (A), count in pkg
+                } else if ((n.Contains("стяжки") || n.Contains("хомуты")) && n.Contains("кабел")) {       // Хомуты (стяжки)
+                    a.categoryId = 33485121;
+                    a.typeId = 98803;
+                    a.typeName = "Болты, гайки, хомуты, стяжки";
+                } else if (n.StartsWith("рамка") && n.Contains("номер")) {                      // Рамка под номерной знак
+                    a.categoryId = 74169478;
+                    a.typeId = 94664;
+                    a.typeName = "Рамка госномера";
+                } else if (n.StartsWith("ключ") && n.Contains("свеч")) {                    // Ключ свечной
+                    a.categoryId = 45393031;
+                    a.typeId = 504866196;
+                    a.typeName = "Ключ свечной";
+                    //todo atribute length
+                } else if (n.StartsWith("держатель") && 
+                    (n.Contains("телеф") || n.Contains("навиг"))) {       // Держатель для телефона / навигатора
+                    a.categoryId = 27332753;
+                    a.typeId = 115950474;
+                    a.typeName = "Держатель автомобильный";
+                    //todo atribute placement 
+                } else if (n.StartsWith("съемник") && n.Contains("фильтр")) {       // Съемник масляного фильтра
+                    a.categoryId = 27332790;
+                    a.typeId = 92140;
+                    a.typeName = "Съемник";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -2158,8 +2205,9 @@ namespace Selen.Sites {
                 category_id = rootCategoryId,
                 language = "DEFAULT"
             };
-            var s = await PostRequestAsync(data, "/v2/category/tree");
-            var res = JsonConvert.DeserializeObject<List<Category>>(s);
+            //var s = await PostRequestAsync(data, "/v2/category/tree");
+            var s = await PostRequestAsync(data, "/v1/description-category/tree");
+            var res = JsonConvert.DeserializeObject<List<Description_category>>(s);
             File.WriteAllText(@"..\ozon\ozon_categories.json", s);
             Log.Add(_l + "GetCategoriesAsync - получено категорий " + res.Count);
         }
@@ -2545,6 +2593,14 @@ namespace Selen.Sites {
         public int dictionary_value_id { get; set; }
         public string value { get; set; }
     }
+    //=====================
+    public class Description_category {
+        public int description_category_id { get; set; }
+        public string category_name { get; set;}
+        public bool disabled { get; set; } 
+        public Description_category[] children { get; set; }
+    }
+
 }
 
 //запрос остатков товара с озон

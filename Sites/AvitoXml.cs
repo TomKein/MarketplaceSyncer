@@ -314,12 +314,18 @@ namespace Selen.Sites {
                 name.StartsWith("переделка с акпп") ||
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
-                name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно")) ||
-                name.StartsWith("фланец") && name.Contains("раздат") || name.Contains("полуоси") ||
-                name.StartsWith("фланец") && name.Contains("кардан") || name.Contains("кпп ") ||
-                name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("сепаратор") || 
-                name.Contains("акпп") || name.Contains("дифференциала") || name.Contains("autostar")||
-                name.Contains("конический")) ||
+
+                name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно") || 
+                name.Contains("сепаратор") || name.Contains("кпп ")|| name.Contains("акпп") ||
+                name.Contains("дифференциала") || name.Contains("autostar")||name.Contains("конический")||
+                name.Contains("полуоси"))  ||
+
+                name.StartsWith("фланец") && (name.Contains("раздат") || 
+                name.Contains("полуоси") || name.Contains("кардан")) ||
+
+                name.Contains("дифферен") && (name.Contains("механизм")|| name.Contains("акпп"))||
+                
+                
                 name.StartsWith("шарнир штока кпп") ||
                 name.StartsWith("крышка разда") ||
                 name.StartsWith("фильтр акпп") ||
