@@ -1186,8 +1186,7 @@ namespace Selen.Sites {
                     a.categoryId = 36201237;
                     a.typeId = 98877;
                     a.typeName = "Подшипник амортизатора";
-                } else if (n.StartsWith("полироль "))           //Полироль 
-                {
+                } else if (n.StartsWith("полироль ")){           //Полироль 
                     a.categoryId = 33717350;
                     a.typeId = 92256;
                     a.typeName = "Полироль автомобильный";
@@ -1196,8 +1195,7 @@ namespace Selen.Sites {
                     a.categoryId = 39653253;
                     a.typeId = 98857;
                     a.typeName = "Водяной насос (помпа)";
-                } else if (n.StartsWith("поршень") || n.StartsWith("поршни"))          //Поршень
-                  {
+                } else if (n.StartsWith("поршень") || n.StartsWith("поршни")){          //Поршень
                     a.categoryId = 85812214;
                     a.typeId = 970782910;
                     a.typeName = "Поршень";
@@ -1206,78 +1204,65 @@ namespace Selen.Sites {
                     a.categoryId = 85812214;
                     a.typeId = 98905;
                     a.typeName = "Распредвал";
-                } else if (n.StartsWith("преднатяжитель") && n.Contains("безопасност"))   //Преднатяжитель ремня безопасности 
-                   {
+                } else if (n.StartsWith("преднатяжитель") && n.Contains("безопасност")){   //Преднатяжитель ремня безопасности 
                     a.categoryId = 85806235;
                     a.typeId = 970799804;
                     a.typeName = "Запчасти автомобильные";
-                } else if (n.StartsWith("преобразователь") && n.Contains("ржавчины"))      //Преобразователь ржавчины 
-                   {
+                } else if (n.StartsWith("преобразователь") && n.Contains("ржавчины")){      //Преобразователь ржавчины 
                     a.categoryId = 33717356;
                     a.typeId = 92257;
                     a.typeName = "Преобразователь ржавчины";
                 } else if ((n.Contains("привод") || n.Contains("полуось")) &&
-                    (n.Contains("лев") || n.Contains("прав")))                             //Привод 
-                   {
+                    (n.Contains("лев") || n.Contains("прав"))){                             //Привод 
                     a.categoryId = 85817289;
                     a.typeId = 98888;
                     a.typeName = "Привод в сборе";
                 } else if (n.Contains("раскоксовыв") &&
-                    (n.Contains("двигателя") || n.Contains("двс")))                      //Раскоксовывание двигателя 
-                   {
+                    (n.Contains("двигателя") || n.Contains("двс"))){                      //Раскоксовывание двигателя 
                     a.categoryId = 98327483;
                     a.typeId = 970892544;
                     a.typeName = "Раскоксовка двигателя";
                 } else if (n.StartsWith("расходомер") ||
-                    n.StartsWith("дмрв") || n.StartsWith("датчик расхода"))              //Расходомер воздуха 
-                   {
+                    n.StartsWith("дмрв") || n.StartsWith("датчик расхода")){              //Расходомер воздуха 
                     a.categoryId = 85843109;
                     a.typeId = 970740203;
                     a.typeName = "Датчик массового расхода воздуха";
                 } else if (n.StartsWith("реле ") &&
-                    n.Contains("поворот"))              //Реле поворотов
-                   {
+                    n.Contains("поворот")){              //Реле поворотов
                     a.categoryId = 39653253;
                     a.typeId = 971072777;
                     a.typeName = "Реле указателей поворота";
                 } else if (n.StartsWith("реле ") &&
-                    n.Contains("бензо"))              //Реле бензонасоса
-                   {
+                    n.Contains("бензо")){              //Реле бензонасоса
                     a.categoryId = 39653253;
                     a.typeId = 971047416;
                     a.typeName = "Реле бензонасоса";
-                } else if (n.StartsWith("реле "))              //Реле универсальное
-                   {
+                } else if (n.StartsWith("реле ")){              //Реле универсальное
                     a.categoryId = 39653253;
                     a.typeId = 971047417;
                     a.typeName = "Реле универсальное для автомобиля";
                 } else if (n.StartsWith("резистор") &&
-                    (n.Contains("вентилятор") || n.Contains("отопител")))              //Резистор вентилятора 
-                   {
+                    (n.Contains("вентилятор") || n.Contains("отопител"))){              //Резистор вентилятора 
                     a.categoryId = 85833530;
                     a.typeId = 971072776;
                     a.typeName = "Резистор вентилятора";
                 } else if (n.Contains("рейка") &&
-                    n.Contains("рулевая"))              //Рейка рулевая 
-                   {
+                    n.Contains("рулевая")){              //Рейка рулевая 
                     a.categoryId = 85833342;
                     a.typeId = 970784043;
                     a.typeName = "Рейка рулевая";
                 } else if (n.StartsWith("ремкомплект") &&
-                    n.Contains("суппорт"))              //Ремкомплект тормозного суппорта 
-                   {
+                    n.Contains("суппорт")){              //Ремкомплект тормозного суппорта 
                     a.categoryId = 85842995;
                     a.typeId = 98917;
                     a.typeName = "Ремкомплект суппорта";
                 } else if (n.StartsWith("решетка") &&
-                    (n.Contains("бампер") || n.Contains("радиатор")))    //решетка бампера радиатора
-                   {
+                    (n.Contains("бампер") || n.Contains("радиатор"))){    //решетка бампера радиатора
                     a.categoryId = 100186418;
                     a.typeId = 97666;
                     a.typeName = "Решетка радиатора";
                 } else if (n.StartsWith("ролик ") &&
-                    n.Contains("ремня"))              //Ролик натяжной ремня 
-                   {
+                    n.Contains("ремня")){              //Ролик натяжной ремня 
                     a.categoryId = 85814516;
                     a.typeId = 970889786;
                     a.typeName = "Ролик натяжителя";
@@ -1286,7 +1271,8 @@ namespace Selen.Sites {
                     a.typeId = 971032883;
                     a.typeName = "Рычаг тормоза";
                 } else if (n.StartsWith("рычаг") &&          //Рычаг подвески
-                    (n.Contains("подвеск") || n.Contains("зад") || n.Contains("лев") || n.Contains("прав"))) {
+                    (n.Contains("подвеск") || n.Contains("зад") ||
+                    n.Contains("лев") || n.Contains("прав"))) {
                     a.categoryId = 85828600;
                     a.typeId = 970849745;
                     a.typeName = "Рычаг подвески";
@@ -1429,10 +1415,6 @@ namespace Selen.Sites {
                     a.categoryId = 86292577;
                     a.typeId = 98859;
                     a.typeName = "Насос масляный";
-                } else if (n.Contains("сепаратор") && n.Contains("подшипник")) {            //Сепаратор игольчатого подшипника 
-                    a.categoryId = 85817294;
-                    a.typeId = 970889785;
-                    a.typeName = "Подшипник КПП";
                 } else if (n.Contains("тяга") && n.Contains("рулевая")) {            //Тяга рулевая
                     a.categoryId = 85833342;
                     a.typeId = 98955;
@@ -1583,7 +1565,8 @@ namespace Selen.Sites {
                     a.categoryId = 85817294;
                     a.typeId = 971475668;
                     a.typeName = "Подшипник редуктора";
-                } else if (n.StartsWith("подшипник") && n.Contains("кпп")) {
+                } else if (n.StartsWith("подшипник") && n.Contains("кпп") ||
+                    n.Contains("сепаратор") && n.Contains("подшипник")) {
                     a.categoryId = 85817294;
                     a.typeId = 970889785;
                     a.typeName = "Подшипник КПП";
