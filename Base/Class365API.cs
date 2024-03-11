@@ -831,7 +831,6 @@ namespace Selen {
                 index = 0;
             foreach (var b in busQuery) {
                 try {
-                    index ++;
                     //количество реализаций товара за 2 года
                     var s = await RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
                                     {"good_id", b.id},
@@ -839,8 +838,10 @@ namespace Selen {
                                 });
                     var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s);
                     Log.Add(b.id + " " + b.name + " реализаций " + realizations.Count);
-                    if (realizations.Any())
+                    if (realizations.Any()) {
+                        index++;
                         continue;
+                    }
                     //архивирую карточку
                     await RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", b.id},
