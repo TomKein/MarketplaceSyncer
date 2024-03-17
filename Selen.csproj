@@ -282,7 +282,7 @@
     <Compile Include="FormImage.Designer.cs">
       <DependentUpon>FormImage.cs</DependentUpon>
     </Compile>
-    <Compile Include="Sites\AvitoXml.cs" />
+    <Compile Include="Sites\Avito.cs" />
     <Compile Include="Sites\GdeRu.cs" />
     <Compile Include="Sites\izap24.cs" />
     <Compile Include="Sites\Kupiprodai.cs" />

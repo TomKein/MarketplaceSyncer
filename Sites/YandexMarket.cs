@@ -20,8 +20,9 @@ namespace Selen.Sites {
         readonly int EXPRESS_MAX_HEIGHT = 43;
         readonly int EXPRESS_MAX_WEIGHT = 30;
 
+
         //генерация xml
-        public async Task GenerateXML(List<RootObject> _bus) {
+        public async Task GenerateXML(List<GoodObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
@@ -35,17 +36,17 @@ namespace Selen.Sites {
                 //старая цена из настроек
                 var oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
                 //обновляю вес товара по умолчанию
-                RootObject.UpdateDefaultWeight();
+                GoodObject.UpdateDefaultWeight();
                 //обновляю объем товара по умолчанию
-                RootObject.UpdateDefaultVolume();
+                GoodObject.UpdateDefaultVolume();
                 //обновляю срок годности товара по умолчанию
-                RootObject.UpdateDefaultValidity();
+                GoodObject.UpdateDefaultValidity();
                 //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по цене вниз
-                var bus = _bus.Where(w => w.price > 0
+                var bus = _bus.Where(w => w.Price > 0
                                        && w.images.Count > 0
-                                       && (w.amount > 0 || DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime))
-                              .OrderByDescending(o => o.price);
+                                       && (w.Amount > 0 || DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime))
+                              .OrderByDescending(o => o.Price);
                 Log.Add(LP + "найдено " + bus.Count() + " потенциальных объявлений");
                 var offers = new XElement("offers");
                 var offersExpress = new XElement("offers");
@@ -108,13 +109,13 @@ namespace Selen.Sites {
                         var offerExpress = new XElement(offer);
 
                         //количество 
-                        offer.Add(new XElement("count", b.amount));
+                        offer.Add(new XElement("count", b.Amount));
 
                         var amountExpress = GetAmountExpress(b);
                         offerExpress.Add(new XElement("count", amountExpress));
 
                         //если надо снять
-                        offer.Add(new XElement("disabled", b.amount <= 0 ? "true":"false"));
+                        offer.Add(new XElement("disabled", b.Amount <= 0 ? "true":"false"));
                         offerExpress.Add(new XElement("disabled", amountExpress <= 0 ? "true" : "false"));
                         //добавляю оффер к офферам
                         offers.Add(offer);
@@ -139,7 +140,7 @@ namespace Selen.Sites {
                     //исключение
                     if (groupId == "2281135")// Инструменты (аренда)
                         continue;
-                    categories.Add(new XElement("category", RootObject.GroupName(groupId), new XAttribute("id", groupId)));
+                    categories.Add(new XElement("category", GoodObject.GroupName(groupId), new XAttribute("id", groupId)));
                 }
                 shop.Add(categories);
                 //копия магазина для выгрузки Экспресс
@@ -172,21 +173,21 @@ namespace Selen.Sites {
             } else
                 Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
-        private float GetAmountExpress(RootObject b) { 
+        private float GetAmountExpress(GoodObject b) { 
             var size = b.GetDimentions();
             if (size[0] > EXPRESS_MAX_LENGTH ||
                 size[1] > EXPRESS_MAX_WIDTH ||
                 size[2] > EXPRESS_MAX_HEIGHT ||
                 b.GetWeight() > EXPRESS_MAX_WEIGHT) 
                 return 0;
-            return b.amount;
+            return b.Amount;
         }
-        private int GetPrice(RootObject b) {
+        private int GetPrice(GoodObject b) {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
             //наценка 25% на всё
-            int overPrice = (int)(b.price * 0.25);
+            int overPrice = (int)(b.Price * 0.25);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
@@ -201,7 +202,7 @@ namespace Selen.Sites {
                 overPrice = 3000;
             //скидка на всё 3% и округление рублей до десятков в меньшую сторону
             //таким образом, скидка будет 3% или чуть более
-            var newPrice = (int)((0.97*(b.price + overPrice)) / 10);
+            var newPrice = (int)((0.97*(b.Price + overPrice)) / 10);
             return 10 * newPrice; 
         }
     }

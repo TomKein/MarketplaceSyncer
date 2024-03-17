@@ -14,8 +14,8 @@ using System.Windows.Forms;
 
 namespace Selen {
     public partial class FormEdit : Form {
-        RootObject _b;
-        public FormEdit(RootObject b) {
+        GoodObject _b;
+        public FormEdit(GoodObject b) {
             _b = b;
             InitializeComponent();
         }
@@ -23,7 +23,7 @@ namespace Selen {
         private void button_Ok_Click(object sender, EventArgs e) {
             try {
                 _b.name = textBox1.Text;
-                _b.price = int.Parse(textBox_Price.Text);
+                _b.Price = int.Parse(textBox_Price.Text);
                 _b.description = richTextBox1.Text;
             } catch (Exception x) {
                 Log.Add("FormEdit: ошибка сохранения изменений - " + x.Message);
@@ -38,7 +38,7 @@ namespace Selen {
         private void Form4_Shown(object sender, EventArgs e) {
             FormMain main = this.Owner as FormMain;
             textBox1.Text = _b.name;
-            textBox_Price.Text = _b.price.ToString();
+            textBox_Price.Text = _b.Price.ToString();
             richTextBox1.Text = _b.description;
             WebClient cl = new WebClient();
             for (int i = 0; i < 3; i++) {

@@ -14,13 +14,11 @@ namespace Selen.Sites {
     class Izap24 {
         string _l = "izap24: ";
         //список товаров
-        List<RootObject> _bus;
+        List<GoodObject> _bus;
         //файл выгрузки
         string _fexp = @"..\iz_export.csv";
         //файл ошибок
         string _ferr = @"..\iz_errors.csv";
-        //каталог сатом
-        XDocument satomYML;
         //блокируемые группы
         string[] _blockedGroupsIds = new[] {
             "2060149",    //"РАЗБОРКА (ЧЕРНОВИКИ)" 
@@ -52,7 +50,7 @@ namespace Selen.Sites {
             "1721460",  //"КОВРИКИ (НОВЫЕ)"
         };
         //старт выгрузки
-        public async Task<bool> SyncAsync(List<RootObject> bus) {
+        public async Task<bool> SyncAsync(List<GoodObject> bus) {
             //интервал проверки
                 var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
             if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
@@ -60,12 +58,6 @@ namespace Selen.Sites {
             Log.Add(_l + "начало выгрузки...");
             try {
                 _bus = bus;
-                satomYML = XDocument.Load(@"..\satom_import.xml");
-                //проверка каталога xml
-                if (satomYML.Root.Name != "yml_catalog")
-                    throw new Exception("корневой элемент каталога satom не найден!");
-                if (satomYML.Descendants("offer").Count() < 10000)
-                    throw new Exception("количество элементов в каталоге satom меньше 10000");
                 await CreateCsvAsync();
                 await SftpClient.FtpUploadAsync(_fexp);
                 await SftpClient.FtpUploadAsync(_ferr);
@@ -87,8 +79,8 @@ namespace Selen.Sites {
                 //получаю список товаров
                 var offers = _bus.Where(w =>
                     w.images.Count > 0 &&                           //есть фото
-                    w.amount > 0 &&                                 //с положительным остатком
-                    w.price > 0 &&                                  //с положительной ценой
+                    w.Amount > 0 &&                                 //с положительным остатком
+                    w.Price > 0 &&                                  //с положительной ценой
                     !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
                     !w.archive &&                                   //товар не в архиве
                     !w.IsNew())                                     //и товар НЕ новый
@@ -97,7 +89,7 @@ namespace Selen.Sites {
                 var e = 0;                                          //счетчик ошибок
                 StringBuilder s = new StringBuilder();              //строка для выгрузки
                 StringBuilder err = new StringBuilder();            //строка для ошибок
-                RootObject.ResetAutos();                            //обновляю список моделей
+                GoodObject.ResetAutos();                            //обновляю список моделей
                 File.Delete(_ferr);                                 //затираю файл ошибок
                 s.AppendLine("ID_EXT;Name;Mark;Model;Price;OriginalNumber;Description;PhotoUrls"); //первая строка выгрузки
                 foreach (var offer in offers) {
@@ -113,11 +105,11 @@ namespace Selen.Sites {
                     s.Append(m[0]).Append(";");                         //name
                     s.Append(m[1]).Append(";");                         //mark
                     s.Append(m[2]).Append(";");                         //model
-                    s.Append(offer.price.ToString("0")).Append(";");    //price
+                    s.Append(offer.Price.ToString("0")).Append(";");    //price
                     s.Append(offer.Part).Append(";");                   //part
                     var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
                                     .Groups[1].Value;
-                    if (offer.price >= creditPriceMin && offer.price <= creditPriceMax)
+                    if (offer.Price >= creditPriceMin && offer.Price <= creditPriceMax)
                         desc = desc.Insert(0, creditDescription+" ");
                     s.Append(desc).Append(";");                         //desc
                     s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos

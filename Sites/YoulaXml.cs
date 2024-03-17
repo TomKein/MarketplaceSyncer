@@ -37,7 +37,7 @@ namespace Selen.Sites {
             Log.Add(_l + "каталог загружен!");
         }
         //получаю прямые ссылки на фото из каталога сатом
-        List<string> GetSatomPhotos(RootObject b) {
+        List<string> GetSatomPhotos(GoodObject b) {
             var list = new List<string>();
             //проверка каталога xml
             if (satomYML.Root.Name != "yml_catalog")
@@ -58,7 +58,7 @@ namespace Selen.Sites {
             return list;
         }
         //генерация xml - не ипользуется
-        public async Task GenerateXML(List<RootObject> _bus) {
+        public async Task GenerateXML(List<GoodObject> _bus) {
             //количество объявлений в тарифе
             var offersLimit = await DB.GetParamIntAsync("youla.offersLimit");
             //доп. описание
@@ -75,7 +75,7 @@ namespace Selen.Sites {
             //создаю контейнер offers
             var offers = new XElement("offers");
             //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-            var bus = _bus.Where(w => w.amount > 0 && w.price > 1000 && w.images.Count > 0);
+            var bus = _bus.Where(w => w.Amount > 0 && w.Price > 1000 && w.images.Count > 0);
             //для каждой карточки
             //foreach (var b in bus.Take(offersLimit)) {
             foreach (var b in bus.Take(10)) {
@@ -89,7 +89,7 @@ namespace Selen.Sites {
                     //адрес магазина
                     offer.Add(new XElement("adress", "Россия, Калуга, Московская улица, 331"));
                     //цена
-                    offer.Add(new XElement("price", b.price));
+                    offer.Add(new XElement("price", b.Price));
                     //телефон
                     offer.Add(new XElement("phone", "8 920 899-45-45"));
                     //наименование
@@ -121,7 +121,7 @@ namespace Selen.Sites {
             xml.Save(filename);
         }
         //генерация xml в формате авито
-        public async Task GenerateXML_avito(List<RootObject> _bus) {
+        public async Task GenerateXML_avito(List<GoodObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB.GetParamInt("youla.uploadInterval");
@@ -141,8 +141,8 @@ namespace Selen.Sites {
                 //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
                 //список карточек с положительным остатком и ценой, у которых есть ссылка на юлу и фотографии
-                var bus = _bus.Where(w => w.amount > 0 && w.price >= priceLevel && w.images.Count > 0)
-                              .OrderByDescending(o=>o.price);
+                var bus = _bus.Where(w => w.Amount > 0 && w.Price >= priceLevel && w.images.Count > 0)
+                              .OrderByDescending(o=>o.Price);
                 //для каждой карточки
                 int i = 0;
                 foreach (var b in bus) {
@@ -151,13 +151,13 @@ namespace Selen.Sites {
                         //id
                         ad.Add(new XElement("Id", b.id));
                         //категория товара
-                        foreach (var item in AvitoXml.GetCategoryAvito(b)) {
+                        foreach (var item in Avito.GetCategoryAvito(b)) {
                             ad.Add(new XElement(item.Key, item.Value));
                         }
                         //адрес магазина
                         ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
                         //цена
-                        ad.Add(new XElement("Price", b.price));
+                        ad.Add(new XElement("Price", b.Price));
                         //телефон
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
                         //наименование
@@ -205,7 +205,7 @@ namespace Selen.Sites {
             }
         }
         //категория на юле
-        Dictionary<string, string> GetCategory(RootObject b) {
+        Dictionary<string, string> GetCategory(GoodObject b) {
             var name = b.name.ToLowerInvariant();
             var d = new Dictionary<string, string>();
             //основная категория
@@ -602,7 +602,7 @@ namespace Selen.Sites {
             return d;
         }
         //диаметр диска для выгрузки
-        string GetDiskDiam(RootObject b) {
+        string GetDiskDiam(GoodObject b) {
             switch (b.GetDiskSize()) {
                 case "13":
                     return "11500";
@@ -639,7 +639,7 @@ namespace Selen.Sites {
             }
         }
         //количество отверстий в дисках
-        string GetNumHoles(RootObject b) {
+        string GetNumHoles(GoodObject b) {
             switch (b.GetNumberOfHoles()) {
                 case "4":
                     return "11804";
@@ -652,7 +652,7 @@ namespace Selen.Sites {
             }
         }
         //расположение отверстий
-        string GetDiameterOfHoles(RootObject b) {
+        string GetDiameterOfHoles(GoodObject b) {
             switch (b.GetDiameterOfHoles()) {
                 case "98":
                     return "11810";

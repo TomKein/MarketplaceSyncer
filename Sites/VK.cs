@@ -31,11 +31,11 @@ namespace Selen.Sites {
         string _creditDescription;  //описание для рассрочки
         int _addCount;                                              //добавлять X объявлений в час
         int _catalogCheckInterval;                                 //проверять каталог на сайте каждые Х часов
-        List<RootObject> _bus = null;
+        List<GoodObject> _bus = null;
         public int MarketCount;
         public int UrlsCount;
         //главный метод синхронизации вк
-        public async Task VkSyncAsync(List<RootObject> bus) {
+        public async Task VkSyncAsync(List<GoodObject> bus) {
             _bus = bus;
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
@@ -56,7 +56,7 @@ namespace Selen.Sites {
                 if (_bus[b].IsTimeUpDated() &&
                     _bus[b].vk != null &&
                     _bus[b].vk.Contains("http")) {
-                    if (_bus[b].amount <= 0) {
+                    if (_bus[b].Amount <= 0) {
                         var id = long.Parse(_bus[b].vk.Split('_').Last());
                         _vk.Markets.Delete(-_marketId, id);
                         _bus[b].vk = "";
@@ -97,7 +97,7 @@ namespace Selen.Sites {
                 var param = new MarketProductParams();
                 param.Name = _bus[b].name;
                 var desc = _bus[b].DescriptionList(dop: _dopDesc);
-                if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+                if (_bus[b].Price >= _creditPriceMin && _bus[b].Price <= _creditPriceMax)
                     desc.Insert(0, _creditDescription);
                 desc.AddRange(_dopDesc2);
                 param.Description = desc.Aggregate((a1, a2) => a1 + "\n" + a2);
@@ -106,8 +106,8 @@ namespace Selen.Sites {
                 param.OwnerId = (long) vk.OwnerId;
                 param.MainPhotoId = (long) vk.Photos[0].Id;
                 param.PhotoIds = vk.Photos.Skip(1).Select(s => (long) s.Id);
-                param.Price = (decimal) _bus[b].price;
-                param.OldPrice = (decimal) _bus[b].price;
+                param.Price = (decimal) _bus[b].Price;
+                param.OldPrice = (decimal) _bus[b].Price;
                 _vk.Markets.Edit(param);
                 Log.Add("vk.com: " + _bus[b].name + " - обновлено");
             } catch (Exception x) {
@@ -121,8 +121,8 @@ namespace Selen.Sites {
                 //если есть фотографии, цена, количество и нет привязки на вк
                 if (_bus[b].images.Count > 0
                     && !_bus[b].GroupName().Contains("ЧЕРНОВИК")
-                    && _bus[b].price > 0
-                    && _bus[b].amount > 0
+                    && _bus[b].Price > 0
+                    && _bus[b].Amount > 0
                     && !_bus[b].vk.Contains("http")) {
                     try {
                         _addCount--;
@@ -148,7 +148,7 @@ namespace Selen.Sites {
             //меняем доп описание
             string desc = _bus[b].DescriptionList(dop: _dopDesc).Aggregate((a1, a2) => a1 + "\n" + a2) + "\n";
             desc += _dopDesc2.Aggregate((a1, a2) => a1 + "\n" + a2);
-            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+            if (_bus[b].Price >= _creditPriceMin && _bus[b].Price <= _creditPriceMax)
                 desc.Insert(0, _creditDescription);
             //создаем объявление
             long itemId = _vk.Markets.Add(new MarketProductParams {
@@ -156,8 +156,8 @@ namespace Selen.Sites {
                 Name = _bus[b].name,
                 Description = desc,
                 CategoryId = 404,
-                Price = _bus[b].price,
-                OldPrice = _bus[b].price,
+                Price = _bus[b].Price,
+                OldPrice = _bus[b].Price,
                 MainPhotoId = mainPhoto,
                 PhotoIds = dopPhotos,
                 Deleted = false,
@@ -257,7 +257,7 @@ namespace Selen.Sites {
                 int b = _bus.FindIndex(t => t.vk.Split('_').Last() == id);
                 //если не найден индекс или нет на остатках, количество фото не совпадает - удаляю объявление
                 if (b == -1 ||
-                    _bus[b].amount <= 0 ||
+                    _bus[b].Amount <= 0 ||
                     vkMark[i].Photos.Count != (_bus[b].images.Count > 5 ? 5 : _bus[b].images.Count)
                     //|| vkMark.Count(c => c.Title == vkMark[i].Title) > 1
                     ) {
@@ -270,11 +270,11 @@ namespace Selen.Sites {
                         Thread.Sleep(2000);
                     }
                 //если изменилась цена, наименование или карточка товара - редактирую
-                } else if (_bus[b].price != vkMark[i].Price.Amount / 100 || 
+                } else if (_bus[b].Price != vkMark[i].Price.Amount / 100 || 
                     _bus[b].name != vkMark[i].Title || //не совпадает название
 
-                    _bus[b].price >= _creditPriceMin && //цена в диапазоне
-                    _bus[b].price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем
+                    _bus[b].Price >= _creditPriceMin && //цена в диапазоне
+                    _bus[b].Price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем
                     !vkMark[i].Description.Contains(_creditDescription) ||
 
                     (vkMark[i].Description.Contains("Наложенный платёж")&& ccl-- > 0) ||
@@ -329,7 +329,7 @@ namespace Selen.Sites {
                     throw new Exception("vk.com: ошибка - группы не получены");
                 f = false;
                 //проверяем только группы бу запчасти
-                foreach (var group in RootObject.Groups.Where(w => w.parent_id == "205352").Select(s => s.name)) {
+                foreach (var group in GoodObject.Groups.Where(w => w.parent_id == "205352").Select(s => s.name)) {
                     if (group != "Корневая группа")//Корневая группа не нужна в вк
                     {
                         //ищем группы из базы в группах вк

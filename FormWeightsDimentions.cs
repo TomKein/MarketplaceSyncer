@@ -26,9 +26,9 @@ namespace Selen {
         int _startRowIndex;
         int _startColumnIndex;
         //ссылка на товары
-        List<RootObject> _bus;
+        List<GoodObject> _bus;
         //конструктор
-        public FormWeightsDimentions(List<RootObject> bus) {
+        public FormWeightsDimentions(List<GoodObject> bus) {
             InitializeComponent();
             _bus = bus;
             _tableSize = DB.GetParamInt("tableWeightsDimentionsSize");
@@ -67,8 +67,8 @@ namespace Selen {
 
             //выражение для фильтра товаров
             var busSearch = _bus.Where(w => (w.group_id == "2060149" || //если в группе черновики
-                                            w.amount > 0 &&            //или остаток положительный
-                                            w.price > 0 &&              //цена положительная
+                                            w.Amount > 0 &&            //или остаток положительный
+                                            w.Price > 0 &&              //цена положительная
                                             (w.images.Count > 0 || !checkBox_onlyHaveImage.Checked)) &&         //с фото или если галка только с фото не стоит
                                             ((string.IsNullOrWhiteSpace(w.width) || //есть пустые размеры
                                              string.IsNullOrWhiteSpace(w.height) ||
@@ -99,7 +99,7 @@ namespace Selen {
                     var name = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
                     if (!string.IsNullOrEmpty(name)) {
                         var textWords = name.ToLowerInvariant().Split(' ').ToList();
-                        List<RootObject> busSearch = null;
+                        List<GoodObject> busSearch = null;
                         do {
                             //выражение для фильтра похожих товаров
                             busSearch = _bus.Where(w => (//если ищем средний вес - нужно фильтровать карточки с весом

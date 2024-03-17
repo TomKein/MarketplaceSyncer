@@ -11,7 +11,7 @@ using OfficeOpenXml;
 namespace Selen.Sites {
     internal class Satom {
         //список товаров
-        List<RootObject> _bus = null;
+        List<GoodObject> _bus = null;
         //файл выгрузки
         string _fexp = @"..\satom.xlsx";
         //файл шаблона
@@ -31,7 +31,7 @@ namespace Selen.Sites {
 
         }
         //старт выгрузки
-        public async Task SyncAsync(List<RootObject> bus) {
+        public async Task SyncAsync(List<GoodObject> bus) {
             await Task.Factory.StartNew(() => {
                 try {
                     _bus = bus;
@@ -65,8 +65,8 @@ namespace Selen.Sites {
             //перебираю карточки товара
             for (int b = 0, i = 2; b < _bus.Count; b++) {
                 //если остаток положительный, есть фото и цена, группа не в исключении - выгружаем
-                if (_bus[b].amount > 0 &&
-                    _bus[b].price > 0 &&
+                if (_bus[b].Amount > 0 &&
+                    _bus[b].Price > 0 &&
                     _bus[b].images.Count > 0 &&
                     !_blockedGroupsIds.Contains(_bus[b].group_id)
                     ) {
@@ -76,7 +76,7 @@ namespace Selen.Sites {
                     //наименование
                     ws.Cells[i, 1].Value = _bus[b].name;
                     //цена
-                    ws.Cells[i, 2].Value = _bus[b].price;
+                    ws.Cells[i, 2].Value = _bus[b].Price;
                     //валюта
                     ws.Cells[i, 3].Value = "RUR";
                     //ед. измерения
@@ -88,7 +88,7 @@ namespace Selen.Sites {
                     //наличие
                     ws.Cells[i, 7].Value = "+";
                     //количество
-                    ws.Cells[i, 8].Value = String.Format("{0:0.##}", _bus[b].amount);
+                    ws.Cells[i, 8].Value = String.Format("{0:0.##}", _bus[b].Amount);
                     //рубрика
                     ws.Cells[i, 9].Value = category;
                     //идентификатор рубрики
@@ -96,7 +96,7 @@ namespace Selen.Sites {
                     //доп. описание
                     var d = _bus[b].DescriptionList(dop: _addDesc).Aggregate((a1, a2) => a1 + "<br>" + a2) +
                         "<br><br><p style=\"color:#DDDDDD;font-size:5px\">код на складе:" + _bus[b].id + "</p>";
-                    if (_bus[b].price >= creditPriceMin && _bus[b].price <= creditPriceMax)
+                    if (_bus[b].Price >= creditPriceMin && _bus[b].Price <= creditPriceMax)
                         d = d.Insert(0, creditDescription + "<br>");
                     ws.Cells[i, 11].Value = d;
                     //идентификатор товара

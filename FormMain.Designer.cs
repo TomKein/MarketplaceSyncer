@@ -39,12 +39,7 @@ namespace Selen {
             this.label_Auto = new System.Windows.Forms.Label();
             this.label_lastSyncTime = new System.Windows.Forms.Label();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
-            this.button_Kupiprodai = new System.Windows.Forms.Button();
-            this.button_KupiprodaiAdd = new System.Windows.Forms.Button();
-            this.label_Kp = new System.Windows.Forms.Label();
             this.button_PricesIncomeCorrection = new System.Windows.Forms.Button();
-            this.button_Gde = new System.Windows.Forms.Button();
-            this.label_Gde = new System.Windows.Forms.Label();
             this.label_Cdek = new System.Windows.Forms.Label();
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
@@ -124,7 +119,7 @@ namespace Selen {
             // 
             // button_Vk
             // 
-            this.button_Vk.Location = new System.Drawing.Point(5, 168);
+            this.button_Vk.Location = new System.Drawing.Point(5, 119);
             this.button_Vk.Name = "button_Vk";
             this.button_Vk.Size = new System.Drawing.Size(113, 23);
             this.button_Vk.TabIndex = 7;
@@ -144,7 +139,7 @@ namespace Selen {
             // label_Vk
             // 
             this.label_Vk.AutoSize = true;
-            this.label_Vk.Location = new System.Drawing.Point(120, 173);
+            this.label_Vk.Location = new System.Drawing.Point(120, 124);
             this.label_Vk.Name = "label_Vk";
             this.label_Vk.Size = new System.Drawing.Size(16, 13);
             this.label_Vk.TabIndex = 38;
@@ -182,7 +177,7 @@ namespace Selen {
             // label_Auto
             // 
             this.label_Auto.AutoSize = true;
-            this.label_Auto.Location = new System.Drawing.Point(115, 197);
+            this.label_Auto.Location = new System.Drawing.Point(115, 148);
             this.label_Auto.Name = "label_Auto";
             this.label_Auto.Size = new System.Drawing.Size(0, 13);
             this.label_Auto.TabIndex = 66;
@@ -211,35 +206,6 @@ namespace Selen {
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
             this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
             // 
-            // button_Kupiprodai
-            // 
-            this.button_Kupiprodai.Location = new System.Drawing.Point(5, 119);
-            this.button_Kupiprodai.Name = "button_Kupiprodai";
-            this.button_Kupiprodai.Size = new System.Drawing.Size(113, 23);
-            this.button_Kupiprodai.TabIndex = 5;
-            this.button_Kupiprodai.Text = "Купипродай";
-            this.button_Kupiprodai.UseVisualStyleBackColor = true;
-            this.button_Kupiprodai.Click += new System.EventHandler(this.ButtonKupiprodaiRu_Click);
-            // 
-            // button_KupiprodaiAdd
-            // 
-            this.button_KupiprodaiAdd.Location = new System.Drawing.Point(5, 141);
-            this.button_KupiprodaiAdd.Name = "button_KupiprodaiAdd";
-            this.button_KupiprodaiAdd.Size = new System.Drawing.Size(113, 23);
-            this.button_KupiprodaiAdd.TabIndex = 112;
-            this.button_KupiprodaiAdd.Text = "Выкладывать";
-            this.button_KupiprodaiAdd.UseVisualStyleBackColor = true;
-            this.button_KupiprodaiAdd.Click += new System.EventHandler(this.ButtonKupiprodaiRuAdd_Click);
-            // 
-            // label_Kp
-            // 
-            this.label_Kp.AutoSize = true;
-            this.label_Kp.Location = new System.Drawing.Point(120, 124);
-            this.label_Kp.Name = "label_Kp";
-            this.label_Kp.Size = new System.Drawing.Size(16, 13);
-            this.label_Kp.TabIndex = 114;
-            this.label_Kp.Text = "...";
-            // 
             // button_PricesIncomeCorrection
             // 
             this.button_PricesIncomeCorrection.Location = new System.Drawing.Point(416, 8);
@@ -250,29 +216,10 @@ namespace Selen {
             this.button_PricesIncomeCorrection.UseVisualStyleBackColor = true;
             this.button_PricesIncomeCorrection.Click += new System.EventHandler(this.Button_PricesCheck_Click);
             // 
-            // button_Gde
-            // 
-            this.button_Gde.Location = new System.Drawing.Point(5, 194);
-            this.button_Gde.Name = "button_Gde";
-            this.button_Gde.Size = new System.Drawing.Size(113, 23);
-            this.button_Gde.TabIndex = 9;
-            this.button_Gde.Text = "Gde.ru";
-            this.button_Gde.UseVisualStyleBackColor = true;
-            this.button_Gde.Click += new System.EventHandler(this.ButtonGdeRu_Click);
-            // 
-            // label_Gde
-            // 
-            this.label_Gde.AutoSize = true;
-            this.label_Gde.Location = new System.Drawing.Point(120, 199);
-            this.label_Gde.Name = "label_Gde";
-            this.label_Gde.Size = new System.Drawing.Size(16, 13);
-            this.label_Gde.TabIndex = 118;
-            this.label_Gde.Text = "...";
-            // 
             // label_Cdek
             // 
             this.label_Cdek.AutoSize = true;
-            this.label_Cdek.Location = new System.Drawing.Point(120, 226);
+            this.label_Cdek.Location = new System.Drawing.Point(120, 150);
             this.label_Cdek.Name = "label_Cdek";
             this.label_Cdek.Size = new System.Drawing.Size(16, 13);
             this.label_Cdek.TabIndex = 122;
@@ -316,12 +263,7 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.label_Drom);
             this.panel_Buttons.Controls.Add(this.label_Auto);
             this.panel_Buttons.Controls.Add(this.label_Cdek);
-            this.panel_Buttons.Controls.Add(this.label_Gde);
-            this.panel_Buttons.Controls.Add(this.button_Gde);
             this.panel_Buttons.Controls.Add(this.label_lastSyncTime);
-            this.panel_Buttons.Controls.Add(this.label_Kp);
-            this.panel_Buttons.Controls.Add(this.button_KupiprodaiAdd);
-            this.panel_Buttons.Controls.Add(this.button_Kupiprodai);
             this.panel_Buttons.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel_Buttons.Location = new System.Drawing.Point(0, 0);
             this.panel_Buttons.Name = "panel_Buttons";
@@ -330,7 +272,7 @@ namespace Selen {
             // 
             // button_ozon
             // 
-            this.button_ozon.Location = new System.Drawing.Point(5, 273);
+            this.button_ozon.Location = new System.Drawing.Point(5, 197);
             this.button_ozon.Name = "button_ozon";
             this.button_ozon.Size = new System.Drawing.Size(113, 23);
             this.button_ozon.TabIndex = 151;
@@ -342,7 +284,7 @@ namespace Selen {
             // 
             this.label_YandexMarket.AutoSize = true;
             this.label_YandexMarket.Enabled = false;
-            this.label_YandexMarket.Location = new System.Drawing.Point(120, 252);
+            this.label_YandexMarket.Location = new System.Drawing.Point(120, 176);
             this.label_YandexMarket.Name = "label_YandexMarket";
             this.label_YandexMarket.Size = new System.Drawing.Size(16, 13);
             this.label_YandexMarket.TabIndex = 150;
@@ -350,7 +292,7 @@ namespace Selen {
             // 
             // button_YandexMarket
             // 
-            this.button_YandexMarket.Location = new System.Drawing.Point(5, 247);
+            this.button_YandexMarket.Location = new System.Drawing.Point(5, 171);
             this.button_YandexMarket.Name = "button_YandexMarket";
             this.button_YandexMarket.Size = new System.Drawing.Size(113, 23);
             this.button_YandexMarket.TabIndex = 149;
@@ -360,7 +302,7 @@ namespace Selen {
             // 
             // button_Izap24
             // 
-            this.button_Izap24.Location = new System.Drawing.Point(4, 221);
+            this.button_Izap24.Location = new System.Drawing.Point(4, 145);
             this.button_Izap24.Name = "button_Izap24";
             this.button_Izap24.Size = new System.Drawing.Size(114, 23);
             this.button_Izap24.TabIndex = 147;
@@ -503,12 +445,7 @@ namespace Selen {
         private System.Windows.Forms.Label label_Auto;
         private System.Windows.Forms.Label label_lastSyncTime;
         private System.Windows.Forms.DateTimePicker dateTimePicker1;
-        private System.Windows.Forms.Button button_Kupiprodai;
-        private System.Windows.Forms.Button button_KupiprodaiAdd;
-        private System.Windows.Forms.Label label_Kp;
         private System.Windows.Forms.Button button_PricesIncomeCorrection;
-        private System.Windows.Forms.Button button_Gde;
-        private System.Windows.Forms.Label label_Gde;
         private System.Windows.Forms.Label label_Cdek;
         private System.Windows.Forms.Button button_SaveCookie;
         private System.Windows.Forms.Button button_Settings;

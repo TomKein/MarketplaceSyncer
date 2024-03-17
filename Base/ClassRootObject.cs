@@ -44,7 +44,7 @@ namespace Selen {
         public Value Value { get; set; }
 
     }
-    public class RootGroupsObject {
+    public class GoodGroupsObject {
         public string id { get; set; }
         public string name { get; set; }
         public string parent_id { get; set; }
@@ -107,13 +107,13 @@ namespace Selen {
         public string sum { get; set; }
         public string updated { get; set; }
 
-        public float FloatAmount {
+        public float Amount {
             get {
                 return string.IsNullOrEmpty(amount) ? 0
                     : float.Parse(amount.Replace(".", ","));
             }
         }
-        public float FloatPrice {
+        public float Price {
             get {
                 return string.IsNullOrEmpty(price) ? 0
                     : float.Parse(price.Replace(".", ","));
@@ -137,7 +137,7 @@ namespace Selen {
         public string price { get; set; }
     }
 
-    public class RootObject {
+    public class GoodObject {
         public string id { get; set; }
         public string name { get; set; }
         public string full_name { get; set; }
@@ -164,8 +164,10 @@ namespace Selen {
         public string height { get; set; }
         public string hscode_id { get; set; }
         public static DateTime ScanTime { get; set; }
-        public static List<RootGroupsObject> Groups { get; set; }
-        public int price {
+        public static List<GoodGroupsObject> Groups { get; set; }
+        static bool useReserve = DB.GetParamBool("useReserve");
+        [JsonIgnore]
+        public int Price {
             get {
                 if (prices.Count > 0)
                     return prices.Select(s => string.IsNullOrEmpty(s.price) ? 0 :
@@ -176,11 +178,19 @@ namespace Selen {
                 prices = new List<Prices> { new Prices { price = value.ToString() } };
             }
         }
-        public float amount {
+        [JsonIgnore]
+        public float Amount {
             get {
-                return remains.Select(s => string.IsNullOrEmpty(s.amount.total) ?
+                float reserved = 0;
+                if (useReserve){
+                    reserved = remains.Select(s => string.IsNullOrEmpty(s.amount.reserved) ?
+                                                    0 :
+                                                    float.Parse(s.amount.reserved.Replace(".", ","))).Sum();
+                }
+                float total = remains.Select(s => string.IsNullOrEmpty(s.amount.total) ?
                                                 0 :
                                                 float.Parse(s.amount.total.Replace(".", ","))).Sum();
+                return total - reserved;
             }
             set {
                 remains = new List<Remains> {
@@ -201,9 +211,9 @@ namespace Selen {
                                                         : measure_id == "13" ? "компл."
                                                                              : "шт.";
         public string MeasureNameCorrect => measure_id == "11" 
-                                                ?amount % 10 == 1 && amount != 11 
+                                                ?Amount % 10 == 1 && Amount != 11 
                                                     ? "пара"
-                                                    : amount % 10 >= 1 && amount % 10 <= 4 && (amount > 20 || amount < 10)
+                                                    : Amount % 10 >= 1 && Amount % 10 <= 4 && (Amount > 20 || Amount < 10)
                                                         ? "пары"
                                                         :"пар"
                                             : measure_id == "13" 

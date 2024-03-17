@@ -23,7 +23,7 @@ namespace Selen.Sites {
         List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon\ozon_productList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
-        List<RootObject> _bus;                        //ссылка на товары
+        List<GoodObject> _bus;                        //ссылка на товары
         static bool _isProductListCheckNeeds = true;
         bool _hasNext = false;                        //для запросов
         List<AttributeValue> _brends;                 //список брендов озон
@@ -87,7 +87,7 @@ namespace Selen.Sites {
             await CheckProductListAsync();
             await UpdateProductsAsync();
             await AddProductsAsync();
-            if (RootObject.ScanTime.Month < DateTime.Now.Month)
+            if (GoodObject.ScanTime.Month < DateTime.Now.Month)
                 await CheckProductLinksAsync(checkAll: true);
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
@@ -170,7 +170,7 @@ namespace Selen.Sites {
             }
         }
         //расширенная информация о товаре
-        private async Task<ProductInfo> GetProductInfoAsync(RootObject bus) {
+        private async Task<ProductInfo> GetProductInfoAsync(GoodObject bus) {
             try {
                 var data = new { offer_id = bus.id };
                 var s = await PostRequestAsync(data, "/v2/product/info");
@@ -181,7 +181,7 @@ namespace Selen.Sites {
             }
         }
         //обновление ссылки в карточке бизнес.ру
-        async Task SaveUrlAsync(RootObject bus, ProductInfo productInfo) {
+        async Task SaveUrlAsync(GoodObject bus, ProductInfo productInfo) {
             try {
                 var sku = productInfo.GetSku();
                 if (sku == "0") {
@@ -203,7 +203,7 @@ namespace Selen.Sites {
             }
         }
         //проверка и обновление товара
-        async Task UpdateProductAsync(RootObject bus, ProductInfo productInfo = null) {
+        async Task UpdateProductAsync(GoodObject bus, ProductInfo productInfo = null) {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
@@ -216,40 +216,40 @@ namespace Selen.Sites {
             }
         }
         //обновление остатков товара на озон
-        private async Task UpdateProductStocks(RootObject bus, ProductInfo productInfo) {
+        private async Task UpdateProductStocks(GoodObject bus, ProductInfo productInfo) {
             try {
-                if (bus.amount == productInfo.GetStocks())
+                if (bus.Amount == productInfo.GetStocks())
                     return;
                 //защита от отрицательных остатков
-                if (bus.amount < 0)
-                    bus.amount = 0;
+                if (bus.Amount < 0)
+                    bus.Amount = 0;
                 //объект для запроса
                 var data = new {
                     stocks = new[] {
                         new {
                             product_id = productInfo.id,
-                            stock = bus.amount.ToString("F0")
+                            stock = bus.Amount.ToString("F0")
                         }
                     }
                 };
                 var s = await PostRequestAsync(data, "/v1/product/import/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                 if (res.First().updated) {
-                    Log.Add(_l + bus.name + " остаток обновлен! (" + bus.amount + ")");
+                    Log.Add(_l + bus.name + " остаток обновлен! (" + bus.Amount + ")");
                 } else {
-                    Log.Add(_l + bus.name + " ошибка! остаток не обновлен! (" + bus.amount + ")" + " >>> " + s);
+                    Log.Add(_l + bus.name + " ошибка! остаток не обновлен! (" + bus.Amount + ")" + " >>> " + s);
                 }
             } catch (Exception x) {
                 Log.Add(_l + " ошибка обновления остатка - " + x.Message);
             }
         }
         //расчет цен с учетом наценки
-        private int GetNewPrice(RootObject b) {
+        private int GetNewPrice(GoodObject b) {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
             //наценка 25% на всё
-            int overPrice = (int) (b.price * 0.25);
+            int overPrice = (int) (b.Price * 0.25);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
@@ -263,14 +263,14 @@ namespace Selen.Sites {
 
             if (overPrice < 3000 && (weight >= 50 || length >= 200))
                 overPrice = 3000;
-            return b.price + overPrice;
+            return b.Price + overPrice;
         }
         //цена до скидки (старая)
         private int GetOldPrice(int newPrice) {
             return (int) (Math.Ceiling((newPrice * (1 + _oldPriceProcent / 100)) / 100) * 100);
         }
         //Проверка и обновление цены товара на озон
-        async Task UpdateProductPriceAsync(RootObject bus, ProductInfo productInfo) {
+        async Task UpdateProductPriceAsync(GoodObject bus, ProductInfo productInfo) {
             try {
                 var newPrice = GetNewPrice(bus);
                 var oldPrice = GetOldPrice(newPrice);
@@ -291,10 +291,10 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v1/product/import/prices");
                     var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                     if (res.First().updated) {
-                        Log.Add(_l + bus.name + " (" + bus.price + ") цены обновлены! ("
+                        Log.Add(_l + bus.name + " (" + bus.Price + ") цены обновлены! ("
                                    + newPrice + ", " + oldPrice + ")");
                     } else {
-                        Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.price + ")" + " >>> " + s);
+                        Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.Price + ")" + " >>> " + s);
                     }
                 }
             } catch (Exception x) {
@@ -331,7 +331,7 @@ namespace Selen.Sites {
             }
         }
         //обновление описаний товаров
-        private async Task UpdateProduct(RootObject good, ProductInfo productInfo) {
+        private async Task UpdateProduct(GoodObject good, ProductInfo productInfo) {
             try {
                 //проверяем группу товара
                 var attributes = await GetAttributesAsync(good);
@@ -464,8 +464,8 @@ namespace Selen.Sites {
                 "телевизор "
             };
             //список карточек которые еще не добавлены на озон
-            var goods = _bus.Where(w => w.amount > 0
-                                     && w.price > 0
+            var goods = _bus.Where(w => w.Amount > 0
+                                     && w.Price > 0
                                      && w.Part != null
                                      && w.images.Count > 0
                                      && w.height != null
@@ -476,8 +476,8 @@ namespace Selen.Sites {
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods);
-            var goods2 = _bus.Where(w => w.amount > 0
-                                     && w.price > 0
+            var goods2 = _bus.Where(w => w.Amount > 0
+                                     && w.Price > 0
                                      && w.images.Count > 0
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
@@ -544,7 +544,7 @@ namespace Selen.Sites {
             }
         }
         //получить атрибуты и категорию товара на озон
-        async Task<Attributes> GetAttributesAsync(RootObject bus) {
+        async Task<Attributes> GetAttributesAsync(GoodObject bus) {
             try {
 
                 var n = bus.name.ToLowerInvariant();
@@ -1650,7 +1650,7 @@ namespace Selen.Sites {
 
 
         //Атрибут Внешний диаметр, см
-        Attribute GetDiameterOutAttribute(RootObject good) {
+        Attribute GetDiameterOutAttribute(GoodObject good) {
             var value = good.GetDiameterOut();
             if (value == null)
                 return null;
@@ -1665,7 +1665,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Внутренний диаметр, см
-        Attribute GetDiameterInAttribute(RootObject good) {
+        Attribute GetDiameterInAttribute(GoodObject good) {
             var value = good.GetDiameterIn();
             if (value == null)
                 return null;
@@ -1680,7 +1680,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Гарантия
-        Attribute GetGarantyAttribute(RootObject good) {
+        Attribute GetGarantyAttribute(GoodObject good) {
             var value = good.GetGaranty();
             if (value == null)
                 return null;
@@ -1695,7 +1695,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Количество отверстий
-        Attribute GetCountOfHolesAttribute(RootObject good) {
+        Attribute GetCountOfHolesAttribute(GoodObject good) {
             var value = good.GetCountOfHoles();
             if (value == null)
                 return null;
@@ -1711,7 +1711,7 @@ namespace Selen.Sites {
         }
 
         //Атрибут Количество в упаковке
-        Attribute GetCountInBoxAttribute(RootObject good) {
+        Attribute GetCountInBoxAttribute(GoodObject good) {
             var value = good.GetCountInBox();
             if (value == null)
                 return null;
@@ -1727,7 +1727,7 @@ namespace Selen.Sites {
         }
 
         //Атрибут Код ТН ВЭД 
-        async Task<Attribute> GetTNVEDAttribute(RootObject good, Attributes attributes) {
+        async Task<Attribute> GetTNVEDAttribute(GoodObject good, Attributes attributes) {
             var value = good.hscode_id;
             if (value == null)
                 return null;
@@ -1760,7 +1760,7 @@ namespace Selen.Sites {
             }
         }
         //Атрибут Объем, л
-        Attribute GetVolumeAttribute(RootObject good) {
+        Attribute GetVolumeAttribute(GoodObject good) {
             var value = good.GetVolume();
             if (value == null)
                 return null;
@@ -1775,7 +1775,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Объем, мл
-        Attribute GetVolumeMLAttribute(RootObject good) {
+        Attribute GetVolumeMLAttribute(GoodObject good) {
             var value = good.GetVolumeML();
             if (value == null)
                 return null;
@@ -1790,7 +1790,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Место установки
-        Attribute GetPlacementAttribute(RootObject good) {
+        Attribute GetPlacementAttribute(GoodObject good) {
             var value = good.GetPlacement();
             if (value == null)
                 return null;
@@ -1806,7 +1806,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Тип двигателя
-        Attribute GetMotorTypeAttribute(RootObject good) {
+        Attribute GetMotorTypeAttribute(GoodObject good) {
             var value = good.GetMotorType();
             if (value == null)
                 return null;
@@ -1822,7 +1822,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Длина, см
-        Attribute GetLengthAttribute(RootObject good) {
+        Attribute GetLengthAttribute(GoodObject good) {
             var value = good.GetLengthAttr();
             if (value == null)
                 return null;
@@ -1837,7 +1837,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Высота, см
-        Attribute GetHeightAttribute(RootObject good) {
+        Attribute GetHeightAttribute(GoodObject good) {
             var value = good.GetHeight();
             if (value == null)
                 return null;
@@ -1852,7 +1852,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Толщина, см
-        Attribute GetThicknessAttribute(RootObject good) {
+        Attribute GetThicknessAttribute(GoodObject good) {
             var value = good.GetThickness();
             if (value == null)
                 return null;
@@ -1867,7 +1867,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Ключевые слова
-        Attribute GetKeywordsAttribute(RootObject good) {
+        Attribute GetKeywordsAttribute(GoodObject good) {
             var value = good.GetKeywords();
             if (value == null)
                 return null;
@@ -1882,7 +1882,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Квант продажи, шт (Кратность покупки)
-        Attribute GetMultiplicityAttribute(RootObject good) {
+        Attribute GetMultiplicityAttribute(GoodObject good) {
             var value = good.GetMultiplicity();
             if (value == null)
                 return null;
@@ -1897,7 +1897,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Расположение детали
-        Attribute GetPlaceAttribute(RootObject good) {//todo rename Side
+        Attribute GetPlaceAttribute(GoodObject good) {//todo rename Side
             var value = good.GetPlace();
             if (value == null)
                 return null;
@@ -1913,7 +1913,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут ОЕМ-номер
-        Attribute GetOEMAttribute(RootObject good) {
+        Attribute GetOEMAttribute(GoodObject good) {
             var man = good.GetManufacture(true)?
                           .ToLowerInvariant();
             if (_exceptManufactures.Contains(man))
@@ -1932,7 +1932,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Страна-изготовитель
-        Attribute GetManufactureCountryAttribute(RootObject good) {
+        Attribute GetManufactureCountryAttribute(GoodObject good) {
             var value = good.GetManufactureCountry();
             if (value == null)
                 return null;
@@ -1950,7 +1950,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Материал
-        Attribute GetMaterialAttribute(RootObject good) {
+        Attribute GetMaterialAttribute(GoodObject good) {
             var value = good.GetMaterial();
             if (value == null)
                 return null;
@@ -1966,7 +1966,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Срок годности, дней
-        Attribute GetExpirationDaysAttribute(RootObject good) {
+        Attribute GetExpirationDaysAttribute(GoodObject good) {
             var value = good.GetExpirationDays();
             if (value == null)
                 return null;
@@ -1981,7 +1981,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Класс опасности
-        Attribute GetDangerClassAttribute(RootObject good) {
+        Attribute GetDangerClassAttribute(GoodObject good) {
             var value = good.GetDangerClass();
             if (value == null)
                 return null;
@@ -1997,7 +1997,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Вид техники
-        Attribute GetTechTypeAttribute(RootObject good) {
+        Attribute GetTechTypeAttribute(GoodObject good) {
             var value = good.GetTechType();
             if (value == null)
                 return null;
@@ -2013,7 +2013,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Цвет товара
-        Attribute GetColorAttribute(RootObject good) {
+        Attribute GetColorAttribute(GoodObject good) {
             var value = good.GetColor();
             if (value == null)
                 return null;
@@ -2029,7 +2029,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Количество заводских упаковок
-        Attribute GetFabricBoxCountAttribute(RootObject good) {
+        Attribute GetFabricBoxCountAttribute(GoodObject good) {
             var value = good.GetFabricBoxCount();
             if (value == null)
                 return null;
@@ -2044,7 +2044,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Альтернативные артикулы
-        Attribute GetAlternativesAttribute(RootObject good) {
+        Attribute GetAlternativesAttribute(GoodObject good) {
             var man = good.GetManufacture(true)?
                           .ToLowerInvariant();
             if (_exceptManufactures.Contains(man))
@@ -2063,7 +2063,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Комплектация
-        Attribute GetComplectationAttribute(RootObject good) {
+        Attribute GetComplectationAttribute(GoodObject good) {
             var value = good.GetComplectation();
             if (value == null)
                 return null;
@@ -2078,7 +2078,7 @@ namespace Selen.Sites {
             };
         }
         //Сторона установки (параметр)
-        Attribute GetSideAttribute(RootObject good) {
+        Attribute GetSideAttribute(GoodObject good) {
             var value = good.GetSide();
             if (value == null)
                 return null;
@@ -2096,7 +2096,7 @@ namespace Selen.Sites {
 
         //Атрибут Название модели (для объединения в одну карточку)
         //(в нашем случае дублируем id карточки бизнес.ру)
-        Attribute GetModelNameAttribute(RootObject bus) {
+        Attribute GetModelNameAttribute(GoodObject bus) {
             return new Attribute {
                 complex_id = 0,
                 id = 9048,
@@ -2109,7 +2109,7 @@ namespace Selen.Sites {
         }
 
         //Атрибут Аннотация Описание товара
-        Attribute GetDescriptionAttribute(RootObject good) => new Attribute {
+        Attribute GetDescriptionAttribute(GoodObject good) => new Attribute {
             complex_id = 0,
             id = 4191,
             values = new Value[] {
@@ -2147,7 +2147,7 @@ namespace Selen.Sites {
                 }
             };
         //Атрибут Количество в упаковке
-        Attribute GetPackQuantityAttribute(RootObject bus) =>
+        Attribute GetPackQuantityAttribute(GoodObject bus) =>
             new Attribute {
                 complex_id = 0,
                 id = 7335,
@@ -2169,7 +2169,7 @@ namespace Selen.Sites {
                 }
             };
         //Атрибут Бренд
-        Attribute GetBrendAttribute(RootObject bus) {
+        Attribute GetBrendAttribute(GoodObject bus) {
             int id;
             string name;
             var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
@@ -2201,7 +2201,7 @@ namespace Selen.Sites {
             };
         }
         //Атрибут Партномер (артикул производителя) (в нашем случае артикул)
-        Attribute GetPartAttribute(RootObject bus) {
+        Attribute GetPartAttribute(GoodObject bus) {
             var man = bus.GetManufacture(true)?
                          .ToLowerInvariant();
             var part = _exceptManufactures.Contains(man)? bus.id
@@ -2277,7 +2277,7 @@ namespace Selen.Sites {
             }
         }
         //Сохранение списка карточек, которые можно добавить на озон в виде таблицы
-        void SaveToFile(IEnumerable<RootObject> goods, string fname = @"..\ozon\ozonGoodListForAdding.csv") {
+        void SaveToFile(IEnumerable<GoodObject> goods, string fname = @"..\ozon\ozonGoodListForAdding.csv") {
             StringBuilder s = new StringBuilder();
             var splt = "\t";
             s.Append("id");
@@ -2315,9 +2315,9 @@ namespace Selen.Sites {
                 s.Append(splt);
                 s.Append(good.GroupName());
                 s.Append(splt);
-                s.Append(good.amount);
+                s.Append(good.Amount);
                 s.Append(splt);
-                s.Append(good.price);
+                s.Append(good.Price);
                 s.Append(splt);
                 s.Append(good.weight);
                 s.Append(splt);

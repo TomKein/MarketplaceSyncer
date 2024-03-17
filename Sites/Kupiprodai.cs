@@ -20,7 +20,7 @@ namespace Selen.Sites {
         int _creditPriceMin;        //цены для рассрочки
         int _creditPriceMax;
         string _creditDescription;  //описание для рассрочки
-        List<RootObject> _bus;      //ссылка на товары
+        List<GoodObject> _bus;      //ссылка на товары
         Random _rnd = new Random(); //генератор случайных чисел
         string _l = "kupiprodai.ru: "; //для записи в лог
         //конструктор
@@ -49,7 +49,7 @@ namespace Selen.Sites {
             _dr = null;
         }
         //старт главного цикла синхронизации
-        public async Task<bool> StartAsync(List<RootObject> bus) {
+        public async Task<bool> StartAsync(List<GoodObject> bus) {
             Log.Add(_l + "начало выгрузки...");
             try {
                 _bus = bus;
@@ -109,7 +109,7 @@ namespace Selen.Sites {
                 if (_bus[b].kp != null &&
                     _bus[b].kp.Contains("http")) {
                     //удаляю если нет на остатках
-                    if (_bus[b].amount <= 0) {
+                    if (_bus[b].Amount <= 0) {
                         await DeleteAsync(b);
                         //убираю ссылку из карточки товара
                         await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
@@ -117,7 +117,7 @@ namespace Selen.Sites {
                             { "name", _bus[b].name },
                             { _url, _bus[b].kp }
                         });
-                    } else if (_bus[b].IsTimeUpDated() && _bus[b].price > 0) {
+                    } else if (_bus[b].IsTimeUpDated() && _bus[b].Price > 0) {
                         await EditOfferAsync(b);
                     }
                 }
@@ -184,7 +184,7 @@ namespace Selen.Sites {
         }
         //пишу цену
         void SetPrice(int b) {
-            _dr.WriteToSelector("input[name*='price']", _bus[b].price.ToString());
+            _dr.WriteToSelector("input[name*='price']", _bus[b].Price.ToString());
         }
         //пишу описание
         void SetDesc(int b, bool min=false ) {
@@ -194,7 +194,7 @@ namespace Selen.Sites {
             else
                 len = 2999;
             var d = _bus[b].DescriptionList(len, _addDesc);
-            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+            if (_bus[b].Price >= _creditPriceMin && _bus[b].Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             _dr.WriteToSelector(".form_content_long2 textarea", sl: d);
         }
@@ -214,8 +214,8 @@ namespace Selen.Sites {
                 for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                     if ((_bus[b].kp == null || !_bus[b].kp.Contains("http")) &&
                         !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
-                        _bus[b].amount > 0 &&
-                        _bus[b].price > 0 &&
+                        _bus[b].Amount > 0 &&
+                        _bus[b].Price > 0 &&
                         _bus[b].images.Count > 0) {
                             await Task.Factory.StartNew(() => {
                                 _dr.Navigate("https://vip.kupiprodai.ru/add/");
@@ -315,7 +315,7 @@ namespace Selen.Sites {
                 foreach (var e in _dr.FindElements("input[name='chek[]']")) {
                     var id = e.GetAttribute("value");
                     var b = _bus.FindIndex(f => f.kp != null && f.kp.Contains(id));
-                    if (b == -1 || _bus[b].amount <= 0) {
+                    if (b == -1 || _bus[b].Amount <= 0) {
                         e.Click();
                         Thread.Sleep(1000);
                     }
@@ -355,7 +355,7 @@ namespace Selen.Sites {
                     var b = _bus.FindIndex(f => f.kp.Contains(ids[i]));
                     if (b == -1) {
                         _dr.Navigate("https://vip.kupiprodai.ru/delmsg/" + ids[i]);
-                    } else if (_bus[b].price.ToString() != prices[i].Split('р').First().Replace(" ", "")
+                    } else if (_bus[b].Price.ToString() != prices[i].Split('р').First().Replace(" ", "")
 
                                     && DateTime.Now.Minute < 45 //ограничение периода
 
@@ -388,10 +388,10 @@ namespace Selen.Sites {
                         var desc = _dr.GetElementAttribute("//b[text()='Текст объявления']/../..//textarea", "value");
                         if (name.Length <= 5 ||
                             !_bus[b].name.Contains(name) ||
-                            _bus[b].price != price ||
+                            _bus[b].Price != price ||
                             //рассрочка в описании
-                            _bus[b].price >= _creditPriceMin &&
-                            _bus[b].price <= _creditPriceMax &&
+                            _bus[b].Price >= _creditPriceMin &&
+                            _bus[b].Price <= _creditPriceMax &&
                             !desc.Contains(_creditDescription) ||
 
                             photos.Count != (_bus[b].images.Count > 10 ? 10 : _bus[b].images.Count)) {

@@ -17,14 +17,13 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.176";
+        string _version = "1.177";
 
         VK _vk = new VK();
         Drom _drom = new Drom();
         Izap24 _izap24 = new Izap24();
-        Kupiprodai _kupiprodai = new Kupiprodai();
-        GdeRu _gde = new GdeRu();
         OzonApi _ozon = new OzonApi();
+        Avito _avito = new Avito();
 
         static System.Timers.Timer _timer = new System.Timers.Timer();
 
@@ -66,8 +65,7 @@ namespace Selen {
             try {
                 while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
-                var av = new AvitoXml();
-                await av.GenerateXML(Class365API._bus);
+                await _avito.GenerateXML(Class365API._bus);
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
@@ -97,7 +95,7 @@ namespace Selen {
                 while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
                 await _drom.DromStartAsync(Class365API._bus);
-                label_Drom.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.amount > 0).ToString();
+                label_Drom.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.Amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("drom.ru: ошибка синхронизации! \n" + x.Message + "\n" + x.InnerException?.Message);
@@ -111,38 +109,6 @@ namespace Selen {
                 }
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
-        }
-        //KUPIPRODAI.RU
-        async void ButtonKupiprodaiRu_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan || !button_KupiprodaiAdd.Enabled)
-                await Task.Delay(30000);
-            if (await _kupiprodai.StartAsync(Class365API._bus))
-                ChangeStatus(sender, ButtonStates.Active);
-            else
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
-            label_Kp.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
-        }
-        async void ButtonKupiprodaiRuAdd_Click(object sender, EventArgs e) {
-            if (!button_Kupiprodai.Enabled)
-                return;
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan)
-                await Task.Delay(30000);
-            await _kupiprodai.AddAsync();
-            label_Kp.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.kp) && c.kp.Contains("http") && c.amount > 0).ToString();
-            ChangeStatus(sender, ButtonStates.Active);
-        }
-        //GDE.RU
-        async void ButtonGdeRu_Click(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
-                await Task.Delay(30000);
-            if (await _gde.StartAsync(Class365API._bus)) {
-                label_Gde.Text = Class365API._bus.Count(c => c.gde != null && c.gde.Contains("http")).ToString();
-                ChangeStatus(sender, ButtonStates.Active);
-            } else
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
         }
         //IZAP24.RU
         async void ButtonIzap24_Click(object sender, EventArgs e) {
@@ -185,10 +151,6 @@ namespace Selen {
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
-            await Task.Delay(10000);
-            button_Gde.Invoke(new Action(() => button_Gde.PerformClick()));
-            await Task.Delay(10000);
-            button_Kupiprodai.Invoke(new Action(() => button_Kupiprodai.PerformClick()));
             await Task.Delay(10000);
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(10000);
@@ -276,9 +238,7 @@ namespace Selen {
             while (!(
                 button_Drom.Enabled &&
                 button_Vk.Enabled &&
-                button_Kupiprodai.Enabled &&
                 button_Avito.Enabled &&
-                button_Gde.Enabled &&
                 button_ozon.Enabled
                 )
             )
@@ -289,7 +249,7 @@ namespace Selen {
                 Class365API.ScanTime = dateTimePicker1.Value;
                 await DB.SetParamAsync("lastScanTime", Class365API.ScanTime.ToString());
                 await DB.SetParamAsync("liteScanTime", Class365API.ScanTime.ToString());
-                RootObject.ScanTime = Class365API.ScanTime;
+                GoodObject.ScanTime = Class365API.ScanTime;
             } catch (Exception x) {
                 Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException?.Message);
             }
@@ -302,9 +262,7 @@ namespace Selen {
         }
         //сохранить куки
         private void Button_SaveCookie_Click(object sender, EventArgs e) {
-            _kupiprodai.SaveCookies();
             _drom.SaveCookies();
-            _gde.SaveCookies();
         }
         //статус контрола
         void ChangeStatus(object sender, ButtonStates buttonState) {
@@ -396,13 +354,9 @@ namespace Selen {
             this.Visible = false;
             ClearTempFiles();
             if (_saveCookiesBeforeClose) {
-                _gde?.SaveCookies();
                 _drom?.SaveCookies();
-                _kupiprodai?.SaveCookies();
             }
-            _gde?.Quit();
             _drom?.Quit();
-            _kupiprodai?.Quit();
         }
         //удаление временных файлов
         void ClearTempFiles() {

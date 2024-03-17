@@ -25,7 +25,7 @@ namespace Selen.Sites {
         string _creditDescription;  //описание для рассрочки
         bool _addWeights;           //добавление веса 
         float _defWeigth;           //вес по умолчанию 
-        List<RootObject> _bus;      //ссылка на товары
+        List<GoodObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
         bool _needRestart = false;
         Random _rnd = new Random();
@@ -52,7 +52,7 @@ namespace Selen.Sites {
             _dr?.Quit();
             _dr = null;
         }
-        public async Task DromStartAsync(List<RootObject> bus) {
+        public async Task DromStartAsync(List<GoodObject> bus) {
             try {
                 //сохраняю список товаров
                 _bus = bus;
@@ -133,7 +133,7 @@ namespace Selen.Sites {
             });
         }
 
-        void Edit(RootObject b) {
+        void Edit(GoodObject b) {
             if (b.drom.Contains("tin/ht")) {
                 Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
                 return;
@@ -151,13 +151,13 @@ namespace Selen.Sites {
             SetWeight(b);
             PressOkButton();
             Log.Add(_l + b.name + " - объявление обновлено");
-            if (b.amount <= 0) {
+            if (b.Amount <= 0) {
                 Delete(b);
             } else
                 Up(b);
         }
         //проверка фотографий в объявлении
-        private void CheckPhotos(RootObject b) {
+        private void CheckPhotos(GoodObject b) {
             //селектор фотографий в объявлении
             string selector = "//div[@class='grid-item-wrapper']/img";
             //получаю количество фотографий в объявлении
@@ -176,13 +176,13 @@ namespace Selen.Sites {
             }
         }
         //заполнить наименование
-        void SetTitle(RootObject b) {
+        void SetTitle(GoodObject b) {
             var w = _dr.GetElementAttribute("//input[@name='subject']", "value");
             if (string.IsNullOrEmpty(w) || w != b.name)
                 _dr.WriteToSelector("//input[@name='subject']", b.name);
         }
 
-        void Delete(RootObject b) {
+        void Delete(GoodObject b) {
             //переход на страницу объявления, если он нужен
             _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
             if (_dr.GetElementsCount("//a[contains(@class,'doDelete')]") > 0) {
@@ -200,8 +200,8 @@ namespace Selen.Sites {
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
-                    _bus[b].amount > 0 &&
-                    _bus[b].price > 0 &&
+                    _bus[b].Amount > 0 &&
+                    _bus[b].Price > 0 &&
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("http://baza.drom.ru/set/city/370?return=http%3A%2F%2Fbaza.drom.ru%2Fadding%3Fcity%3D370", "//input[@name='subject']");
@@ -234,7 +234,7 @@ namespace Selen.Sites {
                 }
             }
         }
-        private void SetWeight(RootObject b) {
+        private void SetWeight(GoodObject b) {
             if (_addWeights) {
                 var weight = b.weight ?? _defWeigth;
                 if (weight == 0)
@@ -257,7 +257,7 @@ namespace Selen.Sites {
                 {_url, _bus[b].drom}
             });
         }
-        void SetAudioSize(RootObject b) {
+        void SetAudioSize(GoodObject b) {
             if (b.GroupName() == "Аудио-видеотехника") {
                 var d = b.description.ToLowerInvariant();
                 if (d.Contains("din")) {
@@ -279,7 +279,7 @@ namespace Selen.Sites {
 
             }
         }
-        void SetDiam(RootObject b) {
+        void SetDiam(GoodObject b) {
             if (b.GroupName() == "Шины, диски, колеса") {
                 _dr.ButtonClick("//div[@data-name='wheelDiameter']//div[contains(@class,'chosen-container-single')]");
                 _dr.WriteToSelector("//div[@data-name='wheelDiameter']//input", b.GetDiskSize() + OpenQA.Selenium.Keys.Enter);
@@ -299,7 +299,7 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", dtype + OpenQA.Selenium.Keys.Enter);
             }
         }
-        void SetOptions(RootObject b) {
+        void SetOptions(GoodObject b) {
             //новый/бу - если товар новый, но цвет кнопки не серый, значит надо нажать
             if (b.IsNew()) {
                 if (!_dr.GetElementCSSValue("//label[text()='Новый']", "background").Contains("224, 224"))
@@ -318,7 +318,7 @@ namespace Selen.Sites {
             if (!_dr.GetElementCSSValue("//label[text()='В наличии']", "background").Contains("224, 224"))
                 _dr.ButtonClick("//label[text()='В наличии']");
         }
-        void SetImages(RootObject b) {
+        void SetImages(GoodObject b) {
             WebClient cl = new WebClient();
             cl.Encoding = Encoding.UTF8;
             var num = b.images.Count > 20 ? 20 : b.images.Count;
@@ -337,19 +337,19 @@ namespace Selen.Sites {
             Thread.Sleep(2000);
         }
         //адрес самовывоза из профиля
-        void SetAddress(RootObject b) {
+        void SetAddress(GoodObject b) {
             if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background")
                 .Contains("rgb(255, 255, 255)")) {
                 _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
                 Log.Add(_l + b.name + " - установлен адрес самовывоза");
             }
         }
-        void SetPart(RootObject b) {
+        void SetPart(GoodObject b) {
             var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
             if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part)
                 _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.Part + OpenQA.Selenium.Keys.Tab);
         }
-        void SetAlternativeParts(RootObject b) {
+        void SetAlternativeParts(GoodObject b) {
             var descNums = b.GetDescriptionNumbers();
             var oem = b.GetOEM();
             if (!string.IsNullOrEmpty(oem) && oem != b.part)
@@ -379,11 +379,11 @@ namespace Selen.Sites {
                     break;
             }
         }
-        void SetDesc(RootObject b) {
+        void SetDesc(GoodObject b) {
             var d = b.DescriptionList(2979, _addDesc);
-            var amount = b.amount > 0 ? b.amount.ToString() + " " + b.MeasureNameCorrect : "нет";
+            var amount = b.Amount > 0 ? b.Amount.ToString() + " " + b.MeasureNameCorrect : "нет";
             d.Insert(0, "В наличии: " + amount);
-            if (b.price >= _creditPriceMin && b.price <= _creditPriceMax)
+            if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             //проверяю текст в поле, если он не изменился - пропускаю обновление
             var w = _dr.GetElementAttribute("//textarea[@name='text']", "value");
@@ -393,18 +393,18 @@ namespace Selen.Sites {
             _dr.ClickToSelector("//textarea[@name='text']");
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
         }
-        void SetPrice(RootObject b) {
+        void SetPrice(GoodObject b) {
             var w = _dr.GetElementAttribute("//input[@name='price']", "value");
-            if (string.IsNullOrEmpty(w) || w != b.price.ToString())
+            if (string.IsNullOrEmpty(w) || w != b.Price.ToString())
 
                 //    var desc = b.description.ToLowerInvariant();
                 //if (desc.Contains("залог:")) {
                 //    var price = desc.Replace("залог:", "|").Split('|').Last().Trim().Replace("р", " ").Split(' ').First();
                 //    _dr.WriteToSelector("//input[@name='price']", price);
                 //} else
-                _dr.WriteToSelector("//input[@name='price']", b.price.ToString());
+                _dr.WriteToSelector("//input[@name='price']", b.Price.ToString());
         }
-        void Up(RootObject b) {
+        void Up(GoodObject b) {
             if (_dr.GetElementsCount("//a[text()='В корзину']") > 0)
                 return;
             if (_dr.GetElementsCount("//a[@class='doDelete']") == 0) { //Удалить объявление - если нет такой кнопки, значит удалено и надо восстановить
@@ -449,7 +449,7 @@ namespace Selen.Sites {
         }
         //редактирую объявления с ошибками (например, не указан вес)
         private void EditOffersWithErrors() {
-            var drom = new List<RootObject>();
+            var drom = new List<GoodObject>();
             //для каждого объявления, в статусе которого есть предупреждение
             foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
                 //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
@@ -460,7 +460,7 @@ namespace Selen.Sites {
                 //сохраняю id объявления
                 var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
                 //добавляю в список
-                drom.Add(new RootObject {
+                drom.Add(new GoodObject {
                     id = id,
                     description = status,
                 });
@@ -519,7 +519,7 @@ namespace Selen.Sites {
                             if (b >= _bus.Count)
                                 b = 0;
                             if (
-                                (_bus[b].amount > 0 || checkOtOfStock) &&
+                                (_bus[b].Amount > 0 || checkOtOfStock) &&
                                 //_bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
                                 i++;
@@ -550,34 +550,34 @@ namespace Selen.Sites {
             }
         }
 
-        void CheckPage(List<RootObject> drom) {
+        void CheckPage(List<GoodObject> drom) {
             for (int i = 0; i < drom.Count; i++) {
                 CheckItem(drom[i]);
             }
         }
-        void CheckItem(RootObject b) {
+        void CheckItem(GoodObject b) {
             var i = _bus.FindIndex(f => f.drom.Contains(b.id));
             if (i < 0 && !b.description.Contains("далено")) {
                 _dr.Navigate(b.drom);
                 Delete(b);
             }
             if (i > -1 &&
-                ((b.price != _bus[i].price && !_bus[i].description.Contains("Залог:")
+                ((b.Price != _bus[i].Price && !_bus[i].description.Contains("Залог:")
 
                     && DateTime.Now.Minute < 50 //ограничитель периода
                                                 //&& _bus[i].price > 500
 
                 ) ||
-                !b.description.Contains("далено") && _bus[i].amount <= 0 ||
-                (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].amount > 0
+                !b.description.Contains("далено") && _bus[i].Amount <= 0 ||
+                (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].Amount > 0
                 )) {
                 Edit(_bus[i]);
             }
         }
-        private List<RootObject> ParsePage(int i) {
+        private List<GoodObject> ParsePage(int i) {
             var page = "https://baza.drom.ru/personal/all/bulletins?page=" + i;
             _dr.Navigate(page);
-            var drom = new List<RootObject>();
+            var drom = new List<GoodObject>();
             foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
                 var el = item.FindElements(By.XPath(".//div[@data-role='price']"));
                 var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("р.", "")) : 0;
@@ -590,10 +590,10 @@ namespace Selen.Sites {
                 var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
                 if (img == 0)
                     price = 0; //если фотографий 0, то зануляю цену, которую спарсили, что спровоцирует обновление объявления и загрузку фото
-                drom.Add(new RootObject {
+                drom.Add(new GoodObject {
                     name = name,
                     id = id,
-                    price = price,
+                    Price = price,
                     description = status,
                     drom = url
                 });
@@ -607,7 +607,7 @@ namespace Selen.Sites {
                 //перебираю карточки товара
                 for (int b = 0; b < _bus.Count; b++) {
                     //если есть ссылка на дром, нет фото, остаток и цена положительные
-                    if (_bus[b].drom.StartsWith("http") && _bus[b].images.Count == 0 && _bus[b].amount > 0 && _bus[b].price > 0) {
+                    if (_bus[b].drom.StartsWith("http") && _bus[b].images.Count == 0 && _bus[b].Amount > 0 && _bus[b].Price > 0) {
                         var imgUrls = new List<string>();
                         try {
                             await Task.Factory.StartNew(() => {
@@ -651,7 +651,7 @@ namespace Selen.Sites {
                                     {"with_additional_fields", "1"}
                                });
                             //проверяю фото
-                            var biz = JsonConvert.DeserializeObject<RootObject[]>(s);
+                            var biz = JsonConvert.DeserializeObject<GoodObject[]>(s);
                             if (biz[0].images.Count != imgUrls.Count)
                                 throw new Exception("количество фото в карточке не совпадает с ожиданием "
                                     + biz[0].images.Count);

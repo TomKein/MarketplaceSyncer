@@ -26,6 +26,8 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
             this.panel1 = new System.Windows.Forms.Panel();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.label3 = new System.Windows.Forms.Label();
+            this.listBoxGoods = new System.Windows.Forms.ListBox();
             this.labelId = new System.Windows.Forms.Label();
             this.labelAmount = new System.Windows.Forms.Label();
             this.labelPrice = new System.Windows.Forms.Label();
@@ -71,11 +73,13 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(916, 352);
+            this.panel1.Size = new System.Drawing.Size(1223, 352);
             this.panel1.TabIndex = 0;
             // 
             // panel4
             // 
+            this.panel4.Controls.Add(this.label3);
+            this.panel4.Controls.Add(this.listBoxGoods);
             this.panel4.Controls.Add(this.labelId);
             this.panel4.Controls.Add(this.labelAmount);
             this.panel4.Controls.Add(this.labelPrice);
@@ -90,8 +94,25 @@
             this.panel4.Location = new System.Drawing.Point(450, 0);
             this.panel4.Name = "panel4";
             this.panel4.Padding = new System.Windows.Forms.Padding(8);
-            this.panel4.Size = new System.Drawing.Size(466, 352);
+            this.panel4.Size = new System.Drawing.Size(773, 352);
             this.panel4.TabIndex = 1;
+            // 
+            // label3
+            // 
+            this.label3.Location = new System.Drawing.Point(464, 8);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(71, 13);
+            this.label3.TabIndex = 11;
+            this.label3.Text = "Товары";
+            // 
+            // listBoxGoods
+            // 
+            this.listBoxGoods.FormattingEnabled = true;
+            this.listBoxGoods.Location = new System.Drawing.Point(469, 24);
+            this.listBoxGoods.Name = "listBoxGoods";
+            this.listBoxGoods.Size = new System.Drawing.Size(292, 316);
+            this.listBoxGoods.TabIndex = 10;
+            this.listBoxGoods.SelectedIndexChanged += new System.EventHandler(this.listBoxGoods_SelectedIndexChanged);
             // 
             // labelId
             // 
@@ -161,7 +182,6 @@
             // 
             // label1
             // 
-            this.label1.Dock = System.Windows.Forms.DockStyle.Top;
             this.label1.Location = new System.Drawing.Point(8, 8);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(450, 13);
@@ -289,7 +309,7 @@
             this.panel3.Location = new System.Drawing.Point(450, 352);
             this.panel3.Name = "panel3";
             this.panel3.Padding = new System.Windows.Forms.Padding(8);
-            this.panel3.Size = new System.Drawing.Size(466, 388);
+            this.panel3.Size = new System.Drawing.Size(773, 388);
             this.panel3.TabIndex = 2;
             // 
             // panel8
@@ -298,7 +318,7 @@
             this.panel8.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel8.Location = new System.Drawing.Point(8, 33);
             this.panel8.Name = "panel8";
-            this.panel8.Size = new System.Drawing.Size(450, 347);
+            this.panel8.Size = new System.Drawing.Size(757, 347);
             this.panel8.TabIndex = 1;
             // 
             // dataGridViewSelect
@@ -311,7 +331,7 @@
             this.dataGridViewSelect.Location = new System.Drawing.Point(0, 0);
             this.dataGridViewSelect.Name = "dataGridViewSelect";
             this.dataGridViewSelect.ReadOnly = true;
-            this.dataGridViewSelect.Size = new System.Drawing.Size(450, 347);
+            this.dataGridViewSelect.Size = new System.Drawing.Size(757, 347);
             this.dataGridViewSelect.TabIndex = 0;
             this.dataGridViewSelect.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridViewSelect_CellDoubleClick);
             this.dataGridViewSelect.RowsAdded += new System.Windows.Forms.DataGridViewRowsAddedEventHandler(this.dataGridViewSelect_RowsAdded);
@@ -323,7 +343,7 @@
             this.panel7.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel7.Location = new System.Drawing.Point(8, 8);
             this.panel7.Name = "panel7";
-            this.panel7.Size = new System.Drawing.Size(450, 25);
+            this.panel7.Size = new System.Drawing.Size(757, 25);
             this.panel7.TabIndex = 0;
             // 
             // labelSelectedApplications
@@ -346,7 +366,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(916, 740);
+            this.ClientSize = new System.Drawing.Size(1223, 740);
             this.Controls.Add(this.panel3);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.panel1);
@@ -400,5 +420,7 @@
         private System.Windows.Forms.Label labelAmount;
         private System.Windows.Forms.Label labelPrice;
         private System.Windows.Forms.Label labelId;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.ListBox listBoxGoods;
     }
 }

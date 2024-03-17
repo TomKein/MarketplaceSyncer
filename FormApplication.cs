@@ -16,7 +16,7 @@ using Selen.Tools;
 namespace Selen {
     public partial class FormApplication : Form {
 
-        List<RootObject> _bus;
+        List<GoodObject> _bus;
         List<string> _generations;
         List<string> _attributes;
         WebClient _wc;
@@ -26,7 +26,7 @@ namespace Selen {
         int _busIndex = -1;
         DataTable _dtSelected = new DataTable();
         //конструктор
-        public FormApplication(List<RootObject> bus) {
+        public FormApplication(List<GoodObject> bus) {
             InitializeComponent();
             _bus = bus;
             _busIndex = _bus.Count();

@@ -21,7 +21,7 @@ namespace Selen.Sites {
         int _creditPriceMin;        //цены для рассрочки
         int _creditPriceMax;
         string _creditDescription;  //описание для рассрочки
-        List<RootObject> _bus;      //ссылка на товары
+        List<GoodObject> _bus;      //ссылка на товары
         Random _rnd = new Random(); //генератор случайных чисел
         //конструктор
         public GdeRu() {
@@ -50,7 +50,7 @@ namespace Selen.Sites {
             _dr = null;
         }
         //старт главного цикла синхронизации
-        public async Task<bool> StartAsync(List<RootObject> bus) {
+        public async Task<bool> StartAsync(List<GoodObject> bus) {
             if (await DB.GetParamBoolAsync("gde.syncEnable")) {
                 Log.Add(_l+"начало выгрузки...");
                 _bus = bus;
@@ -114,9 +114,9 @@ namespace Selen.Sites {
                 if (_bus[b].IsTimeUpDated() && 
                     _bus[b].gde != null &&
                     _bus[b].gde.Contains("http")) {
-                    if (_bus[b].amount <= 0) {
+                    if (_bus[b].Amount <= 0) {
                         await DeleteAsync(b);
-                    } else if (_bus[b].price > 0) {
+                    } else if (_bus[b].Price > 0) {
                         await EditOfferAsync(b);
                     }
                 }
@@ -168,12 +168,12 @@ namespace Selen.Sites {
         }
         //пишу цену
         private void SetPrice(int b) {
-            _dr.WriteToSelector("#AInfoForm_price", _bus[b].price.ToString());
+            _dr.WriteToSelector("#AInfoForm_price", _bus[b].Price.ToString());
         }
         //пишу описание
         void SetDesc(int b) {
             var d = _bus[b].DescriptionList(2999, _addDesc);
-            if (_bus[b].price >= _creditPriceMin && _bus[b].price <= _creditPriceMax)
+            if (_bus[b].Price >= _creditPriceMin && _bus[b].Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             d.Add(OpenQA.Selenium.Keys.Tab);
             _dr.WriteToSelector("#AInfoForm_content", sl: d);
@@ -230,8 +230,8 @@ namespace Selen.Sites {
             for (int b = _bus.Count - 1; b > -1 && count > 0 && DateTime.Now.Minute < 50; b--) {
                 if ((_bus[b].gde == null || !_bus[b].gde.Contains("http")) &&
                      !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
-                     _bus[b].amount > 0 &&
-                     _bus[b].price > 0 &&
+                     _bus[b].Amount > 0 &&
+                     _bus[b].Price > 0 &&
                      _bus[b].images.Count > 0) {
                     try {
                         await Task.Factory.StartNew(() => {
@@ -375,7 +375,7 @@ namespace Selen.Sites {
                         var b = _bus.FindIndex(f => f.gde.Contains(ids[i]));
                         if (b == -1) {
                             _dr.Navigate("https://kaluga.gde.ru/cabinet/item/delete?id=" + ids[i]);
-                        } else if (_bus[b].price.ToString() != prices[i] ||
+                        } else if (_bus[b].Price.ToString() != prices[i] ||
                                   !_bus[b].name.Contains(names[i].Replace("(","").Replace(")",""))) {
                             EditOffer(b);
                         }
@@ -411,10 +411,10 @@ namespace Selen.Sites {
                         var desc = _dr.GetElementAttribute("//label[text()='Полное описание']/..//textarea", "value");
                         if (name.Length <= 5 ||
                             !_bus[b].name.Contains(name) ||
-                            _bus[b].price != price ||
+                            _bus[b].Price != price ||
                             //рассрочка в описании
-                            _bus[b].price >= _creditPriceMin &&
-                            _bus[b].price <= _creditPriceMax &&
+                            _bus[b].Price >= _creditPriceMin &&
+                            _bus[b].Price <= _creditPriceMax &&
                             !desc.Contains(_creditDescription) ||
                             photos.Count != (_bus[b].images.Count > 20 ? 20 : _bus[b].images.Count)) {
                             Log.Add(_l + _bus[b].name + " - обновляю объявление");
