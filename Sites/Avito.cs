@@ -10,28 +10,27 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
-    internal class AvitoXml {
-        readonly string _l = "avitoXml: ";              //префикс для лога
-        readonly string filename = @"..\avito.xml";     //имя файла для экспорта
-        readonly string filenameStock = @"..\avitostock.xml";     //имя файла для экспорта остатков
+    internal class Avito {
+        readonly string _l = "avito: ";
+        readonly string _fileNameExport = @"..\avito.xml";
+        readonly string _fileNameStockExport = @"..\avitostock.xml";
+        readonly string _autoCatalogFile = @"..\autocatalog.xml";
+        readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
+        readonly string _applicationAttribureId = "2543011";
+        //получение ключей https://www.avito.ru/professionals/api
+        readonly string _clientId = "4O7a8RcHV1qdcbp_Lr7f";
+        readonly string _clientSecret = "1JtB0Yi801aPfl2mKLziP_QcauNEaZaTMuG6asuB";
         XDocument autoCatalogXML;
-        readonly string autoCatalogFile = @"..\autocatalog.xml";
-        readonly string autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
-        readonly string applicationAttribureId = "2543011";
 
-        //генерация xml
-        public async Task GenerateXML(List<RootObject> _bus) {
+        public async Task GenerateXML(List<GoodObject> _bus) {
             if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
                 Log.Add(_l + "синхронизация отключена!");
                 return;
             }
             await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
-                //количество объявлений в тарифе
                 var offersLimit = DB.GetParamInt("avito.offersLimit");
-                //ценовой порог
                 var priceLevel = DB.GetParamInt("avito.priceLevel");
-                //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
                     DB.GetParamStr("avito.addDescription"));
                 string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
@@ -40,80 +39,62 @@ namespace Selen.Sites {
                 var creditPriceMin = DB.GetParamInt("creditPriceMin");
                 var creditPriceMax = DB.GetParamInt("creditPriceMax");
                 var creditDescription = DB.GetParamStr("creditDescription");
-                //обновляю объем товара по умолчанию
-                RootObject.UpdateDefaultVolume();
-                //обновляю вес товара по умолчанию
-                RootObject.UpdateDefaultWeight();
-                //создаю новый xml
+                GoodObject.UpdateDefaultVolume();
+                GoodObject.UpdateDefaultWeight();
                 var xml = new XDocument();
-                //xml для выгрузки остатков
                 var xmlStock = new XDocument();
-                //корневой элемент yml_catalog
                 var root = new XElement("Ads", new XAttribute("formatVersion", "3"), new XAttribute("target", "Avito.ru"));
-                //корневой элемент для остатков
                 var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")),
                                                       new XAttribute("formatVersion", "1"));
                 var days = DB.GetParamInt("avito.daysUpdatedToUpload");
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по убыванию цены
-                var bus = _bus.Where(w => w.price >= priceLevel && w.images.Count > 0
-                                      && (w.amount > 0 || DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime))
-                              .OrderByDescending(o => o.price);
-                Log.Add(_l + "найдено " + bus.Count() + " потенциальных объявлений");
+                var bus = _bus.Where(w => w.Price >= priceLevel && w.images.Count > 0
+                                      && (w.Amount > 0 || DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime))
+                              .OrderByDescending(o => o.Price);
+                Log.Add(_l + "найдено " + bus.Count() + " товаров для выгрузки");
                 int i = 0;
                 foreach (var b in bus) {
                     try {
                         //заполнение остатков
                         var itemStock = new XElement("item");
                         itemStock.Add(new XElement("id", b.id));
-                        itemStock.Add(new XElement("stock", b.amount));
+                        itemStock.Add(new XElement("stock", b.Amount));
                         rootStock.Add(itemStock);
 
                         //основной xml
                         var ad = new XElement("Ad");
-                        //id
                         ad.Add(new XElement("Id", b.id));
                         //категория товара
                         foreach (var item in GetCategoryAvito(b)) {
                             ad.Add(new XElement(item.Key, item.Value));
                         }
-                        //изображения
+
                         var images = new XElement("Images");
                         foreach (var photo in b.images.Take(10)) {
                             images.Add(new XElement("Image", new XAttribute("url", photo.url)));
                         }
                         ad.Add(images);
-                        //если надо снять
-                        if (b.amount <= 0) {
+
+                        if (b.Amount <= 0) {
                             ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss") + "+03:00"));
                         }
                         //else {
                         //    ad.Add(new XElement("DateBegin", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
                         //}
-                        //адрес магазина
                         ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
-                        //цена
-                        ad.Add(new XElement("Price", b.price));
-                        //телефон
+                        ad.Add(new XElement("Price", b.Price));
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
-                        //наименование
                         ad.Add(new XElement("Title", b.NameLimit(100)));
-                        //описание
                         var d = b.DescriptionList(2990, _addDesc);
                         d.AddRange(_addDesc2);
-                        if (b.price >= creditPriceMin && b.price <= creditPriceMax)
+                        if (b.Price >= creditPriceMin && b.Price <= creditPriceMax)
                             d.Insert(0, creditDescription);
                         ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
-                        //имя менеджера
                         ad.Add(new XElement("ManagerName", "Менеджер"));
-                        //добавляю элемент offer в контейнер offers
                         ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
-                        //состояние
                         ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
-                        //доступность
                         ad.Add(new XElement("Availability", "В наличии"));
-                        //ad.Add(new XElement("stock", b.amount));
-                        //оригинальность
                         ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
                         //номер запчасти
                         if (!string.IsNullOrEmpty(b.Part))
@@ -135,10 +116,9 @@ namespace Selen.Sites {
                                 }
                             }
                         }
-                        //добавляю объявление в дерево
                         root.Add(ad);
-                        //считаем только объявления с положительным остатком
-                        if (b.amount > 0)
+                        //считаем объявления с положительным остатком
+                        if (b.Amount > 0)
                             i++;
                         if (i >= offersLimit)
                             break;
@@ -147,31 +127,25 @@ namespace Selen.Sites {
                     }
                 }
                 Log.Add(_l + "выгружено " + i);
-                //добавляю root в документ
                 xml.Add(root);
-                //добавляю root в документ остатков
                 xmlStock.Add(rootStock);
-                //сохраняю файлы
-                xml.Save(filename);
-                xmlStock.Save(filenameStock);
+                xml.Save(_fileNameExport);
+                xmlStock.Save(_fileNameStockExport);
             });
-            //если размер файла в порядке
-            if (new FileInfo(filename).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
-                //отправляю файлы на сервер
-                await SftpClient.FtpUploadAsync(filename);
-                await SftpClient.FtpUploadAsync(filenameStock);
+            if (new FileInfo(_fileNameExport).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
+                await SftpClient.FtpUploadAsync(_fileNameExport);
+                await SftpClient.FtpUploadAsync(_fileNameStockExport);
             }
         }
 
         public Task GetAutoCatalogXmlAsync() => Task.Factory.StartNew(() => {
-            //загружаю xml с авто: если файлу больше 24 часов - пытаюсь запросить новый, иначе загружаю с диска
             var period = DB.GetParamInt("avito.autoCatalogPeriod");
-            if (!File.Exists(autoCatalogFile) || File.GetLastWriteTime(autoCatalogFile).AddHours(period) < DateTime.Now) {
+            if (!File.Exists(_autoCatalogFile) || File.GetLastWriteTime(_autoCatalogFile).AddHours(period) < DateTime.Now) {
                 try {
                     Log.Add(_l + "запрашиваю новый автокаталог xml с avito...");
-                    autoCatalogXML = XDocument.Load(autoCatalogUrl);
+                    autoCatalogXML = XDocument.Load(_autoCatalogUrl);
                     if (autoCatalogXML.Element("Catalog").Elements("Make").Count() > 200)
-                        autoCatalogXML.Save(autoCatalogFile);
+                        autoCatalogXML.Save(_autoCatalogFile);
                     else
                         throw new Exception("мало элементов в автокаталоге");
                     Log.Add(_l + "автокаталог обновлен!");
@@ -180,13 +154,13 @@ namespace Selen.Sites {
                     Log.Add(_l + "ошибка запроса xml - " + x.Message);
                 }
             }
-            autoCatalogXML = XDocument.Load(autoCatalogFile);
+            autoCatalogXML = XDocument.Load(_autoCatalogFile);
             Log.Add(_l + "автокаталог загружен!");
         });
-        private string GetApplication(RootObject b) {
+        private string GetApplication(GoodObject b) {
             //проверяю заполнение атрибута
-            if (b.attributes!=null && b.attributes.Any(a=>a.Attribute.id== applicationAttribureId)) {
-                return b.attributes.Find(f => f.Attribute.id == applicationAttribureId).Value.name.ToString();
+            if (b.attributes!=null && b.attributes.Any(a=>a.Attribute.id== _applicationAttribureId)) {
+                return b.attributes.Find(f => f.Attribute.id == _applicationAttribureId).Value.name.ToString();
             }
             //если атрибут не заполнен, пытаюсь определить из названия и описания
             var desc = (b.name + " " + b.HtmlDecodedDescription())
@@ -217,7 +191,7 @@ namespace Selen.Sites {
                 Log.Add("GetMake: " + b.name + " пропущен - не удалось определить автопроизводителя");
             return null;
         }
-        public async Task UpdateApplicationsAsync(List<RootObject> bus) {
+        public async Task UpdateApplicationsAsync(List<GoodObject> bus) {
             //обновляю автокаталог
             await GetAutoCatalogXmlAsync();
             var list = new List<string>();
@@ -236,7 +210,7 @@ namespace Selen.Sites {
             //await Applications.UpdateApplicationListAsync(list);
         }
         //категории авито
-        public static Dictionary<string, string> GetCategoryAvito(RootObject b) {
+        public static Dictionary<string, string> GetCategoryAvito(GoodObject b) {
             var name = b.name.ToLowerInvariant()
                              .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.", "").Replace("б.у", "").Trim();
             var d = new Dictionary<string, string>();
