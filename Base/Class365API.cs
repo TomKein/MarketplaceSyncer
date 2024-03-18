@@ -1304,8 +1304,20 @@ namespace Selen {
         });
         //создать резерв товара
         public static async Task MakeReserve(Source source, string comment, Dictionary<string,int> goods) {
+            Log.Add("MakeReserve - проверка резерва товаров для заказа с "+source+": " 
+                + goods.Select(g => g.Key).Aggregate((a, b) => a + ", " + b));
+            //проверка резерва перед созданием
+            var s = await RequestAsync("get", "customerorders", new Dictionary<string, string> {
+                                { "request_source_id", ((int)source).ToString() },              //источник заказа
+                                { "comment", comment },                                         //комментарий
+                            });
+            if (s == null || s.Length > 4) {
+                Log.Add("MakeReserve - заказ уже существует, действий не требуется!");
+                return;
+            }
+            Log.Add("MakeReserve - заказ не найден, создаем заказ...");
             //создаем заказ покупателя
-            var s = await RequestAsync("post", "customerorders", new Dictionary<string, string> {
+            s = await RequestAsync("post", "customerorders", new Dictionary<string, string> {
                                 { "author_employee_id", AUTHOR_EMPLOYEE_ID },                   //автора документа
                                 { "responsible_employee_id", RESPONSIBLE_EMPLOYEE_ID },         //ответственный за документ
                                 { "organization_id", ORGANIZATION_ID },                         //организация
