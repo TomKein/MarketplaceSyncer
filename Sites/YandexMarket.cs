@@ -19,6 +19,8 @@ namespace Selen.Sites {
         readonly int EXPRESS_MAX_WIDTH = 54;
         readonly int EXPRESS_MAX_HEIGHT = 43;
         readonly int EXPRESS_MAX_WEIGHT = 30;
+        // Получение токена https://yandex.ru/dev/market/partner-api/doc/ru/concepts/authorization#token
+        readonly string ACCESS_TOKEN = "y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
 
 
         //генерация xml

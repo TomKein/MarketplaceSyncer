@@ -1174,4 +1174,8 @@ namespace Selen {
         public string value { get; set; }
     }
 
+    public class Response {
+        public string id { get; set; }
+        public string updated { get; set; }
+    }
 }

@@ -405,8 +405,9 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                await _ozon.GetCategoriesAsync();
-
+                var goods = new Dictionary<string, int>();
+                goods.Add("1112726", 1);
+                await Class365API.MakeReserve(Source.Ozon, "test ozon 123", goods);
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

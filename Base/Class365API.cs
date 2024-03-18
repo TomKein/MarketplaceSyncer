@@ -16,6 +16,20 @@ using Selen.Tools;
 
 namespace Selen {
     public delegate Task SyncEventDelegate();
+    public enum CustomerOrderStatus {
+            New = 106,
+            Process = 108,
+            Complete = 110,
+            Canceled = 112,
+            Ready = 301,
+            Markets = 367
+        };
+    public enum Source {
+            Ozon = 1,
+            YandexMarket = 2,
+            Avito = 3,
+            Drom = 4
+        };
     public class Class365API {
         static readonly string SECRET = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
         static readonly string APP_ID = "768289";
@@ -30,6 +44,10 @@ namespace Selen {
         private static System.Timers.Timer _timer = new System.Timers.Timer();
         static readonly string BUS_FILE_NAME = @"..\bus.json";
         public static readonly int PAGE_LIMIT_BASE = 250;
+        static readonly string ORGANIZATION_ID = "75519";           //ип радченко
+        static readonly string RESPONSIBLE_EMPLOYEE_ID = "76221";   //рогачев  76197-радченко
+        static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
+        static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         public static bool IsBusinessNeedRescan { set; get; } = false;
         public static bool IsBusinessCanBeScan { set; get; } = false;
         public static DateTime SyncStartTime { set; get; }
@@ -1114,7 +1132,6 @@ namespace Selen {
                 }
             }
         }
-
         //удаление атрибута в карточке
         public static async Task DeleteAttribute(int b, string atrId) {
             var s = await RequestAsync("get", "goodsattributes", new Dictionary<string, string> {
@@ -1248,13 +1265,13 @@ namespace Selen {
                 //перебираю товары из списка
                 foreach (var pg in postingGoods) {
                     //индекс карточки товара
-                    var indBus = Class365API._bus.FindIndex(f => f.id == pg.good_id);
+                    var indBus = _bus.FindIndex(f => f.id == pg.good_id);
                     //если индекс и остаток положительный
-                    if (indBus > -1 && Class365API._bus[indBus].Amount > 0 && Class365API._bus[indBus].Price > 0) {
+                    if (indBus > -1 && _bus[indBus].Amount > 0 && _bus[indBus].Price > 0) {
                         //цена ввода на остатки (цена закупки)
                         var priceIn = pg.Price;
                         //цена отдачи (розничная)
-                        var priceOut = Class365API._bus[indBus].Price;
+                        var priceOut = _bus[indBus].Price;
                         //процент цены закупки от цены отдачи
                         var procentCurrent = 100 * priceIn / priceOut;
                         //если процент различается более чем на 5%
@@ -1262,14 +1279,14 @@ namespace Selen {
                             //новая цена закупки
                             var newPrice = priceOut * procent * 0.01;
                             //- меняем цену закупки
-                            s = await Class365API.RequestAsync("put", "postinggoods", new Dictionary<string, string> {
+                            s = await RequestAsync("put", "postinggoods", new Dictionary<string, string> {
                                 { "id", pg.id },
                                 { "posting_id",pg.posting_id },
                                 { "good_id", pg.good_id},
                                 { "price", newPrice.ToString("#.##")},
                             });
                             if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                                Log.Add("business.ru: " + _bus[indBus].name + " - цена оприходования изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
                             await Task.Delay(1000);
                         }
                     }
@@ -1285,6 +1302,47 @@ namespace Selen {
                 Log.Add("позиций фото, положительным остатком и ценой " + price + "+ : " + x);
             }
         });
+        //создать резерв товара
+        public static async Task MakeReserve(Source source, string comment, Dictionary<string,int> goods) {
+            //создаем заказ покупателя
+            var s = await RequestAsync("post", "customerorders", new Dictionary<string, string> {
+                                { "author_employee_id", AUTHOR_EMPLOYEE_ID },                   //автора документа
+                                { "responsible_employee_id", RESPONSIBLE_EMPLOYEE_ID },         //ответственный за документ
+                                { "organization_id", ORGANIZATION_ID },                         //организация
+                                { "partner_id", PARTNER_ID },                                   //ссылка на контрагента
+                                { "status_id", ((int)CustomerOrderStatus.Markets).ToString() }, //статус заказа покупателя
+                                { "comment", comment },                                         //комментарий
+                                { "request_source_id", ((int)source).ToString() },              //источник заказа
+                            });
+            if (s==null || !s.Contains("updated"))
+                throw new Exception("MakeReserve - ошибка создания заказа!");
+            Log.Add("MakeReserve - заказ создан");
+            var order = JsonConvert.DeserializeObject<Response>(s);
+            //создание резерва
+            s = await RequestAsync("post", "reservations", new Dictionary<string, string> {
+                { "author_employee_id", AUTHOR_EMPLOYEE_ID },                                   //автора документа
+                { "organization_id", ORGANIZATION_ID },                                         //организация
+                { "partner_id", PARTNER_ID },                                                   //ссылка на контрагента
+                { "customer_order_id", order.id },                                              //id заказа
+                { "sync_with_order", "true" },                                                  //синхронизировать с заказом
+            });
+            if (s==null || !s.Contains("updated"))
+                throw new Exception("MakeReserve - ошибка создания резерва!");
+            Log.Add("MakeReserve - резерв для закаказа создан");
+            //привязка товаров к заказу
+            foreach (var good in goods) {
+                s = await RequestAsync("post", "customerordergoods", new Dictionary<string, string> {
+                                { "customer_order_id", order.id },                              //id заказа 
+                                { "good_id",good.Key },                                         //id товара
+                                { "amount", good.Value.ToString() },                            //количество товара
+                                { "price", _bus.Find(f=>f.id==good.Key).Price.ToString() },     //цена товара
+                            });
+                if (s==null || !s.Contains("updated"))
+                    throw new Exception("MakeReserve - ошибка добавления товара в заказ!");
+                Log.Add("MakeReserve - " + good.Key + " товар добавлен в закаказ (" + good.Value+")");
+            }
+        }
+
     }
 }
 
