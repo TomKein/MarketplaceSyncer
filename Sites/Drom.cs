@@ -23,7 +23,7 @@ namespace Selen.Sites {
         int _creditPriceMin;        //цены для рассрочки
         int _creditPriceMax;
         string _creditDescription;  //описание для рассрочки
-        bool _addWeights;           //добавление веса 
+        bool _isAddWeights;           //добавление веса 
         float _defWeigth;           //вес по умолчанию 
         List<GoodObject> _bus;      //ссылка на товары
         string _dromUrlStart = "https://baza.drom.ru/bulletin/";
@@ -54,15 +54,10 @@ namespace Selen.Sites {
         }
         public async Task DromStartAsync(List<GoodObject> bus) {
             try {
-                //сохраняю список товаров
                 _bus = bus;
-                //получаю номер ссылки в карточке
                 _url = await DB.GetParamStrAsync("drom.url");
-                //заполнение веса
-                _addWeights = await DB.GetParamBoolAsync("drom.addWeights");
-                //вес по умолчанию
+                _isAddWeights = await DB.GetParamBoolAsync("drom.addWeights");
                 _defWeigth = DB.GetParamFloat("defaultWeigth");
-                //дополнительное описание
                 _addDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("drom.addDescription"));
                 //рассрочка 
                 _creditPriceMin = DB.GetParamInt("creditPriceMin");
@@ -74,9 +69,11 @@ namespace Selen.Sites {
                 await GetDromPhotos();
                 await UpAsync();
                 await EditAsync();
-                await AddAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
+                if (Class365API.SyncStartTime.Minute >= 55) {
+                    await AddAsync();
+                }
                 Log.Add(_l+"выгрузка завершена");
             } catch (Exception x) {
                 Log.Add(_l+"ошибка синхронизации! - " + x.Message);
@@ -235,7 +232,7 @@ namespace Selen.Sites {
             }
         }
         private void SetWeight(GoodObject b) {
-            if (_addWeights) {
+            if (_isAddWeights) {
                 var weight = b.weight ?? _defWeigth;
                 if (weight == 0)
                     weight = _defWeigth;

@@ -40,6 +40,8 @@ namespace Selen.Sites {
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
             await EditAsync();
+            if (Class365API.SyncStartTime.Minute < 55)
+                return;
             await GetAlbumsVKAsync();
             if (vkAlb.Count == 0)
                 return;

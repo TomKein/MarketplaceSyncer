@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.177";
+        string _version = "1.178";
 
         VK _vk = new VK();
         Drom _drom = new Drom();
@@ -140,10 +140,10 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.Active);
         }
         async Task SyncAllAsync() {
-            await Class365API.AddPartNumsAsync();//добавление артикулов из описания
-            await Class365API.CheckArhiveStatusAsync();//проверка архивного статуса
+            await Class365API.AddPartNumsAsync();               //добавление артикулов из описания
+            await Class365API.CheckArhiveStatusAsync();         //проверка архивного статуса
             await Class365API.CheckBu();
-            await Class365API.CheckUrls(); //удаление ссылок из черновиков
+            await Class365API.CheckUrls();                      //удаление ссылок из черновиков
             button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
             await Task.Delay(10000);
             button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
@@ -156,16 +156,17 @@ namespace Selen {
             await Task.Delay(10000);
             button_Izap24.Invoke(new Action(() => button_Izap24.PerformClick()));
             await Task.Delay(10000);
+            button_PricesIncomeCorrection.Invoke(new Action(() => button_PricesIncomeCorrection.PerformClick()));//массовое изменение цен закупки в оприходованиях
             await WaitButtonsActiveAsync();
-            button_PricesIncomeCorrection.Invoke(new Action(() => button_PricesIncomeCorrection.PerformClick()));
-            //проверка задвоенности наименований карточек товаров
-            await Class365API.CheckDublesAsync();   //проверка дублей
-            await Class365API.CheckMultipleApostropheAsync();   //проверка лишних аппострофов
-            await Class365API.ArtCheckAsync();//чистка артикулов от лишних символов
-            await Class365API.GroupsMoveAsync();//проверка групп
-            await Class365API.PhotoClearAsync();//очистка ненужных фото
-            await Class365API.ArchivateAsync();//архивирование старых карточек
-            await Class365API.CheckDescriptions();
+            if (Class365API.SyncStartTime.Minute >= 55) {
+                await Class365API.CheckDublesAsync();   //проверка дублей
+                await Class365API.CheckMultipleApostropheAsync();   //проверка лишних аппострофов
+                await Class365API.ArtCheckAsync();//чистка артикулов от лишних символов
+                await Class365API.GroupsMoveAsync();//проверка групп
+                await Class365API.PhotoClearAsync();//очистка ненужных фото
+                await Class365API.ArchivateAsync();//архивирование старых карточек
+                await Class365API.CheckDescriptions();
+            }
             await Class365API.CheckRealisationsAsync(); //проверка реализаций, добавление расходов
             dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
         }

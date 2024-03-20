@@ -22,6 +22,7 @@ namespace Selen.Sites {
         readonly float _oldPriceProcent = 10;
         List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\ozon\ozon_productList.json";
+        readonly string _reserveListFile = @"..\ozon\ozon_reserveList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
         List<GoodObject> _bus;                        //ссылка на товары
         static bool _isProductListCheckNeeds = true;
@@ -84,11 +85,75 @@ namespace Selen.Sites {
             if (_side == null) {
                 _side = await GetAttibuteValuesAsync(attribute_id: 22329);
             }
-            await CheckProductListAsync();
             await UpdateProductsAsync();
-            await AddProductsAsync();
+            await MakeReserve();
+            if (Class365API.SyncStartTime.Minute >= 55) {
+                await CheckProductListAsync();
+                await AddProductsAsync();
+            }
             if (GoodObject.ScanTime.Month < DateTime.Now.Month)
                 await CheckProductLinksAsync(checkAll: true);
+        }
+        private async Task MakeReserve() {
+            try {
+                //запросить список заказов со следующими статусами
+                var statuses = new List<string> {
+                    "awaiting_packaging",
+                    "awaiting_deliver"
+                };  
+                Postings postings = new Postings();
+                foreach (var status in statuses) {
+                    var data = new {
+                        filter = new {
+                            cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
+                            cutoff_to = DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                            warehouse_id = new int[] { },
+                            status = status
+                        },
+                        limit = 100,
+                        offset = 0,
+                        with = new {
+                            analytics_data = false,
+                            barcodes = false,
+                            financial_data = false,
+                            translit = false
+                        }
+                    };
+                    var result = await PostRequestAsync(data, "/v3/posting/fbs/unfulfilled/list");
+                    var res = JsonConvert.DeserializeObject<Postings>(result);
+                    postings.postings.AddRange(res.postings);
+                    Log.Add($"{_l} получено {res.postings.Count} заказов "+ status);
+                    postings.count += res.count;
+                }
+                //загружаем список заказов, для которых уже делали резервирование
+                var reserveList = new List<string>();
+                if (File.Exists(_reserveListFile)) {
+                    var s = File.ReadAllText(_reserveListFile);
+                    var l = JsonConvert.DeserializeObject<List<string>>(s);
+                    reserveList.AddRange(l);
+                }
+                //для каждого заказа сделать заказ с резервом в бизнес.ру
+                foreach (var order in postings.postings) {
+                    //проверяем наличие резерва
+                    if (reserveList.Contains(order.posting_number))
+                        continue;
+                    //готовим список товаров (id, amount)
+                    var goodsDict = new Dictionary<string, int>();
+                    order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"ozon order {order.posting_number}", 
+                                                                   goodsDict, order.in_process_at.ToString());
+                    if (isResMaked) {
+                        reserveList.Add(order.posting_number);
+                        if (reserveList.Count > 1000) {
+                            reserveList.RemoveAt(0);
+                        }
+                        var s = JsonConvert.SerializeObject(reserveList);
+                        File.WriteAllText(_reserveListFile, s);
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add(_l + "MakeReserve - " + x.Message);
+            }
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
@@ -131,10 +196,6 @@ namespace Selen.Sites {
                         _productList.AddRange(productList.items);
                         Log.Add($"{_l} получено {_productList.Count} товаров");
                     } while (_productList.Count < total);
-
-
-
-
                     Log.Add(_l + "ProductList - успешно загружено " + _productList.Count + " товаров");
                     File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productList));
                     Log.Add(_l + _productListFile + " - сохранено");
@@ -2340,6 +2401,24 @@ namespace Selen.Sites {
     }
     /////////////////////////////////////////
     /// Вспомогательные классы
+    /////////////////////////////////////////
+    public class Postings {
+        public List<Posting> postings = new List<Posting>();
+        public int count;
+    }
+    public class Posting {
+        public string posting_number;
+        public decimal order_id;
+        public string order_number;
+        public List<Product> products = new List<Product>();
+        public DateTime in_process_at;
+    }
+    public class Product {
+        public string offer_id;
+        public string name;
+        public decimal sku;
+        public int quantity;
+    }
     /////////////////////////////////////////
     public class Attributes {
         public int categoryId;

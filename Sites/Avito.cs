@@ -23,6 +23,8 @@ namespace Selen.Sites {
         XDocument autoCatalogXML;
 
         public async Task GenerateXML(List<GoodObject> _bus) {
+            if (Class365API.SyncStartTime.Minute < 55)
+                return;
             if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
                 Log.Add(_l + "синхронизация отключена!");
                 return;

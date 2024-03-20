@@ -320,6 +320,11 @@ namespace Selen {
                         {"updated[from]", lastLiteScanTime}
                     }));
 
+                stage = "запросим резервирования...";
+                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
+                    await RequestAsync("get", "reservationgoods", new Dictionary<string, string>{
+                        {"updated[from]", lastLiteScanTime}
+                    })));
                 stage = "текущие цены...";
                 ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
                     await RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
@@ -408,7 +413,8 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (DateTime.Now.Minute == 55 || LastScanTime.AddHours(1) < DateTime.Now) {
+                if (DateTime.Now.Minute % 15 > 10 && (DateTime.Now.AddMinutes(-5) > ScanTime) ||
+                    LastScanTime.AddHours(1) < DateTime.Now) {
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }
@@ -945,11 +951,11 @@ namespace Selen {
             }
         }
         public static async Task CheckRealisationsAsync() {
-            //запрашиваю реализации за последние 2 часа от последней синхронизации
+            //запрашиваю реализации за последний час от последней синхронизации
             var s = await RequestAsync("get", "realizations", new Dictionary<string, string>{
                         {"extended", "true"},
                         {"with_goods", "true"},
-                        {"updated[from]", ScanTime.AddHours(-1).ToString()},
+                        {"updated[from]", ScanTime.AddMinutes(-30).ToString()},
                     });
             var realizations = JsonConvert.DeserializeObject<List<Realization>>(s);
             //проверяю статус
@@ -1303,7 +1309,8 @@ namespace Selen {
             }
         });
         //создать резерв товара
-        public static async Task MakeReserve(Source source, string comment, Dictionary<string,int> goods) {
+        public static async Task<bool> MakeReserve(Source source, string comment, Dictionary<string,int> goods, string dt = null) {
+            if (dt==null) dt = DateTime.Now.ToString();
             Log.Add("MakeReserve - проверка резерва товаров для заказа с "+source+": " 
                 + goods.Select(g => g.Key).Aggregate((a, b) => a + ", " + b));
             //проверка резерва перед созданием
@@ -1313,7 +1320,7 @@ namespace Selen {
                             });
             if (s == null || s.Length > 4) {
                 Log.Add("MakeReserve - заказ уже существует, действий не требуется!");
-                return;
+                return true;
             }
             Log.Add("MakeReserve - заказ не найден, создаем заказ...");
             //создаем заказ покупателя
@@ -1325,9 +1332,12 @@ namespace Selen {
                                 { "status_id", ((int)CustomerOrderStatus.Markets).ToString() }, //статус заказа покупателя
                                 { "comment", comment },                                         //комментарий
                                 { "request_source_id", ((int)source).ToString() },              //источник заказа
+                                { "date",  dt.ToString()}
                             });
-            if (s==null || !s.Contains("updated"))
-                throw new Exception("MakeReserve - ошибка создания заказа!");
+            if (s == null || !s.Contains("updated")) {
+                Log.Add(_l+"MakeReserve - ошибка создания заказа!");
+                return false;
+            }
             Log.Add("MakeReserve - заказ создан");
             var order = JsonConvert.DeserializeObject<Response>(s);
             //создание резерва
@@ -1337,9 +1347,13 @@ namespace Selen {
                 { "partner_id", PARTNER_ID },                                                   //ссылка на контрагента
                 { "customer_order_id", order.id },                                              //id заказа
                 { "sync_with_order", "true" },                                                  //синхронизировать с заказом
+                { "comment", comment },                                                         //комментарий
+                { "date",  dt.ToString()}
             });
-            if (s==null || !s.Contains("updated"))
-                throw new Exception("MakeReserve - ошибка создания резерва!");
+            if (s==null || !s.Contains("updated")) {
+                Log.Add(_l+"MakeReserve - ошибка создания резерва!");
+                return false;
+            }
             Log.Add("MakeReserve - резерв для закаказа создан");
             //привязка товаров к заказу
             foreach (var good in goods) {
@@ -1349,10 +1363,13 @@ namespace Selen {
                                 { "amount", good.Value.ToString() },                            //количество товара
                                 { "price", _bus.Find(f=>f.id==good.Key).Price.ToString() },     //цена товара
                             });
-                if (s==null || !s.Contains("updated"))
-                    throw new Exception("MakeReserve - ошибка добавления товара в заказ!");
-                Log.Add("MakeReserve - " + good.Key + " товар добавлен в закаказ (" + good.Value+")");
+                if (s == null || !s.Contains("updated")) {
+                    Log.Add(_l+ "MakeReserve - ошибка добавления товара в заказ! - "+good.Key);
+                    return false;
+                }
+                Log.Add("MakeReserve - " + good.Key + " товар добавлен в заказ (" + good.Value+")");
             }
+            return true;
         }
 
     }
