@@ -68,7 +68,7 @@ namespace Selen.Base {
             DataTable table = new DataTable();
             MySqlDataAdapter adapter = new MySqlDataAdapter();
             adapter.SelectCommand = query;
-            for (int i = 0; ; i++) {
+            for (int i = 1; ; i++) {
                 try {
                     lock (_lock) {
                         OpenConnection();
@@ -79,7 +79,7 @@ namespace Selen.Base {
                     Log.Add("mysql: ошибка обращения к базе данных! (" + i + ") - " + x.Message, writeDb: false);
                     Thread.Sleep(10000);
                 }
-                if (i >= 10) {
+                if (i >= 5) {
                     Log.Add("mysql: ошибка обращения к базе данных! - превышено количество попыток обращений!", writeDb: false);
                     break;
                 }

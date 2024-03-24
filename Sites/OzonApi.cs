@@ -24,8 +24,10 @@ namespace Selen.Sites {
         readonly string _productListFile = @"..\ozon\ozon_productList.json";
         readonly string _reserveListFile = @"..\ozon\ozon_reserveList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
+        int _checkProductCount;              //количество проверяемых позиций за раз
+        int _checkProductIndex;              //текущий индекс проверяемой позиции
         List<GoodObject> _bus;                        //ссылка на товары
-        static bool _isProductListCheckNeeds = true;
+        static bool _isProductListCheckNeeds;
         bool _hasNext = false;                        //для запросов
         List<AttributeValue> _brends;                 //список брендов озон
         List<AttributeValue> _color;                  //список цветов озон
@@ -87,12 +89,11 @@ namespace Selen.Sites {
             }
             await UpdateProductsAsync();
             await MakeReserve();
+            await CheckProductListAsync();
             if (Class365API.SyncStartTime.Minute >= 55) {
-                await CheckProductListAsync();
                 await AddProductsAsync();
             }
-            if (GoodObject.ScanTime.Month < DateTime.Now.Month)
-                await CheckProductLinksAsync(checkAll: true);
+            await CheckProductLinksAsync(checkAll: true);
         }
         private async Task MakeReserve() {
             try {
@@ -106,7 +107,7 @@ namespace Selen.Sites {
                     var data = new {
                         filter = new {
                             cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
-                            cutoff_to = DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                            cutoff_to = DateTime.Now.AddDays(5).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
                             warehouse_id = new int[] { },
                             status = status
                         },
@@ -141,7 +142,7 @@ namespace Selen.Sites {
                     var goodsDict = new Dictionary<string, int>();
                     order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
                     var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"ozon order {order.posting_number}", 
-                                                                   goodsDict, order.in_process_at.ToString());
+                                                                   goodsDict, order.in_process_at.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.posting_number);
                         if (reserveList.Count > 1000) {
@@ -173,10 +174,12 @@ namespace Selen.Sites {
                 var startTime = DateTime.Now;
                 //если файл свежий и товары не добавляли - загружаем с диска
                 if (File.Exists(_productListFile) &&
-                    (startTime < File.GetLastWriteTime(_productListFile).AddDays(_updateFreq) || startTime.Hour >= 1)
+                    (startTime < File.GetLastWriteTime(_productListFile).AddDays(_updateFreq))
                     && !_isProductListCheckNeeds) {
-                    _productList = JsonConvert.DeserializeObject<List<ProductListItem>>(
-                        File.ReadAllText(_productListFile));
+                    if (_productList.Count == 0) {
+                        _productList = JsonConvert.DeserializeObject<List<ProductListItem>>(
+                            File.ReadAllText(_productListFile));
+                    }
                 } else {
                     _productList.Clear();
                     var last_id = "";
@@ -209,20 +212,27 @@ namespace Selen.Sites {
         }
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckProductLinksAsync(bool checkAll = false) {
-            foreach (var item in _productList) {
+            List<ProductListItem> items;
+            if (checkAll) {
+                _checkProductCount = await DB.GetParamIntAsync("ozon.checkProductCount");
+                _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
+                if (_checkProductIndex >= _productList.Count) 
+                    _checkProductIndex = 0;
+                await DB.SetParamAsync("ozon.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
+                items = _productList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<ProductListItem>();
+            } else 
+                items = _productList;
+            foreach (var item in items) {
                 try {
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = _bus.FindIndex(_ => _.id == item.offer_id);
                     if (b == -1)
-                        throw new Exception("карточка с id = " + item.offer_id + " не найдена!");
-                    //если товар не привязан к карточке, либо неверный sku в ссылке
-                    if (!_bus[b].ozon.Contains("http") ||
-                        _bus[b].ozon.Split('/').Last().Length < 3 ||
-                        checkAll) {
-                        //запросим все данные о товаре
+                        throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
+                    if (!_bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+                        _bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
+                        checkAll) {                                             //либо передали флаг проверять всё
                         var productInfo = await GetProductInfoAsync(_bus[b]);
                         await SaveUrlAsync(_bus[b], productInfo);
-                        //после проверки осуществляем проверку и обновление товара
                         await UpdateProductAsync(_bus[b], productInfo);
                     }
                 } catch (Exception x) {
@@ -375,7 +385,7 @@ namespace Selen.Sites {
 
                 var response = await _hc.SendAsync(requestMessage);
 
-                await Task.Delay(1000);
+                await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
                     var js = await response.Content.ReadAsStringAsync();
                     RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);

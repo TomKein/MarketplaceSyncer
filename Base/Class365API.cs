@@ -1354,7 +1354,7 @@ namespace Selen {
                 Log.Add(_l+"MakeReserve - ошибка создания резерва!");
                 return false;
             }
-            Log.Add("MakeReserve - резерв для закаказа создан");
+            Log.Add("MakeReserve - резерв для заказа создан");
             //привязка товаров к заказу
             foreach (var good in goods) {
                 s = await RequestAsync("post", "customerordergoods", new Dictionary<string, string> {
