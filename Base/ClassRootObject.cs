@@ -775,7 +775,7 @@ namespace Selen {
             //сперва проверяю поля карточки
             if (!string.IsNullOrWhiteSpace(this.width) &&
                 !string.IsNullOrWhiteSpace(this.height) &&
-                !string.IsNullOrWhiteSpace(this.length) != null) {
+                !string.IsNullOrWhiteSpace(this.length)) {
                 try {
                     arr[0] = float.Parse(this.length.Replace(".", ","));
                     arr[1] = float.Parse(this.width.Replace(".", ","));

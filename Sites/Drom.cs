@@ -208,7 +208,7 @@ namespace Selen.Sites {
                         _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                         _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
                         SetPart(_bus[b]);
-                        SetAlternativeParts(_bus[b]);
+                        //SetAlternativeParts(_bus[b]);
                         SetImages(_bus[b]);
                         SetDesc(_bus[b]);
                         SetPrice(_bus[b]);

@@ -17,8 +17,9 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.179";
+        string _version = "1.180";
 
+        YandexMarket _yandexMarket = new YandexMarket();
         VK _vk = new VK();
         Drom _drom = new Drom();
         Izap24 _izap24 = new Izap24();
@@ -126,8 +127,7 @@ namespace Selen {
             if (Class365API.IsWorkTime()) {
                 while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                     await Task.Delay(30000);
-                var yandexMarket = new YandexMarket();
-                await yandexMarket.GenerateXML(Class365API._bus);
+                await _yandexMarket.GenerateXML(Class365API._bus);
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -406,9 +406,8 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                var goods = new Dictionary<string, int>();
-                goods.Add("1112726", 1);
-                await Class365API.MakeReserve(Source.Ozon, "test ozon 123", goods);
+                await _yandexMarket.GetCompains();
+
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

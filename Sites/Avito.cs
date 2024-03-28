@@ -683,6 +683,7 @@ namespace Selen.Sites {
                   name.StartsWith("заслонка отопителя") ||
                   name.StartsWith("вакуумный переключатель") ||
                   name.StartsWith("электропроводка печки") ||
+                  name.StartsWith("пиропатрон петли") ||
                   b.GroupName() == "Электрика, зажигание") {
                 d.Add("TypeId", "11-630");                          //Электрооборудование
             } else if (name.StartsWith("ящик") ||
@@ -798,6 +799,7 @@ namespace Selen.Sites {
                   name.StartsWith("пружин") ||
                   name.StartsWith("стойка") ||
                   name.StartsWith("рычаг") ||
+                  name.StartsWith("ремкомплект рычага") ||
                   name.StartsWith("тарелка пружины") ||
                   name.Contains("опорн") && name.Contains("чашк") && name.Contains("амортизат") ||
                   name.StartsWith("тяга ") ||
@@ -806,6 +808,7 @@ namespace Selen.Sites {
                    name.Contains("шаров")) ||
                   (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
                   name.StartsWith("сайлентблок") ||
+                  name.StartsWith("сайленблок") ||
                   name.StartsWith("втулка сайлентблока") ||
                   name.StartsWith("привод ") ||
                   name.StartsWith("мкпп ") ||
@@ -877,7 +880,8 @@ namespace Selen.Sites {
                    name.StartsWith("труба прямая")||
                    name.StartsWith("адаптер") && name.Contains("топливн") ||
                    name.StartsWith("штуцер топлив") ||
-                   name.StartsWith("изгиб трубы глушителя")
+                   name.StartsWith("изгиб трубы глушителя")||
+                   name.StartsWith("накидная гайка топливного насоса")
                    ) {
                 d.Add("TypeId", "11-627");                          //Топливная и выхлопная системы
             } else if (name.StartsWith("балка") ||
@@ -972,6 +976,7 @@ namespace Selen.Sites {
                    name.StartsWith("крышка постел") ||
                    name.StartsWith("площадка датчика фаз") ||
                    name.StartsWith("промежуточный вал") ||
+                   name.StartsWith("промвал") ||
                    name.StartsWith("планка успокоителя") ||
                    name.StartsWith("планка натяжителя") ||
                    name.StartsWith("успокоитель цепи") ||
