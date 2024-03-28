@@ -8,6 +8,9 @@ using System.Xml.Linq;
 using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
+using System.Net;
+using System.Text;
+using System.Net.Http;
 
 namespace Selen.Sites {
     internal class YandexMarket {
@@ -20,8 +23,14 @@ namespace Selen.Sites {
         readonly int EXPRESS_MAX_HEIGHT = 43;
         readonly int EXPRESS_MAX_WEIGHT = 30;
         // Получение токена https://yandex.ru/dev/market/partner-api/doc/ru/concepts/authorization#token
-        readonly string ACCESS_TOKEN = "y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
+        readonly string ACCESS_TOKEN = "Bearer y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
+        public static string BasePath = "https://api.partner.market.yandex.ru";
+        HttpClient _hc = new HttpClient();
 
+
+        public YandexMarket() {
+            _hc.BaseAddress = new Uri(BasePath);
+        }
 
         //генерация xml
         public async Task GenerateXML(List<GoodObject> _bus) {
@@ -175,7 +184,7 @@ namespace Selen.Sites {
             } else
                 Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
-        private float GetAmountExpress(GoodObject b) { 
+        float GetAmountExpress(GoodObject b) { 
             var size = b.GetDimentions();
             if (size[0] > EXPRESS_MAX_LENGTH ||
                 size[1] > EXPRESS_MAX_WIDTH ||
@@ -184,7 +193,7 @@ namespace Selen.Sites {
                 return 0;
             return b.Amount;
         }
-        private int GetPrice(GoodObject b) {
+        int GetPrice(GoodObject b) {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
@@ -207,5 +216,37 @@ namespace Selen.Sites {
             var newPrice = (int)((0.97*(b.Price + overPrice)) / 10);
             return 10 * newPrice; 
         }
+
+        //работа с api
+        public async Task<string> PostRequestAsync(string apiRelativeUrl, object request = null, string method = "GET") {
+            try {
+                HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
+                requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
+                if (request != null) {
+                    var httpContent = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+                    requestMessage.Content = httpContent;
+                }
+                var response = await _hc.SendAsync(requestMessage);
+                await Task.Delay(500);
+                if (response.StatusCode == HttpStatusCode.OK) {
+                    var js = await response.Content.ReadAsStringAsync();
+                    RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);
+                    return JsonConvert.SerializeObject(rr.result);
+                } else
+                    throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
+            } catch (Exception x) {
+                Log.Add(" ошибка запроса! - " + x.Message);
+                throw;
+            }
+        }
+        //список магазинов
+        public async Task GetCompains() {
+            //var data = new {   //};
+            var result = await PostRequestAsync("/campaigns");
+        }
+
+
     }
+
+
 }
