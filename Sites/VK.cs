@@ -239,12 +239,15 @@ namespace Selen.Sites {
                         Log.Add("vk.com: получено объявлений " + vkMark.Count);
                         DB.SetParam("vk.checkCount", num.ToString());
                         MarketCount = num;
+                        Log.Add("vk.com: получено товаров " + num);
                         break;
                     }
                 } catch (Exception ex) {
                     Log.Add("vk.com: ошибка при запросе товаров! - " + ex.Message);
                     break;
                 }
+                if (num % 1000 == 0)
+                    Log.Add("vk.com: получено товаров " + num);
             }
             if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10)
                 return;

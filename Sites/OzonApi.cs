@@ -319,8 +319,8 @@ namespace Selen.Sites {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //наценка 25% на всё
-            int overPrice = (int) (b.Price * 0.25);
+            //наценка 30% на всё
+            int overPrice = (int) (b.Price * 0.30);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
@@ -1657,6 +1657,10 @@ namespace Selen.Sites {
                     a.categoryId = 85814516;
                     a.typeId = 970863590;
                     a.typeName = "Натяжитель ремня";
+                } else if (n.Contains("наконечник") && n.Contains("рулевой")) {
+                    a.categoryId = 85833342;
+                    a.typeId = 98854;
+                    a.typeName = "Наконечник рулевой";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));

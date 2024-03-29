@@ -124,11 +124,10 @@ namespace Selen {
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            if (Class365API.IsWorkTime()) {
-                while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
-                    await Task.Delay(30000);
-                await _yandexMarket.GenerateXML(Class365API._bus);
-            }
+            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
+                await Task.Delay(30000);
+            await _yandexMarket.MakeReserve();
+            await _yandexMarket.GenerateXML(Class365API._bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
         //OZON
@@ -406,7 +405,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                await _yandexMarket.GetCompains();
+                await _yandexMarket.MakeReserve();
 
             } catch (Exception x) {
                 Log.Add(x.Message);

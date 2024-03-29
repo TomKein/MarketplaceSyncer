@@ -16,8 +16,10 @@ namespace Selen.Sites {
     internal class YandexMarket {
 
         readonly string LP = "yandex: ";
-        readonly string FILE_NAME_PRIMARY = @"..\yandex.xml";
-        readonly string FILE_NAME_EXPRESS = @"..\yandex_express.xml";
+        readonly string FILE_PRIMARY_XML = @"..\data\yandex\yandex.xml";            //выгрузка основной магазин
+        readonly string FILE_EXPRESS_XML = @"..\data\yandex\yandex_express.xml";    //выгрузка на экспресс
+        readonly string FILE_COMPAIGNS = @"..\data\yandex\compaigns.json";          //список магазинов
+        readonly string FILE_RESERVES = @"..\data\yandex\reserves.json";       //список сделанных резервов
         readonly int EXPRESS_MAX_LENGTH = 90;
         readonly int EXPRESS_MAX_WIDTH = 54;
         readonly int EXPRESS_MAX_HEIGHT = 43;
@@ -26,6 +28,7 @@ namespace Selen.Sites {
         readonly string ACCESS_TOKEN = "Bearer y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
         public static string BasePath = "https://api.partner.market.yandex.ru";
         HttpClient _hc = new HttpClient();
+        MarketCampaigns _campaigns;
 
 
         public YandexMarket() {
@@ -71,9 +74,9 @@ namespace Selen.Sites {
                             n.StartsWith("крыша ") || n.Contains("задняя часть кузова") ||  //габаритные зч
                             n.Contains("крыло заднее") || n.Contains("четверть ") ||
                             n.Contains("передняя часть кузова") || n.Contains("лонжерон") ||
-                            n.Contains("панель передняя") || n.Contains("морда") || 
+                            n.Contains("панель передняя") || n.Contains("морда") ||
                             n.Contains("телевизор") || n.Contains("переделка")
-                            ) 
+                            )
                             continue;
                         var offer = new XElement("offer", new XAttribute("id", b.id));
                         offer.Add(new XElement("categoryId", b.group_id));
@@ -81,10 +84,10 @@ namespace Selen.Sites {
                         var price = GetPrice(b);
                         offer.Add(new XElement("price", price));
                         //цена до скидки +10%
-                        offer.Add(new XElement("oldprice", (Math.Ceiling((price * (1 + oldPriceProcent/100))/100)*100).ToString("F0")));
+                        offer.Add(new XElement("oldprice", (Math.Ceiling((price * (1 + oldPriceProcent / 100)) / 100) * 100).ToString("F0")));
                         offer.Add(new XElement("currencyId", "RUR"));
-                        foreach (var photo in b.images.Take(20)) 
-                            offer.Add(new XElement("picture", photo.url));                        
+                        foreach (var photo in b.images.Take(20))
+                            offer.Add(new XElement("picture", photo.url));
                         var description = b.DescriptionList(2990, _addDesc);
                         offer.Add(new XElement("description", new XCData(description.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
                         var vendor = b.GetManufacture();
@@ -107,7 +110,7 @@ namespace Selen.Sites {
                             offer.Add(condition);
                         }
                         //срок годности (если группа масла, автохимия, аксессуары)
-                        if (!b.IsGroupSolidParts())  
+                        if (!b.IsGroupSolidParts())
                             offer.Add(new XElement("period-of-validity-days", b.GetValidity().Split(' ').First()));
                         //квант продажи
                         var quant = b.GetQuantOfSell();
@@ -126,7 +129,7 @@ namespace Selen.Sites {
                         offerExpress.Add(new XElement("count", amountExpress));
 
                         //если надо снять
-                        offer.Add(new XElement("disabled", b.Amount <= 0 ? "true":"false"));
+                        offer.Add(new XElement("disabled", b.Amount <= 0 ? "true" : "false"));
                         offerExpress.Add(new XElement("disabled", amountExpress <= 0 ? "true" : "false"));
                         //добавляю оффер к офферам
                         offers.Add(offer);
@@ -172,24 +175,24 @@ namespace Selen.Sites {
                 xml.Add(root);
                 xmlExpress.Add(rootExpress);
                 //сохраняю файл
-                xml.Save(FILE_NAME_PRIMARY);
-                xmlExpress.Save(FILE_NAME_EXPRESS);
+                xml.Save(FILE_PRIMARY_XML);
+                xmlExpress.Save(FILE_EXPRESS_XML);
                 return true;
             });
             //если файл сгенерирован и его размер ок
-            if (await gen && new FileInfo(FILE_NAME_PRIMARY).Length > await DB.GetParamIntAsync("yandex.xmlMinSize")) {
+            if (await gen && new FileInfo(FILE_PRIMARY_XML).Length > await DB.GetParamIntAsync("yandex.xmlMinSize")) {
                 //отправляю файл на сервер
-                await SftpClient.FtpUploadAsync(FILE_NAME_PRIMARY);
-                await SftpClient.FtpUploadAsync(FILE_NAME_EXPRESS);
+                await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
+                await SftpClient.FtpUploadAsync(FILE_EXPRESS_XML);
             } else
                 Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
-        float GetAmountExpress(GoodObject b) { 
+        float GetAmountExpress(GoodObject b) {
             var size = b.GetDimentions();
             if (size[0] > EXPRESS_MAX_LENGTH ||
                 size[1] > EXPRESS_MAX_WIDTH ||
                 size[2] > EXPRESS_MAX_HEIGHT ||
-                b.GetWeight() > EXPRESS_MAX_WEIGHT) 
+                b.GetWeight() > EXPRESS_MAX_WEIGHT)
                 return 0;
             return b.Amount;
         }
@@ -197,8 +200,8 @@ namespace Selen.Sites {
             var weight = b.GetWeight();
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //наценка 25% на всё
-            int overPrice = (int)(b.Price * 0.25);
+            //наценка 30% на всё
+            int overPrice = (int) (b.Price * 0.30);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
@@ -213,25 +216,24 @@ namespace Selen.Sites {
                 overPrice = 3000;
             //скидка на всё 3% и округление рублей до десятков в меньшую сторону
             //таким образом, скидка будет 3% или чуть более
-            var newPrice = (int)((0.97*(b.Price + overPrice)) / 10);
-            return 10 * newPrice; 
+            var newPrice = (int) ((0.97 * (b.Price + overPrice)) / 10);
+            return 10 * newPrice;
         }
 
         //работа с api
-        public async Task<string> PostRequestAsync(string apiRelativeUrl, object request = null, string method = "GET") {
+        public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
+                if (request != null) {
+                    var qstr = QueryStringBuilder.BuildQueryString(request);
+                    apiRelativeUrl += "?" + qstr;
+                }
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
                 requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
-                if (request != null) {
-                    var httpContent = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
-                    requestMessage.Content = httpContent;
-                }
                 var response = await _hc.SendAsync(requestMessage);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
-                    var js = await response.Content.ReadAsStringAsync();
-                    RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                    return JsonConvert.SerializeObject(rr.result);
+                    var json = await response.Content.ReadAsStringAsync();
+                    return json;
                 } else
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
@@ -239,14 +241,114 @@ namespace Selen.Sites {
                 throw;
             }
         }
+
+        public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
+            try {
+                var response = await PostRequestAsync(apiRelativeUrl, request, method);
+                T obj = JsonConvert.DeserializeObject<T>(response);
+                return obj;
+            } catch (Exception x) {
+                Log.Add(" ошибка запроса! - " + x.Message);
+                throw;
+            }
+        }
         //список магазинов
         public async Task GetCompains() {
-            //var data = new {   //};
-            var result = await PostRequestAsync("/campaigns");
+            if (File.Exists(FILE_COMPAIGNS) &&
+                Class365API.ScanTime < File.GetLastWriteTime(FILE_COMPAIGNS).AddDays(7)) {
+                if (_campaigns == null || _campaigns.campaigns?.Count == 0) {
+                    _campaigns = JsonConvert.DeserializeObject<MarketCampaigns>(
+                         File.ReadAllText(FILE_COMPAIGNS));
+                }
+            } else {
+                _campaigns = await PostRequestAsync<MarketCampaigns>("/campaigns");
+                var s = JsonConvert.SerializeObject(_campaigns);
+                File.WriteAllText(FILE_COMPAIGNS, s);
+            }
         }
-
-
+        //резервирование
+        public async Task MakeReserve() {
+            try {
+                //обновляю список магазинов
+                await GetCompains();
+                //для каждого магазина получаю список заказов
+                foreach (var campaign in _campaigns.campaigns) {
+                    var campaignId = campaign.id;
+                    var s = await PostRequestAsync($"/campaigns/{campaignId}/orders",new Dictionary<string, string> {
+                        { "fromDate", DateTime.Now.Date.ToString("dd-MM-yyyy") }
+                    });
+                    var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
+                    Log.Add(LP + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);
+                    //загружаем список заказов, для которых уже делали резервирование
+                    var reserveList = new List<string>();
+                    if (File.Exists(FILE_RESERVES)) {
+                        var r = File.ReadAllText(FILE_RESERVES);
+                        var l = JsonConvert.DeserializeObject<List<string>>(r);
+                        reserveList.AddRange(l);
+                    }
+                    //для каждого заказа сделать заказ с резервом в бизнес.ру
+                    foreach (var order in orders.orders) {
+                        //проверяем наличие резерва
+                        if (reserveList.Contains(order.id))
+                            continue;
+                        //готовим список товаров (id, amount)
+                        var goodsDict = new Dictionary<string, int>();
+                        order.items.ForEach(i => goodsDict.Add(i.offerId, i.count));
+                        var isResMaked = await Class365API.MakeReserve(Selen.Source.YandexMarket, $"yandex.market order {order.id}",
+                                                                       goodsDict, order.creationDate);
+                        if (isResMaked) {
+                            reserveList.Add(order.id);
+                            if (reserveList.Count > 1000) {
+                                reserveList.RemoveAt(0);
+                            }
+                            var rl = JsonConvert.SerializeObject(reserveList);
+                            File.WriteAllText(FILE_RESERVES, rl);
+                        }
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add(LP + "MakeReserve - " + x.Message);
+            }
+        }
     }
 
+
+    /////////////////////////////////
+    public class MarketCampaigns {
+        public List<MarketCampaign> campaigns { get; set; }
+        public Pager pager { get; set; }
+    }
+    public class MarketCampaign {
+        public string domain { get; set; }
+        public string id { get; set; }
+        public string clientId { get; set; }
+    }
+    public class MarketOrders {
+        public Pager pager { get; set; }
+        public List<MarketOrder> orders{ get; set; }
+    }
+    public class MarketOrder {
+        public string id { get; set; }
+        public string status { get; set; }
+        public string substatus { get; set; }
+        public string creationDate { get; set; }
+        public List<MarketItem> items { get; set; }
+    }
+    public class MarketItem {
+        public string id { get; set; }
+        public string offerId { get; set; }
+        public string offerName { get; set; }
+        public float price { get; set; }
+        public int count { get; set; }
+    }
+
+    public class Pager {
+        public int total{ get; set; }
+        public int from{ get; set; }
+        public int to{ get; set; }
+        public int currentPage{ get; set; }
+        public int pagesCount{ get; set; }
+        public int pageSize{ get; set; }
+    }
 
 }
