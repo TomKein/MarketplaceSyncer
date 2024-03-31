@@ -389,7 +389,7 @@ namespace Selen.Sites {
                 if (response.StatusCode == HttpStatusCode.OK) {
                     var js = await response.Content.ReadAsStringAsync();
                     RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                    if (rr.has_next != null && rr.has_next)
+                    if (rr.has_next)
                         _hasNext = true;
                     else
                         _hasNext = false;
@@ -2247,7 +2247,7 @@ namespace Selen.Sites {
         Attribute GetBrendAttribute(GoodObject bus) {
             int id;
             string name;
-            var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
+            //var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
             //if (m == "vag") {
             //    id = 115840909;
             //    name = "VAG (VW/Audi/Skoda/Seat)";
@@ -2255,11 +2255,13 @@ namespace Selen.Sites {
             //    id = 0;
             //    name = "Нет бренда";
             //} else
-            if (m== "chery" && _brends.Any(a => a.value.ToLowerInvariant() == m)) {
-                var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
-                id = attribute.id;
-                name = attribute.value;
-            } else {
+
+            //if (m== "chery" && _brends.Any(a => a.value.ToLowerInvariant() == m)) {
+            //    var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
+            //    id = attribute.id;
+            //    name = attribute.value;
+            //} else 
+            {
                 id = 0;
                 name = "Нет бренда";
             }

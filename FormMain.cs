@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.180";
+        string _version = "1.181";
 
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk = new VK();

@@ -29,12 +29,9 @@ namespace Selen.Sites {
         public static string BasePath = "https://api.partner.market.yandex.ru";
         HttpClient _hc = new HttpClient();
         MarketCampaigns _campaigns;
-
-
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
         }
-
         //генерация xml
         public async Task GenerateXML(List<GoodObject> _bus) {
             var gen = Task.Factory.StartNew(() => {
@@ -219,7 +216,6 @@ namespace Selen.Sites {
             var newPrice = (int) ((0.97 * (b.Price + overPrice)) / 10);
             return 10 * newPrice;
         }
-
         //работа с api
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
@@ -241,7 +237,6 @@ namespace Selen.Sites {
                 throw;
             }
         }
-
         public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
                 var response = await PostRequestAsync(apiRelativeUrl, request, method);
@@ -275,7 +270,7 @@ namespace Selen.Sites {
                 foreach (var campaign in _campaigns.campaigns) {
                     var campaignId = campaign.id;
                     var s = await PostRequestAsync($"/campaigns/{campaignId}/orders",new Dictionary<string, string> {
-                        { "fromDate", DateTime.Now.Date.ToString("dd-MM-yyyy") }
+                        { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
                     });
                     var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
                     Log.Add(LP + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);
@@ -311,9 +306,9 @@ namespace Selen.Sites {
             }
         }
     }
-
-
-    /////////////////////////////////
+    /////////////////////////////////////
+    /// классы для работы с запросами ///
+    /////////////////////////////////////
     public class MarketCampaigns {
         public List<MarketCampaign> campaigns { get; set; }
         public Pager pager { get; set; }
@@ -341,7 +336,6 @@ namespace Selen.Sites {
         public float price { get; set; }
         public int count { get; set; }
     }
-
     public class Pager {
         public int total{ get; set; }
         public int from{ get; set; }
@@ -350,5 +344,4 @@ namespace Selen.Sites {
         public int pagesCount{ get; set; }
         public int pageSize{ get; set; }
     }
-
 }
