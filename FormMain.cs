@@ -17,7 +17,7 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.181";
+        string _version = "1.182";
 
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk = new VK();
@@ -66,6 +66,7 @@ namespace Selen {
             try {
                 while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
+                await _avito.MakeReserve();
                 await _avito.GenerateXML(Class365API._bus);
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
@@ -143,17 +144,17 @@ namespace Selen {
             await Class365API.CheckArhiveStatusAsync();         //проверка архивного статуса
             await Class365API.CheckBu();
             await Class365API.CheckUrls();                      //удаление ссылок из черновиков
-            button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
-            await Task.Delay(10000);
-            button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
-            await Task.Delay(10000);
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
-            button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
+            button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
             await Task.Delay(10000);
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(10000);
             button_Izap24.Invoke(new Action(() => button_Izap24.PerformClick()));
+            await Task.Delay(10000);
+            button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
+            await Task.Delay(10000);
+            button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
             await Task.Delay(10000);
             button_PricesIncomeCorrection.Invoke(new Action(() => button_PricesIncomeCorrection.PerformClick()));//массовое изменение цен закупки в оприходованиях
             await WaitButtonsActiveAsync();
@@ -291,12 +292,12 @@ namespace Selen {
                         if (but.Enabled || but.BackColor != Color.Red) {
                             but.Enabled = false;
                             but.BackColor = Color.Red;
-                        }
+                }
                         break;
                     default:
                         break;
-                }
             }
+        }
         }
         //============
         //=== ЛОГИ ===
@@ -405,7 +406,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                await _yandexMarket.MakeReserve();
+                await _drom.MakeReserveAsync();
 
             } catch (Exception x) {
                 Log.Add(x.Message);

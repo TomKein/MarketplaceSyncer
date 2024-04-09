@@ -26,9 +26,9 @@ namespace Selen.Sites {
         readonly int _updateFreq;                //частота обновления списка (часов)
         int _checkProductCount;              //количество проверяемых позиций за раз
         int _checkProductIndex;              //текущий индекс проверяемой позиции
-        List<GoodObject> _bus;                        //ссылка на товары
         static bool _isProductListCheckNeeds;
         bool _hasNext = false;                        //для запросов
+        List<GoodObject> _bus;
         List<AttributeValue> _brends;                 //список брендов озон
         List<AttributeValue> _color;                  //список цветов озон
         List<AttributeValue> _techType;               //список вид техники
@@ -42,7 +42,7 @@ namespace Selen.Sites {
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         
         //производители, для которых не выгружаем номера и артикулы
-        readonly string[] _exceptManufactures = { "general motors" }; 
+        readonly string[] _exceptManufactures = { "general motors" };
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -141,7 +141,7 @@ namespace Selen.Sites {
                     //готовим список товаров (id, amount)
                     var goodsDict = new Dictionary<string, int>();
                     order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
-                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"ozon order {order.posting_number}", 
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"Ozon order {order.posting_number}", 
                                                                    goodsDict, order.in_process_at.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.posting_number);
@@ -225,15 +225,15 @@ namespace Selen.Sites {
             foreach (var item in items) {
                 try {
                     //карточка в бизнес.ру с id = артикулу товара на озон
-                    var b = _bus.FindIndex(_ => _.id == item.offer_id);
+                    var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
                     if (b == -1)
                         throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
-                    if (!_bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
-                        _bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
+                    if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+                        Class365API._bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
                         checkAll) {                                             //либо передали флаг проверять всё
-                        var productInfo = await GetProductInfoAsync(_bus[b]);
-                        await SaveUrlAsync(_bus[b], productInfo);
-                        await UpdateProductAsync(_bus[b], productInfo);
+                        var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
+                        await SaveUrlAsync(Class365API._bus[b], productInfo);
+                        await UpdateProductAsync(Class365API._bus[b], productInfo);
                     }
                 } catch (Exception x) {
                     Log.Add(_l + " CheckGoodsAsync ошибка - " + x.Message);
@@ -535,7 +535,7 @@ namespace Selen.Sites {
                 "телевизор "
             };
             //список карточек которые еще не добавлены на озон
-            var goods = _bus.Where(w => w.Amount > 0
+            var goods = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
                                      && w.Part != null
                                      && w.images.Count > 0
@@ -547,7 +547,7 @@ namespace Selen.Sites {
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods);
-            var goods2 = _bus.Where(w => w.Amount > 0
+            var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
                                      && w.images.Count > 0
                                      && w.IsNew()
@@ -2415,9 +2415,9 @@ namespace Selen.Sites {
             Log.Add("товары выгружены в ozonGoodListForAdding.csv");
         }
     }
-    /////////////////////////////////////////
-    /// Вспомогательные классы
-    /////////////////////////////////////////
+    /////////////////////////////////////
+    /// классы для работы с запросами ///
+    /////////////////////////////////////
     public class Postings {
         public List<Posting> postings = new List<Posting>();
         public int count;
@@ -2444,7 +2444,6 @@ namespace Selen.Sites {
         public string typeName;
         public List<Attribute> additionalAttributes = new List<Attribute>();
     }
-
     public static class Extentions {
         public static void AddAttribute(this List<Attribute> list, Attribute newAttr) {
             if (newAttr != null)

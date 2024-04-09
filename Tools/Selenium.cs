@@ -14,7 +14,7 @@ using Selen.Base;
 
 namespace Selen.Tools {
 
-    class Selenium {
+    public class Selenium {
 
         public readonly IWebDriver _drv;
 

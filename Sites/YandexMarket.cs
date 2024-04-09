@@ -13,7 +13,7 @@ using System.Text;
 using System.Net.Http;
 
 namespace Selen.Sites {
-    internal class YandexMarket {
+    public class YandexMarket {
 
         readonly string LP = "yandex: ";
         readonly string FILE_PRIMARY_XML = @"..\data\yandex\yandex.xml";            //выгрузка основной магазин
@@ -37,7 +37,7 @@ namespace Selen.Sites {
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
-                if (uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
+                if (uploadInterval == 0 || DateTime.Now.Hour % uploadInterval != 0)
                     return false;
                 //доп. описание
                 string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
@@ -54,7 +54,7 @@ namespace Selen.Sites {
                 GoodObject.UpdateDefaultValidity();
                 //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по цене вниз
-                var bus = _bus.Where(w => w.Price > 0
+                var bus = Class365API._bus.Where(w => w.Price > 0
                                        && w.images.Count > 0
                                        && (w.Amount > 0 || DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price);
@@ -278,8 +278,7 @@ namespace Selen.Sites {
                     var reserveList = new List<string>();
                     if (File.Exists(FILE_RESERVES)) {
                         var r = File.ReadAllText(FILE_RESERVES);
-                        var l = JsonConvert.DeserializeObject<List<string>>(r);
-                        reserveList.AddRange(l);
+                        reserveList = JsonConvert.DeserializeObject<List<string>>(r);
                     }
                     //для каждого заказа сделать заказ с резервом в бизнес.ру
                     foreach (var order in orders.orders) {
@@ -289,7 +288,7 @@ namespace Selen.Sites {
                         //готовим список товаров (id, amount)
                         var goodsDict = new Dictionary<string, int>();
                         order.items.ForEach(i => goodsDict.Add(i.offerId, i.count));
-                        var isResMaked = await Class365API.MakeReserve(Selen.Source.YandexMarket, $"yandex.market order {order.id}",
+                        var isResMaked = await Class365API.MakeReserve(Selen.Source.YandexMarket, $"Yandex.Market order {order.id}",
                                                                        goodsDict, order.creationDate);
                         if (isResMaked) {
                             reserveList.Add(order.id);

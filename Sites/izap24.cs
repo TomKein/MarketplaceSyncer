@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
-    class Izap24 {
+    public class Izap24 {
         string _l = "izap24: ";
         //список товаров
         List<GoodObject> _bus;

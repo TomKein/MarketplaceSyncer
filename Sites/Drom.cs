@@ -5,17 +5,19 @@ using Selen.Tools;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Forms;
 
 namespace Selen.Sites {
-    class Drom {
+    public class Drom {
         readonly string _l = "drom.ru: ";     //префикс для лога
         public Selenium _dr;               //браузер
         string _url;                //ссылка в карточке товара
@@ -26,9 +28,11 @@ namespace Selen.Sites {
         bool _isAddWeights;           //добавление веса 
         float _defWeigth;           //вес по умолчанию 
         List<GoodObject> _bus;      //ссылка на товары
-        string _dromUrlStart = "https://baza.drom.ru/bulletin/";
+        readonly string _dromBaseUrl = "https://baza.drom.ru/bulletin/";
+        readonly string _fileReserve = @"..\data\drom\reserves.json";     //список сделанных резервов
         bool _needRestart = false;
         Random _rnd = new Random();
+        List<string> _reserveList = new List<string>();
         //конструктор
         public Drom() {
         }
@@ -66,6 +70,7 @@ namespace Selen.Sites {
 
                 Log.Add(_l+"начало выгрузки...");
                 await AuthAsync();
+                await MakeReserveAsync();
                 await GetDromPhotos();
                 await UpAsync();
                 await EditAsync();
@@ -107,6 +112,77 @@ namespace Selen.Sites {
                 SaveCookies();
             });
         }
+        //резервирование
+        public async Task MakeReserveAsync() {
+            try {
+                //загружаем список заказов, для которых уже делали резерв
+                if (File.Exists(_fileReserve)) {
+                    var r = File.ReadAllText(_fileReserve);
+                    _reserveList = JsonConvert.DeserializeObject<List<string>>(r);
+                }
+                //получаю список заказов
+                var orders = await GetOrdersAsync();
+                Log.Add($"{_l} MakeReserve - получено  заказов: " + orders.Count);
+                //для каждого заказа сделать заказ с резервом в бизнес.ру
+                foreach (var order in orders) {
+                    //готовим список товаров (id, amount)
+                    var goodsDict = new Dictionary<string, int>();
+                    order.Items.ForEach(i => goodsDict.Add(i.Id, i.Count));
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Drom, $"Drom (Farpost) order {order.Id}",
+                                                                   goodsDict, order.Date);
+                    if (isResMaked) {
+                        _reserveList.Add(order.Id);
+                        if (_reserveList.Count > 1000) {
+                            _reserveList.RemoveAt(0);
+                        }
+                        var rl = JsonConvert.SerializeObject(_reserveList);
+                        File.WriteAllText(_fileReserve, rl);
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{_l} MakeReserve - " + x.Message);
+            }
+        }
+        public async Task<List<DromOrder>> GetOrdersAsync() {
+            await _dr.NavigateAsync("https://baza.drom.ru/personal/sold/bulletins?page=1&type=all", ".deal-list .deal-item");
+            var dealList = await _dr.FindElementsAsync(".deal-list .deal-item");
+            var orderList = new List<DromOrder>();
+            var reg = new Regex(@"(\d+)");   // some digits 1+ e.g. 565156487 in drom url (id)
+            foreach (var deal in dealList) {
+                var numberElement = deal.FindElement(By.CssSelector(".deal-identifier a"));
+                var dealNumber = numberElement.Text.Split(' ')[1];
+                //проверяем наличие резерва
+                if (_reserveList.Contains(dealNumber)
+                    //order.Status == "closed" ||
+                    //order.Status == "on_return"
+                    )
+                    continue;
+                var dateElement = deal.FindElement(By.CssSelector(".deal-date"));
+                var dateString = dateElement.Text;
+                var dealStatusElement = deal.FindElement(By.CssSelector(".deal-select-status span"));
+                var dealStatus = dealStatusElement.Text;
+                orderList.Add(new DromOrder {
+                    Id = dealNumber,
+                    Date = dateString,
+                    Status = dealStatus,
+                    Items = new List<DromOrderItem>()
+                });
+                var itemsElements = deal.FindElements(By.CssSelector(".deal-target-list .bulletin-of-deal"));
+                foreach (var item in itemsElements) {
+                    var itemId = item.GetAttribute("data-ref");
+                    itemId = itemId.Split(':')[1];
+                    itemId = _bus.Find(b => reg.Match(b.drom??"").Value == itemId).id;
+                    var itemCountString = item.FindElement(By.CssSelector(".subject-quantity")).GetAttribute("data-quantity");
+                    var itemCount = int.Parse(itemCountString);
+                    orderList.Last().Items.Add(new DromOrderItem {
+                        Id = itemId,
+                        Count = itemCount
+                    });
+                }
+            }
+            return orderList;
+        }
+
         async Task EditAsync() {
             await Task.Factory.StartNew(() => {
                 for (int b = 0; b < _bus.Count; b++) {
@@ -129,7 +205,6 @@ namespace Selen.Sites {
                 }
             });
         }
-
         void Edit(GoodObject b) {
             if (b.drom.Contains("tin/ht")) {
                 Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
@@ -178,7 +253,6 @@ namespace Selen.Sites {
             if (string.IsNullOrEmpty(w) || w != b.name)
                 _dr.WriteToSelector("//input[@name='subject']", b.name);
         }
-
         void Delete(GoodObject b) {
             //переход на страницу объявления, если он нужен
             _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
@@ -191,7 +265,6 @@ namespace Selen.Sites {
                     Log.Add(_l + b.name+" ошибка - объявление не удалено!");
             }
         }
-
         public async Task AddAsync() {
             var count = await DB.GetParamIntAsync("drom.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
@@ -247,7 +320,7 @@ namespace Selen.Sites {
         }
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl().Split('-').Last().Split('.').First();
-            _bus[b].drom = _dromUrlStart + new_id + "/edit";
+            _bus[b].drom = _dromBaseUrl + new_id + "/edit";
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                 {"id", _bus[b].id},
                 {"name", _bus[b].name},
@@ -663,4 +736,34 @@ namespace Selen.Sites {
             }
         }
     }
+
+    ////////////////////////////
+    /// вспомогательные типы ///
+    ////////////////////////////
+    public class DromOrder { 
+        public string Id { get; set; }
+        DateTime date;
+        public string Date { 
+            get {
+                return date.ToString();
+            }
+            set {
+                var nowDate = DateTime.Now.Date;
+                var tmpStr = value.Replace("сегодня", nowDate.ToString("d MMMM"))
+                                  .Replace("вчера", nowDate.AddDays(-1).ToString("d MMMM"));
+                var year = nowDate.Year.ToString();
+                if (!tmpStr.EndsWith(year))
+                    tmpStr += " " + year;
+                //todo it's better to replace this parsing with culture invariant one! this works only with "ru-RU" culture
+                date = DateTime.ParseExact(tmpStr, "HH:mm, d MMMM yyyy",CultureInfo.CurrentCulture);
+            } }
+        public string Status { get; set; }
+        public List<DromOrderItem> Items { get; set; }
+    }
+    public class DromOrderItem {
+        public string Id { get; set; }
+        public int Count { get; set; }
+    }
+
+
 }

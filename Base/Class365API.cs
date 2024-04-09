@@ -173,7 +173,7 @@ namespace Selen {
                         var js = await httpResponseMessage.Content.ReadAsStringAsync();
                         _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                         //todo добавить параметр в настройки
-                        Thread.Sleep(100);
+                        Thread.Sleep(500);
                         _flag = false;
                         return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                     }
@@ -367,7 +367,7 @@ namespace Selen {
                             distinctIds.Add(id.good_id);
                         }
                     }
-                    if (distinctIds.Count > 0)
+                    if (distinctIds.Count > 0) 
                         lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
                 }
                 //если изменений слишком много или сменился день - нужен полный рескан базы
@@ -431,22 +431,14 @@ namespace Selen {
         }
 
         static async Task<List<GoodObject>> GetBusGoodsAsync(List<string> ids) {
-            int uMax = 200;
-            var iMax = ids.Count % uMax > 0 ? ids.Count / uMax + 1 : ids.Count / uMax;
+            int requestLimit = 10;
             List<GoodObject> lro = new List<GoodObject>();
-
-            for (int i = 0; i < iMax; i++) {
+            while (ids.Count > 0) {
+                var requestId = ids.Take(requestLimit).ToList();
+                ids = ids.Skip(requestLimit).ToList();
                 var d = new Dictionary<string, string>();
-                for (int u = 0; u < uMax; u++) {
-                    if (u + i * uMax < ids.Count)
-                        d.Add("id[" + u + "]", ids[u + i * uMax]);
-                    else
-                        break;
-                }
-                //d.Add("archive", "0");
-                //d.Add("type", "1");
-                //d.Add("limit", pageLimitBase.ToString());
-                //d.Add("page", i.ToString());
+                for (int i = 0; i < requestId.Count; i++) 
+                    d.Add("id[" + i + "]", requestId[i]);
                 d.Add("with_attributes", "1");
                 d.Add("with_additional_fields", "1");
                 d.Add("with_remains", "1");
@@ -462,7 +454,7 @@ namespace Selen {
                             .Replace("\"209360\":", "\"vk\":")
                             .Replace("\"854879\":", "\"ozon\":");
                         lro.AddRange(JsonConvert.DeserializeObject<List<GoodObject>>(s));
-                        await Task.Delay(1000);
+                        await Task.Delay(100);
                         break;
                     } catch (Exception x) {
                         Log.Add(_l + "ошибка запроса товаров!!! - " + d + " - " + x.Message + " - " + s);
@@ -470,7 +462,7 @@ namespace Selen {
                         await Task.Delay(60000);
                     }
                 } while (err < 10);
-            }
+            } 
             return lro;
         }
         public static async Task SaveBusAsync() {
@@ -1313,6 +1305,7 @@ namespace Selen {
             if (dt==null) dt = DateTime.Now.ToString();
             Log.Add("MakeReserve - проверка резерва товаров для заказа с "+source+": " 
                 + goods.Select(g => g.Key).Aggregate((a, b) => a + ", " + b));
+            if (goods.Count <= 0) return false;
             //проверка резерва перед созданием
             var s = await RequestAsync("get", "customerorders", new Dictionary<string, string> {
                                 { "request_source_id", ((int)source).ToString() },              //источник заказа
@@ -1332,7 +1325,7 @@ namespace Selen {
                                 { "status_id", ((int)CustomerOrderStatus.Markets).ToString() }, //статус заказа покупателя
                                 { "comment", comment },                                         //комментарий
                                 { "request_source_id", ((int)source).ToString() },              //источник заказа
-                                { "date",  dt.ToString()}
+                                { "date",  dt}
                             });
             if (s == null || !s.Contains("updated")) {
                 Log.Add(_l+"MakeReserve - ошибка создания заказа!");
@@ -1348,7 +1341,7 @@ namespace Selen {
                 { "customer_order_id", order.id },                                              //id заказа
                 { "sync_with_order", "true" },                                                  //синхронизировать с заказом
                 { "comment", comment },                                                         //комментарий
-                { "date",  dt.ToString()}
+                { "date",  dt}
             });
             if (s==null || !s.Contains("updated")) {
                 Log.Add(_l+"MakeReserve - ошибка создания резерва!");
@@ -1368,6 +1361,7 @@ namespace Selen {
                     return false;
                 }
                 Log.Add("MakeReserve - " + good.Key + " товар добавлен в заказ (" + good.Value+")");
+                _bus.Find(f => f.id == good.Key).Amount -= good.Value;
             }
             return true;
         }

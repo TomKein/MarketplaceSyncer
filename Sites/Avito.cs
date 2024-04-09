@@ -5,23 +5,138 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
     internal class Avito {
+        //получение ключей https://www.avito.ru/professionals/api
+        //получение токена https://developers.avito.ru/api-catalog/auth/documentation#operation/getAccessToken
         readonly string _l = "avito: ";
-        readonly string _fileNameExport = @"..\avito.xml";
-        readonly string _fileNameStockExport = @"..\avitostock.xml";
-        readonly string _autoCatalogFile = @"..\autocatalog.xml";
+        readonly string _fileNameExport = @"..\data\avito.xml";
+        readonly string _fileNameStockExport = @"..\data\avitostock.xml";
+        readonly string _autoCatalogFile = @"..\data\autocatalog.xml";
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
-        //получение ключей https://www.avito.ru/professionals/api
-        readonly string _clientId = "4O7a8RcHV1qdcbp_Lr7f";
-        readonly string _clientSecret = "1JtB0Yi801aPfl2mKLziP_QcauNEaZaTMuG6asuB";
         XDocument autoCatalogXML;
+        string _clientId;// = "4O7a8RcHV1qdcbp_Lr7f";
+        string _clientSecret;// = "1JtB0Yi801aPfl2mKLziP_QcauNEaZaTMuG6asuB";
+        string _accessToken;
+        readonly string FILE_RESERVES = @"..\data\avito\reserves.json";       //список сделанных резервов
+        string _basePath;// = "https://api.avito.ru";
+        HttpClient _hc = new HttpClient();
 
+        public Avito() {
+            _clientId = DB.GetParamStr("avito.clientId");
+            _clientSecret = DB.GetParamStr("avito.clientSecret");
+            _basePath = DB.GetParamStr("avito.basePath");
+            _accessToken = DB.GetParamStr("avito.accessToken");
+            _hc.BaseAddress = new Uri(_basePath);
+        }
+        public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
+            try {
+                if (request != null) {
+                    var qstr = QueryStringBuilder.BuildQueryString(request);
+                    apiRelativeUrl += "?" + qstr;
+                }
+                for (int i = 1; i <= 10; i++) {
+                    HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
+                    requestMessage.Headers.Add("Authorization", "Bearer " + _accessToken);
+                    var response = await _hc.SendAsync(requestMessage);
+                    var json = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == HttpStatusCode.OK) {
+                        await Task.Delay(500);
+                        return json;
+                    } else if (response.StatusCode==HttpStatusCode.InternalServerError) {
+                        Log.Add($"{_l} ошибка сервиса! {response.StatusCode} ({i})");
+                    } else {
+                        Log.Add($"{_l} ошибка запроса! {response.StatusCode} ({i})");
+                        await Task.Delay(500);
+                        await GetAccessToken();
+                    }
+                }
+                throw new Exception("превышено количество попыток!!");
+
+            } catch (Exception x) {
+                Log.Add($"{_l} ошибка запрос не отправлен! - " + x.Message);
+                throw;
+            }
+        }
+        public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
+            try {
+                var response = await PostRequestAsync(apiRelativeUrl, request, method);
+                T obj = JsonConvert.DeserializeObject<T>(response);
+                return obj;
+            } catch (Exception x) {
+                Log.Add(" ошибка запроса! - " + x.Message);
+                throw;
+            }
+        }
+        public async Task GetAccessToken() {
+            Log.Add($"{_l} получаю токен для доступа!");
+            var req = new Dictionary<string, string>() {
+                {"grant_type","client_credentials" },
+                {"client_id", _clientId },
+                {"client_secret",_clientSecret },
+            };
+            var qstr = QueryStringBuilder.BuildQueryString(req);
+            HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/x-www-form-urlencoded");
+            var response = await _hc.PostAsync(_basePath + "/token", content);
+            await Task.Delay(200);
+            if (response.StatusCode == HttpStatusCode.OK) {
+                var json = await response.Content.ReadAsStringAsync();
+                var r = JsonConvert.DeserializeObject<AvitoResponseToken>(json);
+                _accessToken = r.access_token;
+                await DB.SetParamAsync("avito.accessToken", _accessToken);
+                Log.Add($"{_l} новый токен получен! {_accessToken}");
+            } else
+                throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
+        }
+        //резервирование
+        public async Task MakeReserve() {
+            try {
+                //получаю список заказов
+                var orders = await PostRequestAsync<AvitoOrders>("/order-management/1/orders");
+                Log.Add($"{_l} MakeReserve - получено  заказов: " + orders.orders.Count);
+                //загружаем список заказов, для которых уже делали резерв
+                var reserveList = new List<string>();
+                if (File.Exists(FILE_RESERVES)) {
+                    var r = File.ReadAllText(FILE_RESERVES);
+                    reserveList = JsonConvert.DeserializeObject<List<string>>(r);
+                }
+                //для каждого заказа сделать заказ с резервом в бизнес.ру
+                foreach (var order in orders.orders) {
+                    //проверяем наличие резерва
+                    if (reserveList.Contains(order.marketplaceId) || 
+                        order.status == "canceled" ||
+                        order.status == "delivered" ||
+                        order.status == "closed" ||
+                        order.status == "in_dispute" ||
+                        order.status == "on_return"
+                        )
+                        continue;
+                    //готовим список товаров (id, amount)
+                    var goodsDict = new Dictionary<string, int>();
+                    order.items.ForEach(i => goodsDict.Add(i.id, i.count));
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Avito, $"Avito order {order.marketplaceId}",
+                                                                   goodsDict, order.createdAt.AddHours(3).ToString());
+                    if (isResMaked) {
+                        reserveList.Add(order.marketplaceId);
+                        if (reserveList.Count > 1000) {
+                            reserveList.RemoveAt(0);
+                        }
+                        var rl = JsonConvert.SerializeObject(reserveList);
+                        File.WriteAllText(FILE_RESERVES, rl);
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{_l} MakeReserve - " + x.Message);
+            }
+        }
+        //выгрузка XML
         public async Task GenerateXML(List<GoodObject> _bus) {
             if (Class365API.SyncStartTime.Minute < 55)
                 return;
@@ -112,9 +227,9 @@ namespace Selen.Sites {
                             if (app != null) {
                                 var list = app.Split(',');
                                 ad.Add(new XElement("Make", list[0]));
-                                if (list.Length > 2 ) { 
-                                    ad.Add(new XElement("Model", list[1].Trim())); 
-                                    ad.Add(new XElement("Generation", list[2].Trim())); 
+                                if (list.Length > 2) {
+                                    ad.Add(new XElement("Model", list[1].Trim()));
+                                    ad.Add(new XElement("Generation", list[2].Trim()));
                                 }
                             }
                         }
@@ -139,7 +254,6 @@ namespace Selen.Sites {
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
             }
         }
-
         public Task GetAutoCatalogXmlAsync() => Task.Factory.StartNew(() => {
             var period = DB.GetParamInt("avito.autoCatalogPeriod");
             if (!File.Exists(_autoCatalogFile) || File.GetLastWriteTime(_autoCatalogFile).AddHours(period) < DateTime.Now) {
@@ -161,7 +275,7 @@ namespace Selen.Sites {
         });
         private string GetApplication(GoodObject b) {
             //проверяю заполнение атрибута
-            if (b.attributes!=null && b.attributes.Any(a=>a.Attribute.id== _applicationAttribureId)) {
+            if (b.attributes != null && b.attributes.Any(a => a.Attribute.id == _applicationAttribureId)) {
                 return b.attributes.Find(f => f.Attribute.id == _applicationAttribureId).Value.name.ToString();
             }
             //если атрибут не заполнен, пытаюсь определить из названия и описания
@@ -241,7 +355,7 @@ namespace Selen.Sites {
                 name.StartsWith("манометр ") ||
                 name.StartsWith("набор для ремонта") ||
                 name.StartsWith("знак аварийной") ||
-                name.StartsWith("головка")&&
+                name.StartsWith("головка") &&
                 (name.Contains("торц") || name.Contains("удлин") || name.Contains("шестиг")) ||
                 name.StartsWith("струна")) {
                 d.Add("TypeId", "4-963");                          //Инструменты
@@ -291,17 +405,17 @@ namespace Selen.Sites {
                 name.StartsWith("соленоид акпп") ||
                 name.StartsWith("ступица") ||
 
-                name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно") || 
-                name.Contains("сепаратор") || name.Contains("кпп ")|| name.Contains("акпп") ||
-                name.Contains("дифференциала") || name.Contains("autostar")||name.Contains("конический")||
-                name.Contains("полуоси"))  ||
+                name.Contains("подшипник") && (name.Contains("ступи") || name.Contains("выжимно") ||
+                name.Contains("сепаратор") || name.Contains("кпп ") || name.Contains("акпп") ||
+                name.Contains("дифференциала") || name.Contains("autostar") || name.Contains("конический") ||
+                name.Contains("полуоси")) ||
 
-                name.StartsWith("фланец") && (name.Contains("раздат") || 
+                name.StartsWith("фланец") && (name.Contains("раздат") ||
                 name.Contains("полуоси") || name.Contains("кардан")) ||
 
-                name.Contains("дифферен") && (name.Contains("механизм")|| name.Contains("акпп"))||
-                
-                
+                name.Contains("дифферен") && (name.Contains("механизм") || name.Contains("акпп")) ||
+
+
                 name.StartsWith("шарнир штока кпп") ||
                 name.StartsWith("крышка разда") ||
                 name.StartsWith("фильтр акпп") ||
@@ -469,7 +583,7 @@ namespace Selen.Sites {
                     (name.Contains("кондиц") || name.Contains("отопи") || name.Contains("охлаж")) ||
 
                 name.Contains("помпа") ||
-                name.Contains("водяной") && name.Contains("насос")||
+                name.Contains("водяной") && name.Contains("насос") ||
                 name.StartsWith("моторчик отоп") ||
                 name.Contains("термостат") ||
                 name.StartsWith("корпус") && name.Contains("отопител") ||
@@ -657,7 +771,7 @@ namespace Selen.Sites {
                   name.StartsWith("панель приб") ||
                   name.StartsWith("переключател") ||
                   name.StartsWith("предохранит") ||
-                  name.StartsWith("набор ")&&name.Contains("предохранит") ||
+                  name.StartsWith("набор ") && name.Contains("предохранит") ||
                   name.StartsWith("привод центр") ||
                   name.StartsWith("прикуриват") ||
                   name.StartsWith("провод") ||
@@ -760,7 +874,7 @@ namespace Selen.Sites {
                   name.StartsWith("ролик") && name.Contains("двер") ||
                   name.StartsWith("механизм") && name.Contains("двер") ||
                   name.Contains("лыжный") && name.Contains("мешок") ||
-                  name.StartsWith("пластик салона")||
+                  name.StartsWith("пластик салона") ||
                   name.StartsWith("панель блока управления") ||
                   name.StartsWith("салазка") && name.Contains("двер")
                   ) {
@@ -803,7 +917,7 @@ namespace Selen.Sites {
                   name.StartsWith("тарелка пружины") ||
                   name.Contains("опорн") && name.Contains("чашк") && name.Contains("амортизат") ||
                   name.StartsWith("тяга ") ||
-                  name.Contains("опор") && 
+                  name.Contains("опор") &&
                   (name.Contains("амортизат") ||
                    name.Contains("шаров")) ||
                   (name.StartsWith("скоба") || name.StartsWith("втулка")) && name.Contains("стабилиз") ||
@@ -877,10 +991,10 @@ namespace Selen.Sites {
                    name.StartsWith("тнвд") ||
                    name.Contains("коллектора") ||
                    name.StartsWith("бензобак") ||
-                   name.StartsWith("труба прямая")||
+                   name.StartsWith("труба прямая") ||
                    name.StartsWith("адаптер") && name.Contains("топливн") ||
                    name.StartsWith("штуцер топлив") ||
-                   name.StartsWith("изгиб трубы глушителя")||
+                   name.StartsWith("изгиб трубы глушителя") ||
                    name.StartsWith("накидная гайка топливного насоса")
                    ) {
                 d.Add("TypeId", "11-627");                          //Топливная и выхлопная системы
@@ -1013,8 +1127,8 @@ namespace Selen.Sites {
                 ) {
                 d.Add("TypeId", "16-842");                           //Турбины, компрессоры
             } else if (b.group_id == "289732" ||                      //  "Автохимия"
-                name.StartsWith("огнетушитель")||
-                name.StartsWith("салфетка ")) { 
+                name.StartsWith("огнетушитель") ||
+                name.StartsWith("салфетка ")) {
                 d.Add("TypeId", "4-942");                           //Автокосметика и автохимия
             } else if (name.StartsWith("прокладка") ||
                 name.StartsWith("свеча зажиг") ||
@@ -1047,5 +1161,40 @@ namespace Selen.Sites {
 
             return d;
         }
+    }
+    //////////////////////////////////
+    ///типы для работы с запросами ///
+    //////////////////////////////////
+    public class AvitoResponseToken {
+        public string access_token { get; set; }
+        public int expires_in { get; set; }
+        public string token_type { get; set; }
+    }
+    public class AvitoOrders {
+        public bool hasMore { get; set; }
+        public List<AvitoOrder> orders { get; set; }
+    }
+    public class AvitoOrder {
+        public DateTime createdAt { set; get; } //"2024-04-03T13:51:37Z",
+        public string id { set; get; }
+        public string marketplaceId { set; get; }
+        public List<AvitoItem> items { get; set; }
+        public AvitoPrices prices { get; set; }
+        public string status { set; get; }
+        public DateTime updatedAt { get; set; }  //": "2024-04-03T13:59:52Z"
+    }
+    public class AvitoItem {
+        public string avitoId { set; get; }
+        public string chatId { set; get; }
+        public int count { set; get; }
+        public string id { get; set; }
+        public string location { set; get; }
+        public AvitoPrices prices { set; get; }
+        public string title { set; get; }
+    }
+    public class AvitoPrices {
+        public string commission { set; get; }
+        public string price { set; get; }
+        public string total { set; get; }
     }
 }
