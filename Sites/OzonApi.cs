@@ -534,6 +534,9 @@ namespace Selen.Sites {
                 "капот ",
                 "телевизор "
             };
+            var exceptionGroups = new List<string> {
+                "черновик"
+            };
             //список карточек которые еще не добавлены на озон
             var goods = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -545,7 +548,8 @@ namespace Selen.Sites {
                                      && w.IsNew()
                                      && !w.ozon.Contains("http")
                                      && !_productList.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
+                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
+                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)));
             SaveToFile(goods);
             var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -1661,6 +1665,34 @@ namespace Selen.Sites {
                     a.categoryId = 85833342;
                     a.typeId = 98854;
                     a.typeName = "Наконечник рулевой";
+                } else if (n.Contains("опора") && n.Contains("шаровая")) {
+                    a.categoryId = 85828600;
+                    a.typeId = 98870;
+                    a.typeName = "Опора шаровая";
+                } else if ((n.Contains("стойка") || n.Contains("тяга")) && n.Contains("стабилизатора")) {
+                    a.categoryId = 85828600;
+                    a.typeId = 98943;
+                    a.typeName = "Стойка стабилизатора";
+                } else if (n.Contains("скоба") && n.Contains("стабилизатора")) {
+                    a.categoryId = 85828600;
+                    a.typeId = 98939;
+                    a.typeName = "Стабилизатор поперечной устойчивости";
+                } else if (n.Contains("кольц") && n.Contains("поршн")) {
+                    a.categoryId =  85812214;
+                    a.typeId =  971058287;
+                    a.typeName = "Кольцо поршневое";
+                } else if (n.Contains("пыльник") && n.Contains("шаров")) {
+                    a.categoryId =  85828600;
+                    a.typeId =  971123162;
+                    a.typeName = "Пыльник шаровой опоры";
+                } else if (n.Contains("сальник") && n.Contains("коленвал")) {
+                    a.categoryId = 85812214;
+                    a.typeId = 98929;
+                    a.typeName = "Сальник вала";
+                } else if (n.Contains("ремкомплект") && n.Contains("рычаг")) {
+                    a.categoryId =  85828600;
+                    a.typeId =  970984563;
+                    a.typeName = "Ремкомплект рычага подвески";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
