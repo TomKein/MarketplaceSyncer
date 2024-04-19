@@ -75,6 +75,7 @@ namespace Selen {
             _timer.Interval = 20000;
             _timer.Elapsed += timer_sync_Tick;
             _timer.Start();
+            syncAllEvent += SyncAllHandlerAsync;
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
             if (!IsBusinessCanBeScan ||
@@ -204,6 +205,24 @@ namespace Selen {
             }
             return md5_str.ToString();
         }
+        static async Task SyncAllHandlerAsync() {
+            await Class365API.AddPartNumsAsync();                   //добавление артикулов из описания
+            await Class365API.CheckArhiveStatusAsync();             //проверка архивного статуса
+            await Class365API.CheckBu();
+            await Class365API.CheckUrls();                          //удаление ссылок из черновиков
+            if (Class365API.SyncStartTime.Minute >= 55) {
+                await Class365API.CheckDublesAsync();               //проверка дублей
+                await Class365API.CheckMultipleApostropheAsync();   //проверка лишних аппострофов
+                await Class365API.ArtCheckAsync();                  //очистка артикулов
+                await Class365API.GroupsMoveAsync();                //проверка групп
+                await Class365API.PhotoClearAsync();                //удаление старых фото
+                await Class365API.ArchivateAsync();                 //архивирование карточек
+                await Class365API.CheckDescriptions();              //корректировка описаний
+            }
+            await Class365API.CheckRealisationsAsync();             //проверка реализаций, добавление расходов
+            await Class365API.ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
+        }
+
         public static async Task BaseGetAsync() {
             IsBusinessNeedRescan = true;
             IsBusinessCanBeScan = false;
@@ -292,12 +311,10 @@ namespace Selen {
                     IsBusinessCanBeScan = true;
                     return;
                 }
-                //запросим новые/измененные карточки товаров
+                lightSyncGoods.Clear();
+                //новые или измененные карточки товаров
                 string s = await RequestAsync("get", "goods", new Dictionary<string, string>{
-                            //{"archive", "0"},
                             {"type", "1"},
-                            //{"limit", pageLimitBase.ToString()},
-                            //{"page", i.ToString()},
                             {"with_additional_fields", "1"},
                             {"with_attributes", "1"},
                             {"with_remains", "1"},
@@ -308,65 +325,28 @@ namespace Selen {
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
                     .Replace("\"854879\":", "\"ozon\":");
-                lightSyncGoods.Clear();
                 if (s.Length > 3)
                     lightSyncGoods.AddRange(JsonConvert.DeserializeObject<GoodObject[]>(s));
-
-                stage = "текущие остатки...";
-                var ids = JsonConvert.DeserializeObject<List<GoodIds>>(
-                    await RequestAsync("get", "storegoods", new Dictionary<string, string>{
-                        {"updated[from]", lastLiteScanTime}
-                    }));
-
-                stage = "запросим резервирования...";
-                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
-                    await RequestAsync("get", "reservationgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastLiteScanTime}
-                    })));
-                stage = "текущие цены...";
-                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
-                    await RequestAsync("get", "salepricelistgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastLiteScanTime},
-                        {"price_type_id","75524" } //интересуют только отпускные цены
-                    })));
-
-                stage = "запросим реализации...";
-                ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
-                    await RequestAsync("get", "realizationgoods", new Dictionary<string, string>{
-                        {"updated[from]", lastLiteScanTime}
-                    })));
-                //добавляю в запрос карточки без атрибутов - беру рандом 10 штук за раз
-                //(костыль от глюка бизнес.ру, который иногда отдает пустые атрибуты)
-                var ids2 = _bus.Where(w => w.attributes == null && w.images.Count > 0 && w.Amount > 0)
-                               .Select(p => new GoodIds { good_id = p.id }).ToList();
-                Log.Add(_l + "GoLiteSync карточек с пустыми атрибутами - " + ids2.Count);
-                if (ids2.Count > 0) {
-                    Log.Add(_l + "GoLiteSync:" + _bus.Where(w => w.attributes == null && w.images.Count > 0 && w.Amount > 0)
-                           .Select(sel => sel.name).Aggregate((a, b) => a + "\n" + b));
-                    var i = _rnd.Next(ids2.Count > 10 ? ids2.Count - 10 : ids2.Count);
-                    ids.AddRange(ids2.Skip(i).Take(10));
-                }
-
-                //stage = "запросим изменения атрибутов...";
-                //ids.AddRange(JsonConvert.DeserializeObject<List<GoodIds>>(
-                //    await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string>{
-                //        {"updated[from]", lastLiteScanTime}
-                //    })));
-
-                //добавляем к запросу карточки, привязанные к тиу, но с нулевой ценой. решает глюк нулевой цены после поступления
-                //ids.AddRange(bus.Where(w => w.tiu.Contains("http") && w.price == 0).Select(_ => new GoodIds { good_id = _.id }));
-
-                stage = "подгружаем карточки ...";
-
-                if (ids.Count > 0) {
-                    var distinctIds = new List<string>();
-                    foreach (var id in ids) {
-                        if (lightSyncGoods.FindIndex(f => f.id == id.good_id) == -1 && !distinctIds.Contains(id.good_id)) {
-                            distinctIds.Add(id.good_id);
-                        }
+                //карточки товаров c измененным остатком или ценой
+                s = await RequestAsync("get", "goods", new Dictionary<string, string>{
+                            {"type", "1"},
+                            {"with_additional_fields", "1"},
+                            {"with_attributes", "1"},
+                            {"with_remains", "1"},
+                            {"with_prices", "1"},
+                            {"type_price_ids[0]","75524" },
+                            {"updated_remains_prices[from]", lastLiteScanTime}
+                    });
+                s = s.Replace("\"209334\":", "\"drom\":")
+                    .Replace("\"209360\":", "\"vk\":")
+                    .Replace("\"854879\":", "\"ozon\":");
+                if (s.Length > 3) {
+                    var goods = JsonConvert.DeserializeObject<GoodObject[]>(s);
+                    foreach (var good in goods) {
+                        if (lightSyncGoods.Any(g => g.id == good.id))
+                            continue;
+                        lightSyncGoods.Add(good);
                     }
-                    if (distinctIds.Count > 0) 
-                        lightSyncGoods.AddRange(await GetBusGoodsAsync(distinctIds));
                 }
                 //если изменений слишком много или сменился день - нужен полный рескан базы
                 if (lightSyncGoods.Count >= 250 ||
@@ -379,7 +359,7 @@ namespace Selen {
                 Log.Add(_l + "изменены карточки: " + lightSyncGoods.Count + " (с фото, ценой и остатками: " +
                     lightSyncGoods.Count(c => c.Amount > 0 && c.Price > 0 && c.images.Count > 0) + ")");
                 foreach (var item in lightSyncGoods) {
-                    Log.Add(_l + item.name + "(цена " + item.Price + ", кол. " + item.Amount + ")");
+                    Log.Add($"{_l} {item.name} (цена { item.Price}, своб. остаток { item.Amount}, резерв {item.Reserve })");
                 }
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
@@ -390,7 +370,8 @@ namespace Selen {
                         //для того чтобы обновлялись карточки, у которых изменился только остаток или цена
                         _bus[ind].updated = SyncStartTime.ToString();
                     } else { //иначе добавляем в коллекцию
-                        _bus.Add(lg);
+                        if(!lg.name.EndsWith("(копия)")) //пропускаем карточки с признаком Копия! (ломают синхронизацию из-за ссылок)
+                            _bus.Add(lg);
                     }
                 }
 
@@ -512,9 +493,10 @@ namespace Selen {
         }
         public static async Task CheckUrls() {
             for (int b = 0; b < _bus.Count; b++) {
-                if (_bus[b].GroupName().Contains("РАЗБОРКА") &&
-                    _bus[b].Amount == 0 &&
-                    _bus[b].Price == 0 &&
+                if ((_bus[b].GroupName().Contains("РАЗБОРКА")||
+                    _bus[b].name.EndsWith("(копия)") ||
+                    (_bus[b].Amount == 0 && _bus[b].Reserve == 0 && _bus[b].Price==0))
+                    &&
                     (!string.IsNullOrEmpty(_bus[b].drom) ||
                     !string.IsNullOrEmpty(_bus[b].vk) ||
                     !string.IsNullOrEmpty(_bus[b].ozon))) {
@@ -551,6 +533,7 @@ namespace Selen {
         public static async Task CheckBu() => await Task.Factory.StartNew(() => {
             foreach (var b in _bus) {
                 var n = b.name;
+                //todo use regex instead!! regex.replace...
                 if (n.StartsWith(@"Б/У"))
                     b.name = b.name.Replace(@"Б/У", "").Trim() + " Б/У";
                 if (n.StartsWith(@"б/у"))
@@ -799,7 +782,7 @@ namespace Selen {
                     Log.Add($"{_l} PhotoClearAsync: {buschk[b].name} ост. {buschk[b].Amount} рез. {buschk[b].Reserve} фото {buschk[b].images.Count} " +
                         $"upd. {buschk[b].updated} / {buschk[b].updated_remains_prices} реал. {realizations.Count()}, конт. дата: {controlDate}");
                     if (DateTime.Now < controlDate) {
-                        Log.Add("PhotoClearAsync: пропуск - дата не подошла (Now < controlDate)");
+                        Log.Add("PhotoClearAsync: пропуск - дата не подошла");
                         continue;
                     }
 
@@ -818,15 +801,18 @@ namespace Selen {
             }
         }
         public static async Task ArchivateAsync() {
+            //todo упростить метод архивирования, с учетом updated_remains_prices
             var cnt = await DB.GetParamIntAsync("archivateCount");
             var index = await DB.GetParamIntAsync("archivateLastIndex");
             if (cnt == 0)
                 return;
             //список не архивных карточек без фото, без остатка, отсортированный с самых старых
             var busQuery = _bus.Where(w => w.images.Count == 0 &&
-                                      w.Amount == 0 &&
+                                      w.Amount <= 0 &&
+                                      w.Reserve <= 0 &&
                                       !w.archive &&
-                                      DateTime.Now > DateTime.Parse(w.updated).AddMonths(6))
+                                      DateTime.Now > DateTime.Parse(w.updated).AddMonths(6)&&
+                                      DateTime.Now > DateTime.Parse(w.updated_remains_prices).AddMonths(6))
                                .OrderBy(o => DateTime.Parse(o.updated))
                                .Skip(index);
             var queryCount = busQuery.Count();

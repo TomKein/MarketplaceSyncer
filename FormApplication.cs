@@ -23,35 +23,60 @@ namespace Selen {
         string _genFile = @"..\avito_generations.txt";
         readonly string _applicationAttribureId = "2543011";
         string _l = "FormApplication: ";
-        int _busIndex = -1;
+        int _busIndex;
+        int _busPrevIndex;
         DataTable _dtSelected = new DataTable();
+        List<GoodObject> _goods = null;
+        List<string> _groups = new List<string> { "Автохимия", "Масла", "Инструменты" };
+        List<string> _skipList = new List<string>();
+        const string _skipListFileName = @"..\data\skiplist.json";
         //конструктор
         public FormApplication(List<GoodObject> bus) {
             InitializeComponent();
             _bus = bus;
-            _busIndex = _bus.Count();
             var t = File.ReadAllLines(_genFile);
             _generations = new List<string>(t);
             _attributes = _bus.Where(w=>w.attributes!=null && w.attributes.Any(a=>a.Attribute.id == _applicationAttribureId))
                               .Select(s=>s.attributes.First(f=>f.Attribute.id== _applicationAttribureId).Value.name)
                               .Distinct().ToList();
             _wc = new WebClient();
+            if (File.Exists(_skipListFileName))
+                _skipList = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(_skipListFileName));
         }
         //загрузка формы
         void FormApplication_Load(object sender, EventArgs e) {
             GridFillAsync();
-            GoNextGood(back: true);
-            FillGoodInfo();
-            GridSelectedFillAsync();
+            GoNextGoodAsync();
+        }
+        void FillGoodsList() {
+            _goods = _bus.Where(b => b.images.Any())?
+                         .Where(b =>!_groups.Contains(b.GroupName()))?
+                         .Where(b =>!_skipList.Contains(b.name))?
+                         .Where(b => b.attributes == null || 
+                                    !b.attributes
+                                      .Any(a => a.Attribute.id == _applicationAttribureId))?
+                         .ToList();
+            if (_goods != null && _goods.Any() && _goods.Count != listBoxGoods.Items.Count) {
+                listBoxGoods.Items.Clear();
+                var array = _goods.Select(b => b.name)
+                                  .ToArray();
+                listBoxGoods.Items.AddRange(array);
+                label3.Text = "Товары: " + array.Length;
+            }
+            var name = _bus[_busIndex].name;
+            var listBoxGoodsIndex = listBoxGoods.Items.IndexOf(name);
+            if (listBoxGoods.SelectedIndex != listBoxGoodsIndex)
+                listBoxGoods.SelectedIndex = listBoxGoodsIndex;
         }
 
         //подгрузка в форму информации о товаре
-        async Task FillGoodInfo() {
+        void FillGoodInfo() {
             try {
                 textBoxName.Text = _bus[_busIndex].name;
                 richTextBoxDesc.Text = _bus[_busIndex].description;
-                labelPrice.Text = "Цена: " + _bus[_busIndex].price;
-                labelAmount.Text = "Кол-во: " + _bus[_busIndex].amount;
+                labelPrice.Text = "Цена: " + _bus[_busIndex].Price;
+                labelAmount.Text = "Кол-во: " + _bus[_busIndex].Amount;
                 labelId.Text = "Index: " + _busIndex + "/" + _bus.Count;
                 var byteArray = _wc.DownloadData(_bus[_busIndex].images[0].url);
                 var ms = new MemoryStream(byteArray);
@@ -60,22 +85,20 @@ namespace Selen {
                 Log.Add(x.Message);
             }
         }
+
         //получить индекс карточки для обработки
-        private void GoNextGood(bool back = false) {
-            var adding = back ? -1 : 1;
-            for (int b = _busIndex + adding; b < _bus.Count && b>-1; b += adding) {
+        async Task GoNextGoodAsync() {
+            for (int b = _busIndex; b < _bus.Count; b++) {
                 if (_bus[b].attributes != null &&
                     _bus[b].attributes.Any(c => c.Attribute.id == _applicationAttribureId) ||
                     _bus[b].images.Count == 0 ||
-                    _bus[b].GroupName() == "Автохимия" ||
-                    _bus[b].GroupName() == "Масла" ||
-                    _bus[b].GroupName().Contains("Инструменты"))
+                    _groups.Contains(_bus[b].GroupName())||
+                    _skipList.Contains(_bus[b].name))
                     continue;
-                if (b == 0) { b = _bus.Count(); }
-                _busIndex = b;
+                await SetIndexAsync(b);
                 return;
             }
-            _busIndex = 0;
+            await SetIndexAsync(_busPrevIndex);
         }
         //заполняю таблицу применимостей на форме
         async Task GridFillAsync() {
@@ -101,7 +124,7 @@ namespace Selen {
             return dt;
         });
         //создаю таблицу рекомендаций применимостей
-        async Task GridSelectedFillAsync() {
+        async Task GridSelectedFill() {
             try {
                 _dtSelected = await GetDataTableSelectedAsync();
                 dataGridViewSelect.DataSource = _dtSelected;
@@ -238,23 +261,43 @@ namespace Selen {
             Application.UseWaitCursor = true;
             buttonOk.Enabled = false;
             await ApplyNewApplicationsAsync();
-            GoNextGood(back: true);
-            await FillGoodInfo();
-            await GridSelectedFillAsync();
+            await GoNextGoodAsync();
             buttonOk.Enabled = true;
             Application.UseWaitCursor = false;
         }
         //пропустить
         async void buttonSkip_Click(object sender, EventArgs e) {
-            GoNextGood(back: true);
-            await FillGoodInfo();
-            await GridSelectedFillAsync();
+            SkipListAddCurrent();
+            await GoNextGoodAsync();
         }
+        //добавить в список пропуска
+        void SkipListAddCurrent() {
+            if (_skipList.Contains(_bus[_busIndex].name))
+                return;
+            _skipList.Add(_bus[_busIndex].name);
+            File.WriteAllText(_skipListFileName,
+                JsonConvert.SerializeObject(_skipList));
+        }
+
         //вернуться к предыдущей карточке
         async void buttonBack_Click(object sender, EventArgs e) {
-            GoNextGood();
-            await FillGoodInfo();
-            await GridSelectedFillAsync();
+            await SetIndexAsync(_busPrevIndex);
+        }
+        //выбран товар в списке
+        async void listBoxGoods_SelectedIndexChanged(object sender, EventArgs e) {
+            var name = listBoxGoods.Items[listBoxGoods.SelectedIndex].ToString();
+            var index = _bus.FindIndex(f=>f.name == name);
+            await SetIndexAsync(index);
+        }
+        //установка индекса
+        async Task SetIndexAsync(int index) {
+            if (_busIndex == index)
+                return;
+            _busPrevIndex = _busIndex;
+            _busIndex = index;
+            FillGoodInfo();
+            FillGoodsList();
+            await GridSelectedFill();
         }
     }
 }

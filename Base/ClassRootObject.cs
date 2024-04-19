@@ -531,7 +531,7 @@ namespace Selen {
             return true;
         }
         public string NameLimit(int length) {
-            var t = name;
+            var t = name.Replace("(копия)",""); //удаление признака Копии
             while (t.Length > length) {
                 t = t.Remove(t.LastIndexOf(' '));
             }

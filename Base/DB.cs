@@ -239,6 +239,13 @@ namespace Selen.Base {
             //иначе
             return null;
         }
+        //удаляю параметр из настроек
+        public static int DeleteParam(string name) {
+            var query = $"DELETE FROM `settings`" +
+                        $"WHERE `settings`.`name` = '{name}'";
+            MySqlCommand command = new MySqlCommand(query, connection);
+            return ExecuteCommandNonQuery(command);
+        }
         //метод для записи логов в базу
         public static void AddLogAsync(string message, string site = "") {
             Task.Factory.StartNew(() => {

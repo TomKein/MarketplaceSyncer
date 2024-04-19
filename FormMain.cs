@@ -17,8 +17,8 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.182";
-
+        string _version = "1.183";
+        //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk = new VK();
         Drom _drom = new Drom();
@@ -41,7 +41,7 @@ namespace Selen {
         //конструктор формы
         public FormMain() {
             InitializeComponent();
-            Class365API.syncAllEvent += SyncAllAsync;
+            Class365API.syncAllEvent += SyncAllHandlerAsync;
             Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
             _timer.Interval = 5000;
             _timer.Elapsed += timer_sync_Tick;
@@ -139,11 +139,9 @@ namespace Selen {
             await _ozon.SyncAsync();
             ChangeStatus(sender, ButtonStates.Active);
         }
-        async Task SyncAllAsync() {
-            await Class365API.AddPartNumsAsync();               //добавление артикулов из описания
-            await Class365API.CheckArhiveStatusAsync();         //проверка архивного статуса
-            await Class365API.CheckBu();
-            await Class365API.CheckUrls();                      //удаление ссылок из черновиков
+
+        //todo move this method to class365api 
+        async Task SyncAllHandlerAsync() {
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
             button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
@@ -155,19 +153,7 @@ namespace Selen {
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
             await Task.Delay(10000);
             button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
-            await Task.Delay(10000);
-            button_PricesIncomeCorrection.Invoke(new Action(() => button_PricesIncomeCorrection.PerformClick()));//массовое изменение цен закупки в оприходованиях
             await WaitButtonsActiveAsync();
-            if (Class365API.SyncStartTime.Minute >= 55) {
-                await Class365API.CheckDublesAsync();   //проверка дублей
-                await Class365API.CheckMultipleApostropheAsync();   //проверка лишних аппострофов
-                await Class365API.ArtCheckAsync();//чистка артикулов от лишних символов
-                await Class365API.GroupsMoveAsync();//проверка групп
-                await Class365API.PhotoClearAsync();//очистка ненужных фото
-                await Class365API.ArchivateAsync();//архивирование старых карточек
-                await Class365API.CheckDescriptions();
-            }
-            await Class365API.CheckRealisationsAsync(); //проверка реализаций, добавление расходов
             dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
         }
         //полный скан базы бизнес.ру
@@ -258,7 +244,7 @@ namespace Selen {
         private async void Button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             await Class365API.ChangePostingsPrices();
-            await Task.Delay(1000);//ChangeRemainsPrices();
+            await Task.Delay(10);//ChangeRemainsPrices(); //not used
             ChangeStatus(sender, ButtonStates.Active);
         }
         //сохранить куки
@@ -345,7 +331,6 @@ namespace Selen {
             textBox_LogFilter.Text = "";
         }
         async Task PropertiesUpdateHandler() {
-            //label_Bus.Invoke(new Action<string>((a)=>label_Bus.Text = a),Class365API.LabelBusText);
             label_Bus.Invoke(new Action(()=>label_Bus.Text = Class365API.LabelBusText));
         }
         //закрываем форму, сохраняем настройки

@@ -47,8 +47,17 @@ namespace Selen {
             var value = dataGridView.Rows[e.RowIndex].Cells[1].Value.ToString();
             //если изменили имя параметра
             if (name != _name) {
-                var res1 = DB.UpdateParamName(_name, name);
-                if (res1 > 0) Log.Add("БД: обновлено имя параметра " + _name + " => " + name);
+                if (name.StartsWith("#")) {
+                    var r = DB.DeleteParam(_name);
+                    if (r > 0) {
+                        Log.Add($"БД: удален параметр {_name}");
+                        GridFillAsync();
+                    }
+                } else {
+                    var res1 = DB.UpdateParamName(_name, name);
+                    if (res1 > 0)
+                        Log.Add("БД: обновлено имя параметра " + _name + " => " + name);
+                }
             }
             //если изменили значение параметра
             else if (value != _value) {
