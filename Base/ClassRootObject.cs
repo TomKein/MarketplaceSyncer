@@ -147,6 +147,7 @@ namespace Selen {
         public bool archive { get; set; }
         public string description { get; set; }
         public string updated { get; set; }
+        public string updated_remains_prices { get; set; }
         public List<Image> images { get; set; }
         public List<Remains> remains { get; set; }
         public List<Prices> prices { get; set; }
@@ -181,16 +182,10 @@ namespace Selen {
         [JsonIgnore]
         public float Amount {
             get {
-                float reserved = 0;
-                if (useReserve){
-                    reserved = remains.Select(s => string.IsNullOrEmpty(s.amount.reserved) ?
-                                                    0 :
-                                                    float.Parse(s.amount.reserved.Replace(".", ","))).Sum();
-                }
                 float total = remains.Select(s => string.IsNullOrEmpty(s.amount.total) ?
                                                 0 :
                                                 float.Parse(s.amount.total.Replace(".", ","))).Sum();
-                return total - reserved;
+                return total - Reserve;
             }
             set {
                 remains = new List<Remains> {
@@ -198,6 +193,27 @@ namespace Selen {
                         total = value.ToString("F0")
                     } }
                 };
+            }
+        }
+
+        [JsonIgnore]
+        public float Reserve {
+            get {
+                float reserved = 0;
+                if (useReserve) {
+                    reserved = remains.Select(s => string.IsNullOrEmpty(s.amount.reserved) ?
+                                                    0 :
+                                                    float.Parse(s.amount.reserved.Replace(".", ","))).Sum();
+                }
+                return reserved;
+            }
+            set {
+                if (!remains.Any()) {
+                    remains = new List<Remains> {
+                        new Remains { amount = new Amount() }
+                    };
+                }
+                remains[0].amount.reserved = value.ToString("F0");
             }
         }
         //Артикул

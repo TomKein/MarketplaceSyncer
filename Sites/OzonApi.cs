@@ -875,7 +875,8 @@ namespace Selen.Sites {
                     a.typeName = "Блок управления отопителем";
                 } else if (n.StartsWith("блок ") &&                                     //Блок управления для авто
                     (n.Contains("управления эур") || n.Contains("управления дв") ||
-                     n.Contains("комфорт") || n.Contains("электрон") || n.Contains("bsi"))) {
+                     n.Contains("комфорт") || n.Contains("электрон") || n.Contains("bsi")||
+                     n.Contains("управления глонас")||n.Contains("адаптивного освещения"))) {
                     a.categoryId = 85843091;
                     a.typeId = 971005681;
                     a.typeName = "Блок управления";
@@ -1086,7 +1087,8 @@ namespace Selen.Sites {
                     a.categoryId = 27332785; //Брызговики
                     a.typeId = 94655;
                     a.typeName = "Брызговики";
-                } else if (n.StartsWith("вкладыши шатуна")) {
+                } else if (n.StartsWith("вкладыши шатуна") ||
+                    n.StartsWith("вкладыши шатунные")) {
                     a.categoryId = 85812214;
                     a.typeId = 970892948;
                     a.typeName = "Вкладыш шатунный";
@@ -1130,8 +1132,8 @@ namespace Selen.Sites {
                     a.categoryId = 85812214;
                     a.typeId = 98828;
                     a.typeName = "Клапан впускной";
-                } else if (n.StartsWith("колпач") &&                                        //Колпачки маслосъёмные
-                    n.Contains("маслос")) {
+                } else if (n.StartsWith("колпач") && n.Contains("маслос") ||
+                    n.StartsWith("комплект колпачков маслосъемных")) {                    //Колпачки маслосъёмные
                     a.categoryId = 85810218;
                     a.typeId = 98838;
                     a.typeName = "Колпачок маслосъемный";
@@ -1401,8 +1403,8 @@ namespace Selen.Sites {
                     a.categoryId = 33698197;
                     a.typeId = 971061543;
                     a.typeName = "Ремкомплект карбюратора";
-                } else if (n.StartsWith("форсунка ") &&
-                    (n.Contains("омывателя") || n.Contains("фар"))) {              //Форсунка омывателя 
+                } else if ((n.StartsWith("форсунка") ||n.StartsWith("заглушка"))&&
+                    (n.Contains("омывателя") || n.Contains("фар"))) {                    //Форсунка омывателя 
                     a.categoryId = 85817600;
                     a.typeId = 970863584;
                     a.typeName = "Форсунка омывателя";
@@ -1693,6 +1695,14 @@ namespace Selen.Sites {
                     a.categoryId =  85828600;
                     a.typeId =  970984563;
                     a.typeName = "Ремкомплект рычага подвески";
+                } else if (n.StartsWith("антенна") || n.StartsWith("усилитель антенны")) {
+                    a.categoryId = 27332738;
+                    a.typeId = 91388;
+                    a.typeName = "Антенна автомобильная";
+                } else if (n.StartsWith("шестерня") || n.Contains("распредвала")) {
+                    a.categoryId = 85812214;
+                    a.typeId = 971123169;
+                    a.typeName = "Шестерня распредвала";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));

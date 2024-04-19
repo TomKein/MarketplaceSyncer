@@ -277,7 +277,6 @@ namespace Selen {
         }
         public static async Task GoLiteSync() {
             IsBusinessCanBeScan = false;
-            var stage = "";
             try {
                 SyncStartTime = DateTime.Now;
                 Log.Add(_l + "GoLiteSync - запрос изменений...");
@@ -285,7 +284,6 @@ namespace Selen {
                 var lastLiteScanTime = await DB.GetParamStrAsync("liteScanTime");
                 LastScanTime = await DB.GetParamDateTimeAsync("lastScanTime");
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
-
                 var isBusFileOld = lastWriteBusFile.AddMinutes(5) < LastScanTime;
                 //если файл базы устарел - полный рескан
                 if (isBusFileOld || _bus.Count <= 0 || IsBusinessNeedRescan) {
@@ -383,7 +381,6 @@ namespace Selen {
                 foreach (var item in lightSyncGoods) {
                     Log.Add(_l + item.name + "(цена " + item.Price + ", кол. " + item.Amount + ")");
                 }
-                stage = "...";
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
                     var ind = _bus.FindIndex(f => f.id == lg.id);
@@ -423,8 +420,7 @@ namespace Selen {
             } catch (Exception ex) {
                 Log.Add(_l + "ошибка синхронизации: " + ex.Message + "\n"
                     + ex.Source + "\n"
-                    + ex.InnerException?.Message + "\n"
-                    + stage);
+                    + ex.InnerException?.Message);
                 IsBusinessCanBeScan = true;
                 IsBusinessNeedRescan = true;
             }
@@ -766,6 +762,7 @@ namespace Selen {
             }
         }
         public static async Task PhotoClearAsync() {
+            //todo упростить метод удаления фото, с учетом updated_remains_prices
             var cnt = await DB.GetParamIntAsync("photosCheckCount");
             var days = await DB.GetParamIntAsync("photosCheckDays");
             if (cnt == 0)
@@ -774,9 +771,11 @@ namespace Selen {
             //для новых товаров оставляем фото в карточке в 30 раз дольше (30 дней -> 900)
             var buschk = _bus.Where(b => b.images.Count > 0 &&
                                         b.Amount <= 0 &&
+                                        b.Reserve <= 0 &&
                                         b.Price > 0 &&
                                         b.remains.Count > 0 &&
-                                        DateTime.Now.AddDays(-days * (b.IsNew() ? 30 : 1)) > DateTime.Parse(b.updated))
+                                        DateTime.Now.AddDays(-days * (b.IsNew() ? 30 : 1)) > DateTime.Parse(b.updated)&&
+                                        DateTime.Now.AddDays(-days * (b.IsNew() ? 30 : 1)) > DateTime.Parse(b.updated_remains_prices))
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
@@ -797,7 +796,8 @@ namespace Selen {
                     else
                         controlDate = DateTime.Parse(buschk[b].updated).AddDays(days);
 
-                    Log.Add("PhotoClearAsync: " + buschk[b].id + " - " + buschk[b].name + ", updated: " + buschk[b].updated + ", реализаций: " + realizations.Count() + ", контрольная дата: " + controlDate);
+                    Log.Add($"{_l} PhotoClearAsync: {buschk[b].name} ост. {buschk[b].Amount} рез. {buschk[b].Reserve} фото {buschk[b].images.Count} " +
+                        $"upd. {buschk[b].updated} / {buschk[b].updated_remains_prices} реал. {realizations.Count()}, конт. дата: {controlDate}");
                     if (DateTime.Now < controlDate) {
                         Log.Add("PhotoClearAsync: пропуск - дата не подошла (Now < controlDate)");
                         continue;
@@ -1361,6 +1361,7 @@ namespace Selen {
                     return false;
                 }
                 Log.Add("MakeReserve - " + good.Key + " товар добавлен в заказ (" + good.Value+")");
+                _bus.Find(f => f.id == good.Key).Reserve += good.Value;
                 _bus.Find(f => f.id == good.Key).Amount -= good.Value;
             }
             return true;
