@@ -20,7 +20,7 @@ namespace Selen {
         List<string> _generations;
         List<string> _attributes;
         WebClient _wc;
-        string _genFile = @"..\avito_generations.txt";
+        string _genFile = @"..\data\avito\avito_generations.txt";
         readonly string _applicationAttribureId = "2543011";
         string _l = "FormApplication: ";
         int _busIndex;

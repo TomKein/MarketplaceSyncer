@@ -40,9 +40,10 @@ namespace Selen.Sites {
         List<AttributeValue> _place;                  //список Расположение детали
         List<AttributeValue> _side;                   //список Сторона установки
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
+        int _nameLimit = 200;                         //ограничение длины названия
         
         //производители, для которых не выгружаем номера и артикулы
-        readonly string[] _exceptManufactures = { "general motors" };
+        readonly string[] _exceptManufactures = { "general motors","chery" };
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -236,7 +237,8 @@ namespace Selen.Sites {
                         await UpdateProductAsync(Class365API._bus[b], productInfo);
                     }
                 } catch (Exception x) {
-                    Log.Add(_l + " CheckGoodsAsync ошибка - " + x.Message);
+                    Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
+                    _isProductListCheckNeeds = true;
                 }
             }
         }
@@ -247,8 +249,7 @@ namespace Selen.Sites {
                 var s = await PostRequestAsync(data, "/v2/product/info");
                 return JsonConvert.DeserializeObject<ProductInfo>(s);
             } catch (Exception x) {
-                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
-                throw;
+                throw new Exception($"GetProductInfoAsync ошибка! name:{bus.name} message:{x.Message}");
             }
         }
         //обновление ссылки в карточке бизнес.ру
@@ -270,7 +271,7 @@ namespace Selen.Sites {
                 } else
                     Log.Add(_l + bus.name + " ссылка без изменений!");
             } catch (Exception x) {
-                Log.Add(_l + " SaveUrlAsync - ошибка! - " + x.Message + x.InnerException?.Message);
+                Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
             }
         }
         //проверка и обновление товара
@@ -283,7 +284,7 @@ namespace Selen.Sites {
                 await UpdateProduct(bus, productInfo);
                 //TODO добавить проверку и обновление фотографий await UpdateProductImages()
             } catch (Exception x) {
-                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
+                Log.Add($"{_l} UpdateProductAsync ошибка! name:{bus.name} message:{x.Message}");
             }
         }
         //обновление остатков товара на озон
@@ -397,8 +398,7 @@ namespace Selen.Sites {
                 } else
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
-                Log.Add(_l + " ошибка запроса! - " + x.Message);
-                throw;
+                throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
         }
         //обновление описаний товаров
@@ -420,7 +420,7 @@ namespace Selen.Sites {
                     items = new[] {
                         new{
                             attributes = new List<Attribute>(),
-                            name = good.name,
+                            name = good.NameLimit(_nameLimit),
                             currency_code="RUB",
                             offer_id=good.id,
                             description_category_id=attributes.categoryId,
@@ -572,7 +572,7 @@ namespace Selen.Sites {
                         items = new[] {
                             new{
                                 attributes = new List<Attribute>(),
-                                name = good.name,
+                                name = good.NameLimit(_nameLimit),
                                 currency_code="RUB",
                                 offer_id=good.id,
                                 //description_category_id=attributes.categoryId,
@@ -621,7 +621,6 @@ namespace Selen.Sites {
         //получить атрибуты и категорию товара на озон
         async Task<Attributes> GetAttributesAsync(GoodObject bus) {
             try {
-
                 var n = bus.name.ToLowerInvariant();
                 var a = new Attributes();
                 if (n.StartsWith("генератор ")) {
@@ -1197,7 +1196,7 @@ namespace Selen.Sites {
                     a.categoryId = 33698293;
                     a.typeId = 970896619;
                     a.typeName = "Миникатализатор";
-                } else if (n.StartsWith("опора амортизатора")) {                         //Опора амортизатора 
+                } else if (n.StartsWith("опора") && n.Contains("амортизатора")) {     //Опора амортизатора 
                     a.categoryId = 36201237;
                     a.typeId = 98863;
                     a.typeName = "Опора амортизатора";
@@ -1699,10 +1698,46 @@ namespace Selen.Sites {
                     a.categoryId = 27332738;
                     a.typeId = 91388;
                     a.typeName = "Антенна автомобильная";
-                } else if (n.StartsWith("шестерня") || n.Contains("распредвала")) {
+                } else if (n.StartsWith("шестерня") && n.Contains("распредвала")) {
                     a.categoryId = 85812214;
                     a.typeId = 971123169;
                     a.typeName = "Шестерня распредвала";
+
+
+                } else if (n.Contains("болт") && n.Contains("развальный")) {  //Болт развальный
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Болт с эксцентриком ремкомплект";
+                    return a;
+                } else if (n.StartsWith("болт") && n.Contains("рычага") ||  //Болт крепежный автомобильный
+                           n.StartsWith("болт-шпилька акпп") ||
+                           n.StartsWith("болт натяжителя ремня")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Болт крепежный автомобильный";
+                    return a;
+                } else if (n.StartsWith("втулка") && n.Contains("кпп")) {  //Втулка КПП
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Втулка КПП";
+                    return a;
+                } else if (n.StartsWith("патрон") && 
+                    (n.Contains("поворота")||n.Contains("под лампу"))) {  //Цоколь автомобильной лампы
+                    a.categoryId = 33697187;
+                    a.typeId = 970853203;
+                    a.typeName = "Цоколь автомобильной лампы";
+                } else if (n.StartsWith("переходник") && n.Contains("тормозной")) {  //Штуцер тормозной трубки
+                    a.categoryId = 86292454;
+                    a.typeId = 971095436;
+                    a.typeName = "Штуцер тормозной трубки";
+                } else if (n.StartsWith("трос") && n.Contains("газа")) {  //Трос акселератора
+                    a.categoryId = 101292869;
+                    a.typeId = 970984776;
+                    a.typeName = "Трос акселератора";
+                } else if (n.StartsWith("накидная гайка") && n.Contains("топливного насоса")) {  //Ремкомплект насоса топливного
+                    a.categoryId = 85843113;
+                    a.typeId = 971072778;
+                    a.typeName = "Ремкомплект насоса топливного";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -1753,8 +1788,7 @@ namespace Selen.Sites {
                 //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
                 //await Task.Delay(3000);
             } catch (Exception x) {
-                Log.Add("GetAttributesAsync: " + x.Message + x.InnerException?.Message);
-                throw;
+                throw new Exception($"GetAttributesAsync: {bus.name} - {x.Message}");
             }
 
         }

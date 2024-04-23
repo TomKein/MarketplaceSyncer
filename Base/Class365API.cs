@@ -42,12 +42,13 @@ namespace Selen {
         public static List<GoodObject> _bus = new List<GoodObject>();
         public static List<GoodObject> lightSyncGoods = new List<GoodObject>();
         private static System.Timers.Timer _timer = new System.Timers.Timer();
-        static readonly string BUS_FILE_NAME = @"..\bus.json";
+        static readonly string BUS_FILE_NAME = @"..\data\bus.json";
         public static readonly int PAGE_LIMIT_BASE = 250;
         static readonly string ORGANIZATION_ID = "75519";           //ип радченко
         static readonly string RESPONSIBLE_EMPLOYEE_ID = "76221";   //рогачев  76197-радченко
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
+        static readonly string _dictionary = @"..\data\dict.txt";   //словать рус-англ аналогов
         public static bool IsBusinessNeedRescan { set; get; } = false;
         public static bool IsBusinessCanBeScan { set; get; } = false;
         public static DateTime SyncStartTime { set; get; }
@@ -980,7 +981,7 @@ namespace Selen {
             //загрузим словарь
             List<string> eng = new List<string>();
             List<string> rus = new List<string>();
-            List<string> file = new List<string>(File.ReadAllLines(@"..\dict.txt", Encoding.UTF8));
+            List<string> file = new List<string>(File.ReadAllLines(_dictionary, Encoding.UTF8));
             foreach (var s in file) {
                 var ar = s.Split(',');
                 eng.Add(ar[0]);

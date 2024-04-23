@@ -17,7 +17,7 @@ namespace Selen.Base {
     public class DB {
         //строка подключения mysql
         //readonly string filenameConnectionString = @"..\connection.bak";
-        static readonly string filenameConnectionString = @"..\connection.ini";
+        static readonly string filenameConnectionString = @"..\data\connection.ini";
         //создаю подключение
         public static MySqlConnection connection;
         static readonly object _lock = new object();

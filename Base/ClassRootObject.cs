@@ -167,6 +167,10 @@ namespace Selen {
         public static DateTime ScanTime { get; set; }
         public static List<GoodGroupsObject> Groups { get; set; }
         static bool useReserve = DB.GetParamBool("useReserve");
+
+        [JsonIgnore]
+        static readonly string _autoMarks = @"..\data\auto.txt";
+
         [JsonIgnore]
         public int Price {
             get {
@@ -770,9 +774,9 @@ namespace Selen {
         }
         //перечитать марки и модели
         public static void ResetAutos() {
-            if (_autos == null || File.GetLastWriteTime(@"..\auto.txt") > ScanTime) {
-                _autos = File.ReadAllLines(@"..\auto.txt");
-                File.SetLastWriteTime(@"..\auto.txt", ScanTime);
+            if (_autos == null || File.GetLastWriteTime(_autoMarks) > ScanTime) {
+                _autos = File.ReadAllLines(_autoMarks);
+                File.SetLastWriteTime(_autoMarks, ScanTime);
             }
         }
         //перечитать из таблицы настроек

@@ -125,31 +125,11 @@ namespace Selen
         public int price { get; set; }
         public string image { get; set; }
     }
-
-    public class AutoDict
-    {
-        public Dictionary<string,string> mark { get; set; }
-
-        public AutoDict()
-        {
-            //зарузим словарь из файла
-            List<string> file_dict = new List<string>(File.ReadAllLines("dict.txt"));
-            foreach (var s in file_dict)
-            {
-                var ar = s.Split(',');
-                mark.Add(ar[0],ar[1]);
-            }
-            file_dict.Clear();
-        }
-    }
-
     public class StrComp
     {
         public int ind { get; set; }
         public double sim { get; set; }
     }
-
-
     public class PartnerContactinfoClass
     {
         public int id { get; set; }
