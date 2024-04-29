@@ -16,9 +16,9 @@ namespace Selen.Sites {
         //список товаров
         List<GoodObject> _bus;
         //файл выгрузки
-        string _fexp = @"..\iz_export.csv";
+        string _fexp = @"..\data\izap24\iz_export.csv";
         //файл ошибок
-        string _ferr = @"..\iz_errors.csv";
+        string _ferr = @"..\data\izap24\iz_errors.csv";
         //блокируемые группы
         string[] _blockedGroupsIds = new[] {
             "2060149",    //"РАЗБОРКА (ЧЕРНОВИКИ)" 
@@ -95,7 +95,7 @@ namespace Selen.Sites {
                 foreach (var offer in offers) {
                     var m = offer.GetNameMarkModel();               //определяю марку и модель авто
                     if (m == null) {
-                        err.Append(offer.name).AppendLine(";не определена марка/модель");
+                        err.Append(offer.NameLimit(150)).AppendLine(";не определена марка/модель");
                         e++;
                         continue;
                     }

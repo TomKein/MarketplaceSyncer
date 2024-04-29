@@ -54,9 +54,11 @@ namespace Selen.Sites {
                 GoodObject.UpdateDefaultValidity();
                 //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по цене вниз
-                var bus = Class365API._bus.Where(w => w.Price > 0
-                                       && w.images.Count > 0
-                                       && (w.Amount > 0 || DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime))
+                var bus = Class365API._bus.Where(w => w.Price > 0 && 
+                                                 w.images.Count > 0 && 
+                                                 (w.Amount > 0 || 
+                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime || 
+                                                 DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price);
                 Log.Add(LP + "найдено " + bus.Count() + " потенциальных объявлений");
                 var offers = new XElement("offers");

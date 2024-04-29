@@ -41,7 +41,7 @@ namespace Selen.Sites {
         List<AttributeValue> _side;                   //список Сторона установки
         List<AttributeValue> _tnved;                  //список Коды ТН ВЭД
         int _nameLimit = 200;                         //ограничение длины названия
-        
+
         //производители, для которых не выгружаем номера и артикулы
         readonly string[] _exceptManufactures = { "general motors","chery" };
 
@@ -1702,25 +1702,20 @@ namespace Selen.Sites {
                     a.categoryId = 85812214;
                     a.typeId = 971123169;
                     a.typeName = "Шестерня распредвала";
-
-
                 } else if (n.Contains("болт") && n.Contains("развальный")) {  //Болт развальный
-                    a.categoryId = 111;
-                    a.typeId = 111;
+                    a.categoryId = 33485121;
+                    a.typeId = 970984562;
                     a.typeName = "Болт с эксцентриком ремкомплект";
-                    return a;
                 } else if (n.StartsWith("болт") && n.Contains("рычага") ||  //Болт крепежный автомобильный
                            n.StartsWith("болт-шпилька акпп") ||
                            n.StartsWith("болт натяжителя ремня")) {
-                    a.categoryId = 111;
-                    a.typeId = 111;
+                    a.categoryId = 33485121;
+                    a.typeId = 970858641;
                     a.typeName = "Болт крепежный автомобильный";
-                    return a;
                 } else if (n.StartsWith("втулка") && n.Contains("кпп")) {  //Втулка КПП
-                    a.categoryId = 111;
-                    a.typeId = 111;
+                    a.categoryId = 85817294;
+                    a.typeId = 971072672;
                     a.typeName = "Втулка КПП";
-                    return a;
                 } else if (n.StartsWith("патрон") && 
                     (n.Contains("поворота")||n.Contains("под лампу"))) {  //Цоколь автомобильной лампы
                     a.categoryId = 33697187;

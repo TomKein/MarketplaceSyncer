@@ -19,6 +19,7 @@ namespace Selen.Sites {
         readonly string _fileNameExport = @"..\data\avito.xml";
         readonly string _fileNameStockExport = @"..\data\avitostock.xml";
         readonly string _autoCatalogFile = @"..\data\autocatalog.xml";
+        readonly string _genFile = @"..\data\avito\avito_generations.txt";
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
         XDocument autoCatalogXML;
@@ -324,7 +325,7 @@ namespace Selen.Sites {
                         name.Append(generation.Attribute("name").Value);
                         list.Add(name.ToString());
                     }
-            File.WriteAllText(@"..\avito_generations.txt", list.Aggregate((a, b) => a + "\n" + b));
+            File.WriteAllText(_genFile, list.Aggregate((a, b) => a + "\n" + b));
             //await Applications.UpdateApplicationListAsync(list);
         }
         //категории авито

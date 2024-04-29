@@ -33,6 +33,7 @@ namespace Selen.Sites {
         bool _needRestart = false;
         Random _rnd = new Random();
         List<string> _reserveList = new List<string>();
+        int _nameLimit = 200;       //ограничение длины имени
         //конструктор
         public Drom() {
         }
@@ -250,8 +251,8 @@ namespace Selen.Sites {
         //заполнить наименование
         void SetTitle(GoodObject b) {
             var w = _dr.GetElementAttribute("//input[@name='subject']", "value");
-            if (string.IsNullOrEmpty(w) || w != b.name)
-                _dr.WriteToSelector("//input[@name='subject']", b.name);
+            if (string.IsNullOrEmpty(w) || w != b.NameLimit(_nameLimit))
+                _dr.WriteToSelector("//input[@name='subject']", b.NameLimit(_nameLimit));
         }
         void Delete(GoodObject b) {
             //переход на страницу объявления, если он нужен
@@ -584,18 +585,14 @@ namespace Selen.Sites {
                     int b = DB.GetParamInt("drom.checkOfferIndex");
                     int cnt = DB.GetParamInt("drom.checkOffersCount");
                     var checkOtOfStock = DB.GetParamBool("drom.checkOffersOutOfStock");
-                    for (int i = 0; i < cnt;) {
+                    for (int i = 1; i <= cnt;) {
                         try {
                             if (b >= _bus.Count)
                                 b = 0;
                             if (
                                 (_bus[b].Amount > 0 || checkOtOfStock) &&
-                                //_bus[b].images.Count > 0 &&
                                 _bus[b].drom.Contains("http")) {
-                                i++;
-                                Log.Add(_l + _bus[b].name + " - проверяю объявление " + (i + 1) + 
-                                    " (" + b + " / " + _bus.Count + ")");
-                                //Edit(_bus[b]);
+                                Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i} ({b}/{_bus.Count})");
                                 _dr.Navigate(_bus[b].drom);
                                 Thread.Sleep(1000);
                                 SetAddress(_bus[b]);
@@ -606,6 +603,7 @@ namespace Selen.Sites {
                                 CheckPhotos(_bus[b]);
                                 SetDesc(_bus[b]);
                                 Thread.Sleep(2000);
+                                i++;
                             }
                             DB.SetParam("drom.checkOfferIndex", (++b).ToString());
                         } catch {

@@ -33,6 +33,7 @@ namespace Selen.Sites {
         int _catalogCheckInterval;                                 //проверять каталог на сайте каждые Х часов
         public int MarketCount;
         public int UrlsCount;
+        int _nameLimit = 200;
         //главный метод синхронизации вк
         public async Task VkSyncAsync(List<GoodObject> bus) {
             await GetParamsAsync();
@@ -93,7 +94,7 @@ namespace Selen.Sites {
                 var vk = _vk.Markets.GetById(new[] { id }, extended: true).First();
                 //готовлю параметры
                 var param = new MarketProductParams();
-                param.Name = Class365API._bus[b].name;
+                param.Name = Class365API._bus[b].NameLimit(_nameLimit);
                 var desc = Class365API._bus[b].DescriptionList(dop: _dopDesc);
                 if (Class365API._bus[b].Price >= _creditPriceMin && Class365API._bus[b].Price <= _creditPriceMax)
                     desc.Insert(0, _creditDescription);
@@ -151,7 +152,7 @@ namespace Selen.Sites {
             //создаем объявление
             long itemId = _vk.Markets.Add(new MarketProductParams {
                 OwnerId = -_marketId,
-                Name = Class365API._bus[b].name,
+                Name = Class365API._bus[b].NameLimit(_nameLimit),
                 Description = desc,
                 CategoryId = 404,
                 Price = Class365API._bus[b].Price,
@@ -272,7 +273,7 @@ namespace Selen.Sites {
                     }
                 //если изменилась цена, наименование или карточка товара - редактирую
                 } else if (Class365API._bus[b].Price != vkMark[i].Price.Amount / 100 ||
-                    Class365API._bus[b].name != vkMark[i].Title || //не совпадает название
+                    Class365API._bus[b].NameLimit(_nameLimit) != vkMark[i].Title || //не совпадает название
 
                     Class365API._bus[b].Price >= _creditPriceMin && //цена в диапазоне
                     Class365API._bus[b].Price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем

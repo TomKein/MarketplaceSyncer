@@ -189,7 +189,8 @@ namespace Selen {
                 float total = remains.Select(s => string.IsNullOrEmpty(s.amount.total) ?
                                                 0 :
                                                 float.Parse(s.amount.total.Replace(".", ","))).Sum();
-                return total - Reserve;
+                var am = total - Reserve;
+                return am < 0 ? 0 : am;
             }
             set {
                 remains = new List<Remains> {

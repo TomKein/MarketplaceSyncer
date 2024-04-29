@@ -518,17 +518,17 @@ namespace Selen {
         public static async Task CheckArhiveStatusAsync() {
             try {
                 foreach (var item in _bus.Where(w => (w.Amount > 0 || w.images.Count>0) && w.archive)) {
-                    Log.Add("business.ru: ошибка! карточка с положительным остатком или с фото в архиве! - " + item.name);
+                    Log.Add($"{_l} {item.name} - карточка в архиве! (ост.: {item.Amount}, фото: {item.images.Count})");
                     await RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", item.id},
                                 {"name", item.name},
                                 {"archive", "0"}
                         });
-                    Log.Add("business.ru: архивный статус отменен! - " + item.name);
+                    Log.Add($"{_l} {item.name} - архивный статус отменен!");
                     Thread.Sleep(1000);
                 }
             } catch (Exception x) {
-                Log.Add("business.ru: ошибка при изменении архивного статуса! - " + x.Message);
+                Log.Add($"{_l} ошибка при изменении архивного статуса! - {x.Message}");
             }
         }
         public static async Task CheckBu() => await Task.Factory.StartNew(() => {
@@ -556,7 +556,7 @@ namespace Selen {
                 if (n.StartsWith(@"бу "))
                     b.name = b.name.Replace(@"бу ", "").Trim() + " Б/У";
                 if (n != b.name)
-                    Log.Add("business: исправлено наименование " + n + " -> " + b.name);
+                    Log.Add($"{_l} исправлено наименование {n} -> {_l}");
             }
         });
         public static async Task CheckDublesAsync() {
@@ -1348,8 +1348,9 @@ namespace Selen {
                     return false;
                 }
                 Log.Add("MakeReserve - " + good.Key + " товар добавлен в заказ (" + good.Value+")");
-                _bus.Find(f => f.id == good.Key).Reserve += good.Value;
-                _bus.Find(f => f.id == good.Key).Amount -= good.Value;
+                var b = _bus.FindIndex(f => f.id == good.Key);
+                _bus[b].Reserve += good.Value;
+                _bus[b].updated = SyncStartTime.ToString();
             }
             return true;
         }
