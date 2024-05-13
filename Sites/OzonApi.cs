@@ -43,7 +43,7 @@ namespace Selen.Sites {
         int _nameLimit = 200;                         //ограничение длины названия
 
         //производители, для которых не выгружаем номера и артикулы
-        readonly string[] _exceptManufactures = { "general motors","chery" };
+        readonly string[] _exceptManufactures = { "general motors","chery", "nissan" };
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -785,7 +785,8 @@ namespace Selen.Sites {
                     a.typeId = 98812;
                     a.typeName = "Выключатель зажигания";
                 } else if (n.StartsWith("трамблер") ||
-                           n.StartsWith("распределитель зажигания")) {
+                           n.StartsWith("распределитель зажигания")||
+                           n.StartsWith("вакуум трамблера")) {
                     a.categoryId = 85835327;//Катушки и провода зажигания
                     a.typeId = 971072773;
                     a.typeName = "Распределитель зажигания";
@@ -937,7 +938,7 @@ namespace Selen.Sites {
                     a.categoryId = 85828600;//Рычаг, тяга подвески и составляющие
                     a.typeId = 98928;
                     a.typeName = "Сайлентблок";
-                } else if (n.StartsWith("гайка  ")) {                                   //Гайка, шайба
+                } else if (n.StartsWith("гайка ")) {                                   //Гайка, шайба
                     a.categoryId = 87716822;//74190355 Автокрепеж
                     a.typeId = 94544;
                     a.typeName = "Гайка";
@@ -1210,7 +1211,8 @@ namespace Selen.Sites {
                     a.categoryId = 98327483;
                     a.typeId = 92264;
                     a.typeName = "Средство для очистки рук";
-                } else if (n.StartsWith("патрубок") && n.Contains("бака")) {             //Патрубок бака 
+                } else if (n.StartsWith("патрубок") && n.Contains("бака")||
+                    n.StartsWith("штуцер топливной")) {             //Патрубок бака 
                     a.categoryId = 86292454;
                     a.typeId = 970584071;
                     a.typeName = "Шланг топливный";
@@ -1453,6 +1455,7 @@ namespace Selen.Sites {
                     a.typeId = 94561;
                     a.typeName = "Хомут";
                 } else if (n.StartsWith("ключ комбинированный")||
+                    n.StartsWith("ключ газовый")||
                     n.StartsWith("набор") && n.Contains("ключ")) {             //Ключи
                     a.categoryId = 45393031;
                     a.typeId = 92082;
@@ -1717,7 +1720,8 @@ namespace Selen.Sites {
                     a.typeId = 971072672;
                     a.typeName = "Втулка КПП";
                 } else if (n.StartsWith("патрон") && 
-                    (n.Contains("поворота")||n.Contains("под лампу"))) {  //Цоколь автомобильной лампы
+                    (n.Contains("поворота")||n.Contains("под лампу"))||
+                    n.StartsWith("колодка соединительная лампы")) {  //Цоколь автомобильной лампы
                     a.categoryId = 33697187;
                     a.typeId = 970853203;
                     a.typeName = "Цоколь автомобильной лампы";

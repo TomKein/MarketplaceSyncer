@@ -275,7 +275,7 @@ namespace Selen.Sites {
                     _bus[b].Price > 0 &&
                     _bus[b].images.Count > 0) {
                     var t = Task.Factory.StartNew(() => {
-                        _dr.Navigate("http://baza.drom.ru/set/city/370?return=http%3A%2F%2Fbaza.drom.ru%2Fadding%3Fcity%3D370", "//input[@name='subject']");
+                        _dr.Navigate("https://baza.drom.ru/set/city/370?returnUrl=https%3A%2F%2Fbaza.drom.ru%2Fadding%3Ftype%3Dgoods%26city%3D370", "//input[@name='subject']");
                         if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
                             throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
                         SetTitle(_bus[b]);

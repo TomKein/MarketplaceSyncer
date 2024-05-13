@@ -277,6 +277,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Base\AdditionalClasses.cs" />
     <Compile Include="Base\Class365API.cs" />
     <Compile Include="Base\DB.cs" />
     <Compile Include="Base\Config.cs" />
@@ -319,7 +320,6 @@
     <Compile Include="Tools\Log.cs" />
     <Compile Include="Tools\PhpKSort.cs" />
     <Compile Include="Tools\QueryStringBilder.cs" />
-    <Compile Include="Base\AdditionalClasses.cs" />
     <Compile Include="Forms\FormMain.cs">
       <SubType>Form</SubType>
     </Compile>

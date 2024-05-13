@@ -127,70 +127,77 @@ namespace Selen {
             await Task.Delay(1000);
         }
         public static async Task<string> RequestAsync(string action, string model, Dictionary<string, string> par) {
-            while (_flag) { await Task.Delay(5000); }
+            while (_flag) { 
+                await Task.Delay(5000); 
+            }
             lock (_locker) {
                 _flag = true;
             }
-            HttpResponseMessage httpResponseMessage = null;
-
-            //1.добавляем к словарю параметров app_id
-            par["app_id"] = APP_ID;
-            //2.сортиовка параметров
-            SortedDictionary<string, string> parSorted = new SortedDictionary<string, string>(new PhpKSort());
-            foreach (var key in par.Keys) {
-                parSorted.Add(key, par[key]);
-            }
-            //3.создаем строку запроса
-            string qstr = QueryStringBuilder.BuildQueryString(parSorted);
-            do {
-                //проверяем токен
-                try {
-                    while (_rr == null || _rr.token == "" || _rr.token == null) {
-                        await RepairAsync();
-                    }
-                    //3.считаем хэш строку
-                    byte[] hash = Encoding.UTF8.GetBytes(_rr.token + SECRET + qstr);
-                    MD5 md5 = new MD5CryptoServiceProvider();
-                    byte[] hashenc = md5.ComputeHash(hash);
-                    //4.прибавляем полученный пароль к строке запроса
-                    qstr += "&app_psw=" + GetMd5(hashenc);
-
-                    //5.готовим ссылку
-                    string url = _baseAdr + model + ".json";
-
-                    //6.выполняем соответствующий запрос
-                    if (action.ToUpper() == "GET") {
-                        httpResponseMessage = await _hc.GetAsync(url + "?" + qstr);
-                    } else if (action.ToUpper() == "PUT") {
-                        HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/json");
-                        httpResponseMessage = await _hc.PutAsync(url, content);
-                    } else if (action.ToUpper() == "POST") {
-                        HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/x-www-form-urlencoded");
-                        httpResponseMessage = await _hc.PostAsync(url, content);
-                    } else if (action.ToUpper() == "DELETE") {
-                        //HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/x-www-form-urlencoded");
-                        httpResponseMessage = await _hc.DeleteAsync(url + "?" + qstr);
-                    }
-                    if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
-                        var js = await httpResponseMessage.Content.ReadAsStringAsync();
-                        _rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                        //todo добавить параметр в настройки
-                        Thread.Sleep(500);
-                        _flag = false;
-                        return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
-                    }
-                    Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
-                    await RepairAsync();
-                    qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
-                    await Task.Delay(20000);
-                } catch (Exception x) {
-                    Log.Add("business.ru: ошибка запроса к бизнес.ру - " + x.Message);
-                    await Task.Delay(30000);
-                    qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
-                    _rr.token = "";
-                    _flag = false;
+            try {
+                HttpResponseMessage httpResponseMessage = null;
+                //1.добавляем к словарю параметров app_id
+                par["app_id"] = APP_ID;
+                //2.сортиовка параметров
+                SortedDictionary<string, string> parSorted = new SortedDictionary<string, string>(new PhpKSort());
+                foreach (var key in par.Keys) {
+                    parSorted.Add(key, par[key]);
                 }
-            } while (true);
+                //3.создаем строку запроса
+                string qstr = QueryStringBuilder.BuildQueryString(parSorted);
+                for (int i = 0; i < 360; i++) {
+                    //проверяем токен
+                    try {
+                        while (_rr == null || _rr.token == "" || _rr.token == null) {
+                            await RepairAsync();
+                        }
+                        //3.считаем хэш строку
+                        byte[] hash = Encoding.UTF8.GetBytes(_rr.token + SECRET + qstr);
+                        MD5 md5 = new MD5CryptoServiceProvider();
+                        byte[] hashenc = md5.ComputeHash(hash);
+                        //4.прибавляем полученный пароль к строке запроса
+                        qstr += "&app_psw=" + GetMd5(hashenc);
+
+                        //5.готовим ссылку
+                        string url = _baseAdr + model + ".json";
+
+                        //6.выполняем соответствующий запрос
+                        if (action.ToUpper() == "GET") {
+                            httpResponseMessage = await _hc.GetAsync(url + "?" + qstr);
+                        } else if (action.ToUpper() == "PUT") {
+                            HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/json");
+                            httpResponseMessage = await _hc.PutAsync(url, content);
+                        } else if (action.ToUpper() == "POST") {
+                            HttpContent content = new StringContent(qstr, Encoding.UTF8, "application/x-www-form-urlencoded");
+                            httpResponseMessage = await _hc.PostAsync(url, content);
+                        } else if (action.ToUpper() == "DELETE") {
+                            //HttpContent content = new StringContent(qstr);//, Encoding.UTF8, "application/x-www-form-urlencoded");
+                            httpResponseMessage = await _hc.DeleteAsync(url + "?" + qstr);
+                        }
+                        if (httpResponseMessage.StatusCode == HttpStatusCode.OK) {
+                            var js = await httpResponseMessage.Content.ReadAsStringAsync();
+                            _rr = JsonConvert.DeserializeObject<RootResponse>(js);
+                            //todo добавить параметр в настройки
+                            Thread.Sleep(600);
+                            _flag = false;
+                            return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
+                        }
+                        Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
+                        await RepairAsync();
+                        qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
+                        await Task.Delay(20000);
+                    } catch (Exception x) {
+                        Log.Add($"{_l} RequestAsync - ошибка запроса к бизнес.ру [{i}] - {x.Message}");
+                        await Task.Delay(20000);
+                        qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
+                        _rr.token = "";
+                        _flag = false;
+                    }
+                };
+            } catch (Exception x) {
+                Log.Add($"{_l} RequestAsync - ошибка запроса к бизнес.ру [fatal] - {x.Message}");
+                _flag = false;
+            }
+            return "";
         }
         public class RootResponse {
             public string status { get; set; }
@@ -598,7 +605,7 @@ namespace Selen {
                             });
                         }
                     }
-                    await Task.Delay(50);
+                    await Task.Delay(5);
                 }
             } catch (Exception x) {
                 Log.Add("CheckDublesAsync: ошибка! " + x.Message);
@@ -802,9 +809,7 @@ namespace Selen {
             }
         }
         public static async Task ArchivateAsync() {
-            //todo упростить метод архивирования, с учетом updated_remains_prices
             var cnt = await DB.GetParamIntAsync("archivateCount");
-            var index = await DB.GetParamIntAsync("archivateLastIndex");
             if (cnt == 0)
                 return;
             //список не архивных карточек без фото, без остатка, отсортированный с самых старых
@@ -812,109 +817,44 @@ namespace Selen {
                                       w.Amount <= 0 &&
                                       w.Reserve <= 0 &&
                                       !w.archive &&
-                                      DateTime.Now > DateTime.Parse(w.updated).AddMonths(6)&&
-                                      DateTime.Now > DateTime.Parse(w.updated_remains_prices).AddMonths(6))
-                               .OrderBy(o => DateTime.Parse(o.updated))
-                               .Skip(index);
+                                      DateTime.Now > w.Updated.AddYears(2))
+                               .OrderBy(o => o.Updated);
             var queryCount = busQuery.Count();
-            Log.Add("ArchivateAsync: карточек для архивирования: " + queryCount);
-            if (queryCount == 0)
-                index = 0;
+            Log.Add($"ArchivateAsync: карточек для архивирования: {queryCount}");
             foreach (var b in busQuery) {
                 try {
-                    //количество реализаций товара за 2 года
-                    var s = await RequestAsync("get", "realizationgoods", new Dictionary<string, string>(){
-                                    {"good_id", b.id},
-                                    {"updated[from]", DateTime.Now.AddYears(-2).ToString()}
-                                });
-                    var realizations = JsonConvert.DeserializeObject<List<realizationgoods>>(s);
-                    Log.Add(b.id + " " + b.name + " реализаций " + realizations.Count);
-                    if (realizations.Any()) {
-                        index++;
-                        continue;
-                    }
-                    //архивирую карточку
                     await RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", b.id},
                                     {"name", b.name},
                                     {"archive", "1"}
                                 });
-                    Log.Add("ArchivateAsync: " + b.id + " " + b.name + " - карточка перемещена в архив! (updated " + b.updated + ") " + cnt);
+                    Log.Add($"ArchivateAsync: {b.name} id = {b.id}, Updated = {b.Updated} - карточка перемещена в архив! [{cnt}]");
                     b.archive = true;
                     if (--cnt == 0)
                         break;
                 } catch (Exception x) {
-                    Log.Add("ошибка архивирования карточки! - " + b.name + " - " + x.Message);
+                    Log.Add($"ArchivateAsync: {b.name} id = {b.id} - ошибка архивирования карточки! - {x.Message}");
                 }
             }
-            await DB.SetParamAsync("archivateLastIndex", index.ToString());
         }
         public static async Task CheckDescriptions() {
             var descChkCnt = await DB.GetParamIntAsync("descriptionsCheckCount");
             for (int i = _bus.Count - 1; i > -1 && descChkCnt > 0; i--) {
                 try {
-
-                    var needUpdate = false;
-                    if (_bus[i].description?.Contains("\t") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("\t", " ");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалена табуляция");
-                    }
-                    if (_bus[i].description?.Contains("!!!") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("!!!", "!!");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние восклицания");
-                    }
-                    if (_bus[i].description?.Contains("</p><br />") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("</p><br />", "</p>");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("<br><br>") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("<br><br>", "<br>");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("<br /><br />") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("<br /><br />", "<br>");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("<p></p>") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("<p></p>", "");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("<br></p>") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("<br></p>", "</p>");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("</p>\n") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("</p>\n", "</p>");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены лишние переносы");
-                    }
-                    if (_bus[i].description?.Contains("&nbsp;") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("&nbsp;", " ");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - удалены мягкие пробелы");
-                    }
-                    if (_bus[i].description?.Contains("&ndash;") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("&ndash;", "-");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена длинного тире");
-                    }
-                    if (_bus[i].description?.Contains("&gt;") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("&gt;", "-");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена угловой скобки");
-                    }
-                    if (_bus[i].description?.Contains("&lt;") ?? false) {
-                        _bus[i].description = _bus[i].description.Replace("&lt;", "-");
-                        needUpdate = true;
-                        Log.Add("CheckDescriptions: " + i + " " + _bus[i].name + " - замена угловой скобки");
-                    }
+                    var needUpdate = _bus[i].Replace("\t") |
+                                     _bus[i].Replace("!!!", "!!") |
+                                     _bus[i].Replace("</p><br />", "</p>") |
+                                     _bus[i].Replace("<br><br>", "<br>") |
+                                     _bus[i].Replace("<br /><br />", "<br>") |
+                                     _bus[i].Replace("<p></p>", "") |
+                                     _bus[i].Replace("<br></p>", "</p>") |
+                                     _bus[i].Replace("</p>\n", "</p>") |
+                                     _bus[i].Replace("&nbsp;", " ") |
+                                     _bus[i].Replace("&zwnj;", " ") |
+                                     _bus[i].Replace("  ", " ") |
+                                     _bus[i].Replace("&ndash;", "-") |
+                                     _bus[i].Replace("&gt;", "-") |
+                                     _bus[i].Replace("&lt;", "-");
                     if (needUpdate) {
                         await RequestAsync("put", "goods", new Dictionary<string, string>() {
                             {"id", _bus[i].id},
@@ -929,6 +869,7 @@ namespace Selen {
                 }
             }
         }
+
         public static async Task CheckRealisationsAsync() {
             //запрашиваю реализации за последний час от последней синхронизации
             var s = await RequestAsync("get", "realizations", new Dictionary<string, string>{

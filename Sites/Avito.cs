@@ -22,12 +22,20 @@ namespace Selen.Sites {
         readonly string _genFile = @"..\data\avito\avito_generations.txt";
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
-        XDocument autoCatalogXML;
+        string[] _addDesc;
+        string[] _addDesc2;
+        //цены для рассрочки
+        int _creditPriceMin;
+        int _creditPriceMax;
+        string _creditDescription;
+
+
         string _clientId;// = "4O7a8RcHV1qdcbp_Lr7f";
         string _clientSecret;// = "1JtB0Yi801aPfl2mKLziP_QcauNEaZaTMuG6asuB";
         string _accessToken;
         readonly string FILE_RESERVES = @"..\data\avito\reserves.json";       //список сделанных резервов
         string _basePath;// = "https://api.avito.ru";
+        XDocument autoCatalogXML;
         HttpClient _hc = new HttpClient();
 
         public Avito() {
@@ -149,14 +157,14 @@ namespace Selen.Sites {
             await Task.Factory.StartNew(() => {
                 var offersLimit = DB.GetParamInt("avito.offersLimit");
                 var priceLevel = DB.GetParamInt("avito.priceLevel");
-                string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
+                _addDesc = JsonConvert.DeserializeObject<string[]>(
                     DB.GetParamStr("avito.addDescription"));
-                string[] _addDesc2 = JsonConvert.DeserializeObject<string[]>(
+                _addDesc2 = JsonConvert.DeserializeObject<string[]>(
                     DB.GetParamStr("avito.addDescription2"));
                 //цены для рассрочки
-                var creditPriceMin = DB.GetParamInt("creditPriceMin");
-                var creditPriceMax = DB.GetParamInt("creditPriceMax");
-                var creditDescription = DB.GetParamStr("creditDescription");
+                _creditPriceMin = DB.GetParamInt("creditPriceMin");
+                _creditPriceMax = DB.GetParamInt("creditPriceMax");
+                _creditDescription = DB.GetParamStr("creditDescription");
                 GoodObject.UpdateDefaultVolume();
                 GoodObject.UpdateDefaultWeight();
                 var xml = new XDocument();
@@ -206,11 +214,7 @@ namespace Selen.Sites {
                         ad.Add(new XElement("Price", b.Price));
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
                         ad.Add(new XElement("Title", b.NameLimit(100)));
-                        var d = b.DescriptionList(2990, _addDesc);
-                        d.AddRange(_addDesc2);
-                        if (b.Price >= creditPriceMin && b.Price <= creditPriceMax)
-                            d.Insert(0, creditDescription);
-                        ad.Add(new XElement("Description", new XCData(d.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
+                        ad.Add(new XElement("Description", new XCData(GetDescription(b))));
                         ad.Add(new XElement("ManagerName", "Менеджер"));
                         ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
                         ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
@@ -236,6 +240,9 @@ namespace Selen.Sites {
                                 }
                             }
                         }
+                        if (b.name.ToLower().Contains("докатка")) {
+                            ad.Add(new XElement("ResidualTread", "10"));
+                        }
                         root.Add(ad);
                         //считаем объявления с положительным остатком
                         if (b.Amount > 0)
@@ -256,6 +263,17 @@ namespace Selen.Sites {
                 await SftpClient.FtpUploadAsync(_fileNameExport);
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
             }
+        }
+        string GetDescription(GoodObject b) {
+            var d = b.DescriptionList(2990, _addDesc);
+            d.AddRange(_addDesc2);
+            if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
+                d.Insert(0, _creditDescription);
+            var descStr = d.Aggregate((a1, a2) => a1 + "\r\n" + a2);
+            //if (DateTime.Now.Day != Class365API.LastScanTime.Day) //еще вариант обновления
+            if (DateTime.Now.Hour <= 9)
+                descStr += ".";
+            return descStr;
         }
         public Task GetAutoCatalogXmlAsync() => Task.Factory.StartNew(() => {
             var period = DB.GetParamInt("avito.autoCatalogPeriod");

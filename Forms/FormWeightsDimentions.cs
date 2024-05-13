@@ -168,14 +168,15 @@ namespace Selen {
                     _bus.Find(f => f.id == id).name = value;
                     Log.Add("БД: обновлено наименование = " + value);
                 }
-                if (colIndex == 2) {
+                if (colIndex == 2 && !string.IsNullOrEmpty(value)) {
+                    value = value.Replace(",", ".");
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},
                                 {"name", name},
                                 {"weight", value}
                         });
                     float floatWeight;
-                    if (!float.TryParse(value?.Replace(".", ","), out floatWeight))
+                    if (!float.TryParse(value, out floatWeight))
                         floatWeight = 0f;
                     _bus.Find(f => f.id == id).weight = floatWeight;
                     Log.Add("БД: обновлена характеристика Вес = " + value);

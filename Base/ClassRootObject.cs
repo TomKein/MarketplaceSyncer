@@ -172,6 +172,20 @@ namespace Selen {
         static readonly string _autoMarks = @"..\data\auto.txt";
 
         [JsonIgnore]
+        public DateTime Updated {
+            get {
+                try {
+                    var update = new DateTime[]{
+                        DateTime.Parse(updated),
+                        DateTime.Parse(updated_remains_prices??updated)};
+                    return update.Max();
+                } catch (Exception x) {
+                    Log.Add($"GoodObject.Updated: ошибка! id = {id}, updated = {updated}, updated_remains = {updated_remains_prices}, {x.Message}");
+                }
+                return DateTime.Now;
+            }
+        }
+        [JsonIgnore]
         public int Price {
             get {
                 if (prices.Count > 0)
