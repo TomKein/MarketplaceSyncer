@@ -787,13 +787,12 @@ namespace Selen {
                     else
                         controlDate = DateTime.Parse(buschk[b].updated).AddDays(days);
 
-                    Log.Add($"{_l} PhotoClearAsync: {buschk[b].name} ост. {buschk[b].Amount} рез. {buschk[b].Reserve} фото {buschk[b].images.Count} " +
-                        $"upd. {buschk[b].updated} / {buschk[b].updated_remains_prices} реал. {realizations.Count()}, конт. дата: {controlDate}");
+                    //Log.Add($"{_l} PhotoClearAsync: {buschk[b].name} ост. {buschk[b].Amount} рез. {buschk[b].Reserve} фото {buschk[b].images.Count} " +
+                    //    $"upd. {buschk[b].updated} / {buschk[b].updated_remains_prices} реал. {realizations.Count()}, конт. дата: {controlDate}");
                     if (DateTime.Now < controlDate) {
-                        Log.Add("PhotoClearAsync: пропуск - дата не подошла");
+                        //Log.Add("PhotoClearAsync: пропуск - дата не подошла");
                         continue;
                     }
-
                     //удаляю фото
                     await RequestAsync("put", "goods", new Dictionary<string, string>(){
                                     {"id", buschk[b].id},

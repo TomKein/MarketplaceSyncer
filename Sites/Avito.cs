@@ -262,7 +262,8 @@ namespace Selen.Sites {
             if (new FileInfo(_fileNameExport).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
                 await SftpClient.FtpUploadAsync(_fileNameExport);
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
-            }
+            } else 
+                Log.Add($"{_l} ошибка - файл не отправлен, т.к. меньше минимального размера!");
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);

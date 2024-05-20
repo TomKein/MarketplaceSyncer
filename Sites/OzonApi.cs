@@ -89,14 +89,13 @@ namespace Selen.Sites {
                 _side = await GetAttibuteValuesAsync(attribute_id: 22329);
             }
             await UpdateProductsAsync();
-            await MakeReserve();
             await CheckProductListAsync();
             if (Class365API.SyncStartTime.Minute >= 55) {
                 await AddProductsAsync();
             }
             await CheckProductLinksAsync(checkAll: true);
         }
-        private async Task MakeReserve() {
+        public async Task MakeReserve() {
             try {
                 //запросить список заказов со следующими статусами
                 var statuses = new List<string> {

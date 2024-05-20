@@ -17,14 +17,14 @@ using System.Timers;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.185";
+        string _version = "1.186";
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
-        VK _vk = new VK();
-        Drom _drom = new Drom();
-        Izap24 _izap24 = new Izap24();
-        OzonApi _ozon = new OzonApi();
-        Avito _avito = new Avito();
+        VK _vk;
+        Drom _drom;
+        Izap24 _izap24;
+        OzonApi _ozon;
+        Avito _avito;
 
         static System.Timers.Timer _timer = new System.Timers.Timer();
 
@@ -66,7 +66,6 @@ namespace Selen {
             try {
                 while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
-                await _avito.MakeReserve();
                 await _avito.GenerateXML(Class365API._bus);
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
@@ -96,7 +95,7 @@ namespace Selen {
             try {
                 while (Class365API.IsBusinessNeedRescan)
                     await Task.Delay(30000);
-                await _drom.DromStartAsync(Class365API._bus);
+                await _drom.DromStartAsync();
                 label_Drom.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.Amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
@@ -127,7 +126,6 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                 await Task.Delay(30000);
-            await _yandexMarket.MakeReserve();
             await _yandexMarket.GenerateXML(Class365API._bus);
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -142,11 +140,18 @@ namespace Selen {
 
         //todo move this method to class365api 
         async Task SyncAllHandlerAsync() {
+            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
+                await Task.Delay(30000);
+            await _ozon.MakeReserve();
+            await _yandexMarket.MakeReserve();
+            await _avito.MakeReserve();
+            await _drom.MakeReserve();
+
+            button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
+            await Task.Delay(10000);
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
             button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
-            await Task.Delay(10000);
-            button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(10000);
             button_Izap24.Invoke(new Action(() => button_Izap24.PerformClick()));
             await Task.Delay(10000);
@@ -181,6 +186,11 @@ namespace Selen {
             }
             await Class365API.LoadBusJSON();
             button_BaseGet.BackColor = Color.GreenYellow;
+            _drom = new Drom();
+            _izap24 = new Izap24();
+            _ozon = new OzonApi();
+            _avito = new Avito();
+            _vk = new VK();
         }
         //проверка на параллельный запуск
         async Task CheckMultiRunAsync() {
@@ -391,7 +401,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                await _drom.MakeReserveAsync();
+                await _drom.MakeReserve();
 
             } catch (Exception x) {
                 Log.Add(x.Message);

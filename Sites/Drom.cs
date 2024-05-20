@@ -36,6 +36,7 @@ namespace Selen.Sites {
         int _nameLimit = 200;       //ограничение длины имени
         //конструктор
         public Drom() {
+            _bus = Class365API._bus;
         }
         public void LoadCookies() {
             if (_dr != null) {
@@ -57,9 +58,8 @@ namespace Selen.Sites {
             _dr?.Quit();
             _dr = null;
         }
-        public async Task DromStartAsync(List<GoodObject> bus) {
+        public async Task DromStartAsync() {
             try {
-                _bus = bus;
                 _url = await DB.GetParamStrAsync("drom.url");
                 _isAddWeights = await DB.GetParamBoolAsync("drom.addWeights");
                 _defWeigth = DB.GetParamFloat("defaultWeigth");
@@ -71,7 +71,6 @@ namespace Selen.Sites {
 
                 Log.Add(_l+"начало выгрузки...");
                 await AuthAsync();
-                await MakeReserveAsync();
                 await GetDromPhotos();
                 await UpAsync();
                 await EditAsync();
@@ -114,8 +113,9 @@ namespace Selen.Sites {
             });
         }
         //резервирование
-        public async Task MakeReserveAsync() {
+        public async Task MakeReserve() {
             try {
+                await AuthAsync();
                 //загружаем список заказов, для которых уже делали резерв
                 if (File.Exists(_fileReserve)) {
                     var r = File.ReadAllText(_fileReserve);
@@ -255,6 +255,8 @@ namespace Selen.Sites {
                 _dr.WriteToSelector("//input[@name='subject']", b.NameLimit(_nameLimit));
         }
         void Delete(GoodObject b) {
+            if (_dr.GetElementsCount("//h2[text()='Вы удалили объявление']") > 0)
+                return;
             //переход на страницу объявления, если он нужен
             _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
             if (_dr.GetElementsCount("//a[contains(@class,'doDelete')]") > 0) {
@@ -277,11 +279,12 @@ namespace Selen.Sites {
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("https://baza.drom.ru/set/city/370?returnUrl=https%3A%2F%2Fbaza.drom.ru%2Fadding%3Ftype%3Dgoods%26city%3D370", "//input[@name='subject']");
                         if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
-                            throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
+                            //throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
+                            _dr.ButtonClick("//div[@class='adding-rm-draft__caption']");
                         SetTitle(_bus[b]);
                         _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                         _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
-                        SetPart(_bus[b]);
+                        //SetPart(_bus[b]);
                         //SetAlternativeParts(_bus[b]);
                         SetImages(_bus[b]);
                         SetDesc(_bus[b]);
@@ -415,27 +418,42 @@ namespace Selen.Sites {
                 Log.Add(_l + b.name + " - установлен адрес самовывоза");
             }
         }
-        void SetPart(GoodObject b) {
+        void SetPart(GoodObject b, bool clear = false) {
+            if (clear) {
+                _dr.WriteToSelector("//textarea[@name='autoPartsOemNumber']", " " + OpenQA.Selenium.Keys.Tab);
+                return;
+            }
             var w = _dr.GetElementAttribute("//input[@name='autoPartsOemNumber']", "value");
-            if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part)
+            if ((string.IsNullOrEmpty(w) && !string.IsNullOrEmpty(b.Part)) || w != b.Part) {
                 _dr.WriteToSelector("//input[@name='autoPartsOemNumber']", b.Part + OpenQA.Selenium.Keys.Tab);
+                if (!clear && _dr.GetElementsCount("//div[@data-name='autoPartsOemNumber' and contains(@class,'js__valid')]") == 0)
+                    SetPart(b, clear: true);
+            }
         }
-        void SetAlternativeParts(GoodObject b) {
+        void SetAlternativeParts(GoodObject b, bool clear = false) {
+            if (clear) {
+                _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", " " + OpenQA.Selenium.Keys.Tab);
+                return;
+            }
             var descNums = b.GetDescriptionNumbers();
             var oem = b.GetOEM();
             if (!string.IsNullOrEmpty(oem) && oem != b.part)
                 descNums.Add(oem);
             var alt = b.GetAlternatives()?.Split(',');
-            if (alt!=null && alt.Any()) 
+            if (alt != null && alt.Any())
                 descNums.AddRange(alt);
 
             var t1 = descNums.Where(x => x != b.part)?
                              .Distinct()?
                              .Take(5);
-            var numbers = t1.Any() ? t1.Aggregate((n1, n2) => n1 + ", " + n2).Replace("\\","").Replace("/",""):"";
+            var numbers = t1.Any() ? t1.Aggregate((n1, n2) => n1 + ", " + n2).Replace("\\", "").Replace("/", "") : "";
             var w = _dr.GetElementAttribute("//textarea[@name='autoPartsSubstituteNumbers']", "value");
-            if (w != numbers)
+            if (w != numbers) {
                 _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", numbers + OpenQA.Selenium.Keys.Tab);
+                if (numbers.Length >0 && !clear 
+                    && _dr.GetElementsCount("//div[@data-name='autoPartsSubstituteNumbers' and contains(@class,'js__valid')]") == 0)
+                    SetAlternativeParts(b, clear: true);
+            }
         }
         void PressOkButton() {
             _dr.ButtonClick("//button[contains(@class,'submit__button')]");
@@ -450,8 +468,11 @@ namespace Selen.Sites {
                     break;
             }
         }
-        void SetDesc(GoodObject b) {
-            var d = b.DescriptionList(2979, _addDesc);
+        void SetDesc(GoodObject b, bool withoutNumbers=false, bool onlyTitle=false) {
+            var d = onlyTitle ? new List<string> { b.name }
+                              : b.DescriptionList(2979, _addDesc)
+                                 .Where(_ => !_.Contains("№") || !withoutNumbers) 
+                                 .ToList();
             var amount = b.Amount > 0 ? b.Amount.ToString() + " " + b.MeasureNameCorrect : "нет";
             d.Insert(0, "В наличии: " + amount);
             if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
@@ -463,6 +484,13 @@ namespace Selen.Sites {
             d.Add(OpenQA.Selenium.Keys.Tab);
             _dr.ClickToSelector("//textarea[@name='text']");
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
+            //проверяем поле на ошибку
+            if (!withoutNumbers && _dr.GetElementsCount("//div[@data-name='text' and contains(@class,'js__valid')]") == 0) {
+                SetDesc(b, withoutNumbers: true);
+                return;
+            }
+            if (!onlyTitle && _dr.GetElementsCount("//div[@data-name='text' and contains(@class,'js__valid')]") == 0)
+                SetDesc(b, onlyTitle: true);
         }
         void SetPrice(GoodObject b) {
             var w = _dr.GetElementAttribute("//input[@name='price']", "value");
