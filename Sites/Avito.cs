@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
@@ -20,6 +21,9 @@ namespace Selen.Sites {
         readonly string _fileNameStockExport = @"..\data\avitostock.xml";
         readonly string _autoCatalogFile = @"..\data\autocatalog.xml";
         readonly string _genFile = @"..\data\avito\avito_generations.txt";
+        static readonly string _catsFile = @"..\data\avito\avito_categories.xml";
+        static XDocument _cats;
+        static IEnumerable<XElement> _rules;
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
         string[] _addDesc;
@@ -155,6 +159,8 @@ namespace Selen.Sites {
             }
             await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
+                _cats = XDocument.Load(_catsFile);
+                _rules = _cats.Descendants("Rule");
                 var offersLimit = DB.GetParamInt("avito.offersLimit");
                 var priceLevel = DB.GetParamInt("avito.priceLevel");
                 _addDesc = JsonConvert.DeserializeObject<string[]>(
@@ -347,11 +353,42 @@ namespace Selen.Sites {
             File.WriteAllText(_genFile, list.Aggregate((a, b) => a + "\n" + b));
             //await Applications.UpdateApplicationListAsync(list);
         }
+        static void GetParams(XElement rule, Dictionary<string, string> d) {
+            var parent = rule.Parent;
+            if (parent!=null) {
+                GetParams(parent, d);
+                d.Add(parent.Name.ToString(), parent.Attribute("Name").Value);
+            }
+        }
+
+
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(GoodObject b) {
             var name = b.name.ToLowerInvariant()
                              .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.", "").Replace("б.у", "").Trim();
             var d = new Dictionary<string, string>();
+
+
+            foreach (var rule in _rules) {
+                var conditions = rule.Elements();
+                var eq = true;
+                foreach (var condition in conditions) {
+                    if (eq == false)
+                        break;
+                    if (condition.Name == "Starts" && !name.StartsWith(condition.Value)) eq = false;
+                    else if (condition.Name =="Contains" && !name.Contains(condition.Value)) eq = false;
+                    else if (condition.Name =="MaxWeight" && b.GetWeight() > float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    else if (condition.Name =="MinWeight" && b.GetWeight() < float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    else if (condition.Name =="MaxLength" && b.GetLength() > float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    else if (condition.Name =="MinLength" && b.GetLength() < float.Parse(condition.Value.Replace(".",","))) eq = false;
+                }
+                if (eq) {
+                    GetParams(rule,d);
+                    if (d.Any())
+                        return d;
+                }
+            }
+
             if (name.StartsWith("масло ")) {
                 d.Add("TypeId", "4-942");                           //Масла и автохимия
             } else if (name.StartsWith("фиксаторы") ||
@@ -1186,7 +1223,7 @@ namespace Selen.Sites {
                 d.Add("TypeId", "11-621");                          //Запчасти для ТО
             }
 
-            if (d.Count > 0)
+            if (d.Any())
                 d.Add("Category", "Запчасти и аксессуары"); //главная категория
             else
                 throw new Exception("категория не определена!");

@@ -3,21 +3,19 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Newtonsoft.Json;
 using Application = System.Windows.Forms.Application;
 using Color = System.Drawing.Color;
 using Selen.Sites;
 using Selen.Tools;
 using Selen.Base;
 using System.Timers;
+using System.Globalization;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.186";
+        string _version = "1.187";
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -40,6 +38,7 @@ namespace Selen {
 
         //конструктор формы
         public FormMain() {
+            CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             InitializeComponent();
             Class365API.syncAllEvent += SyncAllHandlerAsync;
             Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
@@ -401,7 +400,12 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                await _drom.MakeReserve();
+                CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+                Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
+                CultureInfo.CurrentCulture = new CultureInfo("en-US");
+                Log.Add($"en-US: {Class365API.ScanTime.ToString()}");
+                CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+                Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
 
             } catch (Exception x) {
                 Log.Add(x.Message);

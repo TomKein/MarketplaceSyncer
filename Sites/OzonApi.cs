@@ -230,7 +230,7 @@ namespace Selen.Sites {
                         throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
                     if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
                         Class365API._bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
-                        checkAll) {                                             //либо передали флаг проверять всё
+                        checkAll) {                                                         //либо передали флаг проверять всё
                         var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await UpdateProductAsync(Class365API._bus[b], productInfo);
@@ -281,7 +281,6 @@ namespace Selen.Sites {
                 await UpdateProductStocks(bus, productInfo);
                 await UpdateProductPriceAsync(bus, productInfo);
                 await UpdateProduct(bus, productInfo);
-                //TODO добавить проверку и обновление фотографий await UpdateProductImages()
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProductAsync ошибка! name:{bus.name} message:{x.Message}");
             }
@@ -289,29 +288,29 @@ namespace Selen.Sites {
         //обновление остатков товара на озон
         private async Task UpdateProductStocks(GoodObject bus, ProductInfo productInfo) {
             try {
-                if (bus.Amount == productInfo.GetStocks())
+                var amount = bus.Amount;
+                if (!bus.New || amount < 0)
+                    amount = 0;
+                if (amount == productInfo.GetStocks())
                     return;
-                //защита от отрицательных остатков
-                if (bus.Amount < 0)
-                    bus.Amount = 0;
                 //объект для запроса
                 var data = new {
                     stocks = new[] {
                         new {
                             product_id = productInfo.id,
-                            stock = bus.Amount.ToString("F0")
+                            stock = amount.ToString("F0")
                         }
                     }
                 };
                 var s = await PostRequestAsync(data, "/v1/product/import/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
-                if (res.First().updated) {
-                    Log.Add(_l + bus.name + " остаток обновлен! (" + bus.Amount + ")");
-                } else {
-                    Log.Add(_l + bus.name + " ошибка! остаток не обновлен! (" + bus.Amount + ")" + " >>> " + s);
-                }
+                if (res.First().updated) 
+                    Log.Add(_l + bus.name + " остаток обновлен! (" + amount + ")");
+                else 
+                    throw new Exception(s);
+                
             } catch (Exception x) {
-                Log.Add(_l + " ошибка обновления остатка - " + x.Message);
+                Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка {bus.name} - {x.Message}");
             }
         }
         //расчет цен с учетом наценки
@@ -403,6 +402,8 @@ namespace Selen.Sites {
         //обновление описаний товаров
         private async Task UpdateProduct(GoodObject good, ProductInfo productInfo) {
             try {
+                if (!good.New)
+                    throw new Exception("товар стал Б/У!!");
                 //проверяем группу товара
                 var attributes = await GetAttributesAsync(good);
                 if (attributes.typeId == 0)
@@ -498,7 +499,6 @@ namespace Selen.Sites {
                 } else {
                     Log.Add(_l + good.name + " ошибка отправки товара на озон!" + " ===> " + s);
                 }
-
                 ////
                 var res2 = new ProductImportInfo();
                 await Task.Delay(10000);
@@ -511,10 +511,8 @@ namespace Selen.Sites {
                 if (res2.items.First().errors.Length > 0)
                     Log.Add(_l + good.name + " ошибка - " + s);
                 ////
-
-
             } catch (Exception x) {
-                Log.Add(_l + " ошибка обновления описаний - " + x.Message);
+                Log.Add($"{_l} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
             }
         }
         //добавление новых товаров на ozon

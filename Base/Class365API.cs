@@ -853,6 +853,8 @@ namespace Selen {
                                      _bus[i].Replace("  ", " ") |
                                      _bus[i].Replace("&ndash;", "-") |
                                      _bus[i].Replace("&gt;", "-") |
+                                     _bus[i].Replace("'", "`") |
+                                     _bus[i].Replace("``", "`") |
                                      _bus[i].Replace("&lt;", "-");
                     if (needUpdate) {
                         await RequestAsync("put", "goods", new Dictionary<string, string>() {
