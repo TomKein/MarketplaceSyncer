@@ -194,7 +194,7 @@ namespace Selen {
             // dateTimePicker1
             // 
             this.dateTimePicker1.CalendarForeColor = System.Drawing.Color.Red;
-            this.dateTimePicker1.CustomFormat = "dd/MM/yyyy HH:mm";
+            this.dateTimePicker1.CustomFormat = "dd.MM.yyyy HH:mm";
             this.dateTimePicker1.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
             this.dateTimePicker1.Location = new System.Drawing.Point(5, 18);
             this.dateTimePicker1.MaxDate = new System.DateTime(2099, 12, 31, 0, 0, 0, 0);

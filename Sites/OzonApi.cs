@@ -107,7 +107,7 @@ namespace Selen.Sites {
                     var data = new {
                         filter = new {
                             cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
-                            cutoff_to = DateTime.Now.AddDays(5).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                            cutoff_to = DateTime.Now.AddDays(18).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
                             warehouse_id = new int[] { },
                             status = status
                         },
@@ -315,7 +315,7 @@ namespace Selen.Sites {
         }
         //расчет цен с учетом наценки
         private int GetNewPrice(GoodObject b) {
-            var weight = b.GetWeight();
+            var weight = b.Weight;
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
             //наценка 30% на всё
@@ -406,8 +406,6 @@ namespace Selen.Sites {
                     throw new Exception("товар стал Б/У!!");
                 //проверяем группу товара
                 var attributes = await GetAttributesAsync(good);
-                if (attributes.typeId == 0)
-                    return;
                 //Запрашиваю атрибуты товара с озон
                 var productFullInfo = await GetProductFullInfoAsync(productInfo);
                 File.WriteAllText(@"..\ozon\product_" + productFullInfo.First().offer_id + ".json",
@@ -416,6 +414,8 @@ namespace Selen.Sites {
                     _isProductListCheckNeeds = true;
                     return;
                 }
+                if (attributes.typeId == 0)
+                    return;
                 var data = new {
                     items = new[] {
                         new{
@@ -427,7 +427,7 @@ namespace Selen.Sites {
                             //category_id=productFullInfo[0].category_id,
                             price = GetNewPrice(good).ToString(),
                             old_price = GetOldPrice(GetNewPrice(good)).ToString(),
-                            weight = (int)(good.GetWeight()*1000),                  //Вес с упаковкой, г
+                            weight = (int)(good.Weight*1000),                  //Вес с упаковкой, г
                             weight_unit = "g",
                             depth = int.Parse(good.width)*10,                       //глубина, мм
                             height = int.Parse(good.height)*10,                     //высота, мм
@@ -542,7 +542,7 @@ namespace Selen.Sites {
                                      && w.height != null
                                      && w.length != null
                                      && w.width != null
-                                     && w.IsNew()
+                                     && w.New
                                      && !w.ozon.Contains("http")
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
@@ -551,7 +551,7 @@ namespace Selen.Sites {
             var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
                                      && w.images.Count > 0
-                                     && w.IsNew()
+                                     && w.New
                                      && !w.ozon.Contains("http")
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
@@ -576,7 +576,7 @@ namespace Selen.Sites {
                                 category_id=attributes.categoryId,
                                 price = GetNewPrice(good).ToString(),
                                 old_price = GetOldPrice(GetNewPrice(good)).ToString(),
-                                weight = (int)(good.GetWeight()*1000),                      //Вес с упаковкой, г
+                                weight = (int)(good.Weight*1000),                      //Вес с упаковкой, г
                                 weight_unit = "g",
                                 depth = int.Parse(good.width)*10,                           //глубина, мм
                                 height = int.Parse(good.height)*10,                         //высота, мм
@@ -995,8 +995,7 @@ namespace Selen.Sites {
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 321057673;
                     a.typeName = "Замок для багажников";
-                } else if (n.StartsWith("трос") &&
-                    n.Contains("замка") && n.Contains("двери")) {                       //Трос замка двери
+                } else if (n.StartsWith("трос") && n.Contains("замка") && n.Contains("двери")) {    //Трос замка двери
                     a.categoryId = 92145042;//Замки автомобильные
                     a.typeId = 971072793;
                     a.typeName = "Трос замка двери";
@@ -1722,11 +1721,11 @@ namespace Selen.Sites {
                     a.categoryId = 33697187;
                     a.typeId = 970853203;
                     a.typeName = "Цоколь автомобильной лампы";
-                } else if (n.StartsWith("переходник") && n.Contains("тормозной")) {  //Штуцер тормозной трубки
+                } else if (n.StartsWith("переходник") && n.Contains("тормозной")) {
                     a.categoryId = 86292454;
                     a.typeId = 971095436;
                     a.typeName = "Штуцер тормозной трубки";
-                } else if (n.StartsWith("трос") && n.Contains("газа")) {  //Трос акселератора
+                } else if (n.StartsWith("трос") && n.Contains("газа")) {
                     a.categoryId = 101292869;
                     a.typeId = 970984776;
                     a.typeName = "Трос акселератора";
@@ -1734,6 +1733,60 @@ namespace Selen.Sites {
                     a.categoryId = 85843113;
                     a.typeId = 971072778;
                     a.typeName = "Ремкомплект насоса топливного";
+                } else if (n.StartsWith("втулка направляющая масляного щупа") 
+                    || n.StartsWith("щуп маслян")) {
+                    a.categoryId = 86292577;
+                    a.typeId = 970782915;
+                    a.typeName = "Щуп масляный";
+                } else if (n.StartsWith("повторитель поворота")) {      //Повторитель указателя поворота
+                    a.categoryId = 33697184;
+                    a.typeId = 971111763;
+                    a.typeName = "Повторитель указателя поворота";
+                } else if (n.Contains("гур") && (n.StartsWith("трубка") || n.StartsWith("шланг"))) {      //Шланг ГУР
+                    a.categoryId = 86292454;
+                    a.typeId = 971100259;
+                    a.typeName = "Шланг ГУР";
+                } else if (n.StartsWith("знак аварийной остановки")) {      //Знак аварийной остановки
+                    a.categoryId = 27332699;
+                    a.typeId = 92170;
+                    a.typeName = "Знак аварийной остановки";
+                } else if (n.StartsWith("клапан фаз")) {      //Клапаны ГБЦ
+                    a.categoryId = 85806235;
+                    a.typeId = 971072711;
+                    a.typeName = "Клапаны ГБЦ";
+                } else if (n.StartsWith("клей токопроводящий")) {      //Клей автомобильный
+                    a.categoryId = 33717355;
+                    a.typeId = 970856045;
+                    a.typeName = "Клей автомобильный";
+                } else if (n.StartsWith("трещотка флажковая")) {      //Ключ газовый
+                    a.categoryId = 45393031;
+                    a.typeId = 92147;
+                    a.typeName = "Трещотка";
+                } else if (n.StartsWith("термостат")) {      //Термостат
+                    a.categoryId = 39655598;
+                    a.typeId = 115950439;
+                    a.typeName = "Термостат автомобильный";
+                } else if (n.StartsWith("ремень поликлиновой")) {
+                    a.categoryId = 33697155;
+                    a.typeId = 98914;
+                    a.typeName = "Ремень поликлиновой";
+                } else if (n.StartsWith("регулятор холостого хода")) {
+                    a.categoryId = 85843109;
+                    a.typeId = 970885008;
+                    a.typeName = "Регулятор холостого хода";
+                } else if (n.StartsWith("трос") && n.Contains("капота")) {
+                    a.categoryId = 101292869;
+                    a.typeId = 971072794;
+                    a.typeName = "Трос замка капота";
+                } else if (n.StartsWith("трос") && n.Contains("сцепления")) {
+                    a.categoryId = 85835774;
+                    a.typeId = 98953;
+                    a.typeName = "Трос сцепления";
+                } else if (n.StartsWith("трос") &&
+                    ( n.Contains("кпп")||n.Contains("передач"))) {
+                    a.categoryId = 101292869;
+                    a.typeId = 971072795;
+                    a.typeName = "Трос КПП";
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));

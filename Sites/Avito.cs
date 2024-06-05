@@ -223,9 +223,9 @@ namespace Selen.Sites {
                         ad.Add(new XElement("Description", new XCData(GetDescription(b))));
                         ad.Add(new XElement("ManagerName", "Менеджер"));
                         ad.Add(new XElement("AdType", "Товар приобретен на продажу"));
-                        ad.Add(new XElement("Condition", b.IsNew() ? "Новое" : "Б/у"));
+                        ad.Add(new XElement("Condition", b.New ? "Новое" : "Б/у"));
                         ad.Add(new XElement("Availability", "В наличии"));
-                        ad.Add(new XElement("Originality", b.IsOrigin() ? "Оригинал" : "Аналог"));
+                        ad.Add(new XElement("Originality", b.Origin ? "Оригинал" : "Аналог"));
                         //номер запчасти
                         if (!string.IsNullOrEmpty(b.Part))
                             ad.Add(new XElement("OEM", b.Part));
@@ -235,7 +235,7 @@ namespace Selen.Sites {
                             ad.Add(new XElement("Brand", b.GetManufacture()));
                         // если запчасть б/у и нет номера или бренда,
                         // то нужно добавить Для чего подходит (требование авито)
-                        if (!b.IsNew()/* && (string.IsNullOrEmpty(b.part) || string.IsNullOrEmpty(brand))*/) {
+                        if (!b.New/* && (string.IsNullOrEmpty(b.part) || string.IsNullOrEmpty(brand))*/) {
                             var app = GetApplication(b);
                             if (app != null) {
                                 var list = app.Split(',');
@@ -377,8 +377,8 @@ namespace Selen.Sites {
                         break;
                     if (condition.Name == "Starts" && !name.StartsWith(condition.Value)) eq = false;
                     else if (condition.Name =="Contains" && !name.Contains(condition.Value)) eq = false;
-                    else if (condition.Name =="MaxWeight" && b.GetWeight() > float.Parse(condition.Value.Replace(".",","))) eq = false;
-                    else if (condition.Name =="MinWeight" && b.GetWeight() < float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    else if (condition.Name =="MaxWeight" && b.Weight > float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    else if (condition.Name =="MinWeight" && b.Weight < float.Parse(condition.Value.Replace(".",","))) eq = false;
                     else if (condition.Name =="MaxLength" && b.GetLength() > float.Parse(condition.Value.Replace(".",","))) eq = false;
                     else if (condition.Name =="MinLength" && b.GetLength() < float.Parse(condition.Value.Replace(".",","))) eq = false;
                 }
@@ -1230,12 +1230,12 @@ namespace Selen.Sites {
 
             //корректировка категорий для авито доставки
             if (d["TypeId"] == "11-629" //Трансмиссия и привод
-                && b.GetWeight() < 15
+                && b.Weight < 15
                 && b.GetLength() < 120) {
                 d["TypeId"] = "11-623"; // меняем категорию на Подвеска
             }
             if (d["TypeId"] == "16-819" //Кузов по частям
-                && b.GetWeight() < 15
+                && b.Weight < 15
                 && b.GetLength() < 120) {
                 d["TypeId"] = "11-625"; // меняем категорию на Салон
             }

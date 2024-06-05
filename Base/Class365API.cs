@@ -765,8 +765,8 @@ namespace Selen {
                                         b.Reserve <= 0 &&
                                         b.Price > 0 &&
                                         b.remains.Count > 0 &&
-                                        DateTime.Now.AddDays(-days * (b.IsNew() ? 30 : 1)) > DateTime.Parse(b.updated)&&
-                                        DateTime.Now.AddDays(-days * (b.IsNew() ? 30 : 1)) > DateTime.Parse(b.updated_remains_prices))
+                                        DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated)&&
+                                        DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated_remains_prices))
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
@@ -855,7 +855,8 @@ namespace Selen {
                                      _bus[i].Replace("&gt;", "-") |
                                      _bus[i].Replace("'", "`") |
                                      _bus[i].Replace("``", "`") |
-                                     _bus[i].Replace("&lt;", "-");
+                                     _bus[i].Replace("&lt;", "-")|
+                                     _bus[i].Replace("&deg;", "град. ");
                     if (needUpdate) {
                         await RequestAsync("put", "goods", new Dictionary<string, string>() {
                             {"id", _bus[i].id},

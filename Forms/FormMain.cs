@@ -15,7 +15,7 @@ using System.Globalization;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.187";
+        string _version = "1.188";
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -400,12 +400,98 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
-                Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
-                CultureInfo.CurrentCulture = new CultureInfo("en-US");
-                Log.Add($"en-US: {Class365API.ScanTime.ToString()}");
-                CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
-                Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
+
+                List<GoodObject> testGoods = new List<GoodObject>();
+                testGoods.Add(new GoodObject() {
+                    name = "Test1 (легкий, маленький размер, низкая цена)",
+                    weight = 1,
+                    length = "10",
+                    width  = "10",
+                    height = "10",
+                    Price = 200
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test2 (тяжелый, маленький размер, средняя цена)",
+                    weight = 30,
+                    length = "10",
+                    width  = "10",
+                    height = "10",
+                    Price = 2000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test3 (легкий, большой размер, средняя цена)",
+                    weight = 1,
+                    length = "100",
+                    width  = "100",
+                    height = "100",
+                    Price = 2000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test4 (тяжелый, большой размер, высокая цена)",
+                    weight = 30,
+                    length = "100",
+                    width  = "100",
+                    height = "100",
+                    Price = 20000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test5 (легкий, маленький размер, высокая цена)",
+                    weight = 1,
+                    length = "20",
+                    width = "20",
+                    height = "20",
+                    Price = 20000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test6 (тяжелый, маленький размер, высокая цена)",
+                    weight = 30,
+                    length = "20",
+                    width = "20",
+                    height = "20",
+                    Price = 20000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test7 (тяжелый, средний размер, высокая цена)",
+                    weight = 30,
+                    length = "60",
+                    width = "60",
+                    height = "60",
+                    Price = 10000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test7 (легкий, средний размер, высокая цена)",
+                    weight = 3,
+                    length = "60",
+                    width = "60",
+                    height = "60",
+                    Price = 10000
+                });
+                testGoods.Add(new GoodObject() {
+                    name = "Test8 (легкий, средний размер, высокая цена)",
+                    weight = 30,
+                    length = "60",
+                    width = "60",
+                    height = "60",
+                    Price = 10000
+                });
+
+                foreach (var good in testGoods) {
+                    Log.Add($"{good.name}:");
+                    Log.Add($"вес: {good.Weight}, длина: {good.length}, ширина: {good.width}, высота: {good.height}");
+                    Log.Add($"сумма сторон: {good.SumDimentions}, объемный вес: {good.VolumeWeight}");
+                    Log.Add($"базовая цена: {good.Price}, новая цена: {_yandexMarket.GetPrice2(good)}\n-------------------------");
+                }
+
+
+
+
+
+                //CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+                //Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
+                //CultureInfo.CurrentCulture = new CultureInfo("en-US");
+                //Log.Add($"en-US: {Class365API.ScanTime.ToString()}");
+                //CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+                //Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
 
             } catch (Exception x) {
                 Log.Add(x.Message);

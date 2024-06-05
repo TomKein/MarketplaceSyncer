@@ -9,7 +9,6 @@ using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System.Net;
-using System.Text;
 using System.Net.Http;
 
 namespace Selen.Sites {
@@ -80,7 +79,7 @@ namespace Selen.Sites {
                         var offer = new XElement("offer", new XAttribute("id", b.id));
                         offer.Add(new XElement("categoryId", b.group_id));
                         offer.Add(new XElement("name", b.NameLimit(150)));
-                        var price = GetPrice(b);
+                        var price = GetPrice2(b);
                         offer.Add(new XElement("price", price));
                         //цена до скидки +10%
                         offer.Add(new XElement("oldprice", (Math.Ceiling((price * (1 + oldPriceProcent / 100)) / 100) * 100).ToString("F0")));
@@ -95,10 +94,10 @@ namespace Selen.Sites {
                         //артикул
                         if (!string.IsNullOrEmpty(b.Part))
                             offer.Add(new XElement("vendorCode", b.Part));
-                        offer.Add(new XElement("weight", b.GetWeightString()));
+                        offer.Add(new XElement("weight", b.WeightString));
                         offer.Add(new XElement("dimensions", b.GetDimentionsString()));
                         //блок ресейл
-                        if (!b.IsNew()) {
+                        if (!b.New) {
                             //состояние - бывший в употреблении
                             var condition = new XElement("condition", new XAttribute("type", "preowned"));
                             //внешний вид - хороший, есть следы использования
@@ -191,12 +190,12 @@ namespace Selen.Sites {
             if (size[0] > EXPRESS_MAX_LENGTH ||
                 size[1] > EXPRESS_MAX_WIDTH ||
                 size[2] > EXPRESS_MAX_HEIGHT ||
-                b.GetWeight() > EXPRESS_MAX_WEIGHT)
+                b.Weight > EXPRESS_MAX_WEIGHT)
                 return 0;
             return b.Amount;
         }
         int GetPrice(GoodObject b) {
-            var weight = b.GetWeight();
+            var weight = b.Weight;
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
             //наценка 30% на всё
@@ -217,6 +216,60 @@ namespace Selen.Sites {
             //таким образом, скидка будет 3% или чуть более
             var newPrice = (int) ((0.97 * (b.Price + overPrice)) / 10);
             return 10 * newPrice;
+        }
+        public int GetPrice2(GoodObject b) {
+            // общая наценка для всех товаров на Яндексе + 25% (X)
+            float newPrice = (float) (b.Price * 1.25);
+            // доп. наценка до ПВЗ = Х + если(до 24.9 кг и сумма сторон до 199см) то + 6 % (не менее 50р.и не больше 400Р
+            // иначе + 450р.
+            float pvzPrice;
+            if (b.Weight < 25 && b.SumDimentions < 200) {
+                pvzPrice = (float) (newPrice * 0.06);
+                if (pvzPrice < 50)
+                    pvzPrice = 50;
+                else if (pvzPrice > 400)
+                    pvzPrice = 400;
+            } else
+                pvzPrice = 450;
+            // добавляю наценку к новой цене
+            newPrice += pvzPrice;
+            // доп. наценка за доставку до городов - зависит от объемного веса (см3/5000)
+            var vw = b.VolumeWeight;
+            if (vw >= 150)
+                newPrice += 3500;
+            else if (vw >= 50)
+                newPrice += 1600;
+            else if (vw >= 35)
+                newPrice += 1400;
+            else if (vw >= 30)
+                newPrice += 1200;
+            else if (vw >= 25)
+                newPrice += 1000;
+            else if (vw >= 20)
+                newPrice += 800;
+            else if (vw >= 15)
+                newPrice += 600;
+            else if (vw >= 12)
+                newPrice += 500;
+            else if (vw >= 10)
+                newPrice += 400;
+            else if (vw >= 8)
+                newPrice += 300;
+            else if (vw >= 6)
+                newPrice += 250;
+            else if (vw >= 4)
+                newPrice += 180;
+            else if (vw >= 2)
+                newPrice += 100;
+            else if (vw >= 1)
+                newPrice += 70;
+            else if (vw >= 0.5)
+                newPrice += 65;
+            else if (vw >= 0.2)
+                newPrice += 60;
+            else 
+                newPrice += 55;
+            return (int) (newPrice/10) * 10; //округление цен до 10 р
         }
         //работа с api
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {

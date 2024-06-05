@@ -316,7 +316,7 @@ namespace Selen.Sites {
 
                 //проверка заполнения веса
                 var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value");
-                if (string.IsNullOrEmpty(w) || float.Parse(w.Replace(".", ",")) != b.GetWeight()) {
+                if (string.IsNullOrEmpty(w) || float.Parse(w.Replace(".", ",")) != b.Weight) {
                     _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
                     weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
                 }
@@ -375,14 +375,14 @@ namespace Selen.Sites {
         }
         void SetOptions(GoodObject b) {
             //новый/бу - если товар новый, но цвет кнопки не серый, значит надо нажать
-            if (b.IsNew()) {
+            if (b.New) {
                 if (!_dr.GetElementCSSValue("//label[text()='Новый']", "background").Contains("224, 224"))
                     _dr.ButtonClick("//label[text()='Новый']");
             } else
                 if (!_dr.GetElementCSSValue("//label[text()='Б/у']", "background").Contains("224, 224"))
                 _dr.ButtonClick("//label[text()='Б/у']");
             //аналог или оригинал
-            if (b.IsOrigin()) {
+            if (b.Origin) {
                 if (!_dr.GetElementCSSValue("//label[text()='Оригинал']", "background").Contains("224, 224"))
                     _dr.ButtonClick("//label[text()='Оригинал']");
             } else

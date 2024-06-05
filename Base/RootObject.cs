@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -245,7 +246,7 @@ namespace Selen {
         public string MeasureName => measure_id == "11" ? "пара"
                                                         : measure_id == "13" ? "компл."
                                                                              : "шт.";
-        public string MeasureNameCorrect => measure_id == "11" 
+        public string MeasureNameCorrect => measure_id == "11"
                                                 ?Amount % 10 == 1 && Amount != 11 
                                                     ? "пара"
                                                     : Amount % 10 >= 1 && Amount % 10 <= 4 && (Amount > 20 || Amount < 10)
@@ -263,12 +264,10 @@ namespace Selen {
                 defaultWeight = 1f;
             }
         }
-        public string GetWeightString() {
-            return GetWeight().ToString("F1").Replace(",", ".");
-        }
-        public float GetWeight() {
-            return (float) ((weight == null || weight == 0) ? defaultWeight : weight);
-        }
+        [JsonIgnore]
+        public string WeightString => Weight.ToString("F1").Replace(",", ".");
+        [JsonIgnore]
+        public float Weight => (float) ((weight == null || weight == 0) ? defaultWeight : weight);
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
@@ -278,6 +277,12 @@ namespace Selen {
                 defaultVolume = 0.02f;
             }
         }
+        [JsonIgnore]
+        public float SumDimentions => GetDimentions().Sum();
+        [JsonIgnore]
+        public float MultiDimentions => GetDimentions().Aggregate((x1, x2) => x1 * x2);
+        [JsonIgnore] 
+        public float VolumeWeight => MultiDimentions / 5000;
         //срок годности по умолчанию
         static string defaultValidity;
         public static void UpdateDefaultValidity() {
@@ -634,24 +639,32 @@ namespace Selen {
             return "14";
         }
 
-        public bool IsNew() {
-            var low = (name + ":" + description).ToLowerInvariant();
-            if (group_id == "289732" || //Автохимия
-                group_id == "430926")  //Масла
-                return true;
-            return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
+        //public bool IsNew() {
+        //    var low = (name + ":" + description).ToLowerInvariant();
+        //    if (group_id == "289732" || //Автохимия
+        //        group_id == "430926")  //Масла
+        //        return true;
+        //    return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
+        //}
+        [JsonIgnore]
+        public bool New {
+            get {
+                var low = (name + ":" + description).ToLowerInvariant();
+                if (group_id == "289732" || //Автохимия
+                    group_id == "430926")  //Масла
+                    return true;
+                return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
+            }
         }
-        public static bool IsNew(string s) {
-            var low = s.ToLowerInvariant();
-            return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
-        }
-
-        public bool IsOrigin() {
-            var low = description.ToLowerInvariant();
-            if (low.Contains("оригинал") &&
-                !low.Replace(" ", "").Contains("неоригинал"))
-                return true;
-            return false;
+        [JsonIgnore]
+        public bool Origin {
+            get {
+                var low = description.ToLowerInvariant();
+                if (low.Contains("оригинал") &&
+                    !low.Replace(" ", "").Contains("неоригинал"))
+                    return true;
+                return false;
+            }
         }
 
         public string DiskType() {
@@ -804,7 +817,7 @@ namespace Selen {
             var d = GetDimentions();
             return (d[0].ToString("F1") + "/" + d[1].ToString("F1") + "/" + d[2].ToString("F1")).Replace(",", ".");
         }
-        //массив размеров сторон (длина, ширина, высота)
+        //массив размеров сторон (длина, ширина, высота), см
         public float[] GetDimentions() {
             float[] arr = new float[3];
             //сперва проверяю поля карточки

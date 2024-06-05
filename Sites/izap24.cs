@@ -81,9 +81,9 @@ namespace Selen.Sites {
                     w.images.Count > 0 &&                           //есть фото
                     w.Amount > 0 &&                                 //с положительным остатком
                     w.Price > 0 &&                                  //с положительной ценой
-                    !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара не заблокирована
-                    !w.archive &&                                   //товар не в архиве
-                    !w.IsNew())                                     //и товар НЕ новый
+                    !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара НЕ заблокирована
+                    !w.archive &&                                   //товар НЕ в архиве
+                    !w.New)                                         //и товар НЕ новый
                     .OrderByDescending(o => int.Parse(o.id));       //сортировка от новых к старым товарам
                 var n = 0;                                          //счетчик позиций
                 var e = 0;                                          //счетчик ошибок
