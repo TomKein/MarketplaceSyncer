@@ -373,7 +373,7 @@ namespace Selen.Sites {
                 var conditions = rule.Elements();
                 var eq = true;
                 foreach (var condition in conditions) {
-                    if (eq == false)
+                    if (!eq)
                         break;
                     if (condition.Name == "Starts" && !name.StartsWith(condition.Value)) eq = false;
                     else if (condition.Name =="Contains" && !name.Contains(condition.Value)) eq = false;
