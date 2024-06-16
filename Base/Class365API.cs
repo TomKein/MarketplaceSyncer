@@ -400,7 +400,7 @@ namespace Selen {
                 ///только вызываем методы обработки изменений и подъема упавших
 
                 if (DateTime.Now.Minute % 15 > 10 && (DateTime.Now.AddMinutes(-5) > ScanTime) ||
-                    LastScanTime.AddHours(1) < DateTime.Now) {
+                    LastScanTime.AddMinutes(15) < DateTime.Now) {
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }

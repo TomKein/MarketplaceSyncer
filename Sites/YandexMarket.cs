@@ -194,29 +194,29 @@ namespace Selen.Sites {
                 return 0;
             return b.Amount;
         }
-        int GetPrice(GoodObject b) {
-            var weight = b.Weight;
-            var d = b.GetDimentions();
-            var length = d[0] + d[1] + d[2];
-            //наценка 30% на всё
-            int overPrice = (int) (b.Price * 0.30);
-            //если наценка меньше 200 р - округляю
-            if (overPrice < 200)
-                overPrice = 200;
-            //вес от 10 кг или размер от 100 -- наценка 1500 р
-            if (overPrice < 1500 && (weight >= 10 || length >= 100))
-                overPrice = 1500;
-            //вес от 30 кг или размер от 150 -- наценка 2000 р
-            if (overPrice < 2000 && (weight >= 30 || length >= 150))
-                overPrice = 2000;
-            //вес от 50 кг или размер более 200 -- наценка 3000 р
-            if (overPrice < 3000 && (weight >= 50 || length >= 200))
-                overPrice = 3000;
-            //скидка на всё 3% и округление рублей до десятков в меньшую сторону
-            //таким образом, скидка будет 3% или чуть более
-            var newPrice = (int) ((0.97 * (b.Price + overPrice)) / 10);
-            return 10 * newPrice;
-        }
+        //int GetPrice(GoodObject b) {
+        //    var weight = b.Weight;
+        //    var d = b.GetDimentions();
+        //    var length = d[0] + d[1] + d[2];
+        //    //наценка 30% на всё
+        //    int overPrice = (int) (b.Price * 0.30);
+        //    //если наценка меньше 200 р - округляю
+        //    if (overPrice < 200)
+        //        overPrice = 200;
+        //    //вес от 10 кг или размер от 100 -- наценка 1500 р
+        //    if (overPrice < 1500 && (weight >= 10 || length >= 100))
+        //        overPrice = 1500;
+        //    //вес от 30 кг или размер от 150 -- наценка 2000 р
+        //    if (overPrice < 2000 && (weight >= 30 || length >= 150))
+        //        overPrice = 2000;
+        //    //вес от 50 кг или размер более 200 -- наценка 3000 р
+        //    if (overPrice < 3000 && (weight >= 50 || length >= 200))
+        //        overPrice = 3000;
+        //    //скидка на всё 3% и округление рублей до десятков в меньшую сторону
+        //    //таким образом, скидка будет 3% или чуть более
+        //    var newPrice = (int) ((0.97 * (b.Price + overPrice)) / 10);
+        //    return 10 * newPrice;
+        //}
         public int GetPrice2(GoodObject b) {
             // общая наценка для всех товаров на Яндексе + 25% (X)
             float newPrice = (float) (b.Price * 1.25);

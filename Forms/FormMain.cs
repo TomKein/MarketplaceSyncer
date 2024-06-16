@@ -12,10 +12,11 @@ using Selen.Tools;
 using Selen.Base;
 using System.Timers;
 using System.Globalization;
+using Selen.Forms;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.188";
+        string _version = "1.190";
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -23,6 +24,7 @@ namespace Selen {
         Izap24 _izap24;
         OzonApi _ozon;
         Avito _avito;
+        MegaMarket _mm;
 
         static System.Timers.Timer _timer = new System.Timers.Timer();
 
@@ -136,6 +138,12 @@ namespace Selen {
             await _ozon.SyncAsync();
             ChangeStatus(sender, ButtonStates.Active);
         }
+        //MegaMarket
+        async void button_MegaMarket_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            await _mm.GenerateXML();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
 
         //todo move this method to class365api 
         async Task SyncAllHandlerAsync() {
@@ -144,8 +152,10 @@ namespace Selen {
             await _ozon.MakeReserve();
             await _yandexMarket.MakeReserve();
             await _avito.MakeReserve();
+            //TODO mm reserve!!
+            //await _mm.MakeReserve(); 
             await _drom.MakeReserve();
-
+            
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(10000);
             button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
@@ -157,6 +167,8 @@ namespace Selen {
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
             await Task.Delay(10000);
             button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
+            await Task.Delay(10000);
+            button_MegaMarket.Invoke(new Action(() => button_MegaMarket.PerformClick()));
             await WaitButtonsActiveAsync();
             dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
         }
@@ -190,6 +202,7 @@ namespace Selen {
             _ozon = new OzonApi();
             _avito = new Avito();
             _vk = new VK();
+            _mm = new MegaMarket();
         }
         //проверка на параллельный запуск
         async Task CheckMultiRunAsync() {
@@ -235,7 +248,8 @@ namespace Selen {
                 button_Drom.Enabled &&
                 button_Vk.Enabled &&
                 button_Avito.Enabled &&
-                button_ozon.Enabled
+                button_ozon.Enabled&&
+                button_MegaMarket.Enabled
                 )
             )
                 await Task.Delay(5000);
@@ -400,90 +414,12 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
+                //Log.Add(Class365API._bus.Find(b => b.id == "2846864").New.ToString());
 
-                List<GoodObject> testGoods = new List<GoodObject>();
-                testGoods.Add(new GoodObject() {
-                    name = "Test1 (легкий, маленький размер, низкая цена)",
-                    weight = 1,
-                    length = "10",
-                    width  = "10",
-                    height = "10",
-                    Price = 200
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test2 (тяжелый, маленький размер, средняя цена)",
-                    weight = 30,
-                    length = "10",
-                    width  = "10",
-                    height = "10",
-                    Price = 2000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test3 (легкий, большой размер, средняя цена)",
-                    weight = 1,
-                    length = "100",
-                    width  = "100",
-                    height = "100",
-                    Price = 2000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test4 (тяжелый, большой размер, высокая цена)",
-                    weight = 30,
-                    length = "100",
-                    width  = "100",
-                    height = "100",
-                    Price = 20000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test5 (легкий, маленький размер, высокая цена)",
-                    weight = 1,
-                    length = "20",
-                    width = "20",
-                    height = "20",
-                    Price = 20000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test6 (тяжелый, маленький размер, высокая цена)",
-                    weight = 30,
-                    length = "20",
-                    width = "20",
-                    height = "20",
-                    Price = 20000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test7 (тяжелый, средний размер, высокая цена)",
-                    weight = 30,
-                    length = "60",
-                    width = "60",
-                    height = "60",
-                    Price = 10000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test7 (легкий, средний размер, высокая цена)",
-                    weight = 3,
-                    length = "60",
-                    width = "60",
-                    height = "60",
-                    Price = 10000
-                });
-                testGoods.Add(new GoodObject() {
-                    name = "Test8 (легкий, средний размер, высокая цена)",
-                    weight = 30,
-                    length = "60",
-                    width = "60",
-                    height = "60",
-                    Price = 10000
-                });
-
-                foreach (var good in testGoods) {
-                    Log.Add($"{good.name}:");
-                    Log.Add($"вес: {good.Weight}, длина: {good.length}, ширина: {good.width}, высота: {good.height}");
-                    Log.Add($"сумма сторон: {good.SumDimentions}, объемный вес: {good.VolumeWeight}");
-                    Log.Add($"базовая цена: {good.Price}, новая цена: {_yandexMarket.GetPrice2(good)}\n-------------------------");
-                }
-
-
-
+                Form f = new FormAvito();
+                f.Owner = this;
+                f.ShowDialog();
+                f.Dispose();
 
 
                 //CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
@@ -498,5 +434,6 @@ namespace Selen {
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
+
     }
 }

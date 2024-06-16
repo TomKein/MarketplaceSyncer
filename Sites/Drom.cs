@@ -106,8 +106,13 @@ namespace Selen.Sites {
                     _dr.WriteToSelector("#sign", DB.GetParamStr("drom.login")); //ввод логина
                     _dr.WriteToSelector("#password", DB.GetParamStr("drom.password")); //пароля
                     _dr.ButtonClick("#signbutton"); //жмем кнопку входа
-                    while (_dr.GetElementsCount("//div[@class='personal-box']") == 0) //если элементов слева нет ждем ручной вход
+                    for (int i = 0; ; i++) {
+                        if (_dr.GetElementsCount("//div[@class='personal-box']") > 0)
+                            break;
+                        if (i == 10)
+                            throw new Exception($"{_l} AuthAsync: ошибка авторизации");
                         Thread.Sleep(30000);
+                    }
                 }
                 SaveCookies();
             });
@@ -294,7 +299,8 @@ namespace Selen.Sites {
                         SetAudioSize(_bus[b]);
                         SetWeight(_bus[b]);
                         Thread.Sleep(30000);
-                        PressPublicFreeButton();
+                        PressOkButton();
+                        //PressPublicFreeButton();
                     });
                     try {
                         await t;
@@ -456,16 +462,20 @@ namespace Selen.Sites {
             }
         }
         void PressOkButton() {
-            _dr.ButtonClick("//button[contains(@class,'submit__button')]");
+            if (_dr.GetElementsCount("//button[contains(@class,'submit__button')]")>0)
+                _dr.ButtonClick("//button[contains(@class,'submit__button')]");
+            else
+                PressPublicFreeButton();
         }
         void PressServiseSubmitButton() {
             _dr.ButtonClick("//*[@id='serviceSubmit' and not(contains(text(),'платить')) and not(contains(text(),'Поднять объявление —'))]");
         }
         void PressPublicFreeButton() {
-            for (int i = 0; i < 2; i++) {
+            for (int i = 0; i < 3; i++) {
                 _dr.ButtonClick("//button[@id='bulletin_publication_free']");
                 if (_dr.GetElementsCount("//button[@id='bulletin_publication_free']") == 0)
                     break;
+                Thread.Sleep(10000);
             }
         }
         void SetDesc(GoodObject b, bool withoutNumbers=false, bool onlyTitle=false) {

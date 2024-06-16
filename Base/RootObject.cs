@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -626,7 +625,7 @@ namespace Selen {
 
         public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ?
                                     Groups.First(f => f.id == group_id).name : "";
-        public static string GroupName(string group_id) => Groups.Count(c => c.id == group_id) > 0 ?
+        public static string GroupName(string group_id) => Groups.Any(c => c.id == group_id) ?
                                                           Groups.First(f => f.id == group_id).name : "";
 
         public string GetDiskSize() {

@@ -396,8 +396,10 @@ namespace Selen.Sites {
                 } else
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
-                throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                //throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
+            return null;
         }
         //обновление описаний товаров
         private async Task UpdateProduct(GoodObject good, ProductInfo productInfo) {
@@ -1932,17 +1934,19 @@ namespace Selen.Sites {
             if (value == null)
                 return null;
             await UpdateVedAsync(attributes.categoryId);
-            var t = new Value {
-                value = _tnved.Find(f => f.value.Contains(value))?.value,
-                dictionary_value_id = _tnved.Find(f => f.value.Contains(value))?.id ?? 0
-            };
-            if (t.dictionary_value_id == 0 || t.value == null)
+            var code = _tnved.Find(f => f.value.Contains(value));
+            if (code == null || code.id == null || code.value == null) {
+                Log.Add($"{_l} GetTNVEDAttribute: ошибка - код {good.hscode_id} не найден! наименование: {good.name}, id: {good.id}");
                 return null;
+            }
             return new Attribute {
                 complex_id = 0,
                 id = 22232,
                 values = new Value[] {
-                    t
+                    new Value {
+                        value = code.value,
+                        dictionary_value_id = code.id
+                    }
                 }
             };
         }
