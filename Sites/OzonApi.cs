@@ -785,8 +785,11 @@ namespace Selen.Sites {
                     a.typeName = "Выключатель зажигания";
                 } else if (n.StartsWith("трамблер") ||
                            n.StartsWith("распределитель зажигания")||
-                           n.StartsWith("вакуум трамблера")) {
-                    a.categoryId = 85835327;//Катушки и провода зажигания
+                           n.StartsWith("вакуум трамблера")||
+                           n.StartsWith("крышка трамбл")||
+                           n.StartsWith("коммутатор зажигания")
+                           ) {
+                    a.categoryId = 85835327;
                     a.typeId = 971072773;
                     a.typeName = "Распределитель зажигания";
                 } else if (n.StartsWith("провод") &&
@@ -795,7 +798,8 @@ namespace Selen.Sites {
                     a.typeId = 98893;
                     a.typeName = "Комплект высоковольтных проводов";
                 } else if (n.StartsWith("датчик") ||
-                    n.StartsWith("обманка датчика")) {                                  //Датчик для авто
+                    n.StartsWith("обманка датчика")||                              
+                    n.StartsWith("выключатель стоп-сигнала")) {
                     a.categoryId = 85843109;
                     a.typeId = 971006606;
                     a.typeName = "Датчик для автомобиля";
@@ -1352,8 +1356,8 @@ namespace Selen.Sites {
                     a.categoryId = 85828600;
                     a.typeId = 970849745;
                     a.typeName = "Рычаг подвески";
-                } else if (n.StartsWith("свеч") &&
-                    n.Contains("зажигания")) {             //Свеча зажигания 
+                } else if (n.StartsWith("свеч") && n.Contains("зажигания")||
+                    n.StartsWith("ввертыш") && n.Contains("свечной")) {             //Свеча зажигания 
                     a.categoryId = 33698210;
                     a.typeId = 95765;
                     a.typeName = "Свеча зажигания";
@@ -1768,7 +1772,7 @@ namespace Selen.Sites {
                     a.categoryId = 39655598;
                     a.typeId = 115950439;
                     a.typeName = "Термостат автомобильный";
-                } else if (n.StartsWith("ремень поликлиновой")) {
+                } else if (n.StartsWith("ремень") && n.Contains("поликлинов")) {
                     a.categoryId = 33697155;
                     a.typeId = 98914;
                     a.typeName = "Ремень поликлиновой";
@@ -1789,6 +1793,42 @@ namespace Selen.Sites {
                     a.categoryId = 101292869;
                     a.typeId = 971072795;
                     a.typeName = "Трос КПП";
+                } else if (n.StartsWith("бегунок") &&
+                    ( n.Contains("распределител") ||n.Contains("трамбл"))) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Бегунок распределителя зажигания";
+                    return a;
+                } else if (n.StartsWith("ремень") &&n.Contains("грм")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Ремень ГРМ";
+                    return a;
+                } else if (n.StartsWith("ремень") && (n.Contains("клиновой") || n.Contains("приводн"))) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Ремень клиновой";
+                    return a;
+                } else if (n.StartsWith("термостат ")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Термостат автомобильный";
+                    return a;
+                } else if (n.StartsWith("фланец ") && n.Contains("охлаждения")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Фланец охлаждения";
+                    return a;
+                } else if (n.StartsWith("адсорбер") || n.StartsWith("абсорбер топл")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "адсорбер";
+                    return a;
+                } else if (n.StartsWith("регулятор") || n.StartsWith("холостого")) {
+                    a.categoryId = 111;
+                    a.typeId = 111;
+                    a.typeName = "Регулятор холостого хода";
+                    return a;
                 } else
                     return a;
                 a.additionalAttributes.AddAttribute(GetSideAttribute(bus));
@@ -2427,7 +2467,7 @@ namespace Selen.Sites {
         public async Task<List<AttributeValue>> GetAttibuteValuesAsync(int attribute_id = 85, int category_id = 61852812) {
             var attributeValuesFile = @"..\ozon\ozon_attr_" + attribute_id + "_cat_" + category_id + ".json";
             var lastWriteTime = File.GetLastWriteTime(attributeValuesFile);
-            if (lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
+            if (true){ //lastWriteTime.AddHours(_updateFreq) > DateTime.Now) {
                 var res = JsonConvert.DeserializeObject<List<AttributeValue>>(
                     File.ReadAllText(attributeValuesFile));
                 Log.Add(_l + " загружено с диска" + res.Count + " атрибутов");
