@@ -26,6 +26,7 @@ namespace Selen.Sites {
         readonly string _productListFile = @"..\data\ozon\ozon_productList.json";
         readonly string _reserveListFile = @"..\data\ozon\ozon_reserveList.json";
         readonly string _catsFile = @"..\data\ozon\ozon_categories.json";
+        readonly string _warehouseList = @"..\data\ozon\ozon_warehouseList.json";
         readonly int _updateFreq;                //частота обновления списка (часов)
         static bool _isProductListCheckNeeds;
         bool _hasNext = false;                        //для запросов
@@ -270,11 +271,12 @@ namespace Selen.Sites {
                     stocks = new[] {
                         new {
                             product_id = productInfo.id,
-                            stock = amount.ToString("F0")
+                            stock = amount.ToString("F0"),
+                            warehouse_id = 1020000901600000
                         }
                     }
                 };
-                var s = await PostRequestAsync(data, "/v1/product/import/stocks");
+                var s = await PostRequestAsync(data, "/v2/products/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                 if (res.First().updated) 
                     Log.Add(_l + bus.name + " остаток обновлен! (" + amount + ")");
@@ -2106,10 +2108,25 @@ namespace Selen.Sites {
             File.WriteAllText(fname, s.ToString(), Encoding.UTF8);
             Log.Add("товары выгружены в ozonGoodListForAdding.csv");
         }
+        //список складов
+        async Task GetWarehouseList() {
+            try {
+                var data = new { };
+                var s = await PostRequestAsync(data, "/v1/warehouse/list");
+                File.WriteAllText(_warehouseList, s);
+            } catch (Exception x) {
+                Log.Add($"{_l} GetWarehouseList: ошибка запроса списка складов! - {x.Message}");
+            }
+        }
     }
     /////////////////////////////////////
     /// классы для работы с запросами ///
     /////////////////////////////////////
+    public class WareHouse {
+        public string warehouse_id;
+        public string name;
+        public string status;
+    }
     public class Postings {
         public List<Posting> postings = new List<Posting>();
         public int count;
@@ -2423,7 +2440,6 @@ namespace Selen.Sites {
         public Value[] values { get; set; }
     }
     public class Value {
-        //public int dictionary_value_id { get; set; }
         public string dictionary_value_id { get; set; }
         public string value { get; set; }
     }
