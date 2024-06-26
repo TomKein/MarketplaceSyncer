@@ -611,7 +611,7 @@ namespace Selen.Sites {
                     var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
                         try {
-                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 6));
+                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 7));
                             CheckPage(drom);
                         } catch {
                             //i--;

@@ -16,7 +16,7 @@ using Selen.Forms;
 
 namespace Selen {
     public partial class FormMain : Form {
-        string _version = "1.191";
+        float _version = 1.192f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
