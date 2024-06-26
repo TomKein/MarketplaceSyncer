@@ -47,8 +47,8 @@ namespace Selen.Sites {
                                                  DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime || 
                                                  DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price)
-                              .Take(40).ToList();
-                Log.Add($"{_l} найдено {bus.Count()} потенциальных объявлений");
+                              .Take(DB.GetParamInt("megamarket.uploadLimit")).ToList();
+                Log.Add($"{_l} найдено {bus.Count} потенциальных объявлений");
                 var offers = new XElement("offers");
                 //для каждой карточки
                 foreach (var b in bus) {

@@ -76,6 +76,7 @@ namespace Selen.Sites {
                 await EditAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
+                await CheckDraftsAsync();
                 if (Class365API.SyncStartTime.Minute >= 55) {
                     await AddAsync();
                 }
@@ -329,7 +330,13 @@ namespace Selen.Sites {
             }
         }
         async Task SaveUrlAsync(int b) {
-            string new_id = _dr.GetUrl().Split('-').Last().Split('.').First();
+            string new_id = _dr.GetUrl();
+            string pattern = @"(\d{8,20})"; //число длиной от 8 до 20 синволов
+            new_id = Regex.Match(new_id,pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(new_id)) { 
+                new_id = "0000000000";
+                Log.Add($"{_l} SaveUrlAsync: ошибка определения id! - {_bus[b].name}, сохранено id={new_id}");
+            }
             _bus[b].drom = _dromBaseUrl + new_id + "/edit";
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                 {"id", _bus[b].id},
@@ -547,7 +554,7 @@ namespace Selen.Sites {
                         if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
                             _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
                             PressServiseSubmitButton();
-                            EditOffersWithErrors();
+                            EditOffersWithErrors();//todo need this?..
                         } else
                             break;
                     }
@@ -560,7 +567,7 @@ namespace Selen.Sites {
         private void EditOffersWithErrors() {
             var drom = new List<GoodObject>();
             //для каждого объявления, в статусе которого есть предупреждение
-            foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
+            foreach (var item in _dr.FindElements("//div[@class='bull-item__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
                 //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
                 if (_rnd.Next(30) != 1)
                     continue;
@@ -583,7 +590,8 @@ namespace Selen.Sites {
         //получаю колчество страниц объявлений
         private int GetPagesCount(string type) {
             try {
-                _dr.Navigate("https://baza.drom.ru/personal/all/bulletins");
+                var url = "https://baza.drom.ru/personal/"+type+"/bulletins";
+                _dr.Navigate(url);
                 var count = _dr.GetElementsCount("//div/a[contains(@href,'" + type + "/bulletins')]");
                 if (count > 0) {
                     var str = _dr.GetElementText("//div/a[contains(@href,'" + type + "/bulletins')]/../small");
@@ -594,7 +602,7 @@ namespace Selen.Sites {
             } catch (Exception x) {
                 throw new Exception("ошибка запроса количества объявлений на сайте!!\n" + x.Message);
             }
-            return 1;
+            return 0;
         }
         public async Task CheckPagesAsync() {
             int count = await DB.GetParamIntAsync("drom.checkPagesCount");
@@ -617,6 +625,26 @@ namespace Selen.Sites {
                 Debug.WriteLine(_l + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
+        public async Task CheckDraftsAsync() {
+            try {
+                await Task.Factory.StartNew(() => {
+                    var pages = GetPagesCount("draft");
+                    if (pages > 0) {
+                        try {
+                            var drom = ParsePage(1,draft:true);
+                            CheckPage(drom);
+                        } catch {
+                            //i--;
+                            _dr.Refresh();
+                            Thread.Sleep(10000);
+                        }
+                    }
+                });
+            } catch (Exception x) {
+                Debug.WriteLine(_l + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
+            }
+        }
+
         public async Task CheckOffersAsync() {
             try {
                 await Task.Factory.StartNew(() => {
@@ -676,21 +704,26 @@ namespace Selen.Sites {
                 ) ||
                 !b.description.Contains("далено") && _bus[i].Amount <= 0 ||
                 (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].Amount > 0
-                )) {
+                )|| b.description.Contains("Ожидает публикации")) {
                 Edit(_bus[i]);
             }
         }
-        private List<GoodObject> ParsePage(int i) {
-            var page = "https://baza.drom.ru/personal/all/bulletins?page=" + i;
+        private List<GoodObject> ParsePage(int i, bool draft=false) {
+            string page;
+            if (draft)
+                page = "https://baza.drom.ru/personal/draft/bulletins";
+            else 
+                page = "https://baza.drom.ru/personal/all/bulletins?page=" + i;
             _dr.Navigate(page);
             var drom = new List<GoodObject>();
-            foreach (var item in _dr.FindElements("//div[@class='bull-item-content__content-wrapper']")) {
+            foreach (var item in _dr.FindElements("//div[@class='bull-item__content-wrapper']")) {
                 var el = item.FindElements(By.XPath(".//div[@data-role='price']"));
                 var price = el.Count > 0 ? int.Parse(el.First().Text.Replace(" ", "").Replace("р.", "")) : 0;
                 var name = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).Text.Trim().Replace("\u00ad", "");
-                var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item-content__additional')]")).Text;
+                var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item__additional')]"))?.Text;
                 var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
-                var id = url.Split('-').Last().Split('.').First();
+                //var id = url.Split('-').Last().Split('.').First();
+                var id = Regex.Match(url,@"(\d{8,20})(?:.ht)").Groups[1].Value;
 
                 //количество фото
                 var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
@@ -704,6 +737,7 @@ namespace Selen.Sites {
                     drom = url
                 });
             }
+            if (drom.Count == 0) Log.Add($"{_l} ParsePage: ошибка? элементы не найдены!");
             return drom;
         }
         //добавляем фото с дром в карточки товаров

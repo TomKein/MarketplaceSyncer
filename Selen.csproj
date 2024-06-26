@@ -281,6 +281,12 @@
     <Compile Include="Base\Class365API.cs" />
     <Compile Include="Base\DB.cs" />
     <Compile Include="Base\Config.cs" />
+    <Compile Include="Forms\FormAvito.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormAvito.Designer.cs">
+      <DependentUpon>FormAvito.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\FormWeightsDimentions.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -303,6 +309,7 @@
     <Compile Include="Sites\izap24.cs" />
     <Compile Include="Sites\OzonApi.cs" />
     <Compile Include="Sites\SyncWorker.cs" />
+    <Compile Include="Sites\MegaMarket.cs" />
     <Compile Include="Sites\YandexMarket.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
     <Compile Include="Tools\SftpClient.cs" />
@@ -337,6 +344,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\Selenium.cs" />
     <Compile Include="Tools\SmtpMailClient.cs" />
+    <EmbeddedResource Include="Forms\FormAvito.resx">
+      <DependentUpon>FormAvito.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormMain.resx">
       <DependentUpon>FormMain.cs</DependentUpon>
     </EmbeddedResource>

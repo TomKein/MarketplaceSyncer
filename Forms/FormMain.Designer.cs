@@ -56,6 +56,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
+            this.button_MegaMarket = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -249,6 +250,7 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.button_MegaMarket);
             this.panel_Buttons.Controls.Add(this.button_ozon);
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
             this.panel_Buttons.Controls.Add(this.button_YandexMarket);
@@ -403,6 +405,16 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 307);
             this.panel4.TabIndex = 149;
             // 
+            // button_MegaMarket
+            // 
+            this.button_MegaMarket.Location = new System.Drawing.Point(5, 223);
+            this.button_MegaMarket.Name = "button_MegaMarket";
+            this.button_MegaMarket.Size = new System.Drawing.Size(113, 23);
+            this.button_MegaMarket.TabIndex = 151;
+            this.button_MegaMarket.Text = "MegaMarket";
+            this.button_MegaMarket.UseVisualStyleBackColor = true;
+            this.button_MegaMarket.Click += new System.EventHandler(this.button_MegaMarket_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -462,6 +474,7 @@ namespace Selen {
         private System.Windows.Forms.Button button_WeightsDimensions;
         private System.Windows.Forms.Button button_ozon;
         private System.Windows.Forms.Button button_application;
+        private System.Windows.Forms.Button button_MegaMarket;
     }
 }
 

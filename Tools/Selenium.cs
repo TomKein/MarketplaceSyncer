@@ -36,7 +36,7 @@ namespace Selen.Tools {
 
         public void ScreenShot() {
             try {
-                var name = @"..\Screenshots\" + DateTime.Now.ToString().Replace(":",".") + " ["+DateTime.Now.Millisecond + "].png";
+                var name = @"..\data\Screenshots\" + DateTime.Now.ToString().Replace(":",".") + " ["+DateTime.Now.Millisecond + "].png";
                 ((ITakesScreenshot)_drv).GetScreenshot().SaveAsFile(name/*, ScreenshotImageFormat.Png*/);
                 Log.Add("Selenium: скриншот сохранен " + name);
             } catch (Exception x) {

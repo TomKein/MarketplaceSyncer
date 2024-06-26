@@ -21,7 +21,7 @@ namespace Selen.Sites {
         readonly string _baseBusUrl = "https://www.ozon.ru/context/detail/id/";
         readonly string _url;                         //номер поля в карточке
         readonly string _l = "ozon: ";                //префикс для лога
-        readonly float _oldPriceProcent = 10;
+        readonly float _oldPriceProcent;
         List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\data\ozon\ozon_productList.json";
         readonly string _reserveListFile = @"..\data\ozon\ozon_reserveList.json";
@@ -424,7 +424,7 @@ namespace Selen.Sites {
                     item.id != 4191 &&                                              //Аннотация
                     item.id != 22387 &&                                             //Группа товара
 
-                    item.id != 85 &&                                                //Бренд (теперь используем Без бренда,
+                    //item.id != 85 &&                                                //Бренд (теперь используем Без бренда,
                                                                                     //убрать если нужно сохранять бренд, уже установленных в товарах)
                     item.values.Length > 0) {
                         var values = new Value {
@@ -471,9 +471,9 @@ namespace Selen.Sites {
                 var s = await PostRequestAsync(data, "/v3/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                 if (res.task_id != default(int)) {
-                    Log.Add(_l + good.name + " - товар отправлен на озон!");
+                    Log.Add($"{_l} UpdateProduct: id:{good.id} {good.name} - товар отправлен на озон!");
                 } else {
-                    Log.Add(_l + good.name + " ошибка отправки товара на озон!" + " ===> " + s);
+                    Log.Add($"{_l} UpdateProduct: id:{good.id} {good.name} - ошибка отправки товара на озон! - {s}");
                 }
                 ////
                 var res2 = new ProductImportInfo();
@@ -653,11 +653,6 @@ namespace Selen.Sites {
                         n.StartsWith("пламегаситель ") ||
                         n.Contains("стронгер")) {
                         a.typeName = "Резонатор глушителя";
-                    } else if (n.Contains("скобы приёмной трубы") ||
-                        n.Contains("глушител") &&
-                        (n.Contains("подвеск") || n.Contains("кронштейн") ||
-                        n.Contains("крепление") || n.Contains("держател"))) {
-                        a.typeName = "Крепление глушителя";
                     } else if (n.Contains("комплект фланцев с трубой") ||
                         n.Contains("глушител") &&
                         (n.Contains("ремкомплект") || n.Contains("фланец"))) {
@@ -731,9 +726,6 @@ namespace Selen.Sites {
                         a.typeName = "Датчик для автомобиля";
                     } else if (n.StartsWith("поворотник")) {
                         a.typeName = "Указатель поворота";
-                    } else if ((n.StartsWith("фара") || n.StartsWith("фары")) &&
-                        n.Contains("птф") || n.Contains("противотуман")) {
-                        a.typeName = "Фары противотуманные (ПТФ)";
                     } else if (n.StartsWith("катафот")) {
                         a.typeName = "Светоотражатель";
                     } else if ((n.StartsWith("заглушка") &&
