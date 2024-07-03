@@ -331,8 +331,9 @@ namespace Selen.Sites {
         }
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl();
-            string pattern = @"(\d{8,20})"; //число длиной от 8 до 20 синволов
-            new_id = Regex.Match(new_id,pattern).Groups[1].Value;
+            string pattern = @"(\d{9,20})"; //число длиной от 8 до 20 синволов
+            var groups = Regex.Match(new_id, pattern).Groups;
+            new_id = groups[groups.Count-1].Value;
             if (string.IsNullOrEmpty(new_id)) { 
                 new_id = "0000000000";
                 Log.Add($"{_l} SaveUrlAsync: ошибка определения id! - {_bus[b].name}, сохранено id={new_id}");
@@ -655,7 +656,9 @@ namespace Selen.Sites {
                         try {
                             if (b >= _bus.Count)
                                 b = 0;
-                            if (
+                            if (_bus[b].drom.Contains("000000000"))
+                                Log.Add($"{_l} CheckOffersAsync: ошибка! - ссылка на объявление неверная!! - id:{_bus[b].id}, {_bus[b].name}");
+                            else if (
                                 (_bus[b].Amount > 0 || checkOtOfStock) &&
                                 _bus[b].drom.Contains("http")) {
                                 Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i} ({b}/{_bus.Count})");
