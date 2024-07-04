@@ -157,18 +157,18 @@ namespace Selen {
             await _drom.MakeReserve();
             
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
-            await Task.Delay(10000);
-            button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
-            await Task.Delay(10000);
+            await Task.Delay(2000);
+            button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
+            await Task.Delay(2000);
             button_YandexMarket.Invoke(new Action(() => button_YandexMarket.PerformClick()));
+            await Task.Delay(2000);
+            button_MegaMarket.Invoke(new Action(() => button_MegaMarket.PerformClick()));
+            await Task.Delay(2000);
+            button_ozon.Invoke(new Action(() => button_ozon.PerformClick()));
             await Task.Delay(10000);
             button_Izap24.Invoke(new Action(() => button_Izap24.PerformClick()));
             await Task.Delay(10000);
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
-            await Task.Delay(10000);
-            button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
-            await Task.Delay(10000);
-            button_MegaMarket.Invoke(new Action(() => button_MegaMarket.PerformClick()));
             await WaitButtonsActiveAsync();
             dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
         }

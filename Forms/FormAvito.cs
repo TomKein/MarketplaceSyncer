@@ -184,27 +184,28 @@ namespace Selen.Forms {
                 for (int i = 0; i < goodList.Count; i++) {
                     if (!_progress)
                         return;
-                    var cat = GetCategoryAvito(goodList[i]);
-                    if (!cat.Any())
-                        listBoxExceptions.Invoke(new Action(() => {
-                            listBoxExceptions.Items?.Add(goodList[i].name);
-                        }));
-
-                    else if (cat.Any(c => c.Value == _treeParentNodeSelected.Text))
-                        listBoxCategory.Invoke(new Action(() => {
-                            listBoxCategory.Items.Add(goodList[i].name);
-                        }));
-                    if (i % 50 == 0 || i==goodList.Count-1) {
-                        progressBar1.Invoke(new Action(() => {
-                            progressBar1.Value = (int) ((float) (i * 100) / goodList.Count);
-                        }));
-                        labelCategory.Invoke(new Action(() => {
-                            labelCategory.Text = "Попадает в категорию: " + listBoxCategory.Items.Count;
-                        }));
-                        labelExceptions.Invoke(new Action(() => {
-                            labelExceptions.Text = "Не попадает в категории: " + listBoxExceptions.Items.Count;
-                        }));
-                    }
+                    try {
+                        var cat = GetCategoryAvito(goodList[i]);
+                        if (!cat.Any())
+                            listBoxExceptions.Invoke(new Action(() => {
+                                listBoxExceptions.Items?.Add(goodList[i].name);
+                            }));
+                        else if (cat.Any(c => c.Value == _treeParentNodeSelected.Text))
+                            listBoxCategory.Invoke(new Action(() => {
+                                listBoxCategory.Items.Add(goodList[i].name);
+                            }));
+                        if (i % 50 == 0 || i==goodList.Count-1) {
+                            progressBar1.Invoke(new Action(() => {
+                                progressBar1.Value = (int) ((float) (i * 100) / goodList.Count);
+                            }));
+                            labelCategory.Invoke(new Action(() => {
+                                labelCategory.Text = "Попадает в категорию: " + listBoxCategory.Items.Count;
+                            }));
+                            labelExceptions.Invoke(new Action(() => {
+                                labelExceptions.Text = "Не попадает в категории: " + listBoxExceptions.Items.Count;
+                            }));
+                        }
+                    } catch{}
                 }
             });
             progressBar1.Visible = false;

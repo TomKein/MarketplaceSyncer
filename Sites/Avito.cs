@@ -151,7 +151,7 @@ namespace Selen.Sites {
         }
         //выгрузка XML
         public async Task GenerateXML(List<GoodObject> _bus) {
-            if (Class365API.SyncStartTime.Minute < 55)
+            if (Class365API.SyncStartTime.Minute%30 < 25)
                 return;
             if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
                 Log.Add(_l + "синхронизация отключена!");
@@ -245,9 +245,6 @@ namespace Selen.Sites {
                                     ad.Add(new XElement("Generation", list[2].Trim()));
                                 }
                             }
-                        }
-                        if (b.name.ToLower().Contains("докатка")) {
-                            ad.Add(new XElement("ResidualTread", "10"));
                         }
                         root.Add(ad);
                         //считаем объявления с положительным остатком
@@ -384,29 +381,32 @@ namespace Selen.Sites {
                 }
                 if (eq) {
                     GetParams(rule,d);
-                    //if (d.Any())
-                    //    return d;
+                    if (d.Any())
+                        break;
                 }
             }
-            if (d["ProductType"]== "Колёса") {
-                d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
-                d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
-                d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
-                d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
-                d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
-                d.Add("RimType", "Штампованные");                   //тип
-                d.Add("TireType", "Всесезонные");                   //шины
-                d.Add("TireSectionWidth", "115");                   //ширина шины
-                d.Add("TireAspectRatio", "55");                     //соотношение
-                d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
-            } else if (d["ProductType"] == "Диски") {
-                d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
-                d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
-                d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
-                d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
-                d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
-                d.Add("RimType", b.DiskType());                     //тип
-                d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
+            if (d.ContainsKey("ProductType")) {
+                if (d["ProductType"] == "Колёса") {
+                    d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
+                    d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
+                    d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
+                    d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
+                    d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
+                    d.Add("RimType", "Штампованные");                   //тип
+                    d.Add("TireType", "Всесезонные");                   //шины
+                    d.Add("TireSectionWidth", "115");                   //ширина шины
+                    d.Add("TireAspectRatio", "55");                     //соотношение
+                    d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
+                    d.Add("ResidualTread", "10");
+                } else if (d["ProductType"] == "Диски") {
+                    d.Add("RimDiameter", b.GetDiskSize());              //Диаметр диска
+                    d.Add("RimOffset", "0");                            //TODO Вылет, пока ставим 0, добавить определение из описания
+                    d.Add("RimBolts", b.GetNumberOfHoles());            //количество отверстий
+                    d.Add("RimWidth", "5");                             //TODO ширина диска, пока 5, добавить определ. из описания
+                    d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
+                    d.Add("RimType", b.DiskType());                     //тип
+                    d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
+                }
             }
             // else if (d["ProductType"]== "Колпаки") {}
             //else if (name.StartsWith("шины ") ||
