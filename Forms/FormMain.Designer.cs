@@ -44,6 +44,8 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.button_AvitoCategories = new System.Windows.Forms.Button();
+            this.button_MegaMarket = new System.Windows.Forms.Button();
             this.button_ozon = new System.Windows.Forms.Button();
             this.label_YandexMarket = new System.Windows.Forms.Label();
             this.button_YandexMarket = new System.Windows.Forms.Button();
@@ -56,7 +58,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_MegaMarket = new System.Windows.Forms.Button();
+            this.label_Avito = new System.Windows.Forms.Label();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -85,9 +87,9 @@ namespace Selen {
             // 
             // button_Avito
             // 
-            this.button_Avito.Location = new System.Drawing.Point(5, 65);
+            this.button_Avito.Location = new System.Drawing.Point(33, 65);
             this.button_Avito.Name = "button_Avito";
-            this.button_Avito.Size = new System.Drawing.Size(113, 25);
+            this.button_Avito.Size = new System.Drawing.Size(85, 25);
             this.button_Avito.TabIndex = 3;
             this.button_Avito.Text = "Avito.ru";
             this.button_Avito.UseVisualStyleBackColor = true;
@@ -250,6 +252,8 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.label_Avito);
+            this.panel_Buttons.Controls.Add(this.button_AvitoCategories);
             this.panel_Buttons.Controls.Add(this.button_MegaMarket);
             this.panel_Buttons.Controls.Add(this.button_ozon);
             this.panel_Buttons.Controls.Add(this.label_YandexMarket);
@@ -271,6 +275,29 @@ namespace Selen {
             this.panel_Buttons.Name = "panel_Buttons";
             this.panel_Buttons.Size = new System.Drawing.Size(139, 307);
             this.panel_Buttons.TabIndex = 146;
+            // 
+            // button_AvitoCategories
+            // 
+            this.button_AvitoCategories.FlatAppearance.BorderSize = 0;
+            this.button_AvitoCategories.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button_AvitoCategories.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button_AvitoCategories.Location = new System.Drawing.Point(4, 65);
+            this.button_AvitoCategories.Name = "button_AvitoCategories";
+            this.button_AvitoCategories.Size = new System.Drawing.Size(29, 25);
+            this.button_AvitoCategories.TabIndex = 152;
+            this.button_AvitoCategories.Text = "⚙";
+            this.button_AvitoCategories.UseVisualStyleBackColor = true;
+            this.button_AvitoCategories.Click += new System.EventHandler(this.button_AvitoCategories_Click);
+            // 
+            // button_MegaMarket
+            // 
+            this.button_MegaMarket.Location = new System.Drawing.Point(5, 223);
+            this.button_MegaMarket.Name = "button_MegaMarket";
+            this.button_MegaMarket.Size = new System.Drawing.Size(113, 23);
+            this.button_MegaMarket.TabIndex = 151;
+            this.button_MegaMarket.Text = "MegaMarket";
+            this.button_MegaMarket.UseVisualStyleBackColor = true;
+            this.button_MegaMarket.Click += new System.EventHandler(this.button_MegaMarket_Click);
             // 
             // button_ozon
             // 
@@ -405,15 +432,14 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 307);
             this.panel4.TabIndex = 149;
             // 
-            // button_MegaMarket
+            // label_Avito
             // 
-            this.button_MegaMarket.Location = new System.Drawing.Point(5, 223);
-            this.button_MegaMarket.Name = "button_MegaMarket";
-            this.button_MegaMarket.Size = new System.Drawing.Size(113, 23);
-            this.button_MegaMarket.TabIndex = 151;
-            this.button_MegaMarket.Text = "MegaMarket";
-            this.button_MegaMarket.UseVisualStyleBackColor = true;
-            this.button_MegaMarket.Click += new System.EventHandler(this.button_MegaMarket_Click);
+            this.label_Avito.AutoSize = true;
+            this.label_Avito.Location = new System.Drawing.Point(120, 71);
+            this.label_Avito.Name = "label_Avito";
+            this.label_Avito.Size = new System.Drawing.Size(16, 13);
+            this.label_Avito.TabIndex = 153;
+            this.label_Avito.Text = "...";
             // 
             // FormMain
             // 
@@ -475,6 +501,8 @@ namespace Selen {
         private System.Windows.Forms.Button button_ozon;
         private System.Windows.Forms.Button button_application;
         private System.Windows.Forms.Button button_MegaMarket;
+        private System.Windows.Forms.Button button_AvitoCategories;
+        private System.Windows.Forms.Label label_Avito;
     }
 }
 

@@ -269,7 +269,8 @@ namespace Selen {
                             s = s
                                 .Replace("\"209334\":", "\"drom\":")
                                 .Replace("\"209360\":", "\"vk\":")
-                                .Replace("\"854879\":", "\"ozon\":");
+                                .Replace("\"854879\":", "\"ozon\":")
+                                .Replace("\"854882\":", "\"wb\":");
                             _bus.AddRange(JsonConvert.DeserializeObject<List<GoodObject>>(s));
                             Log.Add(_l + "GetBusGoodsAsync2 - получено " + _bus.Count.ToString() + " товаров");
                         } else
@@ -332,7 +333,8 @@ namespace Selen {
                     });
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
-                    .Replace("\"854879\":", "\"ozon\":");
+                    .Replace("\"854879\":", "\"ozon\":")
+                    .Replace("\"854882\":", "\"wb\":");
                 if (s.Length > 3)
                     lightSyncGoods.AddRange(JsonConvert.DeserializeObject<GoodObject[]>(s));
                 //карточки товаров c измененным остатком или ценой
@@ -347,7 +349,8 @@ namespace Selen {
                     });
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
-                    .Replace("\"854879\":", "\"ozon\":");
+                    .Replace("\"854879\":", "\"ozon\":")
+                    .Replace("\"854882\":", "\"wb\":");
                 if (s.Length > 3) {
                     var goods = JsonConvert.DeserializeObject<GoodObject[]>(s);
                     foreach (var good in goods) {
@@ -437,7 +440,8 @@ namespace Selen {
                         s = s
                             .Replace("\"209334\":", "\"drom\":")
                             .Replace("\"209360\":", "\"vk\":")
-                            .Replace("\"854879\":", "\"ozon\":");
+                            .Replace("\"854879\":", "\"ozon\":")
+                            .Replace("\"854882\":", "\"wb\":");
                         lro.AddRange(JsonConvert.DeserializeObject<List<GoodObject>>(s));
                         await Task.Delay(100);
                         break;
@@ -516,7 +520,8 @@ namespace Selen {
                         {"name", _bus[b].name},
                         {"209334", ""},
                         {"209360", ""},
-                        {"854879", ""}
+                        {"854879", ""},
+                        {"854882", ""}
                     });
                     Log.Add(_bus[b].name + " - удалены ссылки черновика");
                 }

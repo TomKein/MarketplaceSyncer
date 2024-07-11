@@ -157,6 +157,7 @@ namespace Selen {
         public string kp { get; set; }
         public string gde { get; set; }
         public string ozon { get; set; }
+        public string wb { get; set; }
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }

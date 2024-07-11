@@ -13,10 +13,11 @@ using Selen.Base;
 using System.Timers;
 using System.Globalization;
 using Selen.Forms;
+using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.192f;
+        float _version = 1.193f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -72,6 +73,17 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            }
+        }
+        //категории
+        private void button_AvitoCategories_Click(object sender, EventArgs e) {
+            try {
+                Form f = new FormAvito();
+                f.Owner = this;
+                f.ShowDialog();
+                f.Dispose();
+            } catch (Exception x) {
+                Log.Add(x.Message);
             }
         }
         //VK.COM
