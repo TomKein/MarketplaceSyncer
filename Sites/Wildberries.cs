@@ -17,13 +17,13 @@ namespace Selen.Sites {
     public class Wildberries {
         readonly HttpClient _hc = new HttpClient();
         readonly string _baseApiUrl = "https://suppliers-api.wildberries.ru";
-        readonly string _l = "wb: ";                //префикс для лога
+        readonly string _l = "wb: ";                                                    //префикс для лога
         List<GoodObject> _bus;
-        int _nameLimit = 200;                         //ограничение длины названия
-        readonly string _url;                         //номер поля в карточке
-        readonly int _updateFreq;                //частота обновления списка (часов)
+        int _nameLimit = 200;                                                           //ограничение длины названия
+        readonly string _url;                                                           //номер поля в карточке
+        readonly int _updateFreq;                                                       //частота обновления списка (часов)
         readonly string _baseBusUrl = "https://www.wildberries.ru/catalog/00000/detail.aspx";
-        List<WbCard> _productCards;                   //список карточек вб
+        List<WbCard> _productCards = new List<WbCard>();                                //список карточек вб
         readonly string _productListFile = @"..\data\wildberries\wb_productList.json";  //ссылка на файл для кеширования списка карточек вб
         static bool _isProductListCheckNeeds;
         string _jsonResponse;
@@ -281,9 +281,9 @@ namespace Selen.Sites {
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
                 var response = await _hc.SendAsync(requestMessage);
                 _jsonResponse = await response.Content.ReadAsStringAsync();
-                var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
+                    var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                     if (responseObject.error)
                         Log.Add($"{_l} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
                     return JsonConvert.SerializeObject(responseObject.data);
@@ -303,9 +303,9 @@ namespace Selen.Sites {
                 requestMessage.Content = httpContent;
                 var response = await _hc.SendAsync(requestMessage);
                 _jsonResponse = await response.Content.ReadAsStringAsync();
-                var resp = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
+                    var resp = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                     return !resp.error;
                 } else
                     throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
@@ -946,37 +946,33 @@ namespace Selen.Sites {
                 } else {
                     _productCards.Clear();
 
-                    var updatedAt = "";
-                    var nmID = 0;
                     var limit = 100;
-                    var count = 0;
-                    do {
-                        var data = new {
-                            settings = new {
-                                cursor = new {
-                                    limit = limit,
-                                    updatedAt = updatedAt,
-                                    nmID = nmID
-                                },
-                                filter = new {
-                                    withPhoto = -1
-                                }
+                    var total = 0;
+                    var data = new WbProductReqData {
+                        settings = new WbProductReqSettings {
+                            cursor = new {
+                                limit = limit,
+                            },
+                            filter = new {
+                                withPhoto = -1
                             }
-                        };
+                        }
+                    };
+                    do {
                         var isSuc = await PostRequestAsync(data, "/content/v2/get/cards/list");
                         if (!isSuc)
                             throw new Exception("запрос товаров вернул ошибку!");
-
-                        var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);
-                        
-                        updatedAt = productList.cursor.updatedAt;
-                        nmID = productList.cursor.nmID;
-                        count = productList.cards.Count;
-
+                        var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);                        
                         _productCards.AddRange(productList.cards);
-
                         Log.Add($"{_l} получено {_productCards.Count} товаров");
-                    } while (count == limit);
+                        //добавляем пагинацию в объект запроса
+                        data.settings.cursor = new {
+                            limit = limit,
+                            updatedAt = productList.cursor.updatedAt,
+                            nmID = productList.cursor.nmID
+                        };
+                        total = productList.cursor.total;
+                    } while (total == limit);
                     Log.Add(_l + "ProductList - успешно загружено " + _productCards.Count + " товаров");
                     File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productCards));
                     Log.Add(_l + _productListFile + " - сохранено");
@@ -1200,6 +1196,15 @@ namespace Selen.Sites {
             //public int id { get; set; }
             public bool isVisible { get; set; }
         }
+
+        public class WbProductReqData {
+            public WbProductReqSettings settings { get; set; }
+        }
+        public class WbProductReqSettings {
+            public Object filter {get; set;}
+            public Object cursor {get; set;} 
+        }
+
         ///////////////////////////////////////////
         //public class ProductImportResult {
         //    public int task_id { get; set; }
