@@ -73,7 +73,7 @@ namespace Selen.Sites {
                 await AuthAsync();
                 await GetDromPhotos();
                 await UpAsync();
-                await EditAsync();
+                await UpdateOffersAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
                 await CheckDraftsAsync();
@@ -190,14 +190,14 @@ namespace Selen.Sites {
             return orderList;
         }
 
-        async Task EditAsync() {
+        async Task UpdateOffersAsync() {
             await Task.Factory.StartNew(() => {
                 for (int b = 0; b < _bus.Count; b++) {
                     if (_bus[b].IsTimeUpDated() &&
                         _bus[b].drom != null &&
                         _bus[b].drom.Contains("http")) {
                         try {
-                            Edit(_bus[b]);
+                            UpdateOffer(_bus[b]);
                         } catch (Exception x) {
                             Debug.WriteLine(x.Message);
                             if (x.Message.Contains("timed out") ||
@@ -212,8 +212,8 @@ namespace Selen.Sites {
                 }
             });
         }
-        void Edit(GoodObject b) {
-            if (b.drom.Contains("tin/ht")) {
+        void UpdateOffer(GoodObject b) {
+            if (b.drom.Contains("tin/ht")||b.drom.Contains("in/000000000")) {
                 Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
                 return;
             }
@@ -585,7 +585,7 @@ namespace Selen.Sites {
             //обрабатываю получившийся список объявлений с ошибками
             foreach (var item in drom.Where(w => w.description.Contains("содержит ошибки"))) {
                 var b = _bus.Find(f => f.drom.Contains(item.id));
-                Edit(b);
+                UpdateOffer(b);
             }
         }
         //получаю колчество страниц объявлений
@@ -708,7 +708,7 @@ namespace Selen.Sites {
                 !b.description.Contains("далено") && _bus[i].Amount <= 0 ||
                 (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].Amount > 0
                 )|| b.description.Contains("Ожидает публикации")) {
-                Edit(_bus[i]);
+                UpdateOffer(_bus[i]);
             }
         }
         private List<GoodObject> ParsePage(int i, bool draft=false) {

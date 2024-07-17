@@ -22,14 +22,15 @@ namespace Selen.Sites {
         int _nameLimit = 200;                         //ограничение длины названия
         readonly string _url;                         //номер поля в карточке
         readonly int _updateFreq;                //частота обновления списка (часов)
+        readonly string _baseBusUrl = "https://www.wildberries.ru/catalog/00000/detail.aspx";
+        List<WbCard> _productCards;                   //список карточек вб
+        readonly string _productListFile = @"..\data\wildberries\wb_productList.json";  //ссылка на файл для кеширования списка карточек вб
+        static bool _isProductListCheckNeeds;
+        string _jsonResponse;
 
-                                                      //    //readonly string _baseBusUrl = "https://www.ozon.ru/context/detail/id/";
-                                                      //    //readonly float _oldPriceProcent;
-                                                      //    //List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
-                                                      //    //readonly string _productListFile = @"..\data\wildberries\wb_productList.json";
-                                                      //    //readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
-                                                      //    //readonly string _warehouseList = @"..\data\wildberries\wb_warehouseList.json";
-        //    //static bool _isProductListCheckNeeds;
+        //    //readonly float _oldPriceProcent;
+        //    //readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
+        //    //readonly string _warehouseList = @"..\data\wildberries\wb_warehouseList.json";
         //    bool _hasNext = false;                        //для запросов
         //    List<AttributeValue> _brends;                 //список брендов озон
 
@@ -64,10 +65,8 @@ namespace Selen.Sites {
             //        _rules = _catsXml.Descendants("Rule");
             if (_categories == null)
                 await GetCategoriesAsync();
-            if (_objects == null) {
-                _objects = new List<WbObject>();
-                _objects.AddRange(await GetObjectsAsync());
-            }
+            if (_objects == null)
+                _objects = await GetObjectsAsync();
             if (_objectsJA == null) {
                 var str = JsonConvert.SerializeObject(_objects);
                 _objectsJA = JArray.Parse(str);
@@ -76,14 +75,14 @@ namespace Selen.Sites {
                 await GetColorsAsync();
             if (_countries == null)
                 await GetCountriesAsync();
-            
+
             //tests
             //if (_tnvd == null)
-                //await GetTnvdAsync("7985");
+            //await GetTnvdAsync("7985");
             //await GetCharcsAsync("7985");
 
             //        await UpdateProductsAsync();
-            //        await CheckProductListAsync();
+            await GetProductListAsync();
             //        //if (Class365API.SyncStartTime.Minute >= 55) {
             await AddProductsAsync();
             //        //}
@@ -162,79 +161,6 @@ namespace Selen.Sites {
         //            Log.Add(_l + "UpdateProductsAsync - " + x.Message);
         //        }
         //    }
-        //    //проверяем список товаров озон
-        //    public async Task CheckProductListAsync() {
-        //        try {
-        //            var startTime = DateTime.Now;
-        //            //если файл свежий и товары не добавляли - загружаем с диска
-        //            if (File.Exists(_productListFile) &&
-        //                (startTime < File.GetLastWriteTime(_productListFile).AddDays(_updateFreq))
-        //                && !_isProductListCheckNeeds) {
-        //                if (_productList.Count == 0) {
-        //                    _productList = JsonConvert.DeserializeObject<List<ProductListItem>>(
-        //                        File.ReadAllText(_productListFile));
-        //                }
-        //            } else {
-        //                _productList.Clear();
-        //                var last_id = "";
-        //                var total = 0;
-        //                do {
-        //                    var data = new {
-        //                        //filter = new {
-        //                        //    visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
-        //                        //},
-        //                        last_id = last_id,
-        //                        limit = 1000
-        //                    };
-        //                    var result = await PostRequestAsync(data, "/v2/product/list");
-        //                    var productList = JsonConvert.DeserializeObject<ProductList>(result);
-        //                    last_id = productList.last_id;
-        //                    total = productList.total;
-        //                    _productList.AddRange(productList.items);
-        //                    Log.Add($"{_l} получено {_productList.Count} товаров");
-        //                } while (_productList.Count < total);
-        //                Log.Add(_l + "ProductList - успешно загружено " + _productList.Count + " товаров");
-        //                File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productList));
-        //                Log.Add(_l + _productListFile + " - сохранено");
-        //                File.SetLastWriteTime(_productListFile, startTime);
-        //                _isProductListCheckNeeds = false; //сбрасываю флаг
-        //            }
-        //            await CheckProductLinksAsync();
-        //        } catch (Exception x) {
-        //            Log.Add(_l + "ProductList - ошибка загрузки товаров - " + x.Message);
-        //        }
-        //    }
-        //    //проверяем привязку товаров в карточки бизнес.ру
-        //    private async Task CheckProductLinksAsync(bool checkAll = false) {
-        //        List<ProductListItem> items;
-        //        if (checkAll) {
-        //            var _checkProductCount = await DB.GetParamIntAsync("ozon.checkProductCount");
-        //            var _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
-        //            if (_checkProductIndex >= _productList.Count) 
-        //                _checkProductIndex = 0;
-        //            await DB.SetParamAsync("ozon.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
-        //            items = _productList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<ProductListItem>();
-        //        } else 
-        //            items = _productList;
-        //        foreach (var item in items) {
-        //            try {
-        //                //карточка в бизнес.ру с id = артикулу товара на озон
-        //                var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
-        //                if (b == -1)
-        //                    throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
-        //                if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
-        //                    Class365API._bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
-        //                    checkAll) {                                                         //либо передали флаг проверять всё
-        //                    var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
-        //                    await SaveUrlAsync(Class365API._bus[b], productInfo);
-        //                    await UpdateProductAsync(Class365API._bus[b], productInfo);
-        //                }
-        //            } catch (Exception x) {
-        //                Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
-        //                _isProductListCheckNeeds = true;
-        //            }
-        //        }
-        //    }
         //    //расширенная информация о товаре
         //    private async Task<ProductInfo> GetProductInfoAsync(GoodObject bus) {
         //        try {
@@ -245,28 +171,7 @@ namespace Selen.Sites {
         //            throw new Exception($"GetProductInfoAsync ошибка! name:{bus.name} message:{x.Message}");
         //        }
         //    }
-        //    //обновление ссылки в карточке бизнес.ру
-        //    async Task SaveUrlAsync(GoodObject bus, ProductInfo productInfo) {
-        //        try {
-        //            var sku = productInfo.GetSku();
-        //            if (sku == "0") {
-        //                Log.Add(_l + "SaveUrlAsync - ошибка! - " + bus.name + " - sku: 0");
-        //            }
-        //            var newUrl = _baseBusUrl + sku;
-        //            if (bus.ozon != newUrl) {
-        //                bus.ozon = newUrl;
-        //                await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-        //                        {"id", bus.id},
-        //                        {"name", bus.name},
-        //                        {_url, bus.ozon}
-        //                    });
-        //                Log.Add(_l + bus.name + " ссылка на товар обновлена!");
-        //            } else
-        //                Log.Add(_l + bus.name + " ссылка без изменений!");
-        //        } catch (Exception x) {
-        //            Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
-        //        }
-        //    }
+
         //    //проверка и обновление товара
         //    async Task UpdateProductAsync(GoodObject bus, ProductInfo productInfo = null) {
         //        try {
@@ -375,48 +280,39 @@ namespace Selen.Sites {
                 }
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
                 var response = await _hc.SendAsync(requestMessage);
-
+                _jsonResponse = await response.Content.ReadAsStringAsync();
+                var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
-                    var js = await response.Content.ReadAsStringAsync();
-                    var responseObject = JsonConvert.DeserializeObject<WbResponse>(js);
                     if (responseObject.error)
                         Log.Add($"{_l} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
                     return JsonConvert.SerializeObject(responseObject.data);
-                    //return js;
                 } else
-                    throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content}");
+                    throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
             } catch (Exception x) {
                 Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
             return null;
         }
-        public async Task<string> PostRequestAsync(object request, string apiRelativeUrl) {
+        public async Task<bool> PostRequestAsync(object request, string apiRelativeUrl) {
             try {
                 if (request == null)
-                    return null;
+                    return false;
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("POST"), apiRelativeUrl);
-                //requestMessage.Headers.Add("authorization", "Bearer " + _apiKey);
                 var httpContent = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
                 requestMessage.Content = httpContent;
                 var response = await _hc.SendAsync(requestMessage);
-
+                _jsonResponse = await response.Content.ReadAsStringAsync();
+                var resp = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
-                    var js = await response.Content.ReadAsStringAsync();
-                    //RootResponse rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                    //if (rr.has_next)
-                    //    _hasNext = true;
-                    //else
-                    //    _hasNext = false;
-                    //return JsonConvert.SerializeObject(rr.result);
-                    return js;
+                    return !resp.error;
                 } else
-                    throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content}");
+                    throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
             } catch (Exception x) {
                 Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
-            return null;
+            return false;
         }
         //Родительские категории товаров
         public async Task GetCategoriesAsync() {
@@ -498,7 +394,6 @@ namespace Selen.Sites {
             }
             return listCharcs;
         }
-
         //Цвет
         public async Task GetColorsAsync() {
             var fileName = @"..\data\wildberries\wb_colors.json";
@@ -680,8 +575,8 @@ namespace Selen.Sites {
             var count = await DB.GetParamIntAsync("wb.countToAdd");
             if (count == 0)
                 return;
-            //if (_isProductListCheckNeeds)
-            //    await CheckProductListAsync();
+            if (_isProductListCheckNeeds)
+                await GetProductListAsync();
             //список исключений
             var exceptionGoods = new List<string> {
                     "фиксаторы грм",
@@ -723,246 +618,141 @@ namespace Selen.Sites {
                     if (attributes.Count == 0)
                         continue;
                     //формирую объект запроса
-                    var data = new {
-                        subjectID = good.id,
-                        variants = new[] {
-                            new {
-                                title = good.NameLimit(_nameLimit),
-                                description = good.DescriptionList(5000).Aggregate((a,b)=>a+"\n"+b),
-                                vendorCode = good.Part,
-                                dimentions = new {
-                                      length = good.length,
-                                      width = good.width ,
-                                      heigth = good.height
-                                },
-                                characteristics = new List<object>()
+                    var data = new[] {
+                        new {
+                            subjectID = attributes.First().subjectID,
+                            variants = new[] {
+                                new {
+                                    title = good.NameLimit(_nameLimit),
+                                    description = good.DescriptionList(5000).Aggregate((a,b)=>a+"\n"+b),
+                                    vendorCode = good.id,
+                                    brand=good.GetManufacture(),
+                                    dimensions = new {
+                                          length = int.Parse(good.length),
+                                          width = int.Parse(good.width),
+                                          height = int.Parse(good.height)
+                                    },
+                                    characteristics = new List<object>()
+                                }
                             }
                         }
                     };
-                    foreach (var a in attributes) {
+                    foreach (var a in attributes.Skip(1)) {
                         if (a.charcType == "1")
-                            data.variants[0].characteristics.Add(new { id = a.charcID, value =  a.value.ToString() });
+                            data[0].variants[0].characteristics.Add(new { id = a.charcID, value = a.value.ToString() });
                         else if (a.charcType == "2")
-                            data.variants[0].characteristics.Add(new { id = a.charcID, value =  a.value as string[] });
+                            data[0].variants[0].characteristics.Add(new { id = a.charcID, value = a.value as string[] });
                         else if (a.charcType == "4")
-                            data.variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
+                            data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
+                            //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
                     }
 
-                    var s = await PostRequestAsync(data, "/content/v2/cards/upload");
+                    var res = await PostRequestAsync(data, "/content/v2/cards/upload");
 
-
-
-
-
-
-                    var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
-                    if (res.task_id != default(int)) {
+                    if (res) { 
                         Log.Add(_l + good.name + " - товар отправлен на wildberries!");
+                        await SaveUrlAsync(good);
+                        _isProductListCheckNeeds = true;
                         count--;
                     } else {
                         Log.Add(_l + good.name + " ошибка отправки товара на wildberries!");
                     }
-                    var res2 = new ProductImportInfo();
-                    await Task.Delay(10000);
-                    var data2 = new {
-                        task_id = res.task_id.ToString()
-                    };
+
                     //s = await PostRequestAsync(data2, "/v1/product/import/info");
                     //res2 = JsonConvert.DeserializeObject<ProductImportInfo>(s);
                     //Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
                     //if (res2.items.First().errors.Length > 0)
                     //    Log.Add(_l + good.name + " ошибка - " + s);
-                    //_isProductListCheckNeeds = true;
                 } catch (Exception x) {
                     Log.Add(_l + good.name + " - " + x.Message + x.InnerException?.Message);
                 }
-                if (count==0)
+                if (count == 0)
                     break;
             }
         }
+        //получить атрибуты и категорию товара 
+        async Task<List<WbCharc>> GetAttributesAsync(GoodObject bus) {
+            try {
+                var n = bus.name.ToLowerInvariant();
+                var a = new List<WbCharc>();
 
-        //    string GetTypeName(XElement rule) {
-        //        var parent = rule.Parent;
-        //        if (parent != null) {
-        //            return parent.Attribute("Name").Value;
-        //        }
-        //        return null;
-        //    }
-    //получить атрибуты и категорию товара 
-    async Task<List<WbCharc>> GetAttributesAsync(GoodObject bus) {
-        try {
-            var n = bus.name.ToLowerInvariant();
-            var a = new List<WbCharc>();
-            
-            //foreach (var rule in _rules) {
-            //    var conditions = rule.Elements();
-            //    var eq = true;
-            //    foreach (var condition in conditions) {
-            //        if (!eq)
-            //            break;
-            //        if (condition.Name == "Starts" && !n.StartsWith(condition.Value))
-            //            eq = false;
-            //        else if (condition.Name == "Contains" && !n.Contains(condition.Value))
-            //            eq = false;
-            //    }
-            //    if (eq)
-            //        a.typeName = GetTypeName(rule);
-            //}
-            //if (a.typeName == null) {
-            //    if ((n.Contains("генератор") || n.Contains("напряжен")) &&
-            //        (n.Contains("реле") || n.Contains("регулятор"))) {
-            //        a.typeName = "Регулятор напряжения генератора";
-            //    } else if (n.Contains("генератор") &&
-            //        n.StartsWith("болт ")) {
-            //        a.typeName = "Регулятор генератора";
-            //    } else
+                //foreach (var rule in _rules) {
+                //    var conditions = rule.Elements();
+                //    var eq = true;
+                //    foreach (var condition in conditions) {
+                //        if (!eq)
+                //            break;
+                //        if (condition.Name == "Starts" && !n.StartsWith(condition.Value))
+                //            eq = false;
+                //        else if (condition.Name == "Contains" && !n.Contains(condition.Value))
+                //            eq = false;
+                //    }
+                //    if (eq)
+                //        a.typeName = GetTypeName(rule);
+                //}
+                //if (a.typeName == null) {
+                //    if ((n.Contains("генератор") || n.Contains("напряжен")) &&
+                //        (n.Contains("реле") || n.Contains("регулятор"))) {
+                //        a.typeName = "Регулятор напряжения генератора";
+                //    } else if (n.Contains("генератор") &&
+                //        n.StartsWith("болт ")) {
+                //        a.typeName = "Регулятор генератора";
+                //    } else
 
-            if (n.StartsWith("стартер ")) {
-                    a.Add(new WbCharc {
-                        charcID = "88953",
-                        value = (int)bus.Weight
-                    });// = "Стартеры электрические";
-            } 
-            //else
+                if (n.StartsWith("стартер "))  //todo вынести определение категорий в xml
+                    a.Add(new WbCharc { subjectID = 7985 });                   //"Стартеры электрические"
+                else
+                    return a;
+
+                //if (!GetTypeIdAndCategoryId(a))
+                //                return a;
+
+                await GetManufactureCountry(bus, a);
+                await GetWeight(bus, a);
+                await GetPart(bus, a);
+                await GetColor(bus, a);
                 return a;
-        //            }
-        //            if (!GetTypeIdAndCategoryId(a))
-        //                return a;
-        //            a.additionalAttributes.AddAttribute(await GetPlaceAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(GetPackQuantityAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetCountAttribute());
-        //            a.additionalAttributes.AddAttribute(GetTypeOfProductAttribute(a.typeId, a.typeName));
-        //            a.additionalAttributes.AddAttribute(GetBrendAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetPartAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetDescriptionAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetModelNameAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetComplectationAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetAlternativesAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetFabricBoxCountAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(await GetColorAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(await GetTechTypeAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(await GetDangerClassAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(GetExpirationDaysAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(await GetMaterialAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(await GetManufactureCountryAttributeAsync(bus, a));
-        //            a.additionalAttributes.AddAttribute(GetOEMAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(await GetSideAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(GetMultiplicityAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetKeywordsAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetThicknessAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetHeightAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetLengthAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(await GetMotorTypeAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(await GetPlacementAttributeAsync(bus,a));
-        //            a.additionalAttributes.AddAttribute(GetVolumeAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetVolumeMLAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(await GetTNVEDAttribute(bus, a));
-        //            a.additionalAttributes.AddAttribute(GetCountInBoxAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetCountOfHolesAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetGarantyAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetDiameterOutAttribute(bus));
-        //            a.additionalAttributes.AddAttribute(GetDiameterInAttribute(bus));
-        //            return a;
-
-        //            ///для определение категорий вызываем метод Дерево категорий и типов товаров (версия 2)
-        //            ///для корневой группы, например кузовные запчасти
-        //            ///https://api-seller.ozon.ru/v1/description-category/tree
-        //            ///для полученных категорий вызываем справочник характеристик
-        //            ///https://api-seller.ozon.ru/v2/category/attribute/values
-
-
-
-        //            //var t = await GetAttibuteValuesAsync(attribute_id: 8229, category_id: a.categoryId);
-        //            //Log.Add(t.Select(s => "\nid: " + s.id + " " + s.value).Aggregate((x, y) => x + y));
-        //            //await Task.Delay(3000);
-                } catch (Exception x) {
-                    throw new Exception($"GetAttributesAsync: {bus.name} - {x.Message}");
-                }
+            } catch (Exception x) {
+                throw new Exception($"GetAttributesAsync: {bus.name} - {x.Message}");
             }
-
-        //    //Оригинальные запчасти ?? 9104  dictionary_id": 1835
-        //    //Напряжение?? 5381 "dictionary_id": 48
-        //    //Атрибут Применимость
-
-
-
-
-        //    //Атрибут Внешний диаметр, см
-        //    Attribute GetDiameterOutAttribute(GoodObject good) {
-        //        var value = good.GetDiameterOut();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7366,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = value
-        //            }
-        //        }
-        //        };
-        //    }
-        //    //Атрибут Внутренний диаметр, см
-        //    Attribute GetDiameterInAttribute(GoodObject good) {
-        //        var value = good.GetDiameterIn();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7368,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = value
-        //            }
-        //        }
-        //        };
-        //    }
-        //    //Атрибут Гарантия
-        //    Attribute GetGarantyAttribute(GoodObject good) {
-        //        var value = good.GetGaranty();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 4385,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = value
-        //            }
-        //        }
-        //        };
-        //    }
-        //    //Атрибут Количество отверстий
-        //    Attribute GetCountOfHolesAttribute(GoodObject good) {
-        //        var value = good.GetCountOfHoles();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 20407,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = value
-        //            }
-        //        }
-        //        };
-        //    }
-
-        //    //Атрибут Количество в упаковке
-        //    Attribute GetCountInBoxAttribute(GoodObject good) {
-        //        var value = good.GetCountInBox();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 8513,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = value
-        //            }
-        //        }
-        //        };
-        //    }
+        }
+        //Атрибут Страна-изготовитель
+        async Task GetManufactureCountry(GoodObject good, List<WbCharc> a) {
+            var value = good.GetManufactureCountry();
+            if (value == null || !_countries.Any(c => c.name != value))
+                return;
+            a.Add(new WbCharc {
+                charcID = 14177451,
+                value = value,
+                charcType = "1"
+            });
+        }
+        //Атрибут Вес с упаковкой  (кг)
+        async Task GetWeight(GoodObject good, List<WbCharc> a) {
+            a.Add(new WbCharc {
+                charcID = 88953,
+                value = good.Weight,                //todo дробное число валидно?
+                //value = (int) good.Weight,
+                charcType = "4"
+            });
+        }
+        //Атрибут Артикул производителя
+        async Task GetPart(GoodObject good, List<WbCharc> a) {
+            a.Add(new WbCharc {
+                charcID = 5522881,
+                value = good.Part,
+                charcType = "1"
+            });
+        }
+        //Атрибут Цвет
+        async Task GetColor(GoodObject good, List<WbCharc> a) {
+            //todo !перед добавлением цвета нужно проверить, входит ли атрибут цвет в список доступных атрибутов для подкатегории, а возможно и для всех атрибутов нужно также?
+            //a.Add(new WbCharc {        
+            //    charcID = 5522881,
+            //    value = good.Part,
+            //    charcType = "1"
+            //});
+        }
 
         //    //Атрибут Код ТН ВЭД 
         //    async Task<Attribute> GetTNVEDAttribute(GoodObject good, Attributes a) {
@@ -987,445 +777,6 @@ namespace Selen.Sites {
         //            }
         //        };
         //    }
-        //    //Атрибут Объем, л
-        //    Attribute GetVolumeAttribute(GoodObject good) {
-        //        var value = good.GetVolume();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7194,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Объем, мл
-        //    Attribute GetVolumeMLAttribute(GoodObject good) {
-        //        var value = good.GetVolumeML();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 5710,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Место установки
-        //    async Task<Attribute> GetPlacementAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetPlacement();
-        //        if (value == null)
-        //            return null;
-        //        var placement = await GetAttibuteValuesAsync(a.typeId,attribute_id: "7367");
-        //        var p = placement?.Find(f => f.value == value).id.ToString();
-        //        if (p==null) return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7367,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value,
-        //                    dictionary_value_id = p,
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Тип двигателя
-        //    async Task<Attribute> GetMotorTypeAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetMotorType();
-        //        if (value == null)
-        //            return null;
-        //        var motorType = await GetAttibuteValuesAsync(a.typeId,attribute_id: "8303");
-        //        var mt = motorType?.Find(f => f.value == value)?.id.ToString();
-        //        if (mt==null) return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 8303,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value,
-        //                    dictionary_value_id = mt,
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Длина, см
-        //    Attribute GetLengthAttribute(GoodObject good) {
-        //        var value = good.GetLengthAttr();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 9802,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Высота, см
-        //    Attribute GetHeightAttribute(GoodObject good) {
-        //        var value = good.GetHeight();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 6606,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Толщина, см
-        //    Attribute GetThicknessAttribute(GoodObject good) {
-        //        var value = good.GetThickness();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 6859,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Ключевые слова
-        //    Attribute GetKeywordsAttribute(GoodObject good) {
-        //        var value = good.GetKeywords();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 22336,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value.Replace(",",";")
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Квант продажи, шт (Кратность покупки)
-        //    Attribute GetMultiplicityAttribute(GoodObject good) {
-        //        var value = good.GetMultiplicity();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 21497,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Расположение детали
-        //    async Task<Attribute> GetPlaceAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetPlace();
-        //        if (value == null)
-        //            return null;
-        //        var place = await GetAttibuteValuesAsync(a.typeId, attribute_id: "20189");
-        //        var p = place?.Find(f => f.value == value);
-        //        if (p == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 20189,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value,
-        //                    dictionary_value_id = p.id.ToString(),
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут ОЕМ-номер
-        //    Attribute GetOEMAttribute(GoodObject good) {
-        //        var man = good.GetManufacture(true)?
-        //                      .ToLowerInvariant();
-        //        if (_exceptManufactures.Contains(man))
-        //            return null;
-        //        var value = good.GetOEM();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7324,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Страна-изготовитель
-        //    async Task<Attribute> GetManufactureCountryAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetManufactureCountry();
-        //        if (value == null)
-        //            return null;
-        //        var manufactureCoutry = await GetAttibuteValuesAsync(a.typeId, attribute_id: "4389");
-        //        var mc = manufactureCoutry?.Find(f => f.value == value);
-        //        if (mc == null) 
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 4389,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value,
-        //                    dictionary_value_id = mc.id.ToString(),
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Материал
-        //    async Task<Attribute> GetMaterialAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetMaterial();
-        //        if (value == null)
-        //            return null;
-        //        var material = await GetAttibuteValuesAsync(a.typeId, attribute_id: "7199");
-        //        var m = material?.Find(f => f.value == value)?.id.ToString();
-        //        if (m == null) return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7199,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value,
-        //                    dictionary_value_id = m,
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Срок годности, дней
-        //    Attribute GetExpirationDaysAttribute(GoodObject good) {
-        //        var value = good.GetExpirationDays();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 8205,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Класс опасности
-        //    async Task<Attribute> GetDangerClassAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetDangerClass();
-        //        if (value == null)
-        //            return null;
-        //        var dangerClass = await GetAttibuteValuesAsync(a.typeId, attribute_id: "9782");
-        //        var d = dangerClass?.Find(f => f.value.Contains(value));
-        //        if (d == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 9782,
-        //            values = new Value[] {
-        //                new Value{
-        //                    dictionary_value_id = d.id.ToString(),
-        //                    value = d.value.ToString()
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Вид техники
-        //    async Task<Attribute> GetTechTypeAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetTechType();
-        //        if (value == null)
-        //            return null;
-        //        var techType = await GetAttibuteValuesAsync(a.typeId, attribute_id: "7206");
-        //        var t = techType?.Find(f => f.value == value)?.id.ToString();
-        //        if (t==null) return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 7206,
-        //            values = new Value[] {
-        //                new Value{
-        //                    dictionary_value_id = t,
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Цвет товара
-        //    async Task<Attribute> GetColorAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetColor();
-        //        if (value == null)
-        //            return null;
-        //        var color = await GetAttibuteValuesAsync(a.typeId, attribute_id: "10096");
-        //        var col = color?.Find(f => f.value == value)?.id.ToString();
-        //        if (col == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 10096,
-        //            values = new Value[] {
-        //                new Value{
-        //                    dictionary_value_id = col,
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Количество заводских упаковок
-        //    Attribute GetFabricBoxCountAttribute(GoodObject good) {
-        //        var value = good.GetFabricBoxCount();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 11650,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Альтернативные артикулы
-        //    Attribute GetAlternativesAttribute(GoodObject good) {
-        //        var man = good.GetManufacture(true)?
-        //                      .ToLowerInvariant();
-        //        if (_exceptManufactures.Contains(man))
-        //            return null;
-        //        var value = good.GetAlternatives();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 11031,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Атрибут Комплектация
-        //    Attribute GetComplectationAttribute(GoodObject good) {
-        //        var value = good.GetComplectation();
-        //        if (value == null)
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 4384,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-        //    //Сторона установки (параметр)
-        //    async Task<Attribute> GetSideAttributeAsync(GoodObject good, Attributes a) {
-        //        var value = good.GetSide();
-        //        if (value == null)
-        //            return null;
-        //        var side = await GetAttibuteValuesAsync(a.typeId, attribute_id: "22329");
-        //        var s = side?.Find(f => f.value == value);
-        //        if (s == null) 
-        //            return null;
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 22329,
-        //            values = new Value[] {
-        //                new Value{
-        //                    dictionary_value_id = s.id.ToString(),
-        //                    value = value
-        //                }
-        //            }
-        //        };
-        //    }
-
-        //    //Атрибут Название модели (для объединения в одну карточку)
-        //    //(в нашем случае дублируем id карточки бизнес.ру)
-        //    Attribute GetModelNameAttribute(GoodObject bus) {
-        //        return new Attribute {
-        //            complex_id = 0,
-        //            id = 9048,
-        //            values = new Value[] {
-        //            new Value{
-        //                value = bus.id.ToString()
-        //            }
-        //        }
-        //        };
-        //    }
-
-        //    //Атрибут Аннотация Описание товара
-        //    Attribute GetDescriptionAttribute(GoodObject good) => new Attribute {
-        //        complex_id = 0,
-        //        id = 4191,
-        //        values = new Value[] {
-        //            new Value{
-        //                value = good.DescriptionList()
-        //                            .Where(w=>!w.ToLower().Contains("оригинал")
-        //                                    &&!w.ToLower().Contains("новая")
-        //                                    &&!w.ToLower().Contains("новые")
-        //                                    &&!w.ToLower().Contains("новое")
-        //                                    &&!w.ToLower().Contains("новый")
-        //                                    &&!w.ToLower().Contains("недочет")
-        //                                    &&!w.ToLower().Contains("недочёт")
-        //                                    &&!w.ToLower().Contains("наличии")
-        //                                    &&!w.ToLower().Contains("упаковк")
-        //                                    &&!w.ToLower().Contains("без короб")
-        //                                    &&!w.ToLower().Contains("уценка")
-        //                                    &&!w.ToLower().Contains("уценен")
-        //                                    &&!w.ToLower().Contains("уценён")
-        //                                    &&!w.ToLower().Contains("витринн")
-        //                            )
-        //                            .Aggregate((a,b)=>a+"<br>"+b)
-        //            }
-        //        }
-        //    };
-        //    //Атрибут Тип товара
-        //    Attribute GetTypeOfProductAttribute(string id, string name) =>
-        //        new Attribute {
-        //            complex_id = 0,
-        //            id = 8229,
-        //            values = new Value[] {
-        //                new Value{
-        //                    dictionary_value_id = id,
-        //                    value = name
-        //                }
-        //            }
-        //        };
-        //    //Атрибут Количество в упаковке
-        //    Attribute GetPackQuantityAttribute(GoodObject bus) =>
-        //        new Attribute {
-        //            complex_id = 0,
-        //            id = 7335,
-        //            values = new Value[]{
-        //                new Value{
-        //                    value = bus.GetPackQuantity()
-        //                }
-        //            }
-        //        };
-        //    //Атрибут Количество штук (обязательный параметр)
-        //    Attribute GetCountAttribute(int cnt = 1) =>
-        //        new Attribute {
-        //            complex_id = 0,
-        //            id = 7202,
-        //            values = new Value[] {
-        //                new Value{
-        //                    value = cnt.ToString()
-        //                }
-        //            }
-        //        };
         //    //Атрибут Бренд
         //    Attribute GetBrendAttribute(GoodObject bus) {
         //        int id;
@@ -1477,6 +828,7 @@ namespace Selen.Sites {
         //            }
         //        };
         //    }
+
         //    //Запрос списка атрибутов с озон (значения по умолчанию - для получения списка брендов
         //    public async Task<List<AttributeValue>> GetAttibuteValuesAsync(string type_id, string attribute_id = "85") {
         //        var attributeValuesFile = @"..\data\ozon\ozon_attr_" + attribute_id + "_type_id_" + type_id + ".json";
@@ -1553,6 +905,124 @@ namespace Selen.Sites {
         //            throw;
         //        }
         //    }
+
+        //обновление ссылки в карточке бизнес.ру
+        async Task SaveUrlAsync(GoodObject bus) {
+            try {
+                string newUrl = _baseBusUrl;
+                //проверяем ссылку, если она есть, то значит товар был отправлен на вб
+                if (bus.wb.Length > 5) {
+                    //doto нужен поиск nmID по объявлениям
+                    //var nmId = GetNmId(bus);
+                    //if (nmId.length>0){
+                    //newUrl = _baseBusUrl.Replace("/00000/","/" + nmId +"/") ;
+                }
+                if (bus.wb != newUrl) {
+                    bus.wb = newUrl;
+                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", bus.id},
+                                {"name", bus.name},
+                                {_url, bus.wb}
+                            });
+                    Log.Add(_l + bus.name + " ссылка на товар обновлена!");
+                } else
+                    Log.Add(_l + bus.name + " ссылка без изменений!");
+            } catch (Exception x) {
+                Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
+            }
+        }
+
+        //запрашиваем список товаров WB
+        public async Task GetProductListAsync() {
+            try {                
+                //если файл свежий и товары не добавляли - загружаем с диска
+                if (File.Exists(_productListFile) &&
+                    (DateTime.Now < File.GetLastWriteTime(_productListFile).AddDays(_updateFreq))
+                    && !_isProductListCheckNeeds) {
+                    if (_productCards.Count == 0) {
+                        _productCards = JsonConvert.DeserializeObject<List<WbCard>>(
+                            File.ReadAllText(_productListFile));
+                    }
+                } else {
+                    _productCards.Clear();
+
+                    var updatedAt = "";
+                    var nmID = 0;
+                    var limit = 100;
+                    var count = 0;
+                    do {
+                        var data = new {
+                            settings = new {
+                                cursor = new {
+                                    limit = limit,
+                                    updatedAt = updatedAt,
+                                    nmID = nmID
+                                },
+                                filter = new {
+                                    withPhoto = -1
+                                }
+                            }
+                        };
+                        var isSuc = await PostRequestAsync(data, "/content/v2/get/cards/list");
+                        if (!isSuc)
+                            throw new Exception("запрос товаров вернул ошибку!");
+
+                        var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);
+                        
+                        updatedAt = productList.cursor.updatedAt;
+                        nmID = productList.cursor.nmID;
+                        count = productList.cards.Count;
+
+                        _productCards.AddRange(productList.cards);
+
+                        Log.Add($"{_l} получено {_productCards.Count} товаров");
+                    } while (count == limit);
+                    Log.Add(_l + "ProductList - успешно загружено " + _productCards.Count + " товаров");
+                    File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productCards));
+                    Log.Add(_l + _productListFile + " - сохранено");
+                    _isProductListCheckNeeds = false; //сбрасываю флаг
+                }
+                await CheckProductLinksAsync();
+            } catch (Exception x) {
+                Log.Add(_l + "ProductList - ошибка загрузки товаров - " + x.Message);
+            }
+        }
+
+        //проверяем привязку товаров в карточки бизнес.ру
+        private async Task CheckProductLinksAsync(bool checkAll = false) {
+            //TODO реализовать поверку ссылок на карточки вб
+
+            //List<ProductListItem> items;
+            //if (checkAll) {
+            //    var _checkProductCount = await DB.GetParamIntAsync("ozon.checkProductCount");
+            //    var _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
+            //    if (_checkProductIndex >= _productList.Count)
+            //        _checkProductIndex = 0;
+            //    await DB.SetParamAsync("ozon.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
+            //    items = _productList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<ProductListItem>();
+            //} else
+            //    items = _productList;
+            //foreach (var item in items) {
+            //    try {
+            //        //карточка в бизнес.ру с id = артикулу товара на озон
+            //        var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
+            //        if (b == -1)
+            //            throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
+            //        if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+            //            Class365API._bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
+            //            checkAll) {                                                         //либо передали флаг проверять всё
+            //            var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
+            //            await SaveUrlAsync(Class365API._bus[b], productInfo);
+            //            await UpdateProductAsync(Class365API._bus[b], productInfo);
+            //        }
+            //    } catch (Exception x) {
+            //        Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
+            //        _isProductListCheckNeeds = true;
+            //    }
+            //}
+        }
+
+
         //Сохранение списка карточек, которые можно добавить на wb в виде таблицы
         void SaveToFile(IEnumerable<GoodObject> goods, string fname) {
             StringBuilder s = new StringBuilder();
@@ -1625,9 +1095,138 @@ namespace Selen.Sites {
         //        }
         //    }
         //}
+
+        //    string GetTypeName(XElement rule) {
+        //        var parent = rule.Parent;
+        //        if (parent != null) {
+        //            return parent.Attribute("Name").Value;
+        //        }
+        //        return null;
+        //    }
+
         ///////////////////////////////////////
         ///// классы для работы с запросами ///
         ///////////////////////////////////////
+        public class WbProductList {
+            public List<WbCard> cards = new List<WbCard>(); //Список КТ
+            public WbCursor cursor { get; set; } //Пагинатор
+        }
+
+        public class WbCard {
+            public string nmID { get; set; } //Артикул WB
+            public string imtID { get; set; } //Идентификатор КТ
+            public string nmUUID { get; set; } //Внутренний технический идентификатор товара
+            public string subjectID { get; set; } //Идентификатор предмета
+            public string vendorCode { get; set; } //Артикул продавца
+            public string subjectName { get; set; } //Название предмета
+            public string brand { get; set; } //Бренд
+            public string title { get; set; } //Наименование товара
+            public List<WbPhoto> photos = new List<WbPhoto>(); //Массив фото
+            public string video { get; set; } //URL видео
+
+            public Dimensions dimensions; //Габариты упаковки товара, см
+            public List<WbCharacteristic> characteristics = new List<WbCharacteristic>();
+            public string createdAt { get; set; } //Дата создания
+            public string updatedAt { get; set; } //Дата изменения
+
+        }
+        public class WbCharacteristic {
+            public string id { get; set; } //Идентификатор характеристики
+            public string name { get; set; } //Название характеристики
+            public object value { get; set; } //Значение характеристики. Тип значения зависит от типа характеристики
+
+        }
+
+        public class Dimensions {
+            public int length { get; set; } //Длина, см
+            public int width { get; set; } //Ширина, см
+            public int height { get; set; } //Высота, см
+            public bool isValid { get; set; } //корректность габаритов
+
+        }
+        public class WbPhoto {
+            public string big { get; set; } //URL фото 900х1200
+            public string c246x328 { get; set; } //URL фото 248х328
+            public string c516x688 { get; set; } //URL фото 516x688
+            public string square { get; set; } //URL фото 600х600
+            public string tm { get; set; } //URL фото 75х100
+        }
+
+        public class WbCursor {
+            public string updatedAt { get; set; } //Дата с которой надо запрашивать следующий список КТ
+            public int nmID { get; set; } //Номер Артикула WB с которой надо запрашивать следующий список КТ
+            public int total { get; set; } //Кол-во возвращенных КТ
+        }
+
+        public class WbResponse {
+            public object data { get; set; }
+            public bool error { get; set; }
+            public string errorText { get; set; }
+            public object additionalErrors { get; set; }
+        }
+        public class WbCharc {
+            public int charcID { get; set; }
+            public string subjectName { get; set; }
+            public int subjectID { get; set; }
+            public string name { get; set; }
+            public string required { get; set; }
+            public string unitNamed { get; set; }
+            public string maxCount { get; set; }
+            public string popular { get; set; }
+            public string charcType { get; set; }
+            public object value { get; set; }
+        }
+        public class WbColor {
+            public string name { get; set; }
+            public string parentName { get; set; }
+        }
+        public class WbCountry {
+            public string name { get; set; }
+            public string fullName { get; set; }
+        }
+        public class WbTnvd {
+            public string tnved { get; set; }
+            public bool isKiz { get; set; }
+        }
+        public class WbObject {
+            public string subjectID { get; set; }
+            public string parentID { get; set; }
+            public string subjectName { get; set; }
+            public string parentName { get; set; }
+        }
+        public class WbCategory {
+            public string name { get; set; }
+            public string id { get; set; }
+            //public int id { get; set; }
+            public bool isVisible { get; set; }
+        }
+        ///////////////////////////////////////////
+        //public class ProductImportResult {
+        //    public int task_id { get; set; }
+        //}
+        ///////////////////////////////////////////
+        //public class ProductImportInfo {
+        //    public Items[] items { get; set; }
+        //    public int total { get; set; }
+
+        //}
+        //public class Items {
+        //    public string offer_id { get; set; }
+        //    public int product_id { get; set; }
+        //    public string status { get; set; }
+        //    public Errors[] errors { get; set; }
+        //}
+        //public class Errors {
+        //    public string code { get; set; }
+        //    public string field { get; set; }
+        //    public int attribute_id { get; set; }
+        //    public string state { get; set; }
+        //    public string level { get; set; }
+        //    public string description { get; set; }
+        //    //public Optional_Description_Elements optional_description_elements { get; set; }
+        //    public string attribute_name { get; set; }
+        //    public string message { get; set; }
+        //}
         //public class WareHouse {
         //    public string warehouse_id;
         //    public string name;
@@ -1651,51 +1250,21 @@ namespace Selen.Sites {
         //    public int quantity;
         //}
         ///////////////////////////////////////////
-    //    public class WbAttributes {
-    //    public WbCharc charc;
-    //    public string strValue;
-    //    public int intValue;
-    //    public string typeId;
-    //    public string typeName;
-    //    public List<Attribute> additionalAttributes = new List<Attribute>();
-    //}
-    //public static class Extentions {
-    //    public static void AddAttribute(this List<Attribute> list, Attribute newAttr) {
-    //        if (newAttr != null)
-    //            list.Add(newAttr);
-    //    }
-    //}
-    ///////////////////////////////////////////
-    public class WbResponse {
-            public object data { get; set; }
-            public bool error { get; set; }
-            public string errorText { get; set; }
-            public string additionalErrors { get; set; }
-        }
-        public class WbCharc {
-            public string charcID { get; set; }
-            public string subjectName { get; set; }
-            public string subjectID { get; set; }
-            public string name { get; set; }
-            public string required { get; set; }
-            public string unitNamed { get; set; }
-            public string maxCount { get; set; }
-            public string popular { get; set; }
-            public string charcType { get; set; }            
-            public object value {  get; set; }
-        }
-        public class WbColor {
-            public string name { get; set; }
-            public string parentName { get; set; }
-        }
-        public class WbCountry {
-            public string name { get; set; }
-            public string fullName { get; set; }
-        }
-        public class WbTnvd {
-            public string tnved { get; set; }
-            public bool isKiz { get; set; }
-        }
+        //    public class WbAttributes {
+        //    public WbCharc charc;
+        //    public string strValue;
+        //    public int intValue;
+        //    public string typeId;
+        //    public string typeName;
+        //    public List<Attribute> additionalAttributes = new List<Attribute>();
+        //}
+        //public static class Extentions {
+        //    public static void AddAttribute(this List<Attribute> list, Attribute newAttr) {
+        //        if (newAttr != null)
+        //            list.Add(newAttr);
+        //    }
+        //}
+        ///////////////////////////////////////////
         //public class ProductsInfo {
         //    public List<ProductInfo> items { get; set; }
         //}
@@ -1895,45 +1464,6 @@ namespace Selen.Sites {
         //    public string message { get; set; }
         //}
         ///////////////////////////////////////////
-        public class WbObject {
-            public string subjectID { get; set; }
-            public string parentID { get; set; }
-            public string subjectName { get; set; }
-            public string parentName { get; set; }
-        }
-        ///////////////////////////////////////////
-        //public class ProductImportResult {
-        //    public int task_id { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //public class ProductImportInfo {
-        //    public Items[] items { get; set; }
-        //    public int total { get; set; }
-
-        //}
-        //public class Items {
-        //    public string offer_id { get; set; }
-        //    public int product_id { get; set; }
-        //    public string status { get; set; }
-        //    public Errors[] errors { get; set; }
-        //}
-        //public class Errors {
-        //    public string code { get; set; }
-        //    public string field { get; set; }
-        //    public int attribute_id { get; set; }
-        //    public string state { get; set; }
-        //    public string level { get; set; }
-        //    public string description { get; set; }
-        //    //public Optional_Description_Elements optional_description_elements { get; set; }
-        //    public string attribute_name { get; set; }
-        //    public string message { get; set; }
-        //}
-        public class WbCategory {
-            public string name { get; set; }
-            public string id { get; set; }
-            //public int id { get; set; }
-            public bool isVisible { get; set; }
-        }
         //////////////////////////////////////////
         //public class ProductsInfoAttributes {
         //    public ProductsInfoAttr[] result { get; set; }
