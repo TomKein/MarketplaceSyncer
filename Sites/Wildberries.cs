@@ -43,11 +43,14 @@ namespace Selen.Sites {
         List<WbCountry> _countries;         //страны
         List<WbTnvd> _tnvd;                 //ТНВЭД код
 
-        //readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
-        //readonly float _oldPriceProcent;
+        readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
 
         readonly string _wareHouseListFile = @"..\data\wildberries\wb_warehouseList.json";  //склады
 
+        static object _locker = new object();
+        static bool _flag = false;
+
+        //readonly float _oldPriceProcent;
         //    List<AttributeValue> _brends;                 //список брендов 
 
         //    static readonly string _rulesFile = @"..\data\wildberries\wb_categories.xml";
@@ -93,118 +96,53 @@ namespace Selen.Sites {
             await GetCardsListAsync();
             await GetPricesAsync();
             await GetStocksAsync();
-
             await UpdateCardsAsync();
-            await CheckCardsAsync(checkAll: true);
             if (Class365API.SyncStartTime.Minute >= 55) {
             await AddProductsAsync();
             }
         }
-        //    public async Task MakeReserve() {
-        //        try {
-        //            //запросить список заказов со следующими статусами
-        //            var statuses = new List<string> {
-        //                "awaiting_packaging",
-        //                "awaiting_deliver"
-        //            };  
-        //            Postings postings = new Postings();
-        //            foreach (var status in statuses) {
-        //                var data = new {
-        //                    filter = new {
-        //                        cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
-        //                        cutoff_to = DateTime.Now.AddDays(18).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
-        //                        warehouse_id = new int[] { },
-        //                        status = status
-        //                    },
-        //                    limit = 100,
-        //                    offset = 0,
-        //                    with = new {
-        //                        analytics_data = false,
-        //                        barcodes = false,
-        //                        financial_data = false,
-        //                        translit = false
-        //                    }
-        //                };
-        //                var result = await PostRequestAsync(data, "/v3/posting/fbs/unfulfilled/list");
-        //                var res = JsonConvert.DeserializeObject<Postings>(result);
-        //                postings.postings.AddRange(res.postings);
-        //                Log.Add($"{_l} получено {res.postings.Count} заказов "+ status);
-        //                postings.count += res.count;
-        //            }
-        //            //загружаем список заказов, для которых уже делали резервирование
-        //            var reserveList = new List<string>();
-        //            if (File.Exists(_reserveListFile)) {
-        //                var s = File.ReadAllText(_reserveListFile);
-        //                var l = JsonConvert.DeserializeObject<List<string>>(s);
-        //                reserveList.AddRange(l);
-        //            }
-        //            //для каждого заказа сделать заказ с резервом в бизнес.ру
-        //            foreach (var order in postings.postings) {
-        //                //проверяем наличие резерва
-        //                if (reserveList.Contains(order.posting_number))
-        //                    continue;
-        //                //готовим список товаров (id, amount)
-        //                var goodsDict = new Dictionary<string, int>();
-        //                order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
-        //                var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"Ozon order {order.posting_number}", 
-        //                                                               goodsDict, order.in_process_at.AddHours(3).ToString());
-        //                if (isResMaked) {
-        //                    reserveList.Add(order.posting_number);
-        //                    if (reserveList.Count > 1000) {
-        //                        reserveList.RemoveAt(0);
-        //                    }
-        //                    var s = JsonConvert.SerializeObject(reserveList);
-        //                    File.WriteAllText(_reserveListFile, s);
-        //                }
-        //            }
-        //        } catch (Exception x) {
-        //            Log.Add(_l + "MakeReserve - " + x.Message);
-        //        }
-        //    }
-        //    //расширенная информация о товаре
-        //    private async Task<ProductInfo> GetProductInfoAsync(GoodObject bus) {
-        //        try {
-        //            var data = new { offer_id = bus.id };
-        //            var s = await PostRequestAsync(data, "/v2/product/info");
-        //            return JsonConvert.DeserializeObject<ProductInfo>(s);
-        //        } catch (Exception x) {
-        //            throw new Exception($"GetProductInfoAsync ошибка! name:{bus.name} message:{x.Message}");
-        //        }
-        //    }
+        public async Task MakeReserve() {
+            try {
+                var data = new Dictionary<string, string>();
+                data["limit"] = "100";
+                data["next"] = "0";
+                var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/orders");
+                //var res = await GetRequestAsync(null, "https://suppliers-api.wildberries.ru/api/v3/orders/new");
+                var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
 
-        //    //Проверка и обновление цены товара на озон
-        //    async Task UpdateProductPriceAsync(GoodObject bus, ProductInfo productInfo) {
-        //        try {
-        //            var newPrice = GetNewPrice(bus);
-        //            var oldPrice = GetOldPrice(newPrice);
-        //            //проверяем цены на озоне
-        //            if (newPrice != productInfo.GetPrice()
-        //            || oldPrice != productInfo.GetOldPrice()) {
-        //                //если отличаются - создаем запрос и обновляем
-        //                var data = new {
-        //                    prices = new[] {
-        //                        new { 
-        //                            /*offer_id = bus.id, */ 
-        //                            product_id = productInfo.id,
-        //                            old_price = oldPrice.ToString(),
-        //                            price = newPrice.ToString()
-        //                        }
-        //                    }
-        //                };
-        //                var s = await PostRequestAsync(data, "/v1/product/import/prices");
-        //                var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
-        //                if (res.First().updated) {
-        //                    Log.Add(_l + bus.name + " (" + bus.Price + ") цены обновлены! ("
-        //                               + newPrice + ", " + oldPrice + ")");
-        //                } else {
-        //                    Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.Price + ")" + " >>> " + s);
-        //                }
-        //            }
-        //        } catch (Exception x) {
-        //            Log.Add(_l + " ошибка обновления цены! - " + x.Message);
-        //        }
-        //    }
-        //запросы к api wb
+                Log.Add($"{_l} получено {wb.orders.Count} заказов ");
+                //              }
+                //загружаем список заказов, для которых уже делали резервирование
+                var reserveList = new List<string>();
+                if (File.Exists(_reserveListFile)) {
+                    var s = File.ReadAllText(_reserveListFile);
+                    var l = JsonConvert.DeserializeObject<List<string>>(s);
+                    reserveList.AddRange(l);
+                }
+                //для каждого заказа сделать заказ с резервом в бизнес.ру
+                foreach (var order in wb.orders) {
+                    //проверяем наличие резерва
+                    if (reserveList.Contains(order.id))
+                        continue;
+                    //готовим список товаров (id, amount)
+                    var goodsDict = new Dictionary<string, int>();
+                    wb.orders.ForEach(s => goodsDict.Add(s.article, 1/*s.quantity*/));
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Wildberries, $"Wilberries order {order.id}",
+                                                                   goodsDict, order.createdAt/*.AddHours(3)*/.ToString());
+                    if (isResMaked) {
+                        reserveList.Add(order.id);
+                        if (reserveList.Count > 1000) {
+                            reserveList.RemoveAt(0);
+                        }
+                        var s = JsonConvert.SerializeObject(reserveList);
+                        File.WriteAllText(_reserveListFile, s);
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add(_l + "MakeReserve - " + x.Message);
+            }
+        }
+        //GET запросы к api wb
         public async Task<string> GetRequestAsync(Dictionary<string, string> request, string apiRelativeUrl) {
             try {
                 if (request != null) {
@@ -230,6 +168,7 @@ namespace Selen.Sites {
             }
             return null;
         }
+        //POST запросы к api wb
         public async Task<bool> PostRequestAsync(object request, string apiRelativeUrl, bool put = false) {
             try {
                 if (request == null)
@@ -516,7 +455,31 @@ namespace Selen.Sites {
                 //    } else
 
                 if (n.StartsWith("стартер "))  //todo вынести определение категорий в xml
-                    a.Add(new WbCharc { subjectID = 7985 });                   //"Стартеры электрические"
+                    a.Add(new WbCharc { subjectID = 7985 });                   //Стартеры электрические
+                else if (n.StartsWith("генератор"))
+                    a.Add(new WbCharc { subjectID = 8062 });                    //Генераторы в сборе
+                else if (n.StartsWith("датчик температуры") ||
+                   n.StartsWith("датчик включения вентилятора"))
+                    a.Add(new WbCharc { subjectID = 6290 });                    //Датчики температуры включения вентилятора
+                else if (n.StartsWith("датчик abs"))
+                    a.Add(new WbCharc { subjectID = 8492 });                    //Датчики ABS
+                else if (n.StartsWith("датчик давления масла"))
+                    a.Add(new WbCharc { subjectID = 8070 });                    //Датчики давления масла
+                else if (n.StartsWith("датчик положения дроссельной заслонки"))
+                    a.Add(new WbCharc { subjectID = 8072 });                    //Датчики дроссельной заслонки
+                else if (n.StartsWith("датчик коленвала"))
+                    a.Add(new WbCharc { subjectID = 5569 });                    //Датчики положения коленвала
+                else if (n.StartsWith("сайлентблок"))
+                    a.Add(new WbCharc { subjectID = 4908 });                    //Сайлентблоки
+                else if (n.StartsWith("термостат"))
+                    a.Add(new WbCharc { subjectID = 5822 });                    //Термостаты двигателя
+                else if (n.StartsWith("тяга рулевая"))
+                    a.Add(new WbCharc { subjectID = 4907 });                    //Тяги рулевые
+                else if (n.StartsWith("ремень грм"))
+                    a.Add(new WbCharc { subjectID = 7876 });                    //Ремни ГРМ
+                else if (n.StartsWith("ремень клиновой") ||
+                    n.StartsWith("ремень поликлиновой"))
+                    a.Add(new WbCharc { subjectID = 5414 });                    //Ремни приводные
                 else
                     return a;
 
@@ -534,32 +497,45 @@ namespace Selen.Sites {
         }
         //Атрибут Страна-изготовитель
         async Task GetManufactureCountry(GoodObject good, List<WbCharc> a) {
-            var value = good.GetManufactureCountry()?
-                            .Replace("Южная Корея", "Республика Корея");
+            try {
+                var value = good.GetManufactureCountry();
             if (value == null || !_countries.Any(c => c.name != value))
                 return;
+                if (value.Contains("Корея"))
+                    value = "Республика Корея";
             a.Add(new WbCharc {
                 charcID = 14177451,
                 value = value,
                 charcType = "1"
             });
+            } catch (Exception x) {
+                throw new Exception($"GetManufactureCountry: {x.Message}");
+        }
         }
         //Атрибут Вес с упаковкой  (кг)
         async Task GetWeight(GoodObject good, List<WbCharc> a) {
+            try {
             a.Add(new WbCharc {
                 charcID = 88953,
                 value = good.Weight,                //todo дробное число валидно?
                 //value = (int) good.Weight,
                 charcType = "4"
             });
+            } catch (Exception x) {
+                throw new Exception($"GetWeight: {x.Message}");
+        }
         }
         //Атрибут Артикул производителя
         async Task GetPart(GoodObject good, List<WbCharc> a) {
+            try {
             a.Add(new WbCharc {
                 charcID = 5522881,
                 value = good.Part,
                 charcType = "1"
             });
+            } catch (Exception x) {
+                throw new Exception($"GetPart: {x.Message}");
+        }
         }
         //Атрибут Цвет
         async Task GetColor(GoodObject good, List<WbCharc> a) {
@@ -674,7 +650,6 @@ namespace Selen.Sites {
                         //добавляем пагинацию в объект запроса
                         offset += limit;
                         data["offset"] = offset.ToString();
-
                     } while (list.listGoods.Count == limit);
                     File.WriteAllText(_cardsPricesFile, JsonConvert.SerializeObject(_cardsPrices));
                     Log.Add(_l + _cardsPricesFile + " - сохранено");
@@ -692,7 +667,7 @@ namespace Selen.Sites {
                 if (card == null)
                     throw new Exception("карточка не найдена!");
                 //проверяем цену на вб
-                var wbPrice =_cardsPrices.Find(f=>f.vendorCode == good.id)?.sizes[0].price;
+                var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
                 //var wbDiscountedPrice = _cardsPrices.Find(f=>f.vendorCode == good.id)?.sizes[0].discountedPrice;
                 var goodNewPrice = GetNewPrice(good);
                 //var goodOldPrice = GetOldPrice(goodNewPrice);
@@ -749,17 +724,7 @@ namespace Selen.Sites {
 
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckCardsAsync(bool checkAll = false) {
-            List<WbCard> cards;
-            if (checkAll) {
-                var _checkProductCount = await DB.GetParamIntAsync("wb.checkProductCount");
-                var _checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
-                if (_checkProductIndex >= _cardsList.Count)
-                    _checkProductIndex = 0;
-                await DB.SetParamAsync("wb.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
-                cards = _cardsList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<WbCard>();
-            } else
-                cards = _cardsList;
-            foreach (var card in cards) {
+            foreach (var card in _cardsList) {
                 try {
                     //карточка в бизнес.ру с id = vendorCode товара на вб
                     var b = _bus.FindIndex(_ => _.id == card.vendorCode);
@@ -767,10 +732,9 @@ namespace Selen.Sites {
                         throw new Exception($"карточка бизнес.ру с id = {card.vendorCode} не найдена!");
                     if (!_bus[b].wb.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
                         _bus[b].wb.Contains("/00000/") ||                     //либо ссылка есть, но неверный sku
-                        _bus[b].images.Count != card.photos.Count ||          //количество фото в карточках не совпадает
                         checkAll) {                                           //либо передали флаг проверять всё
                         await SaveUrlAsync(_bus[b], card.nmID);
-                        await UpdateCardAsync(_bus[b], card);
+                        //await UpdateCardAsync(_bus[b], card);
                     }
                 } catch (Exception x) {
                     Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
@@ -801,6 +765,10 @@ namespace Selen.Sites {
                     throw new Exception("карточка не найдена!");
                 if (good.images.Count == card.photos.Count)
                     return;
+                while (_flag) { await Task.Delay(5000); }
+                lock (_locker) {
+                    _flag = true;
+                }
                 var urls = await SendImagesToFtpAsync(good);
                 var data = new {
                     nmId = card.nmID,
@@ -810,9 +778,11 @@ namespace Selen.Sites {
                 if (!isSuc)
                     throw new Exception("запрос на обновление фото вернул ошибку!");
                 Log.Add($"{_l} UpdateMediaAsync: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
+                card.photos = good.images.Select(i => new WbPhoto { big = i.url }).ToList();
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateMediaAsync ошибка! name:{good.name} message:{x.Message}");
             }
+            _flag = false;
         }
         async Task<List<string>> SendImagesToFtpAsync(GoodObject good) {
             List<string> urlList = new List<string>();
@@ -820,31 +790,60 @@ namespace Selen.Sites {
             cl.Encoding = Encoding.UTF8;
             var num = good.images.Count > 20 ? 20 : good.images.Count;
             for (int u = 0; u < num; u++) {
-                for (int i = 0; i < 5; i++) {
                     try {
                         byte[] bts = cl.DownloadData(good.images[u].url);
-                        File.WriteAllBytes($@"..\data\wildberries\wb_{u}.jpg", bts);
+                    var fileName = $"wb_{u}";
+                    File.WriteAllBytes($@"..\data\wildberries\{fileName}.jpg", bts);
+                    await Task.Delay(500);
+                    System.Drawing.Image image = System.Drawing.Image.FromFile($@"..\data\wildberries\{fileName}.jpg");
+                    if (image.Height <= 900 || image.Width <= 700)
+                        using (var resized = ImageUtilities.ResizeImage(image, image.Width * 2, image.Height * 2)) {
+                            fileName += "_";
+                            ImageUtilities.SaveJpeg($@"..\data\wildberries\{fileName}.jpg", resized, 90);
+                        }
+                    image.Dispose();
+                    await Task.Delay(500);
+                    await SftpClient.FtpUploadAsync($@"..\data\wildberries\{fileName}.jpg");
                         await Task.Delay(1000);
-                        await SftpClient.FtpUploadAsync($@"..\data\wildberries\wb_{u}.jpg");
-                        await Task.Delay(1000);
-                        urlList.Add($@"https://avtotehnoshik.ru/wb_{u}.jpg");
-                        break;
+                    urlList.Add($@"https://avtotehnoshik.ru/{fileName}.jpg");
                     } catch (Exception x) {
-                        Log.Add($"{_l} SendImagesToFtpAsync: ошибка! - {x.Message}");
-                    }
+                    throw new Exception($"{_l} SendImagesToFtpAsync: ошибка! - {x.Message}");
                 }
             }
             cl.Dispose();
             return urlList;
         }
-        //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на вб
+        //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
+        //а также выборочная проверка для уверенности
         private async Task UpdateCardsAsync() {
             try {
-                foreach (var good in _bus.Where(w => w.IsTimeUpDated() &&
-                                                !string.IsNullOrEmpty(w.wb) && 
-                                                w.wb.Contains("http")&&
+                var checkProductCount = await DB.GetParamIntAsync("wb.checkProductCount");
+                var checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
+                if (checkProductIndex >= _cardsList.Count)
+                    checkProductIndex = 0;
+                await DB.SetParamAsync("wb.checkProductIndex", (checkProductIndex + checkProductCount).ToString());
+                //для каждой карточки, у которой есть ссылка на WB, но не временная, с 00000
+                foreach (var good in _bus.Where(w => !string.IsNullOrEmpty(w.wb) &&
+                                                w.wb.Contains("http") &&
                                                 !w.wb.Contains("/00000/"))) {
-                    await UpdateCardAsync(good);
+                    //находим карточку на вб
+                    var card = _cardsList.Find(f => f.vendorCode == good.id);
+                    if (card == null)
+                        throw new Exception("карточка не найдена на ВБ!");
+                    //проверяем остаток на вб
+                    var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
+                    //проверяем цену на вб
+                    var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
+                    var goodNewPrice = GetNewPrice(good);
+                    //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
+                    if (wbStock != good.Amount ||
+                        wbPrice != goodNewPrice ||
+                        card.photos.Count != good.images.Count ||
+                        good.IsTimeUpDated() ||
+                        --checkProductIndex < 0 && checkProductCount + checkProductIndex >= 0
+                        )
+                        //обновляем карточку на вб
+                        await UpdateCardAsync(good, card);
                 }
             } catch (Exception x) {
                 Log.Add(_l + "UpdateCardsAsync - " + x.Message);
@@ -874,7 +873,7 @@ namespace Selen.Sites {
                         var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}");
                         if (!res)
                             throw new Exception("ошибка запроса остатков");
-                        var list = JsonConvert.DeserializeObject<WbStocks> (_jsonResponse);
+                        var list = JsonConvert.DeserializeObject<WbStocks>(_jsonResponse);
                         _cardsStocks.AddRange(list.stocks);
                         index += limit;
                     } while (index < _cardsList.Count - 1);
@@ -896,7 +895,7 @@ namespace Selen.Sites {
                         throw new Exception("карточка не найдена!");
                     //проверяем остаток на вб
                     var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
-                    if (wbStock!=null && wbStock == good.Amount) {
+                if (wbStock != null && wbStock == good.Amount) {
                         Log.Add($"{_l} UpdateStocks: {good.name} - остаток не нуждается в обновлении");
                         return;
                     }
@@ -908,7 +907,7 @@ namespace Selen.Sites {
                             }
                         }
                     };
-                    var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}",true);
+                var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
                     if (!res)
                         throw new Exception("ошибка запроса изменения цены");
                     Log.Add($"{_l} UpdatePrice: {good.name} - остаток обновлен {wbStock} => {good.Amount}");
@@ -930,9 +929,9 @@ namespace Selen.Sites {
                     throw new Exception("категория не определена!!");
                 }
                 if (card == null) {
-                    card = _cardsList.Find(f=>f.vendorCode==good.id);
+                    card = _cardsList.Find(f => f.vendorCode == good.id);
                 }
-                if (card==null)
+                if (card == null)
                     throw new Exception("карточка не найдена!!");
                 
                 //формирую объект запроса
@@ -996,7 +995,7 @@ namespace Selen.Sites {
                 var isContainsCharc = card.characteristics.Any(c => c.id == charc.id);
                 if (isContainsCharc) {
                     var cardValue = card.characteristics.Find(f => f.id == charc.id)?.value.ToString()
-                        .Replace("[", "").Replace("]", "").Replace("\r\n", "").Replace("\"","").Trim();
+                        .Replace("[", "").Replace("]", "").Replace("\r\n", "").Replace("\"", "").Trim();
                     if (cardValue != null && cardValue == charc.value.ToString())
                         continue;
                 }
@@ -1242,299 +1241,20 @@ namespace Selen.Sites {
         public class WbStocks {
             public List<WbStock> stocks = new List<WbStock>();
         }
-        ///////////////////////////////////////////
-        //public class ProductImportInfo {
-        //    public Items[] items { get; set; }
-        //    public int total { get; set; }
 
-        //}
-        //public class Items {
-        //    public string offer_id { get; set; }
-        //    public int product_id { get; set; }
-        //    public string status { get; set; }
-        //    public Errors[] errors { get; set; }
-        //}
-        //public class Errors {
-        //    public string code { get; set; }
-        //    public string field { get; set; }
-        //    public int attribute_id { get; set; }
-        //    public string state { get; set; }
-        //    public string level { get; set; }
-        //    public string description { get; set; }
-        //    //public Optional_Description_Elements optional_description_elements { get; set; }
-        //    public string attribute_name { get; set; }
-        //    public string message { get; set; }
-        //}
-        //public class WareHouse {
-        //    public string warehouse_id;
-        //    public string name;
-        //    public string status;
-        //}
-        //public class Postings {
-        //    public List<Posting> postings = new List<Posting>();
-        //    public int count;
-        //}
-        //public class Posting {
-        //    public string posting_number;
-        //    public decimal order_id;
-        //    public string order_number;
-        //    public List<Product> products = new List<Product>();
-        //    public DateTime in_process_at;
-        //}
-        //public class Product {
-        //    public string offer_id;
-        //    public string name;
-        //    public decimal sku;
-        //    public int quantity;
-        //}
+        public class WbOrders {
+            public List<WbOrder> orders = new List<WbOrder>();
+        }
+
+        public class WbOrder {
+            public DateTime createdAt { get; set; }
+            public string article { get; set; }
+            public string nmId { get; set; }
+            public string id { get; set; }
+            public string warehouseId { get; set; }
+        }
+
         ///////////////////////////////////////////
-        //    public class WbAttributes {
-        //    public WbCharc charc;
-        //    public string strValue;
-        //    public int intValue;
-        //    public string typeId;
-        //    public string typeName;
-        //    public List<Attribute> additionalAttributes = new List<Attribute>();
-        //}
-        //public static class Extentions {
-        //    public static void AddAttribute(this List<Attribute> list, Attribute newAttr) {
-        //        if (newAttr != null)
-        //            list.Add(newAttr);
-        //    }
-        //}
-        ///////////////////////////////////////////
-        //public class ProductsInfo {
-        //    public List<ProductInfo> items { get; set; }
-        //}
-        //public class ProductInfo {
-        //    public int id { get; set; }
-        //    public string name { get; set; }
-        //    public string offer_id { get; set; }
-        //    public string barcode { get; set; }
-        //    public string buybox_price { get; set; }
-        //    public int category_id { get; set; }
-        //    public DateTime created_at { get; set; }
-        //    public string[] images { get; set; }
-        //    public string marketing_price { get; set; }
-        //    public string min_ozon_price { get; set; }
-        //    public string old_price { get; set; }
-        //    public string premium_price { get; set; }
-        //    public string price { get; set; }
-        //    public string recommended_price { get; set; }
-        //    public string min_price { get; set; }
-        //    public Source[] sources { get; set; }
-        //    public Stocks stocks { get; set; }
-        //    //        public ItemErrors[] errors { get; set; }
-        //    public string vat { get; set; }
-        //    public bool visible { get; set; }
-        //    public Visibility_Details visibility_details { get; set; }
-        //    public string price_index { get; set; }
-        //    //        public Commission[] commissions { get; set; }
-        //    public decimal volume_weight { get; set; }
-        //    public bool is_prepayment { get; set; }
-        //    public bool is_prepayment_allowed { get; set; }
-        //    //public object[] images360 { get; set; }
-        //    public string color_image { get; set; }
-        //    public string primary_image { get; set; }
-        //    public Status status { get; set; }
-        //    public string state { get; set; }
-        //    public string service_type { get; set; }
-        //    public int fbo_sku { get; set; }
-        //    public int fbs_sku { get; set; }
-        //    public string currency_code { get; set; }
-        //    public bool is_kgt { get; set; }
-        //    public Discounted_Stocks discounted_stocks { get; set; }
-        //    public bool is_discounted { get; set; }
-        //    public bool has_discounted_item { get; set; }
-        //    //        public object[] barcodes { get; set; }
-        //    public DateTime updated_at { get; set; }
-        //    public Price_Indexes price_indexes { get; set; }
-        //    public int sku { get; set; }
-        //    public string GetSku() {
-        //        return (sku != 0 ? sku : fbs_sku).ToString();
-        //    }
-        //    public int GetStocks() {
-        //        return stocks.reserved + stocks.present;
-        //    }
-        //    public int GetPrice() {
-        //        return int.Parse(price.Split('.').First());
-        //    }
-        //    public int GetOldPrice() {
-        //        return int.Parse(old_price.Split('.').First());
-        //    }
-        //}
-        //public class ItemErrors {
-        //    public string code { get; set; }
-        //    public string field { get; set; }
-        //    public int attribute_id { get; set; }
-        //    public string state { get; set; }
-        //    public string level { get; set; }
-        //    public string description { get; set; }
-        //    public string attribute_name { get; set; }
-        //}
-        //public class Stocks {
-        //    public int coming { get; set; }
-        //    public int present { get; set; }
-        //    public int reserved { get; set; }
-        //}
-        //public class Visibility_Details {
-        //    public bool has_price { get; set; }
-        //    public bool has_stock { get; set; }
-        //    public bool active_product { get; set; }
-        //}
-        //public class Status {
-        //    public string state { get; set; }
-        //    public string state_failed { get; set; }
-        //    public string moderate_status { get; set; }
-        //    public string[] decline_reasons { get; set; }
-        //    public string validation_state { get; set; }
-        //    public string state_name { get; set; }
-        //    public string state_description { get; set; }
-        //    public bool is_failed { get; set; }
-        //    public bool is_created { get; set; }
-        //    public string state_tooltip { get; set; }
-        //    public ItemErrors[] item_errors { get; set; }
-        //    public DateTime state_updated_at { get; set; }
-        //}
-        //public class Discounted_Stocks {
-        //    public int coming { get; set; }
-        //    public int present { get; set; }
-        //    public int reserved { get; set; }
-        //}
-        //public class Price_Indexes {
-        //    public string price_index { get; set; }
-        //    public External_Index_Data external_index_data { get; set; }
-        //    public Ozon_Index_Data ozon_index_data { get; set; }
-        //    public Self_Marketplaces_Index_Data self_marketplaces_index_data { get; set; }
-        //}
-        //public class External_Index_Data {
-        //    public string minimal_price { get; set; }
-        //    public string minimal_price_currency { get; set; }
-        //    public float price_index_value { get; set; }
-        //}
-        //public class Ozon_Index_Data {
-        //    public string minimal_price { get; set; }
-        //    public string minimal_price_currency { get; set; }
-        //    public float price_index_value { get; set; }
-        //}
-        //public class Self_Marketplaces_Index_Data {
-        //    public string minimal_price { get; set; }
-        //    public string minimal_price_currency { get; set; }
-        //    public float price_index_value { get; set; }
-        //}
-        //public class Source {
-        //    public bool is_enabled { get; set; }
-        //    public int sku { get; set; }
-        //    public string source { get; set; }
-        //}
-        //public class Commission {
-        //    public decimal percent { get; set; }
-        //    public decimal min_value { get; set; }
-        //    public decimal value { get; set; }
-        //    public string sale_schema { get; set; }
-        //    public int delivery_amount { get; set; }
-        //    public int return_amount { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //public class ProductImportItem {
-        //    public Attribute[] attributes { get; set; }
-        //    public string barcode { get; set; }
-        //    public int category_id { get; set; }
-        //    public string color_image { get; set; }
-        //    public string[] complex_attributes { get; set; }
-        //    public string currency_code { get; set; }
-        //    public int depth { get; set; }
-        //    public string dimension_unit { get; set; }
-        //    public int height { get; set; }
-        //    public string[] images { get; set; }
-        //    public string[] images360 { get; set; }
-        //    public string name { get; set; }
-        //    public string offer_id { get; set; }
-        //    public string old_price { get; set; }
-        //    public string[] pdf_list { get; set; }
-        //    public string premium_price { get; set; }
-        //    public string price { get; set; }
-        //    public string primary_image { get; set; }
-        //    public string vat { get; set; }
-        //    public int weight { get; set; }
-        //    public string weight_unit { get; set; }
-        //    public int width { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //public class ProductList {
-        //    public List<ProductListItem> items { get; set; }
-        //    public int total { get; set; }
-        //    public string last_id { get; set; }
-        //}
-        //public class ProductListItem {
-        //    public int product_id { get; set; }
-        //    public string offer_id { get; set; }
-        //    public bool is_fbo_visible { get; set; }
-        //    public bool is_fbs_visible { get; set; }
-        //    public bool archived { get; set; }
-        //    public bool is_discounted { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //public class ProductInfoStocks {
-        //    public Item[] items { get; set; }
-        //    public int total { get; set; }
-        //    public string last_id { get; set; }
-        //}
-        //public class Item {
-        //    public int product_id { get; set; }
-        //    public string offer_id { get; set; }
-        //    public Stock[] stocks { get; set; }
-        //}
-        //public class Stock {
-        //    public string type { get; set; }
-        //    public int present { get; set; }
-        //    public int reserved { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //public class UpdateResult {
-        //    public int product_id { get; set; }
-        //    public string offer_id { get; set; }
-        //    public bool updated { get; set; }
-        //    public UpdateResultErrors[] errors { get; set; }
-        //}
-        //public class UpdateResultErrors {
-        //    public string code { get; set; }
-        //    public string message { get; set; }
-        //}
-        ///////////////////////////////////////////
-        //////////////////////////////////////////
-        //public class ProductsInfoAttributes {
-        //    public ProductsInfoAttr[] result { get; set; }
-        //    public int total { get; set; }
-        //    public string last_id { get; set; }
-        //}
-        //public class ProductsInfoAttr {
-        //    public int id { get; set; }
-        //    public string barcode { get; set; }
-        //    public int category_id { get; set; }
-        //    public string name { get; set; }
-        //    public string offer_id { get; set; }
-        //    public int height { get; set; }
-        //    public int depth { get; set; }
-        //    public int width { get; set; }
-        //    public string dimension_unit { get; set; }
-        //    public int weight { get; set; }
-        //    public string weight_unit { get; set; }
-        //    public Image[] images { get; set; }
-        //    public string image_group_id { get; set; }
-        //    public object[] images360 { get; set; }
-        //    public object[] pdf_list { get; set; }
-        //    public Attribute[] attributes { get; set; }
-        //    public object[] complex_attributes { get; set; }
-        //    public string color_image { get; set; }
-        //    public string last_id { get; set; }
-        //    public int description_category_id { get; set; }
-        //}
-        //public class Image {
-        //    public string file_name { get; set; }
-        //    public bool _default { get; set; }
-        //    public int index { get; set; }
-        //}
         //public class Attribute {
         //    public int id { get; set; }
         //    public int complex_id { get; set; }
@@ -1553,90 +1273,6 @@ namespace Selen.Sites {
     }
 
 }
-
-//запрос остатков товара с озон
-//async Task<int> GetInfoStocks(RootObject bus) {
-//    //var sku = _bus[b].ozon.Split('/').Last();
-//    var data = new { filter = new { offer_id = new[] { bus.id }, visibility = "ALL" }, limit = 100 };
-//    var s = await PostRequestAsync(data, "/v3/product/info/stocks");
-//    var stocks = JsonConvert.DeserializeObject<ProductInfoStocks>(s);
-//    var stock = stocks.items.First().stocks.First(f => f.type == "fbs");
-//    return stock.reserved + stock.present;
-//}
-//    //Атрибут Код ТН ВЭД 
-//    async Task<Attribute> GetTNVEDAttribute(GoodObject good, Attributes a) {
-//        var value = good.hscode_id;
-//        if (value == null)
-//            return null;
-//        var tnved = await GetAttibuteValuesAsync(a.typeId, attribute_id: "22232");
-//        //await UpdateVedAsync(a.typeId);
-//        var code = tnved.Find(f => f.value.Contains(value));
-//        if (code == null || code.id == null || code.value == null) {
-//            Log.Add($"{_l} GetTNVEDAttribute: ошибка - ТНВЭД {good.hscode_id} не найден! наименование: {good.name}, id: {good.id}");
-//            return null;
-//        }
-//        return new Attribute {
-//            complex_id = 0,
-//            id = 22232,
-//            values = new Value[] {
-//                new Value {
-//                    value = code.value,
-//                    dictionary_value_id = code.id.ToString()
-//                }
-//            }
-//        };
-//    }
-//    //Атрибут Бренд
-//    Attribute GetBrendAttribute(GoodObject bus) {
-//        int id;
-//        string name;
-//        //var m = bus.GetManufacture(ozon: true)?.ToLowerInvariant() ?? "";
-//        //if (m == "vag") {
-//        //    id = 115840909;
-//        //    name = "VAG (VW/Audi/Skoda/Seat)";
-//        //} else if (m == "chery") {
-//        //    id = 0;
-//        //    name = "Нет бренда";
-//        //} else
-
-//        //if (m== "chery" && _brends.Any(a => a.value.ToLowerInvariant() == m)) {
-//        //    var attribute = _brends.Find(a => a.value.ToLowerInvariant() == m);
-//        //    id = attribute.id;
-//        //    name = attribute.value;
-//        //} else 
-//        {
-//            id = 0;
-//            name = "Нет бренда";
-//        }
-//        return new Attribute {
-//            complex_id = 0,
-//            id = 85,
-//            values = new Value[] {
-//                new Value{
-//                    //dictionary_value_id = 0,//126745801 //id,
-//                    dictionary_value_id = id.ToString(),
-//                    value = name
-//                }
-//            }
-//        };
-//    }
-//    //Атрибут Партномер (артикул производителя) (в нашем случае артикул)
-//    Attribute GetPartAttribute(GoodObject bus) {
-//        var man = bus.GetManufacture(true)?
-//                     .ToLowerInvariant();
-//        var part = _exceptManufactures.Contains(man)? bus.id
-//                                                    : bus.part;
-//        return new Attribute {
-//            complex_id = 0,
-//            id = 7236,
-//            values = new Value[] {
-//                new Value{
-//                    //value = bus.Part
-//                    value = part
-//                }
-//            }
-//        };
-//    }
 
 //    //Запрос списка атрибутов с озон (значения по умолчанию - для получения списка брендов
 //    public async Task<List<AttributeValue>> GetAttibuteValuesAsync(string type_id, string attribute_id = "85") {
