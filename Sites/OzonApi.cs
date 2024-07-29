@@ -353,7 +353,6 @@ namespace Selen.Sites {
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("POST"), apiRelativeUrl);
                 requestMessage.Headers.Add("Client-Id", _clientID);
                 requestMessage.Headers.Add("Api-Key", _apiKey);
-                //requestMessage.Headers.Add("Host", "api-seller.ozon.ru");
                 requestMessage.Content = httpContent;
 
                 var response = await _hc.SendAsync(requestMessage);

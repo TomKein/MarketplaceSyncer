@@ -307,11 +307,13 @@
     </Compile>
     <Compile Include="Sites\Avito.cs" />
     <Compile Include="Sites\izap24.cs" />
+    <Compile Include="Sites\Wildberries.cs" />
     <Compile Include="Sites\OzonApi.cs" />
     <Compile Include="Sites\SyncWorker.cs" />
     <Compile Include="Sites\MegaMarket.cs" />
     <Compile Include="Sites\YandexMarket.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
+    <Compile Include="Tools\ImageUtilities.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="Forms\FormSettings.cs">
       <SubType>Form</SubType>

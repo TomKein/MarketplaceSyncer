@@ -97,9 +97,9 @@ namespace Selen.Sites {
             await GetPricesAsync();
             await GetStocksAsync();
             await UpdateCardsAsync();
-            if (Class365API.SyncStartTime.Minute >= 55) {
+            //if (Class365API.SyncStartTime.Minute >= 55) {
             await AddProductsAsync();
-            }
+            //}
         }
         public async Task MakeReserve() {
             try {
@@ -126,9 +126,11 @@ namespace Selen.Sites {
                         continue;
                     //готовим список товаров (id, amount)
                     var goodsDict = new Dictionary<string, int>();
-                    wb.orders.ForEach(s => goodsDict.Add(s.article, 1/*s.quantity*/));
-                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Wildberries, $"Wilberries order {order.id}",
-                                                                   goodsDict, order.createdAt/*.AddHours(3)*/.ToString());
+                    goodsDict.Add(order.article, 1);
+                    //order.ForEach(s => goodsDict.Add(s.article, 1/*s.quantity*/));
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Wildberries,
+                                                         $"Wildberries order {order.id}",
+                                                      goodsDict, order.createdAt/*.AddHours(3)*/.ToString());
                     if (isResMaked) {
                         reserveList.Add(order.id);
                         if (reserveList.Count > 1000) {
@@ -155,10 +157,10 @@ namespace Selen.Sites {
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
                     if (_jsonResponse.Contains("\"data\"")) {
-                    var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
-                    if (responseObject.error)
-                        Log.Add($"{_l} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
-                    return JsonConvert.SerializeObject(responseObject.data);
+                        var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
+                        if (responseObject.error)
+                            Log.Add($"{_l} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
+                        return JsonConvert.SerializeObject(responseObject.data);
                     }
                     return _jsonResponse;
                 } else
@@ -181,7 +183,7 @@ namespace Selen.Sites {
                 _jsonResponse = await response.Content.ReadAsStringAsync();
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NoContent) {
-                    if (_jsonResponse.Contains("\"error\":true")) 
+                    if (_jsonResponse.Contains("\"error\":true"))
                         return false;
                     return true;
                 } else
@@ -362,7 +364,8 @@ namespace Selen.Sites {
                                      && !w.wb.Contains("http")
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)));
+                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
+                            .OrderByDescending(o => o.Price);  //сначала подороже
             //SaveToFile(goods);
             var goods2 = _bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -405,23 +408,22 @@ namespace Selen.Sites {
                             data[0].variants[0].characteristics.Add(new { id = a.charcID, value = a.value as string[] });
                         else if (a.charcType == "4")
                             data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
-                            //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
+                                                                                                                       //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
                     }
 
                     var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/upload");
 
-                    if (res) { 
+                    if (res) {
                         Log.Add(_l + good.name + " - товар отправлен на wildberries!");
                         await SaveUrlAsync(good);
                         _isCardsListCheckNeeds = true;
-                        count--;
                     } else {
                         Log.Add(_l + good.name + " ошибка отправки товара на wildberries!");
                     }
                 } catch (Exception x) {
                     Log.Add(_l + good.name + " - " + x.Message + x.InnerException?.Message);
                 }
-                if (count == 0)
+                if (--count <= 0)
                     break;
             }
         }
@@ -480,6 +482,51 @@ namespace Selen.Sites {
                 else if (n.StartsWith("ремень клиновой") ||
                     n.StartsWith("ремень поликлиновой"))
                     a.Add(new WbCharc { subjectID = 5414 });                    //Ремни приводные
+                else if (n.StartsWith("шрус "))
+                    a.Add(new WbCharc { subjectID = 8058 });                    //Шрусы
+                else if (n.StartsWith("цилиндр"))
+                    a.Add(new WbCharc { subjectID = 7836 });                    //Цилиндры автомобильные
+                else if (n.StartsWith("фланец") && n.Contains("охлажд"))
+                    a.Add(new WbCharc { subjectID = 8030 });                    //Фланцы автомобильные
+                else if (n.StartsWith("фара противотуманная"))
+                    a.Add(new WbCharc { subjectID = 2395 });                    //Противотуманные фары
+                else if (n.StartsWith("фара левая") || n.StartsWith("фара правая"))
+                    a.Add(new WbCharc { subjectID = 7858 });                    //Фары автомобильные
+                else if (n.StartsWith("тяга стабилизатора") ||
+                    n.StartsWith("стойка стабилизатора"))
+                    a.Add(new WbCharc { subjectID = 4905 });                    //Стойки стабилизатора
+                else if (n.StartsWith("ручка") && n.Contains("двери") ||
+                         n.StartsWith("ручка") && n.Contains("стеклопод"))
+                    a.Add(new WbCharc { subjectID = 7953 });                    //Ручки автомобильные
+                else if (n.StartsWith("опора шаровая") || n.StartsWith("шаровая опора"))
+                    a.Add(new WbCharc { subjectID = 4904 });                    //Шаровые опоры
+                else if (n.StartsWith("подшипник ступи"))
+                    a.Add(new WbCharc { subjectID = 5751 });                    //Подшипники ступицы
+                else if (n.StartsWith("ступица"))
+                    a.Add(new WbCharc { subjectID = 5873 });                    //Ступицы
+                else if (n.StartsWith("стеклоподъемник"))
+                    a.Add(new WbCharc { subjectID = 6020 });                    //Стеклоподъемники
+                else if (n.StartsWith("суппорт"))
+                    a.Add(new WbCharc { subjectID = 7991 });                    //Суппорты тормозные
+                else if (n.StartsWith("ролик") && n.Contains("натяж"))
+                    a.Add(new WbCharc { subjectID = 7949 });                    //Ролики натяжителя
+                else if (n.StartsWith("ролик") && n.Contains("ремня") ||
+                    n.StartsWith("ролик") && n.Contains("грм"))
+                    a.Add(new WbCharc { subjectID = 7839 });                    //Ролики автомобильные
+                else if (n.StartsWith("рамка") && n.Contains("номер"))
+                    a.Add(new WbCharc { subjectID = 2264 });                    //Рамки для номеров
+                else if (n.StartsWith("эмблема"))
+                    a.Add(new WbCharc { subjectID = 8057 });                    //Эмблемы для авто
+                else if (n.StartsWith("электропроводка"))
+                    a.Add(new WbCharc { subjectID = 7908 });                    //Провода автомобильные
+                else if (n.StartsWith("штуцер топлив"))
+                    a.Add(new WbCharc { subjectID = 8180 });                    //Топливопроводы
+                else if (n.StartsWith("штуцер прокачк"))
+                    a.Add(new WbCharc { subjectID = 8013 });                    //Трубопроводы тормозной системы
+                else if (n.StartsWith("штекер прикуривателя"))
+                    a.Add(new WbCharc { subjectID = 2755 });                    //Разветвители прикуривателя
+                else if (n.StartsWith("шпонка") && n.Contains("распредвал"))
+                    a.Add(new WbCharc { subjectID = 7881 });                    //Комплектующие двигателя
                 else
                     return a;
 
@@ -499,43 +546,45 @@ namespace Selen.Sites {
         async Task GetManufactureCountry(GoodObject good, List<WbCharc> a) {
             try {
                 var value = good.GetManufactureCountry();
-            if (value == null || !_countries.Any(c => c.name != value))
-                return;
+                if (value == null || !_countries.Any(c => c.name != value))
+                    return;
                 if (value.Contains("Корея"))
                     value = "Республика Корея";
-            a.Add(new WbCharc {
-                charcID = 14177451,
-                value = value,
-                charcType = "1"
-            });
+                else if (value.Contains("Китай (Тайвань)"))
+                    value = "Тайвань";
+                a.Add(new WbCharc {
+                    charcID = 14177451,
+                    value = value,
+                    charcType = "1"
+                });
             } catch (Exception x) {
                 throw new Exception($"GetManufactureCountry: {x.Message}");
-        }
+            }
         }
         //Атрибут Вес с упаковкой  (кг)
         async Task GetWeight(GoodObject good, List<WbCharc> a) {
             try {
-            a.Add(new WbCharc {
-                charcID = 88953,
-                value = good.Weight,                //todo дробное число валидно?
-                //value = (int) good.Weight,
-                charcType = "4"
-            });
+                a.Add(new WbCharc {
+                    charcID = 88953,
+                    value = good.Weight,                //todo дробное число валидно?
+                                                        //value = (int) good.Weight,
+                    charcType = "4"
+                });
             } catch (Exception x) {
                 throw new Exception($"GetWeight: {x.Message}");
-        }
+            }
         }
         //Атрибут Артикул производителя
         async Task GetPart(GoodObject good, List<WbCharc> a) {
             try {
-            a.Add(new WbCharc {
-                charcID = 5522881,
-                value = good.Part,
-                charcType = "1"
-            });
+                a.Add(new WbCharc {
+                    charcID = 5522881,
+                    value = good.Part,
+                    charcType = "1"
+                });
             } catch (Exception x) {
                 throw new Exception($"GetPart: {x.Message}");
-        }
+            }
         }
         //Атрибут Цвет
         async Task GetColor(GoodObject good, List<WbCharc> a) {
@@ -572,7 +621,7 @@ namespace Selen.Sites {
 
         //запрашиваем список товаров WB
         public async Task GetCardsListAsync() {
-            try {                
+            try {
                 //если файл свежий и обновление списка не требуется
                 if (DateTime.Now < File.GetLastWriteTime(_cardsListFile).AddDays(_updateFreq)
                     && !_isCardsListCheckNeeds) {
@@ -600,7 +649,7 @@ namespace Selen.Sites {
                         var isSuc = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/get/cards/list");
                         if (!isSuc)
                             throw new Exception("запрос товаров вернул ошибку!");
-                        var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);                        
+                        var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);
                         _cardsList.AddRange(productList.cards);
                         Log.Add($"{_l} получено {_cardsList.Count} товаров");
                         //добавляем пагинацию в объект запроса
@@ -627,7 +676,7 @@ namespace Selen.Sites {
                 //если файл свежий и обновление списка не требуется
                 if (DateTime.Now < File.GetLastWriteTime(_cardsPricesFile).AddDays(_updateFreq)
                     && !_isCardsPricesCheckNeeds) {
-                   //загружаем с диска, если список пустой
+                    //загружаем с диска, если список пустой
                     if (_cardsPrices.Count == 0) {
                         _cardsPrices = JsonConvert.DeserializeObject<List<WbPrice>>(
                             File.ReadAllText(_cardsPricesFile));
@@ -671,7 +720,7 @@ namespace Selen.Sites {
                 //var wbDiscountedPrice = _cardsPrices.Find(f=>f.vendorCode == good.id)?.sizes[0].discountedPrice;
                 var goodNewPrice = GetNewPrice(good);
                 //var goodOldPrice = GetOldPrice(goodNewPrice);
-                if (wbPrice == goodNewPrice) { 
+                if (wbPrice == goodNewPrice) {
                     //wbDiscountedPrice == goodNewPrice) 
                     Log.Add($"{_l} UpdatePrice: {good.name} - цены не нуждаются в обновлении");
                     return;
@@ -746,7 +795,7 @@ namespace Selen.Sites {
         async Task UpdateCardAsync(GoodObject good, WbCard card = null) {
             try {
                 //if (card == null)
-                    //card = await GetProductInfoAsync(good);
+                //card = await GetProductInfoAsync(good);
                 await UpdateMedia(good, card);
                 await UpdateStocks(good, card);
                 await UpdatePrice(good, card);
@@ -790,8 +839,8 @@ namespace Selen.Sites {
             cl.Encoding = Encoding.UTF8;
             var num = good.images.Count > 20 ? 20 : good.images.Count;
             for (int u = 0; u < num; u++) {
-                    try {
-                        byte[] bts = cl.DownloadData(good.images[u].url);
+                try {
+                    byte[] bts = cl.DownloadData(good.images[u].url);
                     var fileName = $"wb_{u}";
                     File.WriteAllBytes($@"..\data\wildberries\{fileName}.jpg", bts);
                     await Task.Delay(500);
@@ -804,9 +853,9 @@ namespace Selen.Sites {
                     image.Dispose();
                     await Task.Delay(500);
                     await SftpClient.FtpUploadAsync($@"..\data\wildberries\{fileName}.jpg");
-                        await Task.Delay(1000);
+                    await Task.Delay(1000);
                     urlList.Add($@"https://avtotehnoshik.ru/{fileName}.jpg");
-                    } catch (Exception x) {
+                } catch (Exception x) {
                     throw new Exception($"{_l} SendImagesToFtpAsync: ошибка! - {x.Message}");
                 }
             }
@@ -826,27 +875,31 @@ namespace Selen.Sites {
                 foreach (var good in _bus.Where(w => !string.IsNullOrEmpty(w.wb) &&
                                                 w.wb.Contains("http") &&
                                                 !w.wb.Contains("/00000/"))) {
-                    //находим карточку на вб
-                    var card = _cardsList.Find(f => f.vendorCode == good.id);
-                    if (card == null)
-                        throw new Exception("карточка не найдена на ВБ!");
-                    //проверяем остаток на вб
-                    var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
-                    //проверяем цену на вб
-                    var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
-                    var goodNewPrice = GetNewPrice(good);
-                    //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
-                    if (wbStock != good.Amount ||
-                        wbPrice != goodNewPrice ||
-                        card.photos.Count != good.images.Count ||
-                        good.IsTimeUpDated() ||
-                        --checkProductIndex < 0 && checkProductCount + checkProductIndex >= 0
-                        )
-                        //обновляем карточку на вб
-                        await UpdateCardAsync(good, card);
+                    try {
+                        //находим карточку на вб
+                        var card = _cardsList.Find(f => f.vendorCode == good.id);
+                        if (card == null)
+                            throw new Exception($"{good.name} - карточка не найдена на ВБ!");
+                        //проверяем остаток на вб
+                        var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
+                        //проверяем цену на вб
+                        var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
+                        var goodNewPrice = GetNewPrice(good);
+                        //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
+                        if (wbStock != good.Amount ||
+                            wbPrice != goodNewPrice ||
+                            card.photos.Count != good.images.Count ||
+                            good.IsTimeUpDated() ||
+                            --checkProductIndex < 0 && checkProductCount + checkProductIndex >= 0
+                            )
+                            //обновляем карточку на вб
+                            await UpdateCardAsync(good, card);
+                    } catch (Exception x) {
+                        Log.Add(_l + "UpdateCardsAsync - " + x.Message);
+                    }
                 }
             } catch (Exception x) {
-                Log.Add(_l + "UpdateCardsAsync - " + x.Message);
+                Log.Add($"UpdateCardsAsync: ошибка - {x.Message}");
             }
         }
         //запорос остатков товара
@@ -867,7 +920,7 @@ namespace Selen.Sites {
 
                     do {
                         var skus = _cardsList.Skip(index).Take(limit).Select(s => s.sizes[0].skus[0]).ToList();
-                        var data = new { 
+                        var data = new {
                             skus = skus
                         };
                         var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}");
@@ -889,30 +942,30 @@ namespace Selen.Sites {
         //обновление остатков товара
         private async Task UpdateStocks(GoodObject good, WbCard card) {
             try {
-                    if (card == null)
-                        card = _cardsList.Find(f => f.vendorCode == good.id);
-                    if (card == null)
-                        throw new Exception("карточка не найдена!");
-                    //проверяем остаток на вб
-                    var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
+                if (card == null)
+                    card = _cardsList.Find(f => f.vendorCode == good.id);
+                if (card == null)
+                    throw new Exception("карточка не найдена!");
+                //проверяем остаток на вб
+                var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
                 if (wbStock != null && wbStock == good.Amount) {
-                        Log.Add($"{_l} UpdateStocks: {good.name} - остаток не нуждается в обновлении");
-                        return;
-                    }
-                    var data = new {
-                        stocks = new[] {
+                    Log.Add($"{_l} UpdateStocks: {good.name} - остаток не нуждается в обновлении");
+                    return;
+                }
+                var data = new {
+                    stocks = new[] {
                             new {
                                 sku = card.sizes[0].skus[0],
                                 amount = (int)good.Amount
                             }
                         }
-                    };
+                };
                 var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
-                    if (!res)
-                        throw new Exception("ошибка запроса изменения цены");
-                    Log.Add($"{_l} UpdatePrice: {good.name} - остаток обновлен {wbStock} => {good.Amount}");
-                    //запросить новые остатки
-                    _isCardsStocksCheckNeeds = true;
+                if (!res)
+                    throw new Exception("ошибка запроса изменения цены");
+                Log.Add($"{_l} UpdatePrice: {good.name} - остаток обновлен {wbStock} => {good.Amount}");
+                //запросить новые остатки
+                _isCardsStocksCheckNeeds = true;
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка {good.name} - {x.Message}");
             }
@@ -933,7 +986,7 @@ namespace Selen.Sites {
                 }
                 if (card == null)
                     throw new Exception("карточка не найдена!!");
-                
+
                 //формирую объект запроса
                 var data = new[] {
                     new {
@@ -980,7 +1033,7 @@ namespace Selen.Sites {
                 var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/update");
                 if (res)
                     Log.Add($"{_l} UpdateCard: {good.name} - карточка обновлена!");
-                else 
+                else
                     throw new Exception("ошибка обновления карточки!");
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
@@ -1076,13 +1129,13 @@ namespace Selen.Sites {
                             File.ReadAllText(_wareHouseListFile));
                     }
                 } else {
-                var data = new Dictionary<string, string>();
+                    var data = new Dictionary<string, string>();
                     var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/warehouses");
-                if (res != null) {
-                    _wareHouses = JsonConvert.DeserializeObject<List<WbWareHouse>>(res);
-                    File.WriteAllText(_wareHouseListFile, res);
-                } else
-                    throw new Exception("ошибка запроса складов!");
+                    if (res != null) {
+                        _wareHouses = JsonConvert.DeserializeObject<List<WbWareHouse>>(res);
+                        File.WriteAllText(_wareHouseListFile, res);
+                    } else
+                        throw new Exception("ошибка запроса складов!");
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} GetWarehouseList: ошибка! - {x.Message}");

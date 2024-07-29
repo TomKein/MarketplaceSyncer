@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -28,7 +29,8 @@ namespace Selen {
             Ozon = 1,
             YandexMarket = 2,
             Avito = 3,
-            Drom = 4
+            Drom = 4,
+            Wildberries = 5
         };
     public class Class365API {
         static readonly string SECRET = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
@@ -84,6 +86,9 @@ namespace Selen {
                 DateTime.Now.Hour >= DB.GetParamInt("syncStopHour"))
                 return;
             _timer.Stop();
+//#if DEBUG 
+//            return;
+//#endif
             await GoLiteSync();
             if (IsBusinessNeedRescan)
                 await BaseGetAsync();
@@ -265,7 +270,7 @@ namespace Selen {
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" }
                         });
-                        if (s.Contains("name")) {
+                        if (s.Contains("name") && _bus.Count/(lastScan+1)<2) {
                             s = s
                                 .Replace("\"209334\":", "\"drom\":")
                                 .Replace("\"209360\":", "\"vk\":")
@@ -281,7 +286,7 @@ namespace Selen {
                     await Task.Delay(60000);
                 }
                 await DB.SetParamAsync("controlBus", _bus.Count.ToString());
-            } while (_bus.Count == 0 || Math.Abs(lastScan - _bus.Count) > 400);
+            } while (_bus.Count == 0 || Math.Abs( _bus.Count-lastScan)/_bus.Count > 0.01);
             Log.Add("business.ru: получено товаров " + _bus.Count);
         }
 
@@ -845,24 +850,75 @@ namespace Selen {
             var descChkCnt = await DB.GetParamIntAsync("descriptionsCheckCount");
             for (int i = _bus.Count - 1; i > -1 && descChkCnt > 0; i--) {
                 try {
-                    var needUpdate = _bus[i].Replace("\t") |
-                                     _bus[i].Replace("!!!", "!!") |
-                                     _bus[i].Replace("</p><br />", "</p>") |
-                                     _bus[i].Replace("<br><br>", "<br>") |
-                                     _bus[i].Replace("<br /><br />", "<br>") |
-                                     _bus[i].Replace("<p></p>", "") |
-                                     _bus[i].Replace("<br></p>", "</p>") |
-                                     _bus[i].Replace("</p>\n", "</p>") |
-                                     _bus[i].Replace("&nbsp;", " ") |
-                                     _bus[i].Replace("&zwnj;", " ") |
-                                     _bus[i].Replace("  ", " ") |
-                                     _bus[i].Replace("&ndash;", "-") |
-                                     _bus[i].Replace("&gt;", "-") |
-                                     _bus[i].Replace("'", "`") |
-                                     _bus[i].Replace("``", "`") |
-                                     _bus[i].Replace("&lt;", "-")|
-                                     _bus[i].Replace("&deg;", "град. ");
-                    if (needUpdate) {
+                    if (_bus[i].description == null || _bus[i].name == null /*|| _bus[i].Amount == 0 || _bus[i].Price == 0*/)
+                        continue;
+                    var oldName = _bus[i].name;
+                    var oldDesc = _bus[i].description;
+                    //ставим пробелы перед скобкой ( (кроме пробел. симв. вначале и >)
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"([^\s>])\((\S)", "$1 ($2");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"([^\s>])\((\S)", "$1 ($2");
+                    //убираем пробелы после скобки (
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"\(\s+", "("); 
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\(\s+", "(");
+                    //ставим пробелы после скобки ) (кроме пробельных символов, запятых, точек, воскл. знаков)
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"\)([^\s!:.,<])", ") $1");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\)([^\s!:.,<])", ") $1");
+                    //убираем пробелы перед скобкой )
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"\s+\)", ")");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\s+\)", ")");                        /////////
+                    //добавляем пробел после запятой, кроме дробных чисел
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"(\S),([^0-9\s<])", "$1, $2");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"(\S),([^0-9\s<])", "$1, $2");
+                    //убираем пробелы перед запятой
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"\s+,", ",");                                       /////////
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\s+,", ",");
+                    //добавляем пробел после точки, кроме дробных чисел
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"(\S)\.([^0-9\s<])", "$1. $2");                     /////////
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"(\S)\.([^0-9\s<])", "$1. $2");
+                    //убираем в описания пробел перед точкой
+                    //_bus[i].name = Regex.Replace(_bus[i].name, @"\s+\.", ".");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\s+\.", ".");                        /////////
+                    //добавляем пробел после № 
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"№(\S)", "№ $1");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"№(\S)", "№ $1");
+                    //добавляем пробел после :
+                    _bus[i].name = Regex.Replace(_bus[i].name, @":([^\s<])", ": $1"); 
+                    _bus[i].description = Regex.Replace(_bus[i].description, @":([^\s<])", ": $1");
+                    //убираем пробел перед :
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"\s+:", ":"); 
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"\s+:", ":"); 
+                    //добавляем пробел между числами и словами :
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"(\d+)([а-яА-Я])", "$1 $2");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"(\d+)([а-яА-Я])", "$1 $2");
+                    //добавляем пробел между словами и числами :
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"([а-я])(\d+)", "$1 $2");
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"([а-я])(\d+)", "$1 $2"); 
+                    //меняем Г на г в годах :
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"(\d{2,4}) Г", "$1 г");  
+                    _bus[i].description = Regex.Replace(_bus[i].description, @"(\d{2,4}) Г", "$1 г"); 
+
+                    _bus[i].Replace("\t");
+                    _bus[i].Replace("!!!", "!!");
+                    _bus[i].Replace("</p><br />", "</p>");
+                    _bus[i].Replace("<br><br>", "<br>");
+                    _bus[i].Replace("<br /><br />", "<br>");
+                    _bus[i].Replace("<p></p>", "");
+                    _bus[i].Replace("<br></p>", "</p>");
+                    _bus[i].Replace("</p>\n", "</p>");
+                    _bus[i].Replace("&nbsp;", " ");
+                    _bus[i].Replace("&zwnj;", " ");
+                    _bus[i].Replace("  ", " ");
+                    _bus[i].Replace("&ndash;", "-");
+                    _bus[i].Replace("&gt;", "-");
+                    _bus[i].Replace("'", "`");
+                    _bus[i].Replace("``", "`");
+                    _bus[i].Replace("&lt;", "-");
+                    _bus[i].Replace("&deg;", "град. ");
+                    
+                    //_bus[i].name = oldName;
+                    //_bus[i].description = oldDesc;
+
+                    if (oldName != _bus[i].name || oldDesc != _bus[i].description) {
                         await RequestAsync("put", "goods", new Dictionary<string, string>() {
                             {"id", _bus[i].id},
                             {"name", _bus[i].name},

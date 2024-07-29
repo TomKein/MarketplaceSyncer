@@ -44,6 +44,7 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.label_Avito = new System.Windows.Forms.Label();
             this.button_AvitoCategories = new System.Windows.Forms.Button();
             this.button_MegaMarket = new System.Windows.Forms.Button();
             this.button_ozon = new System.Windows.Forms.Button();
@@ -58,7 +59,7 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.label_Avito = new System.Windows.Forms.Label();
+            this.button_wildberries = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -252,6 +253,7 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.button_wildberries);
             this.panel_Buttons.Controls.Add(this.label_Avito);
             this.panel_Buttons.Controls.Add(this.button_AvitoCategories);
             this.panel_Buttons.Controls.Add(this.button_MegaMarket);
@@ -276,6 +278,15 @@ namespace Selen {
             this.panel_Buttons.Size = new System.Drawing.Size(139, 307);
             this.panel_Buttons.TabIndex = 146;
             // 
+            // label_Avito
+            // 
+            this.label_Avito.AutoSize = true;
+            this.label_Avito.Location = new System.Drawing.Point(120, 71);
+            this.label_Avito.Name = "label_Avito";
+            this.label_Avito.Size = new System.Drawing.Size(16, 13);
+            this.label_Avito.TabIndex = 153;
+            this.label_Avito.Text = "...";
+            // 
             // button_AvitoCategories
             // 
             this.button_AvitoCategories.FlatAppearance.BorderSize = 0;
@@ -291,7 +302,7 @@ namespace Selen {
             // 
             // button_MegaMarket
             // 
-            this.button_MegaMarket.Location = new System.Drawing.Point(5, 223);
+            this.button_MegaMarket.Location = new System.Drawing.Point(5, 249);
             this.button_MegaMarket.Name = "button_MegaMarket";
             this.button_MegaMarket.Size = new System.Drawing.Size(113, 23);
             this.button_MegaMarket.TabIndex = 151;
@@ -432,14 +443,15 @@ namespace Selen {
             this.panel4.Size = new System.Drawing.Size(784, 307);
             this.panel4.TabIndex = 149;
             // 
-            // label_Avito
+            // button_wildberries
             // 
-            this.label_Avito.AutoSize = true;
-            this.label_Avito.Location = new System.Drawing.Point(120, 71);
-            this.label_Avito.Name = "label_Avito";
-            this.label_Avito.Size = new System.Drawing.Size(16, 13);
-            this.label_Avito.TabIndex = 153;
-            this.label_Avito.Text = "...";
+            this.button_wildberries.Location = new System.Drawing.Point(5, 223);
+            this.button_wildberries.Name = "button_wildberries";
+            this.button_wildberries.Size = new System.Drawing.Size(113, 23);
+            this.button_wildberries.TabIndex = 154;
+            this.button_wildberries.Text = "Wildberries";
+            this.button_wildberries.UseVisualStyleBackColor = true;
+            this.button_wildberries.Click += new System.EventHandler(this.button_Wildberries_Click);
             // 
             // FormMain
             // 
@@ -503,6 +515,7 @@ namespace Selen {
         private System.Windows.Forms.Button button_MegaMarket;
         private System.Windows.Forms.Button button_AvitoCategories;
         private System.Windows.Forms.Label label_Avito;
+        private System.Windows.Forms.Button button_wildberries;
     }
 }
 

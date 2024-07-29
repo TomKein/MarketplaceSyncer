@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.193f;
+        float _version = 1.194f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -26,6 +26,7 @@ namespace Selen {
         OzonApi _ozon;
         Avito _avito;
         MegaMarket _mm;
+        Wildberries _wb;
 
         static System.Timers.Timer _timer = new System.Timers.Timer();
 
@@ -156,19 +157,27 @@ namespace Selen {
             await _mm.GenerateXML();
             ChangeStatus(sender, ButtonStates.Active);
         }
+        //Wildberries
+        async void button_Wildberries_Click(object sender, EventArgs e) {
+            ChangeStatus(sender, ButtonStates.NoActive);
+            await _wb.SyncAsync();
+            ChangeStatus(sender, ButtonStates.Active);
+        }
 
         //todo move this method to class365api 
         async Task SyncAllHandlerAsync() {
             while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
                 await Task.Delay(30000);
             await _ozon.MakeReserve();
+            await _wb.MakeReserve();
             await _yandexMarket.MakeReserve();
             await _avito.MakeReserve();
-            //TODO mm reserve!!
-            //await _mm.MakeReserve(); 
+            //await _mm.MakeReserve();  //TODO mm reserve?
             await _drom.MakeReserve();
             
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
+            await Task.Delay(2000);
+            button_wildberries.Invoke(new Action(() => button_wildberries.PerformClick()));
             await Task.Delay(2000);
             button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
             await Task.Delay(2000);
@@ -215,6 +224,7 @@ namespace Selen {
             _avito = new Avito();
             _vk = new VK();
             _mm = new MegaMarket();
+            _wb = new Wildberries();
         }
         //проверка на параллельный запуск
         async Task CheckMultiRunAsync() {
@@ -426,26 +436,13 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                //Log.Add(Class365API._bus.Find(b => b.id == "2846864").New.ToString());
+                Class365API.CheckDescriptions();
 
-                Form f = new FormAvito();
-                f.Owner = this;
-                f.ShowDialog();
-                f.Dispose();
-
-
-                //CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
-                //Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
-                //CultureInfo.CurrentCulture = new CultureInfo("en-US");
-                //Log.Add($"en-US: {Class365API.ScanTime.ToString()}");
-                //CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
-                //Log.Add($"ru-RU: {Class365API.ScanTime.ToString()}");
 
             } catch (Exception x) {
                 Log.Add(x.Message);
             }
             ChangeStatus(sender, ButtonStates.Active);
         }
-
     }
 }

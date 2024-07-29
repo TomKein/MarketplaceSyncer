@@ -121,7 +121,7 @@ namespace Selen {
         }
     }
 
-    public class Image {
+    public class BusImage {
         public string name { get; set; }
         public string url { get; set; }
     }
@@ -148,14 +148,14 @@ namespace Selen {
         public string description { get; set; }
         public string updated { get; set; }
         public string updated_remains_prices { get; set; }
-        public List<Image> images { get; set; }
+        public List<BusImage> images { get; set; }
         public List<Remains> remains { get; set; }
         public List<Prices> prices { get; set; }
         public List<Attributes> attributes { get; set; }
         public string drom { get; set; }
         public string vk { get; set; }
-        public string kp { get; set; }
-        public string gde { get; set; }
+        //public string kp { get; set; }
+        //public string gde { get; set; }
         public string ozon { get; set; }
         public string wb { get; set; }
         public string measure_id { get; set; }
@@ -556,6 +556,7 @@ namespace Selen {
         }
         public string NameLimit(int length) {
             var t = name.Replace("(копия)",""); //удаление признака Копии
+            t = Regex.Replace(t, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
             while (t.Length > length) {
                 t = t.Remove(t.LastIndexOf(' '));
             }
@@ -586,7 +587,7 @@ namespace Selen {
                                     .Replace("*", " ")
                                     .Replace("%", " ")
                                     .Replace("+", " ");
-
+            d = Regex.Replace(d, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
             var s = Regex.Replace(d
                                     .Replace("Есть и другие", "|")
                                     .Split('|')[0]
