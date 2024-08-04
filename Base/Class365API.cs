@@ -219,18 +219,17 @@ namespace Selen {
             return md5_str.ToString();
         }
         static async Task SyncAllHandlerAsync() {
-            await Class365API.AddPartNumsAsync();                   //добавление артикулов из описания
-            await Class365API.CheckArhiveStatusAsync();             //проверка архивного статуса
-            await Class365API.CheckBu();
-            await Class365API.CheckUrls();                          //удаление ссылок из черновиков
+            await Class365API.AddPartNumsAsync();
+            await Class365API.CheckArhiveStatusAsync();
+            await Class365API.ClearOldUrls();
+            await Class365API.CheckGrammarOfTitlesAndDescriptions();
             if (Class365API.SyncStartTime.Minute >= 55) {
-                await Class365API.CheckDublesAsync();               //проверка дублей
-                await Class365API.CheckMultipleApostropheAsync();   //проверка лишних аппострофов
-                await Class365API.ArtCheckAsync();                  //очистка артикулов
+                await Class365API.CheckDubles();
+                await Class365API.CheckMultipleApostrophe();
+                await Class365API.ArtCheck();
                 await Class365API.GroupsMoveAsync();                //проверка групп
                 await Class365API.PhotoClearAsync();                //удаление старых фото
                 await Class365API.ArchivateAsync();                 //архивирование карточек
-                await Class365API.CheckDescriptions();              //корректировка описаний
             }
             await Class365API.CheckRealisationsAsync();             //проверка реализаций, добавление расходов
             await Class365API.ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
@@ -482,6 +481,7 @@ namespace Selen {
                 return false;
             return true;
         }
+        //добавить номера из описаний в артикул
         public static async Task AddPartNumsAsync() {
             try {
                 var i = 0;
@@ -508,7 +508,7 @@ namespace Selen {
             }
 
         }
-        public static async Task CheckUrls() {
+        public static async Task ClearOldUrls() {
             for (int b = 0; b < _bus.Count; b++) {
                 if ((_bus[b].GroupName().Contains("РАЗБОРКА")||
                     _bus[b].name.EndsWith("(копия)") ||
@@ -532,6 +532,7 @@ namespace Selen {
                 }
             }
         }
+        //проверка архивного статуса у карточек с остатком, фото
         public static async Task CheckArhiveStatusAsync() {
             try {
                 foreach (var item in _bus.Where(w => (w.Amount > 0 || w.images.Count>0) && w.archive)) {
@@ -548,35 +549,8 @@ namespace Selen {
                 Log.Add($"{_l} ошибка при изменении архивного статуса! - {x.Message}");
             }
         }
-        public static async Task CheckBu() => await Task.Factory.StartNew(() => {
-            foreach (var b in _bus) {
-                var n = b.name;
-                //todo use regex instead!! regex.replace...
-                if (n.StartsWith(@"Б/У"))
-                    b.name = b.name.Replace(@"Б/У", "").Trim() + " Б/У";
-                if (n.StartsWith(@"б/у"))
-                    b.name = b.name.Replace(@"б/у", "").Trim() + " Б/У";
-                if (n.StartsWith(@"Б\У"))
-                    b.name = b.name.Replace(@"Б\У", "").Trim() + " Б/У";
-                if (n.StartsWith(@"б\у"))
-                    b.name = b.name.Replace(@"б\у", "").Trim() + " Б/У";
-                if (n.StartsWith(@"Б.У."))
-                    b.name = b.name.Replace(@"Б.У.", "").Trim() + " Б/У";
-                if (n.StartsWith(@"б.у."))
-                    b.name = b.name.Replace(@"б.у.", "").Trim() + " Б/У";
-                if (n.StartsWith(@"Б.У"))
-                    b.name = b.name.Replace(@"Б.У", "").Trim() + " Б/У";
-                if (n.StartsWith(@"Б.у"))
-                    b.name = b.name.Replace(@"Б.у", "").Trim() + " Б/У";
-                if (n.StartsWith(@"Бу "))
-                    b.name = b.name.Replace(@"Бу ", "").Trim() + " Б/У";
-                if (n.StartsWith(@"бу "))
-                    b.name = b.name.Replace(@"бу ", "").Trim() + " Б/У";
-                if (n != b.name)
-                    Log.Add($"{_l} исправлено наименование {n} -> {_l}");
-            }
-        });
-        public static async Task CheckDublesAsync() {
+        //проверка дублей названий
+        public static async Task CheckDubles() {
             try {
                 var count = await DB.GetParamIntAsync("checkDublesCount");
                 for (int i = DateTime.Now.Second, cnt = 0; i < _bus.Count && cnt < count; i += 30) {
@@ -621,7 +595,7 @@ namespace Selen {
                 Log.Add("CheckDublesAsync: ошибка! " + x.Message);
             }
         }
-        public static async Task CheckMultipleApostropheAsync() {
+        public static async Task CheckMultipleApostrophe() {
             try {
                 foreach (var item in _bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.Amount > 0)) {
                     Log.Add("business.ru: обнаружено название с множеством апострофов - " + item.name);
@@ -640,7 +614,10 @@ namespace Selen {
                 Log.Add("business.ru: ошибка при переименовании множественных апострофов - " + x.Message);
             }
         }
-        public static async Task ArtCheckAsync() {
+        //удаление лишних символов из артикулов
+        public static async Task ArtCheck() {
+            //todo use REGEX, replace to CheckGrammarOfTitlesAndDescriptions
+            //todo use REGEX to replace cyrillic symbols to latin
             if (await DB.GetParamBoolAsync("articlesClear")) {
                 for (int b = 0; b < _bus.Count; b++) {
                     try {
@@ -846,7 +823,8 @@ namespace Selen {
                 }
             }
         }
-        public static async Task CheckDescriptions() {
+        //исправленение грамматики
+        public static async Task CheckGrammarOfTitlesAndDescriptions() {
             var descChkCnt = await DB.GetParamIntAsync("descriptionsCheckCount");
             for (int i = _bus.Count - 1; i > -1 && descChkCnt > 0; i--) {
                 try {
@@ -854,6 +832,11 @@ namespace Selen {
                         continue;
                     var oldName = _bus[i].name;
                     var oldDesc = _bus[i].description;
+                    //убираю апперкейс в заголовках
+                    //_bus[i].name = Regex.Replace(_bus[i].name, @"\B[А-Я]", m=>m.ToString().ToLower());
+
+                    //вынос б/у из начала заголовка объявления в конец
+                    _bus[i].name = Regex.Replace(_bus[i].name, @"([бБ][\.\\/][уУ]\.?|[бБ][уУ] )(.+)", "$2 Б/У");
                     //ставим пробелы перед скобкой ( (кроме пробел. симв. вначале и >)
                     _bus[i].name = Regex.Replace(_bus[i].name, @"([^\s>])\((\S)", "$1 ($2");
                     _bus[i].description = Regex.Replace(_bus[i].description, @"([^\s>])\((\S)", "$1 ($2");

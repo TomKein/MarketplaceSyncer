@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.195f;
+        float _version = 1.196f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;

@@ -44,6 +44,7 @@ namespace Selen.Sites {
         List<WbTnvd> _tnvd;                 //ТНВЭД код
 
         readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
+        readonly string _priorityFile = @"..\data\wildberries\priority.txt";
 
         readonly string _wareHouseListFile = @"..\data\wildberries\wb_warehouseList.json";  //склады
 
@@ -365,7 +366,7 @@ namespace Selen.Sites {
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
-                            .OrderByDescending(o => o.Price);  //сначала подороже
+                            .OrderByDescending(o => o.Price).ToList();  //сначала подороже
             //SaveToFile(goods);
             var goods2 = _bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -376,11 +377,36 @@ namespace Selen.Sites {
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods2, @"..\data\wildberries\wb_listForAdding.csv");
             Log.Add($"{_l} карточек для добавления: {goods.Count()} ({goods2.Count()})");
+
+            //учетываем данные по приоритетам
+            var priorityList = File.ReadLines(_priorityFile)?.ToList();
+            if (priorityList.Any()) {
+                var priorGoods = new List<GoodObject>();
+                foreach (var name in new List<string>(priorityList)) {
+                    var busGood = _bus.Find(f => f.name == name);
+                    if (busGood != null) {
+                        if (goods.Contains(busGood))
+                            priorGoods.Add(busGood);
+                        else {
+                            priorityList.Remove(name);
+                            File.WriteAllLines(_priorityFile, priorityList);
+                        }
+                    }
+                }
+                priorGoods.AddRange(goods);
+                goods = priorGoods.Distinct().ToList();
+            }
+
             foreach (var good in goods) {
                 try {
                     var attributes = await GetAttributesAsync(good);
-                    if (attributes.Count == 0)
+                    if (attributes.Count == 0) {
+                        if (priorityList.Contains(good.name)) {
+                            Log.Add($"{_l} AddProductsAsync: {good.name} - категория не определена, приоритетный товар!");
+                            break;
+                        }
                         continue;
+                    }
                     //формирую объект запроса
                     var data = new[] {
                         new {
@@ -432,7 +458,7 @@ namespace Selen.Sites {
             try {
                 var n = bus.name.ToLowerInvariant();
                 var a = new List<WbCharc>();
-
+                _nameLimit = 200;
                 //foreach (var rule in _rules) {
                 //    var conditions = rule.Elements();
                 //    var eq = true;
@@ -527,6 +553,51 @@ namespace Selen.Sites {
                     a.Add(new WbCharc { subjectID = 2755 });                    //Разветвители прикуривателя
                 else if (n.StartsWith("шпонка") && n.Contains("распредвал"))
                     a.Add(new WbCharc { subjectID = 7881 });                    //Комплектующие двигателя
+                else if (n.StartsWith("петля лючка") || n.StartsWith("петля двери"))
+                    a.Add(new WbCharc { subjectID = 5465 });                    //Петли бортовые
+                else if (n.StartsWith("контактная") && n.Contains("зажиган") ||
+                         n.StartsWith("личинк") && n.Contains("зажиган") ||
+                         n.StartsWith("замок") && n.StartsWith("зажиган"))
+                    a.Add(new WbCharc { subjectID = 5567 });                    //Замки зажигания
+                else if (n.StartsWith("болт натяжителя") ||
+                        n.StartsWith("скобы") && n.Contains("трубы"))
+                    a.Add(new WbCharc { subjectID = 7793 });                    //Крепеж для авто
+                else if (n.StartsWith("личинка") && n.Contains("багажн") ||
+                         n.StartsWith("кнопка") && n.Contains("багажн") ||
+                         n.StartsWith("личинк") && n.Contains("двер") ||
+                         n.StartsWith("замок") && n.Contains("двер"))
+                    a.Add(new WbCharc { subjectID = 7797 });                    //Замки автомобильные
+                else if (n.StartsWith("поворотник"))
+                    a.Add(new WbCharc { subjectID = 7784 });                    //Боковые фонари указателя поворота
+                else if (n.Contains("насос") && n.Contains("топливный"))
+                    a.Add(new WbCharc { subjectID = 6280 });                    //Насосы топливные
+                else if (n.StartsWith("трос замка"))
+                    a.Add(new WbCharc { subjectID = 7953 });                    //Ручки автомобильные
+                else if (n.StartsWith("переключатель") && n.Contains("фар"))
+                    a.Add(new WbCharc { subjectID = 8165 });                    //Переключатели автомобильные
+                else if (n.StartsWith("хомут") && n.Contains("глуш"))
+                    a.Add(new WbCharc { subjectID = 8037 });                    //Хомуты автомобильные
+                else if (n.StartsWith("радиатор"))
+                    a.Add(new WbCharc { subjectID = 7928 });                    //Радиаторы автомобильные
+                else if (n.StartsWith("трамблер") ||
+                         n.StartsWith("распределитель зажигания"))
+                    a.Add(new WbCharc { subjectID = 7933 });                    //Распределители зажигания
+                else if (n.StartsWith("бачок расширительный"))
+                    a.Add(new WbCharc { subjectID = 7937 });                    //Бачки расширительные
+                else if (n.StartsWith("прокладка") && n.Contains("насос"))
+                    a.Add(new WbCharc { subjectID = 7838 });                    //Прокладки автомобильные
+                else if (n.StartsWith("молдинг") && n.Contains("фар") ||
+                         n.StartsWith("ресничка фары"))
+                    a.Add(new WbCharc { subjectID = 2250 });                    //Декоративные детали кузова и бампера
+                else if (n.StartsWith("помпа") ||
+                         n.StartsWith("насос водяной"))
+                    a.Add(new WbCharc { subjectID = 5750 });                    //Помпы автомобильные
+                else if (n.StartsWith("патрон ламп") ||
+                         n.StartsWith("патрон поворот")) {                      //Патроны для ламп автомобильные
+                    a.Add(new WbCharc { subjectID = 7879 });
+                    _nameLimit = 60;
+                } else if (n.StartsWith("резонатор"))
+                    a.Add(new WbCharc { subjectID = 7946 });                    //Резонаторы автомобильные
                 else
                     return a;
 
@@ -624,7 +695,7 @@ namespace Selen.Sites {
             try {
                 //если файл свежий и обновление списка не требуется
                 if (DateTime.Now < File.GetLastWriteTime(_cardsListFile).AddDays(_updateFreq)
-                    && !_isCardsListCheckNeeds) {
+                     && !_isCardsListCheckNeeds) {
                     //загружаем с диска, если список пустой
                     if (_cardsList.Count == 0) {
                         _cardsList = JsonConvert.DeserializeObject<List<WbCard>>(
@@ -717,20 +788,19 @@ namespace Selen.Sites {
                     throw new Exception("карточка не найдена!");
                 //проверяем цену на вб
                 var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
-                //var wbDiscountedPrice = _cardsPrices.Find(f=>f.vendorCode == good.id)?.sizes[0].discountedPrice;
                 var goodNewPrice = GetNewPrice(good);
-                //var goodOldPrice = GetOldPrice(goodNewPrice);
                 if (wbPrice == goodNewPrice) {
                     //wbDiscountedPrice == goodNewPrice) 
                     Log.Add($"{_l} UpdatePrice: {good.name} - цены не нуждаются в обновлении");
                     return;
                 }
+                var discount = _cardsPrices.Find(c => c.vendorCode == good.id)?.discount??0;
                 var data = new {
                     data = new[] {
                         new {
                             nmID = card.nmID,
                             price = goodNewPrice,
-                            //discount = _oldPriceProcent //не срабатывает
+                            discount = discount
                         }
                     }
                 };
@@ -739,10 +809,10 @@ namespace Selen.Sites {
                     throw new Exception("ошибка запроса изменения цены");
                 Log.Add($"{_l} UpdatePrice: {good.name} - цены обновлены, {wbPrice} => {goodNewPrice}");
                 //обновить список карточек вб
-                _isCardsPricesCheckNeeds = true;
             } catch (Exception x) {
                 Log.Add($"{_l} GetPricesAsync: {good.name} - ошибка обновления цен товара - {x.Message}");
             }
+            _isCardsPricesCheckNeeds = true;
         }
         //расчет цен WB с учетом наценки
         private int GetNewPrice(GoodObject good) {
@@ -986,7 +1056,6 @@ namespace Selen.Sites {
                 }
                 if (card == null)
                     throw new Exception("карточка не найдена!!");
-
                 //формирую объект запроса
                 var data = new[] {
                     new {
@@ -1276,8 +1345,8 @@ namespace Selen.Sites {
         }
         public class WbSizePrices {
             public long sizeID { get; set; }
-            public int price { get; set; }
-            public int discountedPrice { get; set; }
+            public decimal price { get; set; }
+            public decimal discountedPrice { get; set; }
             public string techSizeName { get; set; }
         }
         public class WbWareHouse {
