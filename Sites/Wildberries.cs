@@ -10,6 +10,7 @@ using Selen.Tools;
 using Selen.Base;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using System.Xml.Linq;
 
 namespace Selen.Sites {
     public class Wildberries {
@@ -51,29 +52,35 @@ namespace Selen.Sites {
         static object _locker = new object();
         static bool _flag = false;
 
-        //readonly float _oldPriceProcent;
-        //    List<AttributeValue> _brends;                 //список брендов 
+        static readonly string _rulesFile = @"..\data\wildberries\wb_categories.xml";
+        static XDocument _catsXml;
+        static IEnumerable<XElement> _rules;
 
-        //    static readonly string _rulesFile = @"..\data\wildberries\wb_categories.xml";
-        //    static XDocument _catsXml;
-        //    static IEnumerable<XElement> _rules;
+        //списки исключений
+        List<string> _exceptionGoods = new List<string> {
+                    "фиксаторы грм",
+                    "фиксаторы распредвалов",
+                    "набор фиксаторов",
+                    "бампер ",
+                    "капот ",
+                    "телевизор "
+                };
+        List<string> _exceptionGroups = new List<string> {
+                    "черновик"
+                };
 
-        //    //производители, для которых не выгружаем номера и артикулы
-        //    readonly string[] _exceptManufactures = { "general motors","chery", "nissan" };
 
         public Wildberries() {
-            //_hc.BaseAddress = new Uri(_baseApiUrl);
             var apiKey = DB.GetParamStr("wb.apiKey");
             _hc.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
             _url = DB.GetParamStr("wb.url");
-            //_oldPriceProcent = DB.GetParamFloat("wb.oldPriceProcent");
             _updateFreq = DB.GetParamInt("wb.updateFreq");
         }
         //главный метод синхронизации
         public async Task SyncAsync() {
             _bus = Class365API._bus;
-            //        _catsXml = XDocument.Load(_rulesFile);
-            //        _rules = _catsXml.Descendants("Rule");
+            _catsXml = XDocument.Load(_rulesFile);
+            _rules = _catsXml.Descendants("Rule");
             if (_categories == null)
                 await GetCategoriesAsync();
             if (_objects == null)
@@ -341,18 +348,6 @@ namespace Selen.Sites {
                 return;
             if (_isCardsListCheckNeeds)
                 await GetCardsListAsync();
-            //список исключений
-            var exceptionGoods = new List<string> {
-                    "фиксаторы грм",
-                    "фиксаторы распредвалов",
-                    "набор фиксаторов",
-                    "бампер ",
-                    "капот ",
-                    "телевизор "
-                };
-            var exceptionGroups = new List<string> {
-                    "черновик"
-                };
             //список карточек которые еще не добавлены на wb
             var goods = _bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -364,8 +359,8 @@ namespace Selen.Sites {
                                      && w.New
                                      && !w.wb.Contains("http")
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
+                                     && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
+                                     && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
                             .OrderByDescending(o => o.Price).ToList();  //сначала подороже
             //SaveToFile(goods);
             var goods2 = _bus.Where(w => w.Amount > 0
@@ -374,9 +369,9 @@ namespace Selen.Sites {
                                      && w.New
                                      && !w.wb.Contains("http")
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
+                                     && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods2, @"..\data\wildberries\wb_listForAdding.csv");
-            Log.Add($"{_l} карточек для добавления: {goods.Count()} ({goods2.Count()})");
+            Log.Add($"{_l} карточек для добавления: {goods.Count} ({goods2.Count()})");
 
             //учетываем данные по приоритетам
             var priorityList = File.ReadLines(_priorityFile)?.ToList();
@@ -453,156 +448,47 @@ namespace Selen.Sites {
                     break;
             }
         }
+        void GetTypeName(List<WbCharc>  a, XElement rule) {
+            try {
+                var parent = rule.Parent;
+                if (parent != null) {
+                    foreach(XAttribute attribute in parent.Attributes()) {
+                        if (attribute.Name == "subjectID") {
+                            var subId = int.Parse(attribute.Value);
+                            a.Add(new WbCharc { subjectID = subId });
+                        }
+                        else if (attribute.Name == "nameLimit") {
+                            var nameLimit = int.Parse(attribute.Value);
+                            _nameLimit = nameLimit;
+                        }
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{_l} GetTypeName: ошибка определения категории - {x.Message}");
+            }
+        }
         //получить атрибуты и категорию товара 
         async Task<List<WbCharc>> GetAttributesAsync(GoodObject bus) {
             try {
                 var n = bus.name.ToLowerInvariant();
                 var a = new List<WbCharc>();
                 _nameLimit = 200;
-                //foreach (var rule in _rules) {
-                //    var conditions = rule.Elements();
-                //    var eq = true;
-                //    foreach (var condition in conditions) {
-                //        if (!eq)
-                //            break;
-                //        if (condition.Name == "Starts" && !n.StartsWith(condition.Value))
-                //            eq = false;
-                //        else if (condition.Name == "Contains" && !n.Contains(condition.Value))
-                //            eq = false;
-                //    }
-                //    if (eq)
-                //        a.typeName = GetTypeName(rule);
-                //}
-                //if (a.typeName == null) {
-                //    if ((n.Contains("генератор") || n.Contains("напряжен")) &&
-                //        (n.Contains("реле") || n.Contains("регулятор"))) {
-                //        a.typeName = "Регулятор напряжения генератора";
-                //    } else if (n.Contains("генератор") &&
-                //        n.StartsWith("болт ")) {
-                //        a.typeName = "Регулятор генератора";
-                //    } else
-
-                if (n.StartsWith("стартер "))  //todo вынести определение категорий в xml
-                    a.Add(new WbCharc { subjectID = 7985 });                   //Стартеры электрические
-                else if (n.StartsWith("генератор"))
-                    a.Add(new WbCharc { subjectID = 8062 });                    //Генераторы в сборе
-                else if (n.StartsWith("датчик температуры") ||
-                   n.StartsWith("датчик включения вентилятора"))
-                    a.Add(new WbCharc { subjectID = 6290 });                    //Датчики температуры включения вентилятора
-                else if (n.StartsWith("датчик abs"))
-                    a.Add(new WbCharc { subjectID = 8492 });                    //Датчики ABS
-                else if (n.StartsWith("датчик давления масла"))
-                    a.Add(new WbCharc { subjectID = 8070 });                    //Датчики давления масла
-                else if (n.StartsWith("датчик положения дроссельной заслонки"))
-                    a.Add(new WbCharc { subjectID = 8072 });                    //Датчики дроссельной заслонки
-                else if (n.StartsWith("датчик коленвала"))
-                    a.Add(new WbCharc { subjectID = 5569 });                    //Датчики положения коленвала
-                else if (n.StartsWith("сайлентблок"))
-                    a.Add(new WbCharc { subjectID = 4908 });                    //Сайлентблоки
-                else if (n.StartsWith("термостат"))
-                    a.Add(new WbCharc { subjectID = 5822 });                    //Термостаты двигателя
-                else if (n.StartsWith("тяга рулевая"))
-                    a.Add(new WbCharc { subjectID = 4907 });                    //Тяги рулевые
-                else if (n.StartsWith("ремень грм"))
-                    a.Add(new WbCharc { subjectID = 7876 });                    //Ремни ГРМ
-                else if (n.StartsWith("ремень клиновой") ||
-                    n.StartsWith("ремень поликлиновой"))
-                    a.Add(new WbCharc { subjectID = 5414 });                    //Ремни приводные
-                else if (n.StartsWith("шрус "))
-                    a.Add(new WbCharc { subjectID = 8058 });                    //Шрусы
-                else if (n.StartsWith("цилиндр"))
-                    a.Add(new WbCharc { subjectID = 7836 });                    //Цилиндры автомобильные
-                else if (n.StartsWith("фланец") && n.Contains("охлажд"))
-                    a.Add(new WbCharc { subjectID = 8030 });                    //Фланцы автомобильные
-                else if (n.StartsWith("фара противотуманная"))
-                    a.Add(new WbCharc { subjectID = 2395 });                    //Противотуманные фары
-                else if (n.StartsWith("фара левая") || n.StartsWith("фара правая"))
-                    a.Add(new WbCharc { subjectID = 7858 });                    //Фары автомобильные
-                else if (n.StartsWith("тяга стабилизатора") ||
-                    n.StartsWith("стойка стабилизатора"))
-                    a.Add(new WbCharc { subjectID = 4905 });                    //Стойки стабилизатора
-                else if (n.StartsWith("ручка") && n.Contains("двери") ||
-                         n.StartsWith("ручка") && n.Contains("стеклопод"))
-                    a.Add(new WbCharc { subjectID = 7953 });                    //Ручки автомобильные
-                else if (n.StartsWith("опора шаровая") || n.StartsWith("шаровая опора"))
-                    a.Add(new WbCharc { subjectID = 4904 });                    //Шаровые опоры
-                else if (n.StartsWith("подшипник ступи"))
-                    a.Add(new WbCharc { subjectID = 5751 });                    //Подшипники ступицы
-                else if (n.StartsWith("ступица"))
-                    a.Add(new WbCharc { subjectID = 5873 });                    //Ступицы
-                else if (n.StartsWith("стеклоподъемник"))
-                    a.Add(new WbCharc { subjectID = 6020 });                    //Стеклоподъемники
-                else if (n.StartsWith("суппорт"))
-                    a.Add(new WbCharc { subjectID = 7991 });                    //Суппорты тормозные
-                else if (n.StartsWith("ролик") && n.Contains("натяж"))
-                    a.Add(new WbCharc { subjectID = 7949 });                    //Ролики натяжителя
-                else if (n.StartsWith("ролик") && n.Contains("ремня") ||
-                    n.StartsWith("ролик") && n.Contains("грм"))
-                    a.Add(new WbCharc { subjectID = 7839 });                    //Ролики автомобильные
-                else if (n.StartsWith("рамка") && n.Contains("номер"))
-                    a.Add(new WbCharc { subjectID = 2264 });                    //Рамки для номеров
-                else if (n.StartsWith("эмблема"))
-                    a.Add(new WbCharc { subjectID = 8057 });                    //Эмблемы для авто
-                else if (n.StartsWith("электропроводка"))
-                    a.Add(new WbCharc { subjectID = 7908 });                    //Провода автомобильные
-                else if (n.StartsWith("штуцер топлив"))
-                    a.Add(new WbCharc { subjectID = 8180 });                    //Топливопроводы
-                else if (n.StartsWith("штуцер прокачк"))
-                    a.Add(new WbCharc { subjectID = 8013 });                    //Трубопроводы тормозной системы
-                else if (n.StartsWith("штекер прикуривателя"))
-                    a.Add(new WbCharc { subjectID = 2755 });                    //Разветвители прикуривателя
-                else if (n.StartsWith("шпонка") && n.Contains("распредвал"))
-                    a.Add(new WbCharc { subjectID = 7881 });                    //Комплектующие двигателя
-                else if (n.StartsWith("петля лючка") || n.StartsWith("петля двери"))
-                    a.Add(new WbCharc { subjectID = 5465 });                    //Петли бортовые
-                else if (n.StartsWith("контактная") && n.Contains("зажиган") ||
-                         n.StartsWith("личинк") && n.Contains("зажиган") ||
-                         n.StartsWith("замок") && n.StartsWith("зажиган"))
-                    a.Add(new WbCharc { subjectID = 5567 });                    //Замки зажигания
-                else if (n.StartsWith("болт натяжителя") ||
-                        n.StartsWith("скобы") && n.Contains("трубы"))
-                    a.Add(new WbCharc { subjectID = 7793 });                    //Крепеж для авто
-                else if (n.StartsWith("личинка") && n.Contains("багажн") ||
-                         n.StartsWith("кнопка") && n.Contains("багажн") ||
-                         n.StartsWith("личинк") && n.Contains("двер") ||
-                         n.StartsWith("замок") && n.Contains("двер"))
-                    a.Add(new WbCharc { subjectID = 7797 });                    //Замки автомобильные
-                else if (n.StartsWith("поворотник"))
-                    a.Add(new WbCharc { subjectID = 7784 });                    //Боковые фонари указателя поворота
-                else if (n.Contains("насос") && n.Contains("топливный"))
-                    a.Add(new WbCharc { subjectID = 6280 });                    //Насосы топливные
-                else if (n.StartsWith("трос замка"))
-                    a.Add(new WbCharc { subjectID = 7953 });                    //Ручки автомобильные
-                else if (n.StartsWith("переключатель") && n.Contains("фар"))
-                    a.Add(new WbCharc { subjectID = 8165 });                    //Переключатели автомобильные
-                else if (n.StartsWith("хомут") && n.Contains("глуш"))
-                    a.Add(new WbCharc { subjectID = 8037 });                    //Хомуты автомобильные
-                else if (n.StartsWith("радиатор"))
-                    a.Add(new WbCharc { subjectID = 7928 });                    //Радиаторы автомобильные
-                else if (n.StartsWith("трамблер") ||
-                         n.StartsWith("распределитель зажигания"))
-                    a.Add(new WbCharc { subjectID = 7933 });                    //Распределители зажигания
-                else if (n.StartsWith("бачок расширительный"))
-                    a.Add(new WbCharc { subjectID = 7937 });                    //Бачки расширительные
-                else if (n.StartsWith("прокладка") && n.Contains("насос"))
-                    a.Add(new WbCharc { subjectID = 7838 });                    //Прокладки автомобильные
-                else if (n.StartsWith("молдинг") && n.Contains("фар") ||
-                         n.StartsWith("ресничка фары"))
-                    a.Add(new WbCharc { subjectID = 2250 });                    //Декоративные детали кузова и бампера
-                else if (n.StartsWith("помпа") ||
-                         n.StartsWith("насос водяной"))
-                    a.Add(new WbCharc { subjectID = 5750 });                    //Помпы автомобильные
-                else if (n.StartsWith("патрон ламп") ||
-                         n.StartsWith("патрон поворот")) {                      //Патроны для ламп автомобильные
-                    a.Add(new WbCharc { subjectID = 7879 });
-                    _nameLimit = 60;
-                } else if (n.StartsWith("резонатор"))
-                    a.Add(new WbCharc { subjectID = 7946 });                    //Резонаторы автомобильные
-                else
+                foreach (var rule in _rules) {
+                    var conditions = rule.Elements();
+                    var eq = true;
+                    foreach (var condition in conditions) {
+                        if (!eq)
+                            break;
+                        if (condition.Name == "Starts" && !n.StartsWith(condition.Value))
+                            eq = false;
+                        else if (condition.Name == "Contains" && !n.Contains(condition.Value))
+                            eq = false;
+                    }
+                    if (eq)
+                        GetTypeName(a, rule);
+                }
+                if (a.Count == null) 
                     return a;
-
-                //if (!GetTypeIdAndCategoryId(a))
-                //                return a;
 
                 await GetManufactureCountry(bus, a);
                 await GetWeight(bus, a);
@@ -1210,14 +1096,6 @@ namespace Selen.Sites {
                 Log.Add($"{_l} GetWarehouseList: ошибка! - {x.Message}");
             }
         }
-        //string GetTypeName(XElement rule) {
-        //    var parent = rule.Parent;
-        //    if (parent != null) {
-        //        return parent.Attribute("Name").Value;
-        //    }
-        //    return null;
-        //}
-
         ///////////////////////////////////////
         ///// классы для работы с запросами ///
         ///////////////////////////////////////
