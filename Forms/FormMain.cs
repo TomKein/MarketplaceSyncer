@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.196f;
+        float _version = 1.197f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -27,8 +27,6 @@ namespace Selen {
         Avito _avito;
         MegaMarket _mm;
         Wildberries _wb;
-
-        static System.Timers.Timer _timer = new System.Timers.Timer();
 
         bool _saveCookiesBeforeClose;
 
@@ -40,24 +38,15 @@ namespace Selen {
         //писать лог
         bool _writeLog = true;
 
+        string _headerText = "Синхронизация сайтов ";
+        string _status;
+
         //конструктор формы
         public FormMain() {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             InitializeComponent();
             Class365API.syncAllEvent += SyncAllHandlerAsync;
             Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
-            _timer.Interval = 5000;
-            _timer.Elapsed += timer_sync_Tick;
-            _timer.Start();
-        }
-
-        private void timer_sync_Tick(object sender, ElapsedEventArgs e) {
-            if (Class365API.IsBusinessNeedRescan) 
-                ChangeStatus(button_BaseGet,ButtonStates.ActiveWithProblem);
-            else if (Class365API.IsBusinessCanBeScan) 
-                ChangeStatus(button_BaseGet,ButtonStates.Active);
-            else
-                ChangeStatus(button_BaseGet,ButtonStates.NoActive);
         }
 
         //========================
@@ -67,16 +56,14 @@ namespace Selen {
         async void ButtonAvitoRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (Class365API.IsBusinessNeedRescan)
-                    await Task.Delay(30000);
-                await _avito.GenerateXML(Class365API._bus);
+                await _avito.GenerateXML();
                 ChangeStatus(sender, ButtonStates.Active);
             } catch (Exception x) {
                 Log.Add("avito.ru: ошибка синхронизации! - " + x.Message);
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
             }
         }
-        //категории
+        //Avito категории
         private void button_AvitoCategories_Click(object sender, EventArgs e) {
             try {
                 Form f = new FormAvito();
@@ -92,9 +79,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("вк начало выгрузки");
-                while (Class365API.IsBusinessNeedRescan)
-                    await Task.Delay(20000);
-                await _vk.VkSyncAsync(Class365API._bus);
+                await _vk.VkSyncAsync();
                 label_Vk.Text = _vk.MarketCount + "/" + _vk.UrlsCount;
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
@@ -107,8 +92,6 @@ namespace Selen {
         async void ButtonDromRu_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                while (Class365API.IsBusinessNeedRescan)
-                    await Task.Delay(30000);
                 await _drom.DromStartAsync();
                 label_Drom.Text = Class365API._bus.Count(c => !string.IsNullOrEmpty(c.drom) && c.drom.Contains("http") && c.Amount > 0).ToString();
                 ChangeStatus(sender, ButtonStates.Active);
@@ -128,9 +111,7 @@ namespace Selen {
         //IZAP24.RU
         async void ButtonIzap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan)
-                await Task.Delay(60000);
-            if (await _izap24.SyncAsync(Class365API._bus))
+            if (await _izap24.SyncAsync())
                 ChangeStatus(sender, ButtonStates.Active);
             else
                 ChangeStatus(sender, ButtonStates.ActiveWithProblem);
@@ -138,16 +119,12 @@ namespace Selen {
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
-                await Task.Delay(30000);
-            await _yandexMarket.GenerateXML(Class365API._bus);
+            await _yandexMarket.GenerateXML();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //OZON
         async void button_ozon_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
-                await Task.Delay(30000);
             await _ozon.SyncAsync();
             ChangeStatus(sender, ButtonStates.Active);
         }
@@ -166,7 +143,7 @@ namespace Selen {
 
         //todo move this method to class365api 
         async Task SyncAllHandlerAsync() {
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             await _ozon.MakeReserve();
             await _wb.MakeReserve();
@@ -174,7 +151,7 @@ namespace Selen {
             await _avito.MakeReserve();
             //await _mm.MakeReserve();  //TODO mm reserve?
             await _drom.MakeReserve();
-            
+
             button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(2000);
             button_wildberries.Invoke(new Action(() => button_wildberries.PerformClick()));
@@ -196,28 +173,39 @@ namespace Selen {
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            await Class365API.BaseGetAsync();
-            dateTimePicker1.Value = Class365API.SyncStartTime;
+            Log.Add("Для запуска переставить время на 20 минут назад. Запуск по кнопке больше не осуществляем!");
+
             ChangeStatus(sender, ButtonStates.Active);
         }
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
+            //меняю заголовок окна
+            this.Text = _headerText+ this._version+" - загрузка...";
+            var actualVersion = DB.GetParamFloat("version");
+            if (this._version < actualVersion) {
+                var url = await DB.GetParamStrAsync("newVersionUrl");
+                var res = MessageBox.Show($"Необходимо обновление программы! Нажмите ОК для скачивания!",
+                                          $"Доступна новая версия {actualVersion}", MessageBoxButtons.OKCancel);
+                if(res == DialogResult.OK) {
+                    var ps = new ProcessStartInfo(url) {
+                        UseShellExecute = true,
+                        Verb = "open"
+                    };
+                    Process.Start(ps);
+                }
+                this.Close();
+                return;
+            }
             //подписываю обработчик на событие
             Log.LogUpdate += LogUpdate;
             //устанавливаю глубину логирования
             Log.Level = await DB.GetParamIntAsync("logSize");
-            //меняю заголовок окна
-            this.Text += _version;
-            var currentVersion = await DB.GetParamStrAsync("version");
+            if (this._version > actualVersion)
+                Text += " (тестовая версия)";
             _writeLog = await DB.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = DB.GetParamDateTime("lastScanTime");
             _saveCookiesBeforeClose = await DB.GetParamBoolAsync("saveCookiesBeforeClose");
             await CheckMultiRunAsync();
-            if (!_version.Contains(currentVersion)) {
-                Log.Add("доступна новая версия " + currentVersion);
-            }
-            await Class365API.LoadBusJSON();
-            button_BaseGet.BackColor = Color.GreenYellow;
             _drom = new Drom();
             _izap24 = new Izap24();
             _ozon = new OzonApi();
@@ -225,6 +213,7 @@ namespace Selen {
             _vk = new VK();
             _mm = new MegaMarket();
             _wb = new Wildberries();
+            Class365API.StartSync();
         }
         //проверка на параллельный запуск
         async Task CheckMultiRunAsync() {
@@ -377,10 +366,22 @@ namespace Selen {
         }
         async Task PropertiesUpdateHandler() {
             label_Bus.Invoke(new Action(()=>label_Bus.Text = Class365API.LabelBusText));
+            if (Class365API.Status == SyncStatus.NeedUpdate)
+                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                + " - требуется запрос полной базы товаров"));
+            else if (Class365API.Status == SyncStatus.Waiting)
+                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                + " - ожидание..."));
+            else if (Class365API.Status == SyncStatus.ActiveLite)
+                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                + " - обновление изменений на сайтах"));
+            else if (Class365API.Status == SyncStatus.ActiveFull)
+                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                + " - полный запрос и обновление изменений на сайтах"));
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-            if (Class365API.IsBusinessCanBeScan)
+            if (Class365API.Status == SyncStatus.NeedUpdate)
                 Log.Add("синхронизация остановлена!");
             this.Visible = false;
             ClearTempFiles();
@@ -407,7 +408,7 @@ namespace Selen {
         //окно веса, размеры
         private async void Button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(5000);
             FormWeightsDimentions fw = new FormWeightsDimentions(Class365API._bus);
             fw.Owner = this;
@@ -436,7 +437,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                Class365API.CheckDescriptions();
+                Class365API.CheckRealisationsAsync();
 
 
             } catch (Exception x) {

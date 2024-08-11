@@ -42,6 +42,7 @@ namespace Selen.Sites {
         XDocument autoCatalogXML;
         HttpClient _hc = new HttpClient();
 
+        List<GoodObject> _bus;
         public Avito() {
             _clientId = DB.GetParamStr("avito.clientId");
             _clientSecret = DB.GetParamStr("avito.clientSecret");
@@ -63,7 +64,7 @@ namespace Selen.Sites {
                     if (response.StatusCode == HttpStatusCode.OK) {
                         await Task.Delay(500);
                         return json;
-                    } else if (response.StatusCode==HttpStatusCode.InternalServerError) {
+                    } else if (response.StatusCode == HttpStatusCode.InternalServerError) {
                         Log.Add($"{_l} ошибка сервиса! {response.StatusCode} ({i})");
                     } else {
                         Log.Add($"{_l} ошибка запроса! {response.StatusCode} ({i})");
@@ -123,7 +124,7 @@ namespace Selen.Sites {
                 //для каждого заказа сделать заказ с резервом в бизнес.ру
                 foreach (var order in orders.orders) {
                     //проверяем наличие резерва
-                    if (reserveList.Contains(order.marketplaceId) || 
+                    if (reserveList.Contains(order.marketplaceId) ||
                         order.status == "canceled" ||
                         order.status == "delivered" ||
                         order.status == "closed" ||
@@ -150,8 +151,11 @@ namespace Selen.Sites {
             }
         }
         //выгрузка XML
-        public async Task GenerateXML(List<GoodObject> _bus) {
-            if (Class365API.SyncStartTime.Minute%30 < 25)
+        public async Task GenerateXML() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(30000);
+            _bus = Class365API._bus;
+            if (Class365API.SyncStartTime.Minute % 30 < 25)
                 return;
             if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
                 Log.Add(_l + "синхронизация отключена!");
@@ -181,9 +185,9 @@ namespace Selen.Sites {
                 var days = DB.GetParamInt("avito.daysUpdatedToUpload");
                 //список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по убыванию цены
-                var bus = _bus.Where(w => w.Price >= priceLevel && w.images.Count > 0 && 
-                                    (w.Amount > 0 || 
-                                     DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime || 
+                var bus = _bus.Where(w => w.Price >= priceLevel && w.images.Count > 0 &&
+                                    (w.Amount > 0 ||
+                                     DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime ||
                                      DateTime.Parse(w.updated_remains_prices).AddHours(2).AddDays(days) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price);
                 Log.Add(_l + "найдено " + bus.Count() + " товаров для выгрузки");
@@ -265,7 +269,7 @@ namespace Selen.Sites {
             if (new FileInfo(_fileNameExport).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
                 await SftpClient.FtpUploadAsync(_fileNameExport);
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
-            } else 
+            } else
                 Log.Add($"{_l} ошибка - файл не отправлен, т.к. меньше минимального размера!");
         }
         string GetDescription(GoodObject b) {
@@ -352,7 +356,7 @@ namespace Selen.Sites {
         }
         static void GetParams(XElement rule, Dictionary<string, string> d) {
             var parent = rule.Parent;
-            if (parent!=null) {
+            if (parent != null) {
                 GetParams(parent, d);
                 d.Add(parent.Name.ToString(), parent.Attribute("Name").Value);
             }
@@ -372,15 +376,21 @@ namespace Selen.Sites {
                 foreach (var condition in conditions) {
                     if (!eq)
                         break;
-                    if (condition.Name == "Starts" && !name.StartsWith(condition.Value)) eq = false;
-                    else if (condition.Name =="Contains" && !name.Contains(condition.Value)) eq = false;
-                    else if (condition.Name =="MaxWeight" && b.Weight > float.Parse(condition.Value.Replace(".",","))) eq = false;
-                    else if (condition.Name =="MinWeight" && b.Weight < float.Parse(condition.Value.Replace(".",","))) eq = false;
-                    else if (condition.Name =="MaxLength" && b.GetLength() > float.Parse(condition.Value.Replace(".",","))) eq = false;
-                    else if (condition.Name =="MinLength" && b.GetLength() < float.Parse(condition.Value.Replace(".",","))) eq = false;
+                    if (condition.Name == "Starts" && !name.StartsWith(condition.Value))
+                        eq = false;
+                    else if (condition.Name == "Contains" && !name.Contains(condition.Value))
+                        eq = false;
+                    else if (condition.Name == "MaxWeight" && b.Weight > float.Parse(condition.Value.Replace(".", ",")))
+                        eq = false;
+                    else if (condition.Name == "MinWeight" && b.Weight < float.Parse(condition.Value.Replace(".", ",")))
+                        eq = false;
+                    else if (condition.Name == "MaxLength" && b.GetLength() > float.Parse(condition.Value.Replace(".", ",")))
+                        eq = false;
+                    else if (condition.Name == "MinLength" && b.GetLength() < float.Parse(condition.Value.Replace(".", ",")))
+                        eq = false;
                 }
                 if (eq) {
-                    GetParams(rule,d);
+                    GetParams(rule, d);
                     if (d.Any())
                         break;
                 }

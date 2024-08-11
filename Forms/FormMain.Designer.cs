@@ -44,6 +44,7 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.button_wildberries = new System.Windows.Forms.Button();
             this.label_Avito = new System.Windows.Forms.Label();
             this.button_AvitoCategories = new System.Windows.Forms.Button();
             this.button_MegaMarket = new System.Windows.Forms.Button();
@@ -59,7 +60,6 @@ namespace Selen {
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
             this.button_LogFilterClear = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
-            this.button_wildberries = new System.Windows.Forms.Button();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();
             this.panel_Filter.SuspendLayout();
@@ -278,6 +278,16 @@ namespace Selen {
             this.panel_Buttons.Size = new System.Drawing.Size(139, 307);
             this.panel_Buttons.TabIndex = 146;
             // 
+            // button_wildberries
+            // 
+            this.button_wildberries.Location = new System.Drawing.Point(5, 223);
+            this.button_wildberries.Name = "button_wildberries";
+            this.button_wildberries.Size = new System.Drawing.Size(113, 23);
+            this.button_wildberries.TabIndex = 154;
+            this.button_wildberries.Text = "Wildberries";
+            this.button_wildberries.UseVisualStyleBackColor = true;
+            this.button_wildberries.Click += new System.EventHandler(this.button_Wildberries_Click);
+            // 
             // label_Avito
             // 
             this.label_Avito.AutoSize = true;
@@ -442,16 +452,6 @@ namespace Selen {
             this.panel4.Name = "panel4";
             this.panel4.Size = new System.Drawing.Size(784, 307);
             this.panel4.TabIndex = 149;
-            // 
-            // button_wildberries
-            // 
-            this.button_wildberries.Location = new System.Drawing.Point(5, 223);
-            this.button_wildberries.Name = "button_wildberries";
-            this.button_wildberries.Size = new System.Drawing.Size(113, 23);
-            this.button_wildberries.TabIndex = 154;
-            this.button_wildberries.Text = "Wildberries";
-            this.button_wildberries.UseVisualStyleBackColor = true;
-            this.button_wildberries.Click += new System.EventHandler(this.button_Wildberries_Click);
             // 
             // FormMain
             // 

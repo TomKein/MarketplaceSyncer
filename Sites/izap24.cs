@@ -49,15 +49,18 @@ namespace Selen.Sites {
             "434159",   //"ДВОРНИКИ, ЩЕТКИ"
             "1721460",  //"КОВРИКИ (НОВЫЕ)"
         };
+
         //старт выгрузки
-        public async Task<bool> SyncAsync(List<GoodObject> bus) {
+        public async Task<bool> SyncAsync() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(60000);
+            _bus = Class365API._bus;
             //интервал проверки
             var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
             if (Class365API.SyncStartTime.Minute < 55 || uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
                 return true;
             Log.Add(_l + "начало выгрузки...");
             try {
-                _bus = bus;
                 await CreateCsvAsync();
                 await SftpClient.FtpUploadAsync(_fexp);
                 await SftpClient.FtpUploadAsync(_ferr);
@@ -71,19 +74,19 @@ namespace Selen.Sites {
         }
         //формирование файла выгрузки
         private async Task CreateCsvAsync() {
-            await Task.Factory.StartNew(() => {
+            await Task.Factory.StartNew((Action) (() => {
                 //цены для рассрочки
                 var creditPriceMin = DB.GetParamInt("creditPriceMin");
                 var creditPriceMax = DB.GetParamInt("creditPriceMax");
                 var creditDescription = DB.GetParamStr("creditDescription");
                 //получаю список товаров
-                var offers = _bus.Where(w =>
+                var offers = Enumerable.Where<GoodObject>(this._bus, (Func<GoodObject, bool>) (w =>
                     w.images.Count > 0 &&                           //есть фото
                     w.Amount > 0 &&                                 //с положительным остатком
                     w.Price > 0 &&                                  //с положительной ценой
                     !_blockedGroupsIds.Contains(w.group_id) &&      //группа товара НЕ заблокирована
                     !w.archive &&                                   //товар НЕ в архиве
-                    !w.New)                                         //и товар НЕ новый
+                    !w.New))                                         //и товар НЕ новый
                     .OrderByDescending(o => int.Parse(o.id));       //сортировка от новых к старым товарам
                 var n = 0;                                          //счетчик позиций
                 var e = 0;                                          //счетчик ошибок
@@ -121,7 +124,7 @@ namespace Selen.Sites {
                 File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
                 Log.Add(_l + "пропущено " + e + " товаров");
                 File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
-            });
+            }));
         }
     }
 }

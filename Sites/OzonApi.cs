@@ -55,8 +55,9 @@ namespace Selen.Sites {
         }
         //главный метод
         public async Task SyncAsync() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(30000);
             _bus = Class365API._bus;
-
             _catsXml = XDocument.Load(_rulesFile);
             _rules = _catsXml.Descendants("Rule");
 
@@ -80,11 +81,11 @@ namespace Selen.Sites {
                     var data = new {
                         filter = new {
                             cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
-                            cutoff_to = DateTime.Now.AddDays(18).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                            cutoff_to = DateTime.Now.AddDays(28).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
                             warehouse_id = new int[] { },
                             status = status
                         },
-                        limit = 100,
+                        limit = 300,
                         offset = 0,
                         with = new {
                             analytics_data = false,

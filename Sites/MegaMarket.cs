@@ -22,7 +22,7 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML() {
-            while (Class365API.IsBusinessNeedRescan || Class365API._bus.Count == 0)
+            while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             var gen = Task.Factory.StartNew(() => {
                 //доп. описание

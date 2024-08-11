@@ -36,7 +36,6 @@ namespace Selen.Sites {
         int _nameLimit = 200;       //ограничение длины имени
         //конструктор
         public Drom() {
-            _bus = Class365API._bus;
         }
         public void LoadCookies() {
             if (_dr != null) {
@@ -59,6 +58,9 @@ namespace Selen.Sites {
             _dr = null;
         }
         public async Task DromStartAsync() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(30000);
+            _bus = Class365API._bus;
             try {
                 _url = await DB.GetParamStrAsync("drom.url");
                 _isAddWeights = await DB.GetParamBoolAsync("drom.addWeights");
@@ -662,7 +664,7 @@ namespace Selen.Sites {
                                 (_bus[b].Amount > 0 || checkOtOfStock) &&
                                 _bus[b].drom.Contains("http")) {
                                 Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i} ({b}/{_bus.Count})");
-                                _dr.Navigate(_bus[b].drom);
+                                _dr.Navigate(_bus[b].drom, "//input[@name='price']");
                                 Thread.Sleep(1000);
                                 SetAddress(_bus[b]);
                                 SetPart(_bus[b]);

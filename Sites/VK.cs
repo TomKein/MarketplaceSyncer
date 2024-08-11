@@ -34,8 +34,12 @@ namespace Selen.Sites {
         public int MarketCount;
         public int UrlsCount;
         int _nameLimit = 200;
+        List<GoodObject> _bus;
         //главный метод синхронизации вк
-        public async Task VkSyncAsync(List<GoodObject> bus) {
+        public async Task VkSyncAsync() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(20000);
+            _bus=Class365API._bus;
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
             await EditAsync();

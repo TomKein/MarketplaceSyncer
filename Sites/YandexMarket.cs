@@ -28,11 +28,15 @@ namespace Selen.Sites {
         public static string BasePath = "https://api.partner.market.yandex.ru";
         HttpClient _hc = new HttpClient();
         MarketCampaigns _campaigns;
+        List<GoodObject> _bus;
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
         }
         //генерация xml
-        public async Task GenerateXML(List<GoodObject> _bus) {
+        public async Task GenerateXML() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(30000);
+            _bus = Class365API._bus;
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
@@ -53,10 +57,10 @@ namespace Selen.Sites {
                 GoodObject.UpdateDefaultValidity();
                 //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по цене вниз
-                var bus = Class365API._bus.Where(w => w.Price > 0 && 
-                                                 w.images.Count > 0 && 
-                                                 (w.Amount > 0 || 
-                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime || 
+                var bus = Class365API._bus.Where(w => w.Price > 0 &&
+                                                 w.images.Count > 0 &&
+                                                 (w.Amount > 0 ||
+                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime ||
                                                  DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price);
                 Log.Add(LP + "найдено " + bus.Count() + " потенциальных объявлений");
@@ -272,9 +276,9 @@ namespace Selen.Sites {
                 newPrice += 65;
             else if (vw >= 0.2)
                 newPrice += 60;
-            else 
+            else
                 newPrice += 55;
-            return (int) (newPrice/10) * 10; //округление цен до 10 р
+            return (int) (newPrice / 10) * 10; //округление цен до 10 р
         }
         //работа с api
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
@@ -329,7 +333,7 @@ namespace Selen.Sites {
                 //для каждого магазина получаю список заказов
                 foreach (var campaign in _campaigns.campaigns) {
                     var campaignId = campaign.id;
-                    var s = await PostRequestAsync($"/campaigns/{campaignId}/orders",new Dictionary<string, string> {
+                    var s = await PostRequestAsync($"/campaigns/{campaignId}/orders", new Dictionary<string, string> {
                         { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
                     });
                     var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
@@ -379,7 +383,7 @@ namespace Selen.Sites {
     }
     public class MarketOrders {
         public Pager pager { get; set; }
-        public List<MarketOrder> orders{ get; set; }
+        public List<MarketOrder> orders { get; set; }
     }
     public class MarketOrder {
         public string id { get; set; }
@@ -396,11 +400,11 @@ namespace Selen.Sites {
         public int count { get; set; }
     }
     public class Pager {
-        public int total{ get; set; }
-        public int from{ get; set; }
-        public int to{ get; set; }
-        public int currentPage{ get; set; }
-        public int pagesCount{ get; set; }
-        public int pageSize{ get; set; }
+        public int total { get; set; }
+        public int from { get; set; }
+        public int to { get; set; }
+        public int currentPage { get; set; }
+        public int pagesCount { get; set; }
+        public int pageSize { get; set; }
     }
 }
