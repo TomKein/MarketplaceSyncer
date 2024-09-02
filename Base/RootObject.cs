@@ -656,7 +656,7 @@ namespace Selen {
                     group_id == "430926")  //Масла
                     return true;
                 var nameAndDesc = (name + ":" + description);
-                return !(Regex.IsMatch(nameAndDesc, @"([Бб]\s*[\/\\.\,]*\s*[Уу][^a-zA-Zа-яА-Я0-9_ёЁ])"));
+                return !(Regex.IsMatch(nameAndDesc, @"(?:[^a-zA-Zа-яА-Я0-9_ёЁ]|^)([Бб]\s*[\/\\.\,]*\s*[Уу])[^a-zA-Zа-яА-Я0-9_ёЁ]"));
             }
         }
         [JsonIgnore]
@@ -860,12 +860,11 @@ namespace Selen {
             return d[0] + d[1] + d[2];
         }
         //квант продажи
-        public string GetQuantOfSell() {
+        public int GetQuantOfSell() {
             int p;
-            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString()) ?? "", out p))
-                return p.ToString();
-            return null;
-
+            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString()) ?? "1", out p))
+                return p;
+            return 1;
         }
     }
     public class ApplicationItem {
