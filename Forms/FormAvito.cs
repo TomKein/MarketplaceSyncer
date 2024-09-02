@@ -26,6 +26,8 @@ namespace Selen.Forms {
         }
         private void FormAvito_Load(object sender, EventArgs e) {
             FillXmlTree();
+            //treeView1.SelectedNode = treeView1.Nodes[0];
+            //ListBoxesUpdate();
         }
         private void FillXmlTree() {
             try {
@@ -162,6 +164,9 @@ namespace Selen.Forms {
             }
         }
         async void ListBoxesUpdate() {
+            while (Class365API.Status == SyncStatus.NeedUpdate)
+                await Task.Delay(30000);
+
             if (_treeParentNodeSelected==null) return;
             //список товаров для авито
             var goodList = Class365API._bus.Where(w => w.Price >= _priceLevel && w.images.Count > 0 &&

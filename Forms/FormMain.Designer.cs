@@ -26,7 +26,6 @@ namespace Selen {
         /// </summary>
         private void InitializeComponent() {
             this.button_Drom = new System.Windows.Forms.Button();
-            this.button_BaseGet = new System.Windows.Forms.Button();
             this.button_Avito = new System.Windows.Forms.Button();
             this.logBox = new System.Windows.Forms.RichTextBox();
             this.button_PriceLevelsReport = new System.Windows.Forms.Button();
@@ -76,16 +75,6 @@ namespace Selen {
             this.button_Drom.UseVisualStyleBackColor = true;
             this.button_Drom.Click += new System.EventHandler(this.ButtonDromRu_Click);
             // 
-            // button_BaseGet
-            // 
-            this.button_BaseGet.Location = new System.Drawing.Point(5, 41);
-            this.button_BaseGet.Name = "button_BaseGet";
-            this.button_BaseGet.Size = new System.Drawing.Size(113, 21);
-            this.button_BaseGet.TabIndex = 1;
-            this.button_BaseGet.Text = "Запуск";
-            this.button_BaseGet.UseVisualStyleBackColor = true;
-            this.button_BaseGet.Click += new System.EventHandler(this.BaseGet);
-            // 
             // button_Avito
             // 
             this.button_Avito.Location = new System.Drawing.Point(33, 65);
@@ -134,7 +123,7 @@ namespace Selen {
             // label_Bus
             // 
             this.label_Bus.AutoSize = true;
-            this.label_Bus.Location = new System.Drawing.Point(120, 45);
+            this.label_Bus.Location = new System.Drawing.Point(5, 43);
             this.label_Bus.Name = "label_Bus";
             this.label_Bus.Size = new System.Drawing.Size(16, 13);
             this.label_Bus.TabIndex = 36;
@@ -263,7 +252,6 @@ namespace Selen {
             this.panel_Buttons.Controls.Add(this.button_Izap24);
             this.panel_Buttons.Controls.Add(this.dateTimePicker1);
             this.panel_Buttons.Controls.Add(this.button_Drom);
-            this.panel_Buttons.Controls.Add(this.button_BaseGet);
             this.panel_Buttons.Controls.Add(this.button_Avito);
             this.panel_Buttons.Controls.Add(this.button_Vk);
             this.panel_Buttons.Controls.Add(this.label_Bus);
@@ -482,7 +470,6 @@ namespace Selen {
 
         #endregion
         private System.Windows.Forms.Button button_Drom;
-        private System.Windows.Forms.Button button_BaseGet;
         private System.Windows.Forms.Button button_Avito;
         private System.Windows.Forms.RichTextBox logBox;
         private System.Windows.Forms.Button button_PriceLevelsReport;

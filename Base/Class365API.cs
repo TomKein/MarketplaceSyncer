@@ -63,15 +63,16 @@ namespace Selen {
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         static readonly string _dictionary = @"..\data\dict.txt";   //словать рус-англ аналогов
-        //public static bool IsBusinessNeedRescan { set; get; } = false;
-        //public static bool IsBusinessCanBeScan { set; get; } = false;
         private static SyncStatus status;
-        public static SyncStatus Status { get {
+        public static SyncStatus Status {
+            get {
                 return status;
-            } set { 
+            }
+            set {
                 status = value;
                 updatePropertiesEvent.Invoke();
-            } } 
+            }
+        }
         public static DateTime SyncStartTime { set; get; }
         public static DateTime ScanTime { set; get; }
         public static DateTime LastScanTime { set; get; }
@@ -105,7 +106,7 @@ namespace Selen {
             _timer.Stop();
             if (Status == SyncStatus.NeedUpdate)
                 await GoFullSync();
-            else if(Status == SyncStatus.Waiting)
+            else if (Status == SyncStatus.Waiting)
                 await GoLiteSync();
             //#if DEBUG 
             //            return;
@@ -334,7 +335,7 @@ namespace Selen {
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
                 var isBusFileOld = lastWriteBusFile.AddMinutes(5) < LastScanTime;
                 //если файл базы устарел - полный рескан
-                if (isBusFileOld || _bus.Count == 0 ) {
+                if (isBusFileOld || _bus.Count == 0) {
                     Log.Add($"{_l} GoLiteSync: будет произведен запрос полной базы товаров... isBusFileOld {isBusFileOld}, goods.Count {_bus.Count}, Status {Status}");
                     Status = SyncStatus.NeedUpdate;
                     return;
@@ -973,8 +974,9 @@ namespace Selen {
                         //если озон или маркет, проверяю цены
                         foreach (var good in realization.goods) {
                             //цена, которая должна быть в реализации
-                            var busPrice = _bus.Find(f => f.id == good.good.id)?.Price??0;
-                            if (busPrice==0) continue;
+                            var busPrice = _bus.Find(f => f.id == good.good.id)?.Price ?? 0;
+                            if (busPrice == 0)
+                                continue;
                             var priceCorrected = (0.75 * busPrice).ToString("F0");
                             //если цена в реализации отличается, корректируем
                             if (good.price != priceCorrected) {
@@ -1078,8 +1080,8 @@ namespace Selen {
         }
         public static async Task CheckPartnersDubles() {
             List<PartnerContactinfoClass> pc = new List<PartnerContactinfoClass>();
-                try {
-                    for (int i = 1; i > 0; i++) {
+            try {
+                for (int i = 1; i > 0; i++) {
                     if (Status == SyncStatus.NeedUpdate)
                         return;
                     string s = await RequestAsync("get", "partnercontactinfo", new Dictionary<string, string>
@@ -1089,16 +1091,16 @@ namespace Selen {
                             {"page", i.ToString()}
                         });
 
-                        if (s.Length > 3) {
-                            pc.AddRange(JsonConvert.DeserializeObject<PartnerContactinfoClass[]>(s));
-                            Log.Add(_l + "CheckPartnersDubles " + pc.Count.ToString());
-                        } else {
-                            break;
-                        }
+                    if (s.Length > 3) {
+                        pc.AddRange(JsonConvert.DeserializeObject<PartnerContactinfoClass[]>(s));
+                        Log.Add(_l + "CheckPartnersDubles " + pc.Count.ToString());
+                    } else {
+                        break;
                     }
-                } catch (Exception x) {
-                    Log.Add(_l + "CheckPartnersDubles - ошибка при запросе информации о контрагентах из бизнес.ру!!" + x.Message + x.InnerException?.Message);
                 }
+            } catch (Exception x) {
+                Log.Add(_l + "CheckPartnersDubles - ошибка при запросе информации о контрагентах из бизнес.ру!!" + x.Message + x.InnerException?.Message);
+            }
             Log.Add(_l + "CheckPartnersDubles - получено контрагентов " + pc.Count);
             var dub = pc.Where(w => pc.Count(c => c.contact_info
                                         .Contains(w.contact_info
@@ -1379,7 +1381,7 @@ namespace Selen {
                 Log.Add(_l + "MakeReserve - ошибка создания резерва!");
                 return false;
             }
-            Log.Add("MakeReserve - резерв для заказа создан");
+            Log.Add("MakeReserve - резерв для заказа создан: "+ comment);
             //привязка товаров к заказу
             foreach (var good in goods) {
                 s = await RequestAsync("post", "customerordergoods", new Dictionary<string, string> {
@@ -1399,7 +1401,59 @@ namespace Selen {
             }
             return true;
         }
-
+        public static async Task<bool> AddStickerCodeToReserve(Source source, string comment, string commentToAdd) {
+            //ищем резерв
+            var s = await RequestAsync("get", "reservations", new Dictionary<string, string> {
+                                { "request_source_id", ((int)source).ToString() },              //источник заказа
+                                { "comment", comment },                                         //комментарий
+                            });
+            if (s != null && s.Length > 4) {
+                var reservations = JsonConvert.DeserializeObject<List<reservations>>(s);
+                //поиск реализации
+                s = await RequestAsync("get", "realizations", new Dictionary<string, string> {
+                    { "reservation_id", reservations[0].id}
+                });
+                List<Realization> realization=null;
+                if (s != null && s.Length > 4) {
+                    realization = JsonConvert.DeserializeObject<List<Realization>>(s);
+                    //реализация найдена и проведена - снимаем проведение для изменения резерва
+                    if (realization.Any() && realization[0].held) {
+                        Log.Add("AddStickerCodeToReserve: реализации найдена "+ realization[0].id);
+                        s=await RequestAsync("put", "realizations", new Dictionary<string, string> {
+                            { "id", realization[0].id},
+                            { "held", "0"}
+                        });
+                        if (s.Contains("updated"))
+                            Log.Add("AddStickerCodeToReserve: проводка реализации отменена");
+                        else
+                            Log.Add("AddStickerCodeToReserve: ОШИБКА! ПРОВОДКА НЕ ОТМЕНЕНА!");
+                    }
+                }
+                //теперь меняем комментарий в резерве
+                var result = await RequestAsync("put", "reservations", new Dictionary<string, string> {
+                    { "id", reservations[0].id },
+                    { "number", reservations[0].number },
+                    { "comment", comment + commentToAdd }
+                });
+                //и проводим обратно реализацию
+                if (realization !=null && realization.Any() && realization[0].held) { 
+                        s=await RequestAsync("put", "realizations", new Dictionary<string, string> {
+                            { "id", realization[0].id},
+                            { "held", "1"}
+                        });
+                        if (s.Contains("updated"))
+                            Log.Add("AddStickerCodeToReserve: реализация проведена");
+                        else
+                            Log.Add("AddStickerCodeToReserve: ОШИБКА! РЕАЛИЗАЦИЯ НЕ ПРОВЕДЕНА!");
+                }
+                if (result != null && result.Contains("updated")) {
+                    Log.Add($"AddStickerCodeToReserve: комментарий в резервировании обновлен ({comment + commentToAdd})");
+                    return true;    
+                } else
+                    Log.Add($"AddStickerCodeToReserve: ошибка добавления стикера! {result}");
+            }
+            return false;
+        }
     }
 }
 

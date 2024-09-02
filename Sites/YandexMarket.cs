@@ -120,8 +120,8 @@ namespace Selen.Sites {
                         if (!b.IsGroupSolidParts())
                             offer.Add(new XElement("period-of-validity-days", b.GetValidity().Split(' ').First()));
                         //квант продажи
-                        var quant = b.GetQuantOfSell();
-                        if (!string.IsNullOrEmpty(quant)) {
+                        int quant = b.GetQuantOfSell();
+                        if (quant != 1) {
                             offer.Add(new XElement("min-quantity", quant));
                             offer.Add(new XElement("step-quantity", quant));
                         }

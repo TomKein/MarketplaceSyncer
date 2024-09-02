@@ -71,26 +71,24 @@ namespace Selen.Sites {
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
                 _creditDescription = DB.GetParamStr("creditDescription");
 
-                Log.Add(_l+"начало выгрузки...");
+                Log.Add(_l + "начало выгрузки...");
                 await AuthAsync();
                 await GetDromPhotos();
                 await UpAsync();
                 await UpdateOffersAsync();
+                await CheckDraftsAsync();
+                await AddAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
-                await CheckDraftsAsync();
-                if (Class365API.SyncStartTime.Minute >= 55) {
-                    await AddAsync();
-                }
-                Log.Add(_l+"выгрузка завершена");
+                Log.Add(_l + "выгрузка завершена");
             } catch (Exception x) {
-                Log.Add(_l+"ошибка синхронизации! - " + x.Message);
+                Log.Add(_l + "ошибка синхронизации! - " + x.Message);
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
-                    Log.Add(_l+"ошибка браузера! - " + x.Message);
+                    Log.Add(_l + "ошибка браузера! - " + x.Message);
                     _dr.Quit();
                     _dr = null;
                 }
@@ -180,7 +178,7 @@ namespace Selen.Sites {
                 foreach (var item in itemsElements) {
                     var itemId = item.GetAttribute("data-ref");
                     itemId = itemId.Split(':')[1];
-                    itemId = _bus.Find(b => reg.Match(b.drom??"").Value == itemId).id;
+                    itemId = _bus.Find(b => reg.Match(b.drom ?? "").Value == itemId).id;
                     var itemCountString = item.FindElement(By.CssSelector(".subject-quantity")).GetAttribute("data-quantity");
                     var itemCount = int.Parse(itemCountString);
                     orderList.Last().Items.Add(new DromOrderItem {
@@ -215,7 +213,7 @@ namespace Selen.Sites {
             });
         }
         void UpdateOffer(GoodObject b) {
-            if (b.drom.Contains("tin/ht")||b.drom.Contains("in/000000000")) {
+            if (b.drom.Contains("tin/ht") || b.drom.Contains("in/000000000")) {
                 Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
                 return;
             }
@@ -271,14 +269,17 @@ namespace Selen.Sites {
                 _dr.ButtonClick("//a[contains(@class,'doDelete')]");
                 PressServiseSubmitButton();
                 if (_dr.GetElementsCount("//h2[contains(text(),'удалили')]") > 0)
-                    Log.Add(_l + b.name+" объявление удалено");
-                else 
-                    Log.Add(_l + b.name+" ошибка - объявление не удалено!");
+                    Log.Add(_l + b.name + " объявление удалено");
+                else
+                    Log.Add(_l + b.name + " ошибка - объявление не удалено!");
             }
         }
         public async Task AddAsync() {
             var count = await DB.GetParamIntAsync("drom.addCount");
             for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
+                if (Class365API.SyncStartTime.Minute < 55 ||
+                    DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                    return;
                 if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
                     !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
                     _bus[b].Amount > 0 &&
@@ -308,10 +309,10 @@ namespace Selen.Sites {
                     try {
                         await t;
                         await SaveUrlAsync(b);
-                        Log.Add(_l+ _bus[b].name+ " объявление добавлено");
+                        Log.Add(_l + _bus[b].name + " объявление добавлено");
                         count--;
                     } catch (Exception x) {
-                        Log.Add(_l+ _bus[b].name+ " ошибка добавления! - " + x.Message);
+                        Log.Add(_l + _bus[b].name + " ошибка добавления! - " + x.Message);
                         break;
                     }
                 }
@@ -333,10 +334,10 @@ namespace Selen.Sites {
         }
         async Task SaveUrlAsync(int b) {
             string new_id = _dr.GetUrl();
-            string pattern = @"(\d{9,20})"; //число длиной от 8 до 20 синволов
+            string pattern = @"(\d+)\.html"; //число в ссылке перед точкой
             var groups = Regex.Match(new_id, pattern).Groups;
-            new_id = groups[groups.Count-1].Value;
-            if (string.IsNullOrEmpty(new_id)) { 
+            new_id = groups[groups.Count - 1].Value;
+            if (string.IsNullOrEmpty(new_id)) {
                 new_id = "0000000000";
                 Log.Add($"{_l} SaveUrlAsync: ошибка определения id! - {_bus[b].name}, сохранено id={new_id}");
             }
@@ -466,13 +467,13 @@ namespace Selen.Sites {
             var w = _dr.GetElementAttribute("//textarea[@name='autoPartsSubstituteNumbers']", "value");
             if (w != numbers) {
                 _dr.WriteToSelector("//textarea[@name='autoPartsSubstituteNumbers']", numbers + OpenQA.Selenium.Keys.Tab);
-                if (numbers.Length >0 && !clear 
+                if (numbers.Length > 0 && !clear
                     && _dr.GetElementsCount("//div[@data-name='autoPartsSubstituteNumbers' and contains(@class,'js__valid')]") == 0)
                     SetAlternativeParts(b, clear: true);
             }
         }
         void PressOkButton() {
-            if (_dr.GetElementsCount("//button[contains(@class,'submit__button')]")>0)
+            if (_dr.GetElementsCount("//button[contains(@class,'submit__button')]") > 0)
                 _dr.ButtonClick("//button[contains(@class,'submit__button')]");
             else
                 PressPublicFreeButton();
@@ -488,10 +489,10 @@ namespace Selen.Sites {
                 Thread.Sleep(10000);
             }
         }
-        void SetDesc(GoodObject b, bool withoutNumbers=false, bool onlyTitle=false) {
+        void SetDesc(GoodObject b, bool withoutNumbers = false, bool onlyTitle = false) {
             var d = onlyTitle ? new List<string> { b.name }
                               : b.DescriptionList(2979, _addDesc)
-                                 .Where(_ => !_.Contains("№") || !withoutNumbers) 
+                                 .Where(_ => !_.Contains("№") || !withoutNumbers)
                                  .ToList();
             var amount = b.Amount > 0 ? b.Amount.ToString() + " " + b.MeasureNameCorrect : "нет";
             d.Insert(0, "В наличии: " + amount);
@@ -500,7 +501,7 @@ namespace Selen.Sites {
             //проверяю текст в поле, если он не изменился - пропускаю обновление
             var w = _dr.GetElementAttribute("//textarea[@name='text']", "value");
             if (w == d.Aggregate((r, l) => r + "\r\n" + l))
-                return; 
+                return;
             d.Add(OpenQA.Selenium.Keys.Tab);
             _dr.ClickToSelector("//textarea[@name='text']");
             _dr.WriteToSelector("//textarea[@name='text']", sl: d);
@@ -593,7 +594,7 @@ namespace Selen.Sites {
         //получаю колчество страниц объявлений
         private int GetPagesCount(string type) {
             try {
-                var url = "https://baza.drom.ru/personal/"+type+"/bulletins";
+                var url = "https://baza.drom.ru/personal/" + type + "/bulletins";
                 _dr.Navigate(url);
                 var count = _dr.GetElementsCount("//div/a[contains(@href,'" + type + "/bulletins')]");
                 if (count > 0) {
@@ -613,8 +614,10 @@ namespace Selen.Sites {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
+                        if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                            return;
                         try {
-                            var drom = ParsePage(_rnd.Next(1, pages)/ _rnd.Next(1, 7));
+                            var drom = ParsePage(_rnd.Next(1, pages) / _rnd.Next(1, 7));
                             CheckPage(drom);
                         } catch {
                             //i--;
@@ -629,12 +632,14 @@ namespace Selen.Sites {
             }
         }
         public async Task CheckDraftsAsync() {
+            if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                return;
             try {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("draft");
                     if (pages > 0) {
                         try {
-                            var drom = ParsePage(1,draft:true);
+                            var drom = ParsePage(1, draft: true);
                             CheckPage(drom);
                         } catch {
                             //i--;
@@ -655,6 +660,8 @@ namespace Selen.Sites {
                     int cnt = DB.GetParamInt("drom.checkOffersCount");
                     var checkOtOfStock = DB.GetParamBool("drom.checkOffersOutOfStock");
                     for (int i = 1; i <= cnt;) {
+                        if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                            return;
                         try {
                             if (b >= _bus.Count)
                                 b = 0;
@@ -663,8 +670,9 @@ namespace Selen.Sites {
                             else if (
                                 (_bus[b].Amount > 0 || checkOtOfStock) &&
                                 _bus[b].drom.Contains("http")) {
+                                i++;
                                 Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i} ({b}/{_bus.Count})");
-                                _dr.Navigate(_bus[b].drom, "//input[@name='price']");
+                                _dr.Navigate(_bus[b].drom, "//span[@data-name='city']");
                                 Thread.Sleep(1000);
                                 SetAddress(_bus[b]);
                                 SetPart(_bus[b]);
@@ -674,7 +682,6 @@ namespace Selen.Sites {
                                 CheckPhotos(_bus[b]);
                                 SetDesc(_bus[b]);
                                 Thread.Sleep(2000);
-                                i++;
                             }
                             DB.SetParam("drom.checkOfferIndex", (++b).ToString());
                         } catch {
@@ -709,15 +716,15 @@ namespace Selen.Sites {
                 ) ||
                 !b.description.Contains("далено") && _bus[i].Amount <= 0 ||
                 (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].Amount > 0
-                )|| b.description.Contains("Ожидает публикации")) {
+                ) || b.description.Contains("Ожидает публикации")) {
                 UpdateOffer(_bus[i]);
             }
         }
-        private List<GoodObject> ParsePage(int i, bool draft=false) {
+        private List<GoodObject> ParsePage(int i, bool draft = false) {
             string page;
             if (draft)
                 page = "https://baza.drom.ru/personal/draft/bulletins";
-            else 
+            else
                 page = "https://baza.drom.ru/personal/all/bulletins?page=" + i;
             _dr.Navigate(page);
             var drom = new List<GoodObject>();
@@ -728,7 +735,7 @@ namespace Selen.Sites {
                 var status = item.FindElement(By.XPath(".//div[contains(@class,'bull-item__additional')]"))?.Text;
                 var url = item.FindElement(By.XPath(".//div/div/a")).GetAttribute("href");
                 //var id = url.Split('-').Last().Split('.').First();
-                var id = Regex.Match(url,@"(\d{8,20})(?:.ht)").Groups[1].Value;
+                var id = Regex.Match(url, @"(\d{8,20})(?:.ht)").Groups[1].Value;
 
                 //количество фото
                 var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
@@ -742,7 +749,8 @@ namespace Selen.Sites {
                     drom = url
                 });
             }
-            if (drom.Count == 0) Log.Add($"{_l} ParsePage: ошибка? элементы не найдены!");
+            if (drom.Count == 0)
+                Log.Add($"{_l} ParsePage: ошибка? элементы не найдены!");
             return drom;
         }
         //добавляем фото с дром в карточки товаров
@@ -815,10 +823,10 @@ namespace Selen.Sites {
     ////////////////////////////
     /// вспомогательные типы ///
     ////////////////////////////
-    public class DromOrder { 
+    public class DromOrder {
         public string Id { get; set; }
         DateTime date;
-        public string Date { 
+        public string Date {
             get {
                 return date.ToString();
             }
@@ -830,8 +838,9 @@ namespace Selen.Sites {
                 if (!tmpStr.EndsWith(year))
                     tmpStr += " " + year;
                 //todo it's better to replace this parsing with culture invariant one! this works only with "ru-RU" culture
-                date = DateTime.ParseExact(tmpStr, "HH:mm, d MMMM yyyy",CultureInfo.CurrentCulture);
-            } }
+                date = DateTime.ParseExact(tmpStr, "HH:mm, d MMMM yyyy", CultureInfo.CurrentCulture);
+            }
+        }
         public string Status { get; set; }
         public List<DromOrderItem> Items { get; set; }
     }

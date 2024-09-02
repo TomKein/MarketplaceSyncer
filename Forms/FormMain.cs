@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.197f;
+        float _version = 1.200f;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -228,7 +228,7 @@ namespace Selen {
                             string text = table.Rows[0].ItemArray[3] as string;
                             Log.Add("Последняя запись в логе\n*****\n" + time + ": " + text + "\n*****\n\n", false);
                             //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
-                            if (text.Contains("синхронизация остановлена") || time.AddMinutes(5) < DateTime.Now)
+                            if (text.Contains("синхронизация остановлена") || time.AddMinutes(2) < DateTime.Now)
                                 return;
                             else
                                 Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
@@ -381,8 +381,8 @@ namespace Selen {
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
-            if (Class365API.Status == SyncStatus.NeedUpdate)
-                Log.Add("синхронизация остановлена!");
+            Class365API.Status = SyncStatus.NeedUpdate;
+            Log.Add("синхронизация остановлена!");
             this.Visible = false;
             ClearTempFiles();
             if (_saveCookiesBeforeClose) {
@@ -437,7 +437,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                Class365API.CheckRealisationsAsync();
+                _wb.CheckSizes();
 
 
             } catch (Exception x) {

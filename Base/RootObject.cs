@@ -11,6 +11,13 @@ using System.Threading.Tasks;
 using System.Web;
 
 namespace Selen {
+
+    public class reservations {
+        public string id { get; set; }
+        public string number { get; set; }
+        public string comment { get; set; }
+    }
+
     public class realizationgoods {
         public string id { get; set; }
         public string good_id { get; set; }
@@ -279,6 +286,8 @@ namespace Selen {
         }
         [JsonIgnore]
         public float SumDimentions => GetDimentions().Sum();
+        [JsonIgnore]
+        public float MaxDimention => GetDimentions().Max();
         [JsonIgnore]
         public float MultiDimentions => GetDimentions().Aggregate((x1, x2) => x1 * x2);
         [JsonIgnore] 
@@ -640,21 +649,14 @@ namespace Selen {
             return "14";
         }
 
-        //public bool IsNew() {
-        //    var low = (name + ":" + description).ToLowerInvariant();
-        //    if (group_id == "289732" || //Автохимия
-        //        group_id == "430926")  //Масла
-        //        return true;
-        //    return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
-        //}
         [JsonIgnore]
         public bool New {
             get {
-                var low = (name + ":" + description).ToLowerInvariant();
                 if (group_id == "289732" || //Автохимия
                     group_id == "430926")  //Масла
                     return true;
-                return !(Regex.IsMatch(low, @"(б[\/\\.]у)") || low.Contains("бу "));
+                var nameAndDesc = (name + ":" + description);
+                return !(Regex.IsMatch(nameAndDesc, @"([Бб]\s*[\/\\.\,]*\s*[Уу][^a-zA-Zа-яА-Я0-9_ёЁ])"));
             }
         }
         [JsonIgnore]
@@ -887,11 +889,11 @@ namespace Selen {
         public Currency currency { get; set; }
         public string currency_value { get; set; }
         //public int nds_include { get; set; }
-        //public bool held { get; set; }
+        public bool held { get; set; }
         //public string comment { get; set; }
         //public string customer_order_id { get; set; }
         //public string delivery_order_id { get; set; }
-        //public string reservation_id { get; set; }
+        public string reservation_id { get; set; }
         //public Shipper shipper { get; set; }
         //public Consignee consignee { get; set; }
         public string sum { get; set; }
