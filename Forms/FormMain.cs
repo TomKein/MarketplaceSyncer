@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        float _version = 1.200f;
+        int _version = 200;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket = new YandexMarket();
         VK _vk;
@@ -180,12 +180,12 @@ namespace Selen {
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
             //меняю заголовок окна
-            this.Text = _headerText+ this._version+" - загрузка...";
-            var actualVersion = DB.GetParamFloat("version");
-            if (this._version < actualVersion) {
+            Text = $"{_headerText} 1.{_version} - загрузка...";
+            var actualVersion = DB.GetParamInt("version");
+            if (_version < actualVersion) {
                 var url = await DB.GetParamStrAsync("newVersionUrl");
                 var res = MessageBox.Show($"Необходимо обновление программы! Нажмите ОК для скачивания!",
-                                          $"Доступна новая версия {actualVersion}", MessageBoxButtons.OKCancel);
+                                          $"Доступна новая версия 1.{actualVersion}", MessageBoxButtons.OKCancel);
                 if(res == DialogResult.OK) {
                     var ps = new ProcessStartInfo(url) {
                         UseShellExecute = true,
@@ -193,14 +193,14 @@ namespace Selen {
                     };
                     Process.Start(ps);
                 }
-                this.Close();
+                Close();
                 return;
             }
             //подписываю обработчик на событие
             Log.LogUpdate += LogUpdate;
             //устанавливаю глубину логирования
             Log.Level = await DB.GetParamIntAsync("logSize");
-            if (this._version > actualVersion)
+            if (_version > actualVersion)
                 Text += " (тестовая версия)";
             _writeLog = await DB.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = DB.GetParamDateTime("lastScanTime");
@@ -367,16 +367,16 @@ namespace Selen {
         async Task PropertiesUpdateHandler() {
             label_Bus.Invoke(new Action(()=>label_Bus.Text = Class365API.LabelBusText));
             if (Class365API.Status == SyncStatus.NeedUpdate)
-                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                label_Bus.Invoke(new Action(() => Text = _headerText + "1."+_version 
                 + " - требуется запрос полной базы товаров"));
             else if (Class365API.Status == SyncStatus.Waiting)
-                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
                 + " - ожидание..."));
             else if (Class365API.Status == SyncStatus.ActiveLite)
-                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
                 + " - обновление изменений на сайтах"));
             else if (Class365API.Status == SyncStatus.ActiveFull)
-                label_Bus.Invoke(new Action(() => Text = _headerText + _version 
+                label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
                 + " - полный запрос и обновление изменений на сайтах"));
         }
         //закрываем форму, сохраняем настройки
