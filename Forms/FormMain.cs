@@ -437,7 +437,8 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 //tests
-                _wb.CheckSizes();
+                //_wb.CheckSizes();
+                await Class365API.ArchivateAsync();
 
 
             } catch (Exception x) {

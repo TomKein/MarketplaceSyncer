@@ -86,7 +86,7 @@ namespace Selen.Sites {
                 if (_categories == null)
                     await GetCategoriesAsync();
                 if (_objects == null)
-                    await GetObjectsAsync(new[] { "760", "6240", "8555", "1162", "479", "6237", "3", "2050" });
+                    await GetObjectsAsync(new[] { "760", "6240", "8555", "1162", "479", "6237", "3", "2050", "6119" });
                 if (_objectsJA == null) {
                     var str = JsonConvert.SerializeObject(_objects);
                     _objectsJA = JArray.Parse(str);
@@ -1379,7 +1379,7 @@ namespace Selen.Sites {
         }
 
         public class Sticker {
-            public int orderId { get; set; }
+            public ulong orderId { get; set; }
             public string partA { get; set; }
             public string partB { get; set; }
             public string barcode { get; set; }

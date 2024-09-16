@@ -832,7 +832,7 @@ namespace Selen {
                                       w.Amount <= 0 &&
                                       w.Reserve <= 0 &&
                                       !w.archive &&
-                                      DateTime.Now > w.Updated.AddYears(2))
+                                      (DateTime.Now > w.Updated.AddYears(3) || (DateTime.Now>w.Updated.AddDays(15) && !w.New)))
                                .OrderBy(o => o.Updated);
             var queryCount = busQuery.Count();
             Log.Add($"ArchivateAsync: карточек для архивирования: {queryCount}");
