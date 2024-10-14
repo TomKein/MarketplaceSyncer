@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -26,7 +27,7 @@ namespace Selen.Sites {
                 await Task.Delay(30000);
             var gen = Task.Factory.StartNew(() => {
                 //доп. описание
-                string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
+                List<string> _addDesc = JsonConvert.DeserializeObject<List<string>>(
                     DB.GetParamStr("megamarket.addDescription"));
                 //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
                 var timeNow = DateTime.Now.ToString("yyyy'-'MM'-'dd' 'HH':'mm':'ss");
@@ -149,7 +150,7 @@ namespace Selen.Sites {
             } else
                 Log.Add(_l + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
-        //цена продажи (как на озоне)
+        //цена продажи
         int GetPrice(GoodObject b) { 
             var weight = b.Weight;
             var d = b.GetDimentions();
@@ -170,185 +171,5 @@ namespace Selen.Sites {
                 overPrice = 3000;
             return b.Price + overPrice;
         }
-        //public int GetPrice2(GoodObject b) {
-        //    // общая наценка для всех товаров на Яндексе + 25% (X)
-        //    float newPrice = (float) (b.Price * 1.25);
-        //    // доп. наценка до ПВЗ = Х + если(до 24.9 кг и сумма сторон до 199см) то + 6 % (не менее 50р.и не больше 400Р
-        //    // иначе + 450р.
-        //    float pvzPrice;
-        //    if (b.Weight < 25 && b.SumDimentions < 200) {
-        //        pvzPrice = (float) (newPrice * 0.06);
-        //        if (pvzPrice < 50)
-        //            pvzPrice = 50;
-        //        else if (pvzPrice > 400)
-        //            pvzPrice = 400;
-        //    } else
-        //        pvzPrice = 450;
-        //    // добавляю наценку к новой цене
-        //    newPrice += pvzPrice;
-        //    // доп. наценка за доставку до городов - зависит от объемного веса (см3/5000)
-        //    var vw = b.VolumeWeight;
-        //    if (vw >= 150)
-        //        newPrice += 3500;
-        //    else if (vw >= 50)
-        //        newPrice += 1600;
-        //    else if (vw >= 35)
-        //        newPrice += 1400;
-        //    else if (vw >= 30)
-        //        newPrice += 1200;
-        //    else if (vw >= 25)
-        //        newPrice += 1000;
-        //    else if (vw >= 20)
-        //        newPrice += 800;
-        //    else if (vw >= 15)
-        //        newPrice += 600;
-        //    else if (vw >= 12)
-        //        newPrice += 500;
-        //    else if (vw >= 10)
-        //        newPrice += 400;
-        //    else if (vw >= 8)
-        //        newPrice += 300;
-        //    else if (vw >= 6)
-        //        newPrice += 250;
-        //    else if (vw >= 4)
-        //        newPrice += 180;
-        //    else if (vw >= 2)
-        //        newPrice += 100;
-        //    else if (vw >= 1)
-        //        newPrice += 70;
-        //    else if (vw >= 0.5)
-        //        newPrice += 65;
-        //    else if (vw >= 0.2)
-        //        newPrice += 60;
-        //    else 
-        //        newPrice += 55;
-        //    return (int) (newPrice/10) * 10; //округление цен до 10 р
-        //}
-        //работа с api
-        //public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
-        //    try {
-        //        if (request != null) {
-        //            var qstr = QueryStringBuilder.BuildQueryString(request);
-        //            apiRelativeUrl += "?" + qstr;
-        //        }
-        //        HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
-        //        requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
-        //        var response = await _hc.SendAsync(requestMessage);
-        //        await Task.Delay(500);
-        //        if (response.StatusCode == HttpStatusCode.OK) {
-        //            var json = await response.Content.ReadAsStringAsync();
-        //            return json;
-        //        } else
-        //            throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
-        //    } catch (Exception x) {
-        //        Log.Add(" ошибка запроса! - " + x.Message);
-        //        throw;
-        //    }
-        //}
-        //public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
-        //    try {
-        //        var response = await PostRequestAsync(apiRelativeUrl, request, method);
-        //        T obj = JsonConvert.DeserializeObject<T>(response);
-        //        return obj;
-        //    } catch (Exception x) {
-        //        Log.Add(" ошибка запроса! - " + x.Message);
-        //        throw;
-        //    }
-        //}
-        //список магазинов
-        //public async Task GetCompains() {
-        //    if (File.Exists(FILE_COMPAIGNS) &&
-        //        Class365API.ScanTime < File.GetLastWriteTime(FILE_COMPAIGNS).AddDays(7)) {
-        //        if (_campaigns == null || _campaigns.campaigns?.Count == 0) {
-        //            _campaigns = JsonConvert.DeserializeObject<MarketCampaigns>(
-        //                 File.ReadAllText(FILE_COMPAIGNS));
-        //        }
-        //    } else {
-        //        _campaigns = await PostRequestAsync<MarketCampaigns>("/campaigns");
-        //        var s = JsonConvert.SerializeObject(_campaigns);
-        //        File.WriteAllText(FILE_COMPAIGNS, s);
-        //    }
-        //}
-        ////резервирование
-        //public async Task MakeReserve() {
-        //    try {
-        //        //обновляю список магазинов
-        //        await GetCompains();
-        //        //для каждого магазина получаю список заказов
-        //        foreach (var campaign in _campaigns.campaigns) {
-        //            var campaignId = campaign.id;
-        //            var s = await PostRequestAsync($"/campaigns/{campaignId}/orders",new Dictionary<string, string> {
-        //                { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
-        //            });
-        //            var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
-        //            Log.Add(_l + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);
-        //            //загружаем список заказов, для которых уже делали резервирование
-        //            var reserveList = new List<string>();
-        //            if (File.Exists(FILE_RESERVES)) {
-        //                var r = File.ReadAllText(FILE_RESERVES);
-        //                reserveList = JsonConvert.DeserializeObject<List<string>>(r);
-        //            }
-        //            //для каждого заказа сделать заказ с резервом в бизнес.ру
-        //            foreach (var order in orders.orders) {
-        //                //проверяем наличие резерва
-        //                if (reserveList.Contains(order.id))
-        //                    continue;
-        //                //готовим список товаров (id, amount)
-        //                var goodsDict = new Dictionary<string, int>();
-        //                order.items.ForEach(i => goodsDict.Add(i.offerId, i.count));
-        //                var isResMaked = await Class365API.MakeReserve(Selen.Source.YandexMarket, $"Yandex.Market order {order.id}",
-        //                                                               goodsDict, order.creationDate);
-        //                if (isResMaked) {
-        //                    reserveList.Add(order.id);
-        //                    if (reserveList.Count > 1000) {
-        //                        reserveList.RemoveAt(0);
-        //                    }
-        //                    var rl = JsonConvert.SerializeObject(reserveList);
-        //                    File.WriteAllText(FILE_RESERVES, rl);
-        //                }
-        //            }
-        //        }
-        //    } catch (Exception x) {
-        //        Log.Add(_l + "MakeReserve - " + x.Message);
-        //    }
-        //}
     }
-    /////////////////////////////////////
-    /// классы для работы с запросами ///
-    /////////////////////////////////////
-    //public class MarketCampaigns {
-    //    public List<MarketCampaign> campaigns { get; set; }
-    //    public Pager pager { get; set; }
-    //}
-    //public class MarketCampaign {
-    //    public string domain { get; set; }
-    //    public string id { get; set; }
-    //    public string clientId { get; set; }
-    //}
-    //public class MarketOrders {
-    //    public Pager pager { get; set; }
-    //    public List<MarketOrder> orders{ get; set; }
-    //}
-    //public class MarketOrder {
-    //    public string id { get; set; }
-    //    public string status { get; set; }
-    //    public string substatus { get; set; }
-    //    public string creationDate { get; set; }
-    //    public List<MarketItem> items { get; set; }
-    //}
-    //public class MarketItem {
-    //    public string id { get; set; }
-    //    public string offerId { get; set; }
-    //    public string offerName { get; set; }
-    //    public float price { get; set; }
-    //    public int count { get; set; }
-    //}
-    //public class Pager {
-    //    public int total{ get; set; }
-    //    public int from{ get; set; }
-    //    public int to{ get; set; }
-    //    public int currentPage{ get; set; }
-    //    public int pagesCount{ get; set; }
-    //    public int pageSize{ get; set; }
-    //}
 }

@@ -62,7 +62,7 @@ namespace Selen {
         static readonly string RESPONSIBLE_EMPLOYEE_ID = "76221";   //рогачев  76197-радченко
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
-        static readonly string _dictionary = @"..\data\dict.txt";   //словать рус-англ аналогов
+        static readonly string _dictionaryFile = @"..\data\dict.txt";   //словать рус-англ аналогов
         private static SyncStatus status;
         public static SyncStatus Status {
             get {
@@ -779,8 +779,10 @@ namespace Selen {
                                         b.Reserve <= 0 &&
                                         b.Price > 0 &&
                                         b.remains.Count > 0 &&
-                                        DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated) &&
-                                        DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated_remains_prices))
+                                        DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > b.Updated 
+                                        //DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated) &&
+                                        //DateTime.Now.AddDays(-days * (b.New ? 30 : 1)) > DateTime.Parse(b.updated_remains_prices)
+                                        )
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
             Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
@@ -1000,24 +1002,30 @@ namespace Selen {
             Log.Add("CheckRealisationsAsync: метод завершен");
         }
         public static async Task StartSync() {
-            if (File.Exists(BUS_FILE_NAME)) {
-                await GetBusGroupsAsync();
-                Log.Add("business.ru: загружаю список товаров...");
-                await Task.Factory.StartNew(() => {
-                    var s = File.ReadAllText(BUS_FILE_NAME);
-                    _bus = JsonConvert.DeserializeObject<List<GoodObject>>(s);
-                });
-                Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
-                LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
+            try {
+                if (File.Exists(BUS_FILE_NAME)) {
+                    await GetBusGroupsAsync();
+                    Log.Add("business.ru: загружаю список товаров...");
+                    await Task.Factory.StartNew(() => {
+                        var s = File.ReadAllText(BUS_FILE_NAME);
+                        _bus = JsonConvert.DeserializeObject<List<GoodObject>>(s);
+                    });
+                    Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
+                    LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
+                    _timer.Start();
+                    Status = SyncStatus.Waiting;
+                }
+            }catch (Exception x) {
+                Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
                 _timer.Start();
-                Status = SyncStatus.Waiting;
+                Status = SyncStatus.NeedUpdate;
             }
         }
         public static async Task DescriptionsEdit() {
             //загрузим словарь
             List<string> eng = new List<string>();
             List<string> rus = new List<string>();
-            List<string> file = new List<string>(File.ReadAllLines(_dictionary, Encoding.UTF8));
+            List<string> file = new List<string>(File.ReadAllLines(_dictionaryFile, Encoding.UTF8));
             foreach (var s in file) {
                 var ar = s.Split(',');
                 eng.Add(ar[0]);

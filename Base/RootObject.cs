@@ -581,7 +581,7 @@ namespace Selen {
                            .Replace("|", " "),
                            "<[^>]+>", " ").Trim();
 
-        public List<string> DescriptionList(int b = 3000, string[] dop = null, bool removeSpec = false) {
+        public List<string> DescriptionList(int b = 3000, List<string> dop = null, bool removeSpec = false) {
             string d = description;
             if (removeSpec)
                 d = d
@@ -656,7 +656,7 @@ namespace Selen {
                     group_id == "430926")  //Масла
                     return true;
                 var nameAndDesc = (name + ":" + description);
-                return !(Regex.IsMatch(nameAndDesc, @"(?:[^a-zA-Zа-яА-Я0-9_ёЁ]|^)([Бб]\s*[\/\\.\,]*\s*[Уу])[^a-zA-Zа-яА-Я0-9_ёЁ]"));
+                return !(Regex.IsMatch(nameAndDesc, @"(?:[^а-яА-Я_ёЁ]|^)([Бб]\s*[\/\\.\,]*\s*[Уу])[^a-zA-Zа-яА-Я0-9_ёЁ]"));
             }
         }
         [JsonIgnore]

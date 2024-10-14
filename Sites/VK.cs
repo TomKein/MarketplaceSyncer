@@ -24,8 +24,8 @@ namespace Selen.Sites {
         long _marketId;
         int _pageLimitVk;
         string _url;
-        string[] _dopDesc;
-        string[] _dopDesc2;
+        List<string> _dopDesc;
+        List<string> _dopDesc2;
         int _creditPriceMin;        //цены для рассрочки
         int _creditPriceMax;
         string _creditDescription;  //описание для рассрочки
@@ -80,8 +80,8 @@ namespace Selen.Sites {
             _marketId = DB.GetParamLong("vk.marketId");
             _pageLimitVk = DB.GetParamInt("vk.pageLimit");
             _url = DB.GetParamStr("vk.url");
-            _dopDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("vk.dopDesc"));
-            _dopDesc2 = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("vk.dopDesc2"));
+            _dopDesc = JsonConvert.DeserializeObject<List<string>>(DB.GetParamStr("vk.dopDesc"));
+            _dopDesc2 = JsonConvert.DeserializeObject<List<string>>(DB.GetParamStr("vk.dopDesc2"));
             _addCount = DB.GetParamInt("vk.addCount");
             _catalogCheckInterval = DB.GetParamInt("vk.catalogCheckInterval");
             //рассрочка 
@@ -99,11 +99,7 @@ namespace Selen.Sites {
                 //готовлю параметры
                 var param = new MarketProductParams();
                 param.Name = Class365API._bus[b].NameLimit(_nameLimit);
-                var desc = Class365API._bus[b].DescriptionList(dop: _dopDesc);
-                if (Class365API._bus[b].Price >= _creditPriceMin && Class365API._bus[b].Price <= _creditPriceMax)
-                    desc.Insert(0, _creditDescription);
-                desc.AddRange(_dopDesc2);
-                param.Description = desc.Aggregate((a1, a2) => a1 + "\n" + a2);
+                param.Description = GetDescription(_bus[b]);
                 param.CategoryId = (long) vk.Category.Id;
                 param.ItemId = vk.Id;
                 param.OwnerId = (long) vk.OwnerId;
@@ -148,16 +144,11 @@ namespace Selen.Sites {
             long mainPhoto = 0;
             List<long> dopPhotos = new List<long>();
             UploadPhotos(b, ref mainPhoto, ref dopPhotos);
-            //меняем доп описание
-            string desc = Class365API._bus[b].DescriptionList(dop: _dopDesc).Aggregate((a1, a2) => a1 + "\n" + a2) + "\n";
-            desc += _dopDesc2.Aggregate((a1, a2) => a1 + "\n" + a2);
-            if (Class365API._bus[b].Price >= _creditPriceMin && Class365API._bus[b].Price <= _creditPriceMax)
-                desc.Insert(0, _creditDescription);
             //создаем объявление
             long itemId = _vk.Markets.Add(new MarketProductParams {
                 OwnerId = -_marketId,
                 Name = Class365API._bus[b].NameLimit(_nameLimit),
-                Description = desc,
+                Description = GetDescription(_bus[b]),
                 CategoryId = 404,
                 Price = Class365API._bus[b].Price,
                 OldPrice = Class365API._bus[b].Price,
@@ -172,7 +163,53 @@ namespace Selen.Sites {
             AddToAlbum(b, itemId);
             Thread.Sleep(1000);
         });
-
+        string GetDescription(GoodObject b) {
+            List<string> list = new List<string>();
+            list.AddRange(_dopDesc);
+            if (b.GroupName() != "АВТОХИМИЯ" &&
+                b.GroupName() != "МАСЛА" &&
+                b.GroupName() != "УСЛУГИ" &&
+                b.GroupName() != "Кузов (новое)" &&
+                b.GroupName() != "Аксессуары" &&
+                b.GroupName() != "Кузовные запчасти" &&
+                b.GroupName() != "Инструменты (новые)" &&
+                b.GroupName() != "Инструменты (аренда)" &&
+                !b.name.StartsWith("Абсорбер") &&
+                !b.name.StartsWith("Балка") &&
+                !b.name.StartsWith("Дверь") &&
+                !b.name.StartsWith("Задняя часть кузова") &&
+                !b.name.StartsWith("Задняя панель кузова") &&
+                !b.name.StartsWith("Защита АКПП") &&
+                !b.name.StartsWith("Защита дв") &&
+                !b.name.StartsWith("Защита картера") &&
+                !b.name.StartsWith("Капот") &&
+                !b.name.StartsWith("Крыло") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крышка багажника") &&
+                !b.name.StartsWith("Дверь багажника") &&
+                !b.name.StartsWith("Лонжерон") &&
+                !b.name.StartsWith("Люк ") &&
+                !b.name.StartsWith("Панель") &&
+                !b.name.StartsWith("Поводок") &&
+                !b.name.StartsWith("Подрамник") &&
+                !b.name.StartsWith("Порог") &&
+                !b.name.StartsWith("Рамка двери") &&
+                !b.name.StartsWith("Рейлинги") &&
+                !b.name.StartsWith("Стабилизатор") &&
+                !b.name.StartsWith("Стеклоподъемник") &&
+                !b.name.StartsWith("Трапеция") &&
+                (!b.name.StartsWith("Усилитель") && !b.name.Contains("бампера")) &&
+                !b.name.StartsWith("Утеплитель капота") &&
+                !b.name.StartsWith("Четверть") &&
+                !b.name.StartsWith("Четверть")
+                )
+                list.AddRange(_dopDesc2);
+            var d = b.DescriptionList(2990, list);
+            if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
+                d.Insert(0, _creditDescription);
+            return d.Aggregate((a1, a2) => a1 + "\n" + a2);
+        }
         //привяжем объявление к альбому если есть индекс
         private void AddToAlbum(int b, long itemId) {
             int vkAlbInd = vkAlb.FindIndex(a => a.Title.ToLowerInvariant() == Class365API._bus[b].GroupName().ToLowerInvariant());

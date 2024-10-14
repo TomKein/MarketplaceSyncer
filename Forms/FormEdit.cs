@@ -1,15 +1,9 @@
 ﻿using Selen.Tools;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Selen {
@@ -28,15 +22,15 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add("FormEdit: ошибка сохранения изменений - " + x.Message);
             }
-            this.Close();
+            Close();
         }
 
         private void button_Cancel_Click(object sender, EventArgs e) {
-            this.Close();
+            Close();
         }
 
         private void Form4_Shown(object sender, EventArgs e) {
-            FormMain main = this.Owner as FormMain;
+            //FormMain main = Owner as FormMain;
             textBox1.Text = _b.name;
             textBox_Price.Text = _b.Price.ToString();
             richTextBox1.Text = _b.description;

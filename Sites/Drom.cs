@@ -21,7 +21,8 @@ namespace Selen.Sites {
         readonly string _l = "drom.ru: ";     //префикс для лога
         public Selenium _dr;               //браузер
         string _url;                //ссылка в карточке товара
-        string[] _addDesc;          //дополнительное описание
+        List<string> _addDesc;          //дополнительное описание
+        List<string> _addDesc2;          //дополнительное описание2
         int _creditPriceMin;        //цены для рассрочки
         int _creditPriceMax;
         string _creditDescription;  //описание для рассрочки
@@ -65,7 +66,8 @@ namespace Selen.Sites {
                 _url = await DB.GetParamStrAsync("drom.url");
                 _isAddWeights = await DB.GetParamBoolAsync("drom.addWeights");
                 _defWeigth = DB.GetParamFloat("defaultWeigth");
-                _addDesc = JsonConvert.DeserializeObject<string[]>(DB.GetParamStr("drom.addDescription"));
+                _addDesc = JsonConvert.DeserializeObject<List<string>>(DB.GetParamStr("drom.addDescription"));
+                _addDesc2 = JsonConvert.DeserializeObject<List<string>>(DB.GetParamStr("drom.addDescription2"));
                 //рассрочка 
                 _creditPriceMin = DB.GetParamInt("creditPriceMin");
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
@@ -494,6 +496,46 @@ namespace Selen.Sites {
                               : b.DescriptionList(2979, _addDesc)
                                  .Where(_ => !_.Contains("№") || !withoutNumbers)
                                  .ToList();
+            if (b.GroupName() != "АВТОХИМИЯ" &&
+                b.GroupName() != "МАСЛА" &&
+                b.GroupName() != "УСЛУГИ" &&
+                b.GroupName() != "Кузов (новое)" &&
+                b.GroupName() != "Аксессуары" &&
+                b.GroupName() != "Кузовные запчасти" &&
+                b.GroupName() != "Инструменты (новые)" &&
+                b.GroupName() != "Инструменты (аренда)" &&
+                !b.name.StartsWith("Абсорбер") &&
+                !b.name.StartsWith("Балка") &&
+                !b.name.StartsWith("Дверь") &&
+                !b.name.StartsWith("Задняя часть кузова") &&
+                !b.name.StartsWith("Задняя панель кузова") &&
+                !b.name.StartsWith("Защита АКПП") &&
+                !b.name.StartsWith("Защита дв") &&
+                !b.name.StartsWith("Защита картера") &&
+                !b.name.StartsWith("Капот") &&
+                !b.name.StartsWith("Крыло") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крышка багажника") &&
+                !b.name.StartsWith("Дверь багажника") &&
+                !b.name.StartsWith("Лонжерон") &&
+                !b.name.StartsWith("Люк ") &&
+                !b.name.StartsWith("Панель") &&
+                !b.name.StartsWith("Поводок") &&
+                !b.name.StartsWith("Подрамник") &&
+                !b.name.StartsWith("Порог") &&
+                !b.name.StartsWith("Рамка двери") &&
+                !b.name.StartsWith("Рейлинги") &&
+                !b.name.StartsWith("Стабилизатор") &&
+                !b.name.StartsWith("Стеклоподъемник") &&
+                !b.name.StartsWith("Трапеция") &&
+                (!b.name.StartsWith("Усилитель") && !b.name.Contains("бампера")) &&
+                !b.name.StartsWith("Утеплитель капота") &&
+                !b.name.StartsWith("Четверть") &&
+                !b.name.StartsWith("Четверть")
+                )
+                d.AddRange(_addDesc2);
+
             var amount = b.Amount > 0 ? b.Amount.ToString() + " " + b.MeasureNameCorrect : "нет";
             d.Insert(0, "В наличии: " + amount);
             if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)

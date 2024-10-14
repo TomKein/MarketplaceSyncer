@@ -26,8 +26,8 @@ namespace Selen.Sites {
         static IEnumerable<XElement> _rules;
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
-        string[] _addDesc;
-        string[] _addDesc2;
+        List<string> _addDesc;
+        List<string> _addDesc2;
         //цены для рассрочки
         int _creditPriceMin;
         int _creditPriceMax;
@@ -167,9 +167,9 @@ namespace Selen.Sites {
                 _rules = _cats.Descendants("Rule");
                 var offersLimit = DB.GetParamInt("avito.offersLimit");
                 var priceLevel = DB.GetParamInt("avito.priceLevel");
-                _addDesc = JsonConvert.DeserializeObject<string[]>(
+                _addDesc = JsonConvert.DeserializeObject<List<string>>(
                     DB.GetParamStr("avito.addDescription"));
-                _addDesc2 = JsonConvert.DeserializeObject<string[]>(
+                _addDesc2 = JsonConvert.DeserializeObject<List<string>>(
                     DB.GetParamStr("avito.addDescription2"));
                 //цены для рассрочки
                 _creditPriceMin = DB.GetParamInt("creditPriceMin");
@@ -274,7 +274,45 @@ namespace Selen.Sites {
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);
-            d.AddRange(_addDesc2);
+            if (b.GroupName() != "АВТОХИМИЯ" &&
+                b.GroupName() != "МАСЛА" &&
+                b.GroupName() != "УСЛУГИ" &&
+                b.GroupName() != "Кузов (новое)" &&
+                b.GroupName() != "Аксессуары" &&
+                b.GroupName() != "Кузовные запчасти" &&
+                b.GroupName() != "Инструменты (новые)" &&
+                b.GroupName() != "Инструменты (аренда)" &&
+                !b.name.StartsWith("Абсорбер") &&
+                !b.name.StartsWith("Балка") &&
+                !b.name.StartsWith("Дверь") &&
+                !b.name.StartsWith("Задняя часть кузова") &&
+                !b.name.StartsWith("Задняя панель кузова") &&
+                !b.name.StartsWith("Защита АКПП") &&
+                !b.name.StartsWith("Защита дв") &&
+                !b.name.StartsWith("Защита картера") &&
+                !b.name.StartsWith("Капот") &&
+                !b.name.StartsWith("Крыло") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крышка багажника") &&
+                !b.name.StartsWith("Дверь багажника") &&
+                !b.name.StartsWith("Лонжерон") &&
+                !b.name.StartsWith("Люк ") &&
+                !b.name.StartsWith("Панель") &&
+                !b.name.StartsWith("Поводок") &&
+                !b.name.StartsWith("Подрамник") &&
+                !b.name.StartsWith("Порог") &&
+                !b.name.StartsWith("Рамка двери") &&
+                !b.name.StartsWith("Рейлинги") &&
+                !b.name.StartsWith("Стабилизатор") &&
+                !b.name.StartsWith("Стеклоподъемник") &&
+                !b.name.StartsWith("Трапеция") &&
+                (!b.name.StartsWith("Усилитель") && !b.name.Contains("бампера")) &&
+                !b.name.StartsWith("Утеплитель капота") &&
+                !b.name.StartsWith("Четверть") &&
+                !b.name.StartsWith("Четверть") 
+                )
+                d.AddRange(_addDesc2);
             if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             var descStr = d.Aggregate((a1, a2) => a1 + "\r\n" + a2);

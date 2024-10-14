@@ -17,9 +17,9 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 200;
+        int _version = 204;
         //todo move this fields to class365api class
-        YandexMarket _yandexMarket = new YandexMarket();
+        YandexMarket _yandexMarket;
         VK _vk;
         Drom _drom;
         Izap24 _izap24;
@@ -188,10 +188,12 @@ namespace Selen {
                                           $"Доступна новая версия 1.{actualVersion}", MessageBoxButtons.OKCancel);
                 if(res == DialogResult.OK) {
                     var ps = new ProcessStartInfo(url) {
+                        //UseShellExecute = false,
                         UseShellExecute = true,
                         Verb = "open"
                     };
                     Process.Start(ps);
+                    await Task.Delay(10000);
                 }
                 Close();
                 return;
@@ -213,6 +215,7 @@ namespace Selen {
             _vk = new VK();
             _mm = new MegaMarket();
             _wb = new Wildberries();
+            _yandexMarket = new YandexMarket();
             Class365API.StartSync();
         }
         //проверка на параллельный запуск

@@ -21,6 +21,7 @@ namespace Selen.Sites {
         int _nameLimit = 200;                                                           //ограничение длины названия
         readonly string _url;                                                           //номер поля в карточке
         readonly int _updateFreq;                                                       //частота обновления списка (часов)
+        int _maxDiscont;                                                                //максимальная скидка %
         readonly string _baseBusUrl = "https://www.wildberries.ru/catalog/00000/detail.aspx";
         List<WbCard> _cardsList = new List<WbCard>();                                //список карточек вб
         readonly string _cardsListFile = @"..\data\wildberries\wb_productList.json";  //ссылка на файл для кеширования списка карточек вб
@@ -101,7 +102,7 @@ namespace Selen.Sites {
                 //if (_tnvd == null)
                 //await GetTnvdAsync("7985");
                 //await GetCharcsAsync("7985");
-
+                
                 await GetCardsListAsync();
                 await GetPricesAsync();
                 await GetStocksAsync();
@@ -122,8 +123,9 @@ namespace Selen.Sites {
                 data["dateFrom"] = unixTimeStamp.ToString();
                 var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
-                Log.Add($"{_l} получено {wb.orders.Count} заказов:\n" +
-                    $"{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}");
+                Log.Add($"{_l} получено {wb.orders.Count} заказов:" 
+                    //+$"\n{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}"
+                    );
 
                 //загружаем список заказов, для которых уже делали резервирование
                 var reserveList = new List<string>();
@@ -672,6 +674,7 @@ namespace Selen.Sites {
         //список цен товаров
         public async Task GetPricesAsync() {
             try {
+                _maxDiscont = await DB.GetParamIntAsync("wb.maxDiscont");
                 //если файл свежий и обновление списка не требуется
                 if (DateTime.Now < File.GetLastWriteTime(_cardsPricesFile).AddDays(_updateFreq)
                     && !_isCardsPricesCheckNeeds) {
@@ -709,7 +712,7 @@ namespace Selen.Sites {
                             await Task.Delay(10000);
                         }
                     }
-                    if (_cardsPrices.Count > 0)
+                    if (_cardsPrices.Count > 0 && _cardsList.Count - _cardsPrices.Count < 100)
                         File.WriteAllText(_cardsPricesFile, JsonConvert.SerializeObject(_cardsPrices));
                     else {
                         _cardsPrices = JsonConvert.DeserializeObject<List<WbPrice>>(
@@ -737,25 +740,27 @@ namespace Selen.Sites {
                 //проверяем цену на вб
                 var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
                 var goodNewPrice = GetNewPrice(good);
-                if (wbPrice == goodNewPrice) {
+                var discount = _cardsPrices.Find(c => c.vendorCode == good.id)?.discount ?? 0;
+                if (wbPrice == goodNewPrice && discount<=_maxDiscont) {
                     //wbDiscountedPrice == goodNewPrice) 
-                    Log.Add($"{_l} UpdatePrice: {good.name} - цены не нуждаются в обновлении");
+                    //Log.Add($"{_l} UpdatePrice: {good.name} - цены не нуждаются в обновлении");
                     return;
                 }
-                var discount = _cardsPrices.Find(c => c.vendorCode == good.id)?.discount ?? 0;
+                var newDiscount = discount > _maxDiscont ? _maxDiscont : discount;
                 var data = new {
                     data = new[] {
                         new {
                             nmID = card.nmID,
                             price = goodNewPrice,
-                            discount = discount
+                            discount = newDiscount
                         }
                     }
                 };
                 var res = await PostRequestAsync(data, "https://discounts-prices-api.wildberries.ru/api/v2/upload/task");
                 if (!res)
                     throw new Exception("ошибка запроса изменения цены");
-                Log.Add($"{_l} UpdatePrice: {good.name} - цены обновлены, {wbPrice} => {goodNewPrice}");
+                Log.Add($"{_l} UpdatePrice: {good.name} - цены обновлены, {wbPrice} => {goodNewPrice}," +
+                        $" дисконт {discount} => {newDiscount}");
                 //обновить список карточек вб
             } catch (Exception x) {
                 Log.Add($"{_l} GetPricesAsync: {good.name} - ошибка обновления цен товара - {x.Message}");
@@ -881,7 +886,7 @@ namespace Selen.Sites {
             return urlList;
         }
         //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
-        //а также выборочная проверка для уверенности
+        //а также выборочная проверка карточек
         private async Task UpdateCardsAsync() {
             try {
                 var checkProductCount = await DB.GetParamIntAsync("wb.checkProductCount");
@@ -907,11 +912,13 @@ namespace Selen.Sites {
                             var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
                             //проверяем цену на вб
                             var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
+                            var wbDiscount = _cardsPrices.Find(f => f.vendorCode == good.id)?.discount;
                             var goodNewPrice = GetNewPrice(good);
                             var goodNewAmount = (int) good.Amount/good.GetQuantOfSell();
                             //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
                             if (wbStock != goodNewAmount ||
                                 wbPrice != goodNewPrice ||
+                                wbDiscount > _maxDiscont||
                                 card.photos.Count != good.images.Count ||
                                 good.IsTimeUpDated() ||
                                 --checkProductIndex < 0 && checkProductCount + checkProductIndex >= 0
@@ -978,7 +985,7 @@ namespace Selen.Sites {
                 //проверяем остаток на вб
                 var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
                 if (wbStock != null && wbStock == amount) {
-                    Log.Add($"{_l} UpdateStocks: {good.name} - остаток не нуждается в обновлении");
+                    //Log.Add($"{_l} UpdateStocks: {good.name} - остаток не нуждается в обновлении");
                     return;
                 }
                 var data = new {
@@ -992,7 +999,7 @@ namespace Selen.Sites {
                 var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
                 if (!res)
                     throw new Exception("ошибка запроса изменения цены");
-                Log.Add($"{_l} UpdatePrice: {good.name} - остаток обновлен {wbStock} => {amount}");
+                Log.Add($"{_l} UpdateStocks: {good.name} - остаток обновлен {wbStock} => {amount}");
                 //запросить новые остатки
                 _isCardsStocksCheckNeeds = true;
             } catch (Exception x) {
@@ -1063,7 +1070,7 @@ namespace Selen.Sites {
                     card.dimensions.width == data[0].dimensions.width &&
                     card.dimensions.height == data[0].dimensions.height &&
                     IsCharacteristicsEqual(card, data[0].characteristics)) {
-                    Log.Add($"{_l} UpdateCard: {card.title} - карточка не нуждается в обновлении");
+                    //Log.Add($"{_l} UpdateCard: {card.title} - карточка не нуждается в обновлении");
                     return;
                 }
 

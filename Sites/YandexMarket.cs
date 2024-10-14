@@ -29,6 +29,7 @@ namespace Selen.Sites {
         HttpClient _hc = new HttpClient();
         MarketCampaigns _campaigns;
         List<GoodObject> _bus;
+        List<string> _addDesc, _addDesc2;
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
         }
@@ -43,8 +44,10 @@ namespace Selen.Sites {
                 if (uploadInterval == 0 || DateTime.Now.Hour % uploadInterval != 0)
                     return false;
                 //доп. описание
-                string[] _addDesc = JsonConvert.DeserializeObject<string[]>(
+                _addDesc = JsonConvert.DeserializeObject<List<string>>(
                     DB.GetParamStr("yandex.addDescription"));
+                _addDesc2 = JsonConvert.DeserializeObject<List<string>>(
+                    DB.GetParamStr("yandex.addDescription2"));
                 //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
                 var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
                 //старая цена из настроек
@@ -95,8 +98,7 @@ namespace Selen.Sites {
                         offer.Add(new XElement("currencyId", "RUR"));
                         foreach (var photo in b.images.Take(20))
                             offer.Add(new XElement("picture", photo.url));
-                        var description = b.DescriptionList(2990, _addDesc);
-                        offer.Add(new XElement("description", new XCData(description.Aggregate((a1, a2) => a1 + "\r\n" + a2))));
+                        offer.Add(new XElement("description", new XCData(GetDescription(b))));
                         var vendor = b.GetManufacture();
                         if (vendor != null)
                             offer.Add(new XElement("vendor", vendor));
@@ -111,8 +113,7 @@ namespace Selen.Sites {
                             var condition = new XElement("condition", new XAttribute("type", "preowned"));
                             //внешний вид - хороший, есть следы использования
                             condition.Add(new XElement("quality", "good"));
-                            description = b.DescriptionList(390, _addDesc);
-                            condition.Add(new XElement("reason", description.Aggregate((a1, a2) => a1 + "\r\n" + a2)));
+                            condition.Add(new XElement("reason", GetDescription(b,lenght:390)));
                             //сохраняю в оффер
                             offer.Add(condition);
                         }
@@ -194,6 +195,53 @@ namespace Selen.Sites {
             } else
                 Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
+        string GetDescription(GoodObject b, int lenght = 2990) {
+            List<string> list = new List<string>();
+            list.AddRange(_addDesc);
+            if (b.GroupName() != "АВТОХИМИЯ" &&
+                b.GroupName() != "МАСЛА" &&
+                b.GroupName() != "УСЛУГИ" &&
+                b.GroupName() != "Кузов (новое)" &&
+                b.GroupName() != "Аксессуары" &&
+                b.GroupName() != "Кузовные запчасти" &&
+                b.GroupName() != "Инструменты (новые)" &&
+                b.GroupName() != "Инструменты (аренда)" &&
+                !b.name.StartsWith("Абсорбер") &&
+                !b.name.StartsWith("Балка") &&
+                !b.name.StartsWith("Дверь") &&
+                !b.name.StartsWith("Задняя часть кузова") &&
+                !b.name.StartsWith("Задняя панель кузова") &&
+                !b.name.StartsWith("Защита АКПП") &&
+                !b.name.StartsWith("Защита дв") &&
+                !b.name.StartsWith("Защита картера") &&
+                !b.name.StartsWith("Капот") &&
+                !b.name.StartsWith("Крыло") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крыша") &&
+                !b.name.StartsWith("Крышка багажника") &&
+                !b.name.StartsWith("Дверь багажника") &&
+                !b.name.StartsWith("Лонжерон") &&
+                !b.name.StartsWith("Люк ") &&
+                !b.name.StartsWith("Панель") &&
+                !b.name.StartsWith("Поводок") &&
+                !b.name.StartsWith("Подрамник") &&
+                !b.name.StartsWith("Порог") &&
+                !b.name.StartsWith("Рамка двери") &&
+                !b.name.StartsWith("Рейлинги") &&
+                !b.name.StartsWith("Стабилизатор") &&
+                !b.name.StartsWith("Стеклоподъемник") &&
+                !b.name.StartsWith("Трапеция") &&
+                (!b.name.StartsWith("Усилитель") && !b.name.Contains("бампера")) &&
+                !b.name.StartsWith("Утеплитель капота") &&
+                !b.name.StartsWith("Четверть") &&
+                !b.name.StartsWith("Четверть")
+                )
+                list.AddRange(_addDesc2);
+            var d = b.DescriptionList(lenght, list);
+            return d.Aggregate((a1, a2) => a1 + "\r\n" + a2);
+        }
+
+
         float GetAmountExpress(GoodObject b) {
             var size = b.GetDimentions();
             if (size[0] > EXPRESS_MAX_LENGTH ||
