@@ -22,6 +22,7 @@ namespace Selen.Sites {
         readonly string _url;                         //номер поля в карточке
         readonly string _l = "ozon: ";                //префикс для лога
         readonly float _oldPriceProcent;
+        public static float _minPriceProcent;
         List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
         readonly string _productListFile = @"..\data\ozon\ozon_productList.json";
         readonly string _reserveListFile = @"..\data\ozon\ozon_reserveList.json";
@@ -33,6 +34,7 @@ namespace Selen.Sites {
         List<GoodObject> _bus;
         List<AttributeValue> _brends;                 //список брендов озон
         int _nameLimit = 200;                         //ограничение длины названия
+        Random _rnd = new Random();
 
         //List<Description_category> _categories;         //список всех категорий товаров на озон
         JArray _categoriesJO;         //список всех категорий товаров на озон JObject
@@ -43,7 +45,7 @@ namespace Selen.Sites {
 
 
         //производители, для которых не выгружаем номера и артикулы
-        readonly string[] _exceptManufactures = { "general motors","chery", "nissan" };
+        readonly string[] _exceptManufactures = { "general motors", "chery", "nissan" };
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -51,6 +53,7 @@ namespace Selen.Sites {
             _clientID = DB.GetParamStr("ozon.id");
             _apiKey = DB.GetParamStr("ozon.apiKey");
             _oldPriceProcent = DB.GetParamFloat("ozon.oldPriceProcent");
+            _minPriceProcent = DB.GetParamFloat("ozon.minPriceProcent");
             _updateFreq = DB.GetParamInt("ozon.updateFreq");
         }
         //главный метод
@@ -64,10 +67,11 @@ namespace Selen.Sites {
             await GetCategoriesAsync();
             await UpdateProductsAsync();
             await CheckProductListAsync();
-            //if (Class365API.SyncStartTime.Minute >= 55) {
+            await DeactivateActions();
+            if (Class365API.SyncStartTime.Minute >= 50) {
                 await AddProductsAsync();
-            //}
-            await CheckProductLinksAsync(checkAll: true);
+                await CheckProductLinksAsync(checkAll: true);
+            }
         }
         public async Task MakeReserve() {
             try {
@@ -75,7 +79,7 @@ namespace Selen.Sites {
                 var statuses = new List<string> {
                     "awaiting_packaging",
                     "awaiting_deliver"
-                };  
+                };
                 Postings postings = new Postings();
                 foreach (var status in statuses) {
                     var data = new {
@@ -97,7 +101,7 @@ namespace Selen.Sites {
                     var result = await PostRequestAsync(data, "/v3/posting/fbs/unfulfilled/list");
                     var res = JsonConvert.DeserializeObject<Postings>(result);
                     postings.postings.AddRange(res.postings);
-                    Log.Add($"{_l} получено {res.postings.Count} заказов "+ status);
+                    Log.Add($"{_l} получено {res.postings.Count} заказов " + status);
                     postings.count += res.count;
                 }
                 //загружаем список заказов, для которых уже делали резервирование
@@ -115,7 +119,7 @@ namespace Selen.Sites {
                     //готовим список товаров (id, amount)
                     var goodsDict = new Dictionary<string, int>();
                     order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
-                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"Ozon order {order.posting_number}", 
+                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"Ozon order {order.posting_number}",
                                                                    goodsDict, order.in_process_at.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.posting_number);
@@ -190,11 +194,11 @@ namespace Selen.Sites {
             if (checkAll) {
                 var _checkProductCount = await DB.GetParamIntAsync("ozon.checkProductCount");
                 var _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
-                if (_checkProductIndex >= _productList.Count) 
+                if (_checkProductIndex >= _productList.Count)
                     _checkProductIndex = 0;
                 await DB.SetParamAsync("ozon.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
                 items = _productList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<ProductListItem>();
-            } else 
+            } else
                 items = _productList;
             foreach (var item in items) {
                 try {
@@ -209,6 +213,8 @@ namespace Selen.Sites {
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await UpdateProductAsync(Class365API._bus[b], productInfo);
                     }
+                    if (Class365API.SyncStartTime.AddMinutes(15) < DateTime.Now && checkAll)
+                        return;
                 } catch (Exception x) {
                     Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
                     _isProductListCheckNeeds = true;
@@ -279,11 +285,11 @@ namespace Selen.Sites {
                 };
                 var s = await PostRequestAsync(data, "/v2/products/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
-                if (res.First().updated) 
+                if (res.First().updated)
                     Log.Add(_l + bus.name + " остаток обновлен! (" + amount + ")");
-                else 
+                else
                     throw new Exception(s);
-                
+
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка {bus.name} - {x.Message}");
             }
@@ -319,17 +325,23 @@ namespace Selen.Sites {
             try {
                 var newPrice = GetNewPrice(bus);
                 var oldPrice = GetOldPrice(newPrice);
-                //проверяем цены на озоне
-                if (newPrice != productInfo.GetPrice()
-                || oldPrice != productInfo.GetOldPrice()) {
-                    //если отличаются - создаем запрос и обновляем
+                var min_price = (int) (newPrice * (0.01 * (100 - _minPriceProcent)));
+                //сверяем цены с озоном
+                if (productInfo.GetPrice() != newPrice
+                || productInfo.GetOldPrice() != oldPrice
+                || productInfo.GetMinPrice() != min_price
+                //|| productInfo.GetMarketingPrice() < newPrice
+                ) {
                     var data = new {
                         prices = new[] {
                             new { 
                                 /*offer_id = bus.id, */ 
                                 product_id = productInfo.id,
                                 old_price = oldPrice.ToString(),
-                                price = newPrice.ToString()
+                                price = newPrice.ToString(),
+                                auto_action_enabled = "ENABLED",
+                                price_strategy_enabled = "DISABLED",
+                                min_price = min_price.ToString(),
                             }
                         }
                     };
@@ -371,6 +383,27 @@ namespace Selen.Sites {
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
                 //throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+            }
+            return null;
+        }
+
+        //запросы к api ozon
+        public async Task<string> GetRequestAsync(Dictionary<string, string> request, string apiRelativeUrl) {
+            try {
+                if (request != null) {
+                    var qstr = QueryStringBuilder.BuildQueryString(request);
+                    apiRelativeUrl += "?" + qstr;
+                }
+                HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
+                requestMessage.Headers.Add("Client-Id", _clientID);
+                requestMessage.Headers.Add("Api-Key", _apiKey);
+                var response = await _hc.SendAsync(requestMessage);
+                if (response.StatusCode == HttpStatusCode.OK) {
+                    return await response.Content.ReadAsStringAsync();
+                } else
+                    throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
+            } catch (Exception x) {
                 Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
             return null;
@@ -425,7 +458,7 @@ namespace Selen.Sites {
                     item.id != 22387 &&                                             //Группа товара
 
                     //item.id != 85 &&                                                //Бренд (теперь используем Без бренда,
-                                                                                    //убрать если нужно сохранять бренд, уже установленных в товарах)
+                    //убрать если нужно сохранять бренд, уже установленных в товарах)
                     item.values.Length > 0) {
                         var values = new Value {
                             value = item.values[0].value,
@@ -592,7 +625,47 @@ namespace Selen.Sites {
                     break;
             }
         }
-
+        public async Task DeactivateActions() {
+            try {
+                //получаем список акций
+                var res = await GetRequestAsync(null, "/v1/actions");
+                var actions = JsonConvert.DeserializeObject<OzonActionsList>(res);
+                //проверяем каждую акцию
+                var limit = await DB.GetParamIntAsync("ozon.deactivateActionsLimit");
+                for (int i = 0; i < actions.result.Count; i++) {
+                    //если текущей акции нет товаров - пропускаем
+                    if (actions.result[i].participating_products_count == 0)
+                        continue;
+                    //задаем смещение в запросе
+                    var offset = 0;
+                    //диапазон для выбора смещения
+                    var range = actions.result[i].participating_products_count - limit;
+                    //если он положительный - выбираем случайное смещение в рамках диапазона
+                    if (range > 0)
+                        offset = _rnd.Next(range);
+                    var data = new {
+                        action_id = actions.result[i].id,
+                        limit = limit,
+                        offset = offset
+                    };
+                    var res2 = await PostRequestAsync(data, "/v1/actions/products");
+                    var action = JsonConvert.DeserializeObject<OzonActionProducts>(res2);
+                    //отбираем товары, у которых скидка больше, чем максимально допустимая
+                    var products = action.products.Where(w => w.GetActionPrice() < w.GetMinPrice());
+                    //отменяем участие в данной акции этих товаров
+                    if (!products.Any())
+                        continue;
+                    var data2 = new {
+                        action_id = actions.result[i].id,
+                        product_ids = products.Select(p => p.id).ToArray()
+                    };
+                    var res3 = await PostRequestAsync(data2, "/v1/actions/products/deactivate");
+                    Log.Add($"{_l} DeactivateActions: из акции {actions.result[i].id} удалены товары [{data2.product_ids.Length}] {res3}");
+                }
+            } catch (Exception x) {
+                Log.Add($"{_l} DeactivateActions: ошибка! - {x.Message}");
+            }
+        }
         string GetTypeName(XElement rule) {
             var parent = rule.Parent;
             if (parent != null) {
@@ -604,7 +677,7 @@ namespace Selen.Sites {
         async Task<Attributes> GetAttributesAsync(GoodObject bus) {
             try {
                 var n = bus.name.ToLowerInvariant();
-                var a = new Attributes() { 
+                var a = new Attributes() {
                     typeId = "111",
                     categoryId = "111"
                 };
@@ -623,7 +696,7 @@ namespace Selen.Sites {
                         a.typeName = GetTypeName(rule);
                 }
                 if (a.typeName == null) {
-                    if  ((n.Contains("генератор") || n.Contains("напряжен")) &&
+                    if ((n.Contains("генератор") || n.Contains("напряжен")) &&
                         (n.Contains("реле") || n.Contains("регулятор"))) {
                         a.typeName = "Регулятор напряжения генератора";
                     } else if (n.Contains("генератор") &&
@@ -1293,7 +1366,7 @@ namespace Selen.Sites {
                 }
                 if (!GetTypeIdAndCategoryId(a))
                     return a;
-                a.additionalAttributes.AddAttribute(await GetPlaceAttributeAsync(bus,a));
+                a.additionalAttributes.AddAttribute(await GetPlaceAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetPackQuantityAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetCountAttribute());
                 a.additionalAttributes.AddAttribute(GetTypeOfProductAttribute(a.typeId, a.typeName));
@@ -1304,21 +1377,21 @@ namespace Selen.Sites {
                 a.additionalAttributes.AddAttribute(GetComplectationAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetAlternativesAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetFabricBoxCountAttribute(bus));
-                a.additionalAttributes.AddAttribute(await GetColorAttributeAsync(bus,a));
-                a.additionalAttributes.AddAttribute(await GetTechTypeAttributeAsync(bus,a));
-                a.additionalAttributes.AddAttribute(await GetDangerClassAttributeAsync(bus,a));
+                a.additionalAttributes.AddAttribute(await GetColorAttributeAsync(bus, a));
+                a.additionalAttributes.AddAttribute(await GetTechTypeAttributeAsync(bus, a));
+                a.additionalAttributes.AddAttribute(await GetDangerClassAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetExpirationDaysAttribute(bus));
-                a.additionalAttributes.AddAttribute(await GetMaterialAttributeAsync(bus,a));
+                a.additionalAttributes.AddAttribute(await GetMaterialAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(await GetManufactureCountryAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetOEMAttribute(bus));
-                a.additionalAttributes.AddAttribute(await GetSideAttributeAsync(bus,a));
+                a.additionalAttributes.AddAttribute(await GetSideAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetMultiplicityAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetKeywordsAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetThicknessAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetHeightAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetLengthAttribute(bus));
-                a.additionalAttributes.AddAttribute(await GetMotorTypeAttributeAsync(bus,a));
-                a.additionalAttributes.AddAttribute(await GetPlacementAttributeAsync(bus,a));
+                a.additionalAttributes.AddAttribute(await GetMotorTypeAttributeAsync(bus, a));
+                a.additionalAttributes.AddAttribute(await GetPlacementAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetVolumeAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetVolumeMLAttribute(bus));
                 a.additionalAttributes.AddAttribute(await GetTNVEDAttribute(bus, a));
@@ -1488,9 +1561,10 @@ namespace Selen.Sites {
             var value = good.GetPlacement();
             if (value == null)
                 return null;
-            var placement = await GetAttibuteValuesAsync(a.typeId,attribute_id: "7367");
+            var placement = await GetAttibuteValuesAsync(a.typeId, attribute_id: "7367");
             var p = placement?.Find(f => f.value == value).id.ToString();
-            if (p==null) return null;
+            if (p == null)
+                return null;
             return new Attribute {
                 complex_id = 0,
                 id = 7367,
@@ -1507,9 +1581,10 @@ namespace Selen.Sites {
             var value = good.GetMotorType();
             if (value == null)
                 return null;
-            var motorType = await GetAttibuteValuesAsync(a.typeId,attribute_id: "8303");
+            var motorType = await GetAttibuteValuesAsync(a.typeId, attribute_id: "8303");
             var mt = motorType?.Find(f => f.value == value)?.id.ToString();
-            if (mt==null) return null;
+            if (mt == null)
+                return null;
             return new Attribute {
                 complex_id = 0,
                 id = 8303,
@@ -1642,7 +1717,7 @@ namespace Selen.Sites {
                 return null;
             var manufactureCoutry = await GetAttibuteValuesAsync(a.typeId, attribute_id: "4389");
             var mc = manufactureCoutry?.Find(f => f.value == value);
-            if (mc == null) 
+            if (mc == null)
                 return null;
             return new Attribute {
                 complex_id = 0,
@@ -1662,7 +1737,8 @@ namespace Selen.Sites {
                 return null;
             var material = await GetAttibuteValuesAsync(a.typeId, attribute_id: "7199");
             var m = material?.Find(f => f.value == value)?.id.ToString();
-            if (m == null) return null;
+            if (m == null)
+                return null;
             return new Attribute {
                 complex_id = 0,
                 id = 7199,
@@ -1716,7 +1792,8 @@ namespace Selen.Sites {
                 return null;
             var techType = await GetAttibuteValuesAsync(a.typeId, attribute_id: "7206");
             var t = techType?.Find(f => f.value == value)?.id.ToString();
-            if (t==null) return null;
+            if (t == null)
+                return null;
             return new Attribute {
                 complex_id = 0,
                 id = 7206,
@@ -1804,7 +1881,7 @@ namespace Selen.Sites {
                 return null;
             var side = await GetAttibuteValuesAsync(a.typeId, attribute_id: "22329");
             var s = side?.Find(f => f.value == value);
-            if (s == null) 
+            if (s == null)
                 return null;
             return new Attribute {
                 complex_id = 0,
@@ -1930,7 +2007,7 @@ namespace Selen.Sites {
         Attribute GetPartAttribute(GoodObject bus) {
             var man = bus.GetManufacture(true)?
                          .ToLowerInvariant();
-            var part = _exceptManufactures.Contains(man)? bus.id
+            var part = _exceptManufactures.Contains(man) ? bus.id
                                                         : bus.part;
             return new Attribute {
                 complex_id = 0,
@@ -2000,7 +2077,7 @@ namespace Selen.Sites {
         string GetDescriptionCategoryId(string type_id) {
             var token = "..type_id";
             foreach (JToken type in _categoriesJO.SelectTokens(token)) {
-                if ((string)type == type_id) {
+                if ((string) type == type_id) {
                     string categoryId = (string) type.Parent.Parent.Parent.Parent.Parent["description_category_id"];
                     return categoryId;
                 }
@@ -2114,6 +2191,37 @@ namespace Selen.Sites {
     /////////////////////////////////////
     /// классы для работы с запросами ///
     /////////////////////////////////////
+    public class OzonActionProducts {
+        public List<OzonActionProduct> products = new List<OzonActionProduct>();
+        public int total;
+    }
+    public class OzonActionProduct {
+        public int id;
+        public string price;
+        public string action_price;
+        public string max_action_price;
+        //"add_mode": "MANUAL",
+        //"stock": 0,
+        //"min_stock": 0
+        public int GetPrice() {
+            return price.Length > 0 ? int.Parse(price.Split('.').First()) : 0;
+        }
+        public int GetActionPrice() {
+            return action_price.Length > 0 ? int.Parse(action_price.Split('.').First()) : 0;
+        }
+        public int GetMinPrice() {
+            return (int)(GetPrice() * (0.01 * (100 - OzonApi._minPriceProcent)));
+        }
+    }
+    public class OzonActionsList {
+        public List<OzonActions> result = new List<OzonActions>();
+    }
+    public class OzonActions {
+        public int id;
+        public int participating_products_count;
+    }
+
+
     public class WareHouse {
         public string warehouse_id;
         public string name;
@@ -2210,10 +2318,16 @@ namespace Selen.Sites {
             return stocks.reserved + stocks.present;
         }
         public int GetPrice() {
-            return int.Parse(price.Split('.').First());
+            return price.Length > 0 ? int.Parse(price.Split('.').First()) : 0;
         }
         public int GetOldPrice() {
-            return int.Parse(old_price.Split('.').First());
+            return old_price.Length > 0 ? int.Parse(old_price.Split('.').First()) : 0;
+        }
+        public int GetMinPrice() {
+            return min_price.Length > 0 ? int.Parse(min_price.Split('.').First()) : 0;
+        }
+        public int GetMarketingPrice() {
+            return marketing_price.Length > 0 ? int.Parse(marketing_price.Split('.').First()) : 0;
         }
     }
     public class ItemErrors {
@@ -2438,8 +2552,8 @@ namespace Selen.Sites {
     //=====================
     public class Description_category {
         public int description_category_id { get; set; }
-        public string category_name { get; set;}
-        public bool disabled { get; set; } 
+        public string category_name { get; set; }
+        public bool disabled { get; set; }
         public Description_category[] children { get; set; }
     }
 

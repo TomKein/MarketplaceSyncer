@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 204;
+        int _version = 206;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -441,7 +441,8 @@ namespace Selen {
             try {
                 //tests
                 //_wb.CheckSizes();
-                await Class365API.ArchivateAsync();
+                //await Class365API.ArchivateAsync();
+                await _ozon.DeactivateActions();
 
 
             } catch (Exception x) {
