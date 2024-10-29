@@ -552,7 +552,7 @@ namespace Selen.Sites {
                                      && w.length != null
                                      && w.width != null
                                      && w.New
-                                     && !w.ozon.Contains("http")
+                                     && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)));
@@ -561,7 +561,7 @@ namespace Selen.Sites {
                                      && w.Price > 0
                                      && w.images.Count > 0
                                      && w.New
-                                     && !w.ozon.Contains("http")
+                                     && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
             SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.csv");

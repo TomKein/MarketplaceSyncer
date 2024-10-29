@@ -394,7 +394,7 @@ namespace Selen.Sites {
                                      && w.MaxDimention <= 120
                                      && w.Weight <= 25
                                      && w.New
-                                     && !w.wb.Contains("http")
+                                     && w.wb.Length == 0
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))

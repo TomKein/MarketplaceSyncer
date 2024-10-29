@@ -439,11 +439,8 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                //tests
-                //_wb.CheckSizes();
-                //await Class365API.ArchivateAsync();
-                await _ozon.DeactivateActions();
-
+                Seller24ru s24 = new Seller24ru();
+                await s24.FillPrices();
 
             } catch (Exception x) {
                 Log.Add(x.Message);

@@ -201,7 +201,10 @@ namespace Selen {
                             var js = await httpResponseMessage.Content.ReadAsStringAsync();
                             _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                             //todo добавить параметр в настройки
-                            Thread.Sleep(600);
+                            if (_rr.request_count > 0) {
+                                Log.Add($"{_l} REQUEST_COUNT: {_rr.request_count}");
+                                Thread.Sleep(_rr.request_count);
+                            }
                             _flagRequestActive = false;
                             return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                         }
@@ -228,7 +231,7 @@ namespace Selen {
             public object result { get; set; }
             public string token { get; set; }
             public string app_psw { get; set; }
-            public string request_count { get; set; }
+            public int request_count { get; set; }
         }
         private static string GetMd5(byte[] hashenc) {
             StringBuilder md5_str = new StringBuilder();
@@ -1461,6 +1464,10 @@ namespace Selen {
                     Log.Add($"AddStickerCodeToReserve: ошибка добавления стикера! {result}");
             }
             return false;
+        }
+
+        public static GoodObject FindGood(string id) {
+            return _bus.Find(f => f.id == id);
         }
     }
 }

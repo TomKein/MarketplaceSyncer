@@ -1228,4 +1228,17 @@ namespace Selen {
         public string id { get; set; }
         public string updated { get; set; }
     }
+
+    public class CurrentPrice {
+        public string id { get; set; }
+        public string good_id { get; set; }
+        public string price { get; set; }
+        public DateTime updated { get; set; }
+    }
+    //public class SupplyGoods { 
+    //    public string id { get; set; }
+    //    public string good_id { get; set; }
+    //    public string price { get; set; }
+    //    public DateTime updated { get; set; }
+    //}
 }

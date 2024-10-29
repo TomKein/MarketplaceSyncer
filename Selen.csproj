@@ -307,6 +307,7 @@
     </Compile>
     <Compile Include="Sites\Avito.cs" />
     <Compile Include="Sites\izap24.cs" />
+    <Compile Include="Sites\Seller24ru.cs" />
     <Compile Include="Sites\Wildberries.cs" />
     <Compile Include="Sites\OzonApi.cs" />
     <Compile Include="Sites\SyncWorker.cs" />
