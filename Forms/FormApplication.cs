@@ -59,14 +59,14 @@ namespace Selen {
                          .ToList();
             if (_goods != null && _goods.Any() && _goods.Count != listBoxGoods.Items.Count) {
                 listBoxGoods.Items.Clear();
-                var array = _goods.Select(b => b.name)
+                var array = _goods.Select(b => b.id+":"+b.name)
                                   .ToArray();
                 listBoxGoods.Items.AddRange(array);
                 label3.Text = "Товары: " + array.Length;
             }
-            var name = _bus[_busIndex].name;
+            var name = _bus[_busIndex].id + ":" + _bus[_busIndex].name;
             var listBoxGoodsIndex = listBoxGoods.Items.IndexOf(name);
-            if (listBoxGoods.SelectedIndex != listBoxGoodsIndex)
+            if (listBoxGoods.SelectedIndex != listBoxGoodsIndex && listBoxGoodsIndex!=-1)
                 listBoxGoods.SelectedIndex = listBoxGoodsIndex;
         }
 
@@ -285,8 +285,8 @@ namespace Selen {
         }
         //выбран товар в списке
         async void listBoxGoods_SelectedIndexChanged(object sender, EventArgs e) {
-            var name = listBoxGoods.Items[listBoxGoods.SelectedIndex].ToString();
-            var index = _bus.FindIndex(f=>f.name == name);
+            var id = listBoxGoods.Items[listBoxGoods.SelectedIndex].ToString().Split(':').First();
+            var index = _bus.FindIndex(f=>f.id == id);
             await SetIndexAsync(index);
         }
         //установка индекса

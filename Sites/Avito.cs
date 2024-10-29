@@ -454,6 +454,14 @@ namespace Selen.Sites {
                     d.Add("RimBoltsDiameter", b.GetDiameterOfHoles());  //диаметр расп. отверстий                                               
                     d.Add("RimType", b.DiskType());                     //тип
                     d.Add("RimDIA", b.GetDiaStup());                    //диаметр ступицы
+                } else if (d["ProductType"] == "Щётки стеклоочистителя") {
+                    d.Add("InstallationLocation", "Лобовое стекло");
+                    d.Add("Set","Да");
+                    d.Add("MountingType", "Claw");
+                    d.Add("BrushType", "Бескаркасная");
+                    d.Add("BrushLength", "260");
+                    d.Add("SecondBrushLength", "260");
+                    d.Add("BrushBrand", "Bosch");
                 }
             }
             // else if (d["ProductType"]== "Колпаки") {}
