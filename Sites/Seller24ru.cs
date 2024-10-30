@@ -12,7 +12,7 @@ namespace Selen.Sites {
     public class Seller24ru {
 
         string _l = "Seller24ru";
-        string _xlsxFile;
+        string _xlsxFile;//todo remove!
         ExcelPackage _excelPackage;
         List<CurrentPrice> _goodPrices = new List<CurrentPrice>();
 
@@ -21,25 +21,27 @@ namespace Selen.Sites {
             if (!OpenFile())
                 return;
             //для каждого листа в шаблоне (для каждого сайта)
-            for (int i = 0; i < _excelPackage.Workbook.Worksheets.Count; i++) {
+            for (int i = 1; i <= _excelPackage.Workbook.Worksheets.Count; i++) {
                 //выбираем лист для заполнения
                 var sheet = _excelPackage.Workbook.Worksheets[i];
                 Log.Add($"{_l} заполняю цены в таблицу {sheet.Name}");
                 //колонка с id в таблицах разная - для маркета это 3й столбец, для остальных 4й
                 var idCol = sheet.Name.Contains("Yandex") ? 3 : 4;
-                //перебираем строчки в таблице, пока есть данные в первом столбце
-                for (int row = 2; sheet.Cells[row, 1].Value.ToString() == ""; row++) {
-                    string id = sheet.Cells[row, idCol].Value.ToString();
+                //перебираем строчки в таблице, пока есть данные в наименованиях
+                for (int row = 2; sheet.Cells[row, 2].Value != null; row++) {
+                    string id = sheet.Cells[row, idCol].Value?.ToString();
                     //если id не найден - пропускаем 
-                    if (id == "")
+                    if (string.IsNullOrEmpty(id))
                         continue;
                     //ищем карточку и бизнес.ру
                     var good = Class365API.FindGood(id);
                     if (good != null) {
                         var price = await GetPrice(good.id);
                         if (price != null) {
-                            sheet.Cells[row,7].Value = price;
-                            Log.Add($"{_l} {good.name} заполнена цена {price}");
+                            if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell()>1)
+                                price = (float.Parse(price) * good.GetQuantOfSell()).ToString();
+                            sheet.Cells[row, 7].Value = price;
+                            Log.Add($"{_l} {row} - {good.name} заполнена цена {price}");
                         }
                     }
                 }
@@ -58,8 +60,9 @@ namespace Selen.Sites {
                     var fileInfo = new FileInfo(openFileDialog.FileName);
                     _excelPackage = new ExcelPackage(fileInfo);
                     //_excelPackage
-                    if (_excelPackage != null) {
-                        Log.Add($"{_l} файл успешно загружен");
+                    if (_excelPackage != null && _excelPackage.Workbook.Worksheets.Count > 0) {
+                        Log.Add($"{_l} файл {openFileDialog.FileName} успешно загружен, " +
+                            $"количество таблиц {_excelPackage.Workbook.Worksheets.Count}");
                         return true;
                     }
                 } catch (Exception x) {
@@ -69,42 +72,42 @@ namespace Selen.Sites {
         }
         public async Task<string> GetPrice(string good_id) {
             //проверяем цену в коллекции
-            var price = _goodPrices.Find(f => f.good_id == good_id)?.price;
+            if (_goodPrices.Any(a => a.good_id == good_id))
+                return _goodPrices.Find(f => f.good_id == good_id)?.price;
             //получаем последнюю цену из поступлений
-            var dictParams1 = new Dictionary<string, string>() {
-                { "good_id", good_id },
-                { "price_type_id", "75523" },
-            };
-            if (price == null) {
-                price = await RequestPrice("supplygoods", dictParams1);
-            }
+            var price = await RequestPrice("supplygoods", good_id, new Dictionary<string, string>());
             //если цена не найдена, проверяем оприходования
-            var dictParams2 = new Dictionary<string, string>() {
-                { "good_id", good_id },
-            };
             if (price == null) {
-                price = await RequestPrice("postinggoods", dictParams2);
+                price = await RequestPrice("postinggoods", good_id, new Dictionary<string, string>());
             }
             //если цена не найдена, проверяем ввод остатков на склад
             if (price == null) {
-                price = await RequestPrice("remaingoods", dictParams2);
+                price = await RequestPrice("remaingoods", good_id, new Dictionary<string, string>());
             }
             //если цена не найдена, проверяем цену в карточке
             if (price == null) {
-                price = await RequestPrice("currentprices", dictParams1);
+                price = await RequestPrice("currentprices", good_id, new Dictionary<string, string>() {
+                    { "price_type_id", "75523" }
+                });
             }
-            //сохраняем цену в коллекцию и возвращаем, без копеек
+            price = price?.Replace(".", ",");
+            //сохраняем цену в коллекцию
             _goodPrices.Add(new CurrentPrice { good_id = good_id, price = price });
-            return price?.Split('.').First();
+            return price;
         }
 
-        async Task<string> RequestPrice(string model, Dictionary<string, string> dictParams) {
+        async Task<string> RequestPrice(string model, string good_id, Dictionary<string, string> dictParams) {
             try {
+                dictParams.Add("good_id", good_id);
+                dictParams.Add("order_by[id]", "DESC");
+                dictParams.Add("limit", "5");
+
                 var s = await Class365API.RequestAsync("get", model, dictParams);
                 var priceList = JsonConvert.DeserializeObject<List<CurrentPrice>>(s);
-                if (priceList != null) {
-                    var testSorted = priceList.OrderByDescending(f => f.updated).ToList();
-                    return priceList.OrderByDescending(g => g.updated).First().price;
+                if (priceList.Count > 0) {
+                    var priceListSorted = priceList.Where(w => w.price_type_id == null || w.price_type_id == "75523")
+                                              .OrderByDescending(f => f.Updated).ToList();
+                    return priceListSorted.First().price;
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} ошибка запроса цен в модели {model} => {x.Message}");

@@ -201,10 +201,10 @@ namespace Selen {
                             var js = await httpResponseMessage.Content.ReadAsStringAsync();
                             _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                             //todo добавить параметр в настройки
-                            if (_rr.request_count > 0) {
-                                Log.Add($"{_l} REQUEST_COUNT: {_rr.request_count}");
-                                Thread.Sleep(_rr.request_count);
-                            }
+                            var del = _rr.request_count * (_rr.request_count / 200);
+                            if (_rr.request_count%10==0)
+                                Log.Add($"{_l} REQUEST_COUNT: {_rr.request_count} / delay {del}");
+                            Thread.Sleep(_rr.request_count*3);
                             _flagRequestActive = false;
                             return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                         }

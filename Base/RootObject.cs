@@ -1233,7 +1233,16 @@ namespace Selen {
         public string id { get; set; }
         public string good_id { get; set; }
         public string price { get; set; }
-        public DateTime updated { get; set; }
+        public string updated { get; set; }
+        public string price_type_id { get; set; }
+        
+        [JsonIgnore]
+        public DateTime Updated { 
+            get { 
+                return DateTime.Parse(updated);
+            } set { 
+                updated = value.ToString();
+            } }
     }
     //public class SupplyGoods { 
     //    public string id { get; set; }
