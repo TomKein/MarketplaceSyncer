@@ -299,21 +299,22 @@ namespace Selen.Sites {
             var weight = b.Weight;
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
-            //наценка 30% на всё
-            int overPrice = (int) (b.Price * 0.30);
+            int overPrice;
+            //вес от 50 кг или размер более 200 -- наценка 30% + 3500 р
+            if (weight >= 50 || length >= 200)
+                overPrice = (int) (b.Price * 0.30) + 3500;
+            //вес от 30 кг или размер от 150 -- наценка 30% + 2000 р
+            else if (weight >= 30 || length >= 150)
+                overPrice = (int) (b.Price * 0.30) + 2000;
+            //вес от 10 кг или размер от 100 -- наценка 1500 р
+            else if (weight >= 10 || length >= 100)
+                overPrice = (int) (b.Price * 0.30) + 1500;
+            //для маленьких и легких наценка 40% на всё
+            else
+                overPrice = (int) (b.Price * 0.40);
             //если наценка меньше 200 р - округляю
             if (overPrice < 200)
                 overPrice = 200;
-            //вес от 10 кг или размер от 100 -- наценка 1500 р
-            if (overPrice < 1500 && (weight >= 10 || length >= 100))
-                overPrice = 1500;
-            //вес от 30 кг или размер от 150 -- наценка 2000 р
-            if (overPrice < 2000 && (weight >= 30 || length >= 150))
-                overPrice = 2000;
-            //вес от 50 кг или размер более 200 -- наценка 3000 р
-
-            if (overPrice < 3000 && (weight >= 50 || length >= 200))
-                overPrice = 3000;
             return b.Price + overPrice;
         }
         //цена до скидки (старая)
