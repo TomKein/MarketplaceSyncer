@@ -71,6 +71,7 @@ namespace Selen.Sites {
             if (Class365API.SyncStartTime.Minute >= 50) {
                 await AddProductsAsync();
                 await CheckProductLinksAsync(checkAll: true);
+                await DeactivateAutoActions();
             }
         }
         public async Task MakeReserve() {
@@ -340,7 +341,7 @@ namespace Selen.Sites {
                                 product_id = productInfo.id,
                                 old_price = oldPrice.ToString(),
                                 price = newPrice.ToString(),
-                                auto_action_enabled = "ENABLED",
+                                auto_action_enabled = "DISABLED",//"ENABLED",
                                 price_strategy_enabled = "DISABLED",
                                 min_price = min_price.ToString(),
                             }
@@ -634,11 +635,46 @@ namespace Selen.Sites {
                 //проверяем каждую акцию
                 var limit = await DB.GetParamIntAsync("ozon.deactivateActionsLimit");
                 for (int i = 0; i < actions.result.Count; i++) {
-                    //если текущей акции нет товаров - пропускаем
+                    //проверим товары, которые можно добавить в акции
+                    //задаем смещение в запросе
+                    var offset = 0;
+                    List<OzonActionProduct> products;
+                    OzonActionProducts actionProducts;
+                    do { 
+                        var data5 = new {
+                            action_id = actions.result[i].id,
+                            limit = limit,
+                            offset = offset
+                        };
+                        var res5 = await PostRequestAsync(data5, "/v1/actions/candidates");
+                        actionProducts = JsonConvert.DeserializeObject<OzonActionProducts>(res5);
+                        //отбираем товары, у которых скидка в норме, меньше чем максимально допустимая
+                        products = actionProducts.products.Where(w => w.GetActionPrice() >= w.GetMinPrice()).ToList();
+                        Log.Add($"DeactivateActions: в акции {actions.result[i].id} проверено {offset + limit} кандидатов");
+                        offset += limit;
+                    } while (!products.Any() && offset < actionProducts.total);
+                    //добавляем в данную акцию эти товары
+                    if (products.Any()) {
+                        var data2 = new {
+                            action_id = actions.result[i].id,
+                            products = products.Select(p => new {
+                                product_id = p.id,
+                                action_price = p.action_price,
+                                //stock=p.stock
+                                stock = Class365API.FindGood(_productList.Find(f=>f.product_id==p.id)?.offer_id)?.Amount??1
+                            }).ToArray()
+                        };
+                        var res4 = await PostRequestAsync(data2, "/v1/actions/products/activate");
+                        Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} добавлены товары [{data2.products.Length}] {res4}");
+                    }else
+                        Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} проверено товаров {actionProducts.total}, " +
+                            $"у всех скидка больше максимальной");
+
+                    //если текущей акции нет товаров - пропускаем проверку
                     if (actions.result[i].participating_products_count == 0)
                         continue;
                     //задаем смещение в запросе
-                    var offset = 0;
+                    offset = 0;
                     //диапазон для выбора смещения
                     var range = actions.result[i].participating_products_count - limit;
                     //если он положительный - выбираем случайное смещение в рамках диапазона
@@ -652,19 +688,72 @@ namespace Selen.Sites {
                     var res2 = await PostRequestAsync(data, "/v1/actions/products");
                     var action = JsonConvert.DeserializeObject<OzonActionProducts>(res2);
                     //отбираем товары, у которых скидка больше, чем максимально допустимая
-                    var products = action.products.Where(w => w.GetActionPrice() < w.GetMinPrice());
+                    products = action.products.Where(w => w.GetActionPrice() < w.GetMinPrice()).ToList();
                     //отменяем участие в данной акции этих товаров
                     if (!products.Any())
                         continue;
-                    var data2 = new {
+                    var data6 = new {
                         action_id = actions.result[i].id,
                         product_ids = products.Select(p => p.id).ToArray()
                     };
-                    var res3 = await PostRequestAsync(data2, "/v1/actions/products/deactivate");
-                    Log.Add($"{_l} DeactivateActions: из акции {actions.result[i].id} удалены товары [{data2.product_ids.Length}] {res3}");
+                    var res3 = await PostRequestAsync(data6, "/v1/actions/products/deactivate");
+                    Log.Add($"{_l} DeactivateActions: из акции {actions.result[i].id} удалены товары [{data6.product_ids.Length}] {res3}");
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} DeactivateActions: ошибка! - {x.Message}");
+            }
+        }
+        //массовый запрос цен
+        async Task<List<OzonPriceListItem>> GetPrices() {
+            var last_id = "";
+            var total = 0;
+            var priceList = new List<OzonPriceListItem>();
+            do {
+                var data = new {
+                    filter = new {
+                        visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
+                    },
+                    last_id = last_id,
+                    limit = 1000
+                };
+                var result = await PostRequestAsync(data, "/v4/product/info/prices");
+                var pl = JsonConvert.DeserializeObject<OzonPriceList>(result);
+                last_id = pl.last_id;
+                total = pl.total;
+                priceList.AddRange(pl.items);
+                Log.Add($"{_l} получено {priceList.Count} цен товаров");
+            } while (priceList.Count < total);
+            return priceList;
+        }
+        //проверка цен - массовый запрет автодобавления в акции
+        public async Task DeactivateAutoActions() {
+            try {
+                var priceList = await GetPrices();
+                var autoActionList = priceList.Where(w=>w.price.auto_action_enabled).Take(200);
+                foreach (var product in autoActionList) {
+                    var data = new {
+                        prices = new[] {
+                            new { 
+                                /*offer_id = bus.id, */ 
+                                product_id = product.product_id,
+                                old_price = product.price.old_price,
+                                price = product.price.price,
+                                auto_action_enabled = "DISABLED",//"ENABLED",
+                                price_strategy_enabled = "DISABLED",
+                                //min_price = product.price.min_ozon_price
+                            }
+                        }
+                    };
+                    var s = await PostRequestAsync(data, "/v1/product/import/prices");
+                    var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
+                    if (res.First().updated) {
+                        Log.Add($"{_l} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция отменена!");
+                    } else {
+                        Log.Add($"{_l} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция не отменена!");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{_l} DeactivateAutoActions: ошибка отмены автоакций! - {x.Message}");
             }
         }
         string GetTypeName(XElement rule) {
@@ -2192,6 +2281,31 @@ namespace Selen.Sites {
     /////////////////////////////////////
     /// классы для работы с запросами ///
     /////////////////////////////////////
+
+    public class OzonPriceList {
+        public List<OzonPriceListItem> items { get; set; }
+        public int total { get; set; }
+        public string last_id { get; set; }
+    }
+    public class OzonPriceListItem {
+        public int product_id { get; set; }
+        public string offer_id { get; set; }
+        public OzonPrice price { get; set; }
+        public object marketing_actions { get; set; }
+        public string volume_weight { get; set; }
+    }
+    public class OzonPrice {
+        public string price {  get; set; }
+        public string old_price {  get; set; }
+        public string retail_price {  get; set; }
+        public string vat {  get; set; }
+        public string min_ozon_price {  get; set; }
+        public string marketing_price {  get; set; }
+        public string marketing_seller_price {  get; set; }
+        public bool auto_action_enabled {  get; set; }
+    }
+
+
     public class OzonActionProducts {
         public List<OzonActionProduct> products = new List<OzonActionProduct>();
         public int total;
@@ -2202,7 +2316,7 @@ namespace Selen.Sites {
         public string action_price;
         public string max_action_price;
         //"add_mode": "MANUAL",
-        //"stock": 0,
+        public int stock;
         //"min_stock": 0
         public int GetPrice() {
             return price.Length > 0 ? int.Parse(price.Split('.').First()) : 0;

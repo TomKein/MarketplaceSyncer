@@ -524,7 +524,6 @@ namespace Selen {
             } catch (Exception x) {
                 Log.Add("business.ru: ошибка при добавлении артикула - " + x.Message);
             }
-
         }
         public static async Task ClearOldUrls() {
             for (int b = 0; b < _bus.Count; b++) {
@@ -556,7 +555,7 @@ namespace Selen {
         //проверка архивного статуса у карточек с остатком, фото
         public static async Task CheckArhiveStatusAsync() {
             try {
-                foreach (var item in _bus.Where(w => (w.Amount > 0 || w.images.Count > 0) && w.archive)) {
+                foreach (var item in _bus.Where(w => (w.Amount > 0 /* || w.images.Count > 0*/) && w.archive)) {
                     if (Status == SyncStatus.NeedUpdate)
                         return;
                     Log.Add($"{_l} {item.name} - карточка в архиве! (ост.: {item.Amount}, фото: {item.images.Count})");
@@ -837,7 +836,7 @@ namespace Selen {
                                       w.Amount <= 0 &&
                                       w.Reserve <= 0 &&
                                       !w.archive &&
-                                      (DateTime.Now > w.Updated.AddYears(3) || (DateTime.Now>w.Updated.AddDays(15) && !w.New)))
+                                      (DateTime.Now > w.Updated.AddYears(3) || (DateTime.Now>w.Updated.AddDays(1) && !w.New)))
                                .OrderBy(o => o.Updated);
             var queryCount = busQuery.Count();
             Log.Add($"ArchivateAsync: карточек для архивирования: {queryCount}");
