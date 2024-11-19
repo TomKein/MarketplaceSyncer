@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 208;
+        int _version = 209;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -263,7 +263,8 @@ namespace Selen {
                 button_Vk.Enabled &&
                 button_Avito.Enabled &&
                 button_ozon.Enabled&&
-                button_MegaMarket.Enabled
+                button_MegaMarket.Enabled&&
+                button_wildberries.Enabled
                 )
             )
                 await Task.Delay(5000);
@@ -280,8 +281,8 @@ namespace Selen {
         }
         private async void Button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            await Class365API.ChangePostingsPrices();
-            await Task.Delay(10);//ChangeRemainsPrices(); //not used
+            Seller24ru s24 = new Seller24ru();
+            await s24.FillPrices();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //сохранить куки
@@ -439,9 +440,9 @@ namespace Selen {
         async void ButtonTest_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
-                Seller24ru s24 = new Seller24ru();
-                await s24.FillPrices();
+                Log.Add("test start");
 
+                Log.Add("test end");
             } catch (Exception x) {
                 Log.Add(x.Message);
             }

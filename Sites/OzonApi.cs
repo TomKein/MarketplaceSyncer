@@ -35,6 +35,8 @@ namespace Selen.Sites {
         List<AttributeValue> _brends;                 //список брендов озон
         int _nameLimit = 200;                         //ограничение длины названия
         Random _rnd = new Random();
+        List<GoodObject> _busToUpdate;        //список товаров для обновления
+        readonly string _busToUpdateFile = @"..\data\ozon\toupdate.json";
 
         //List<Description_category> _categories;         //список всех категорий товаров на озон
         JArray _categoriesJO;         //список всех категорий товаров на озон JObject
@@ -55,6 +57,13 @@ namespace Selen.Sites {
             _oldPriceProcent = DB.GetParamFloat("ozon.oldPriceProcent");
             _minPriceProcent = DB.GetParamFloat("ozon.minPriceProcent");
             _updateFreq = DB.GetParamInt("ozon.updateFreq");
+            //загружаю список на обновление
+            if (File.Exists(_busToUpdateFile)) {
+                var f = File.ReadAllText(_busToUpdateFile);
+                _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+            } else
+                _busToUpdate = new List<GoodObject>();
         }
         //главный метод
         public async Task SyncAsync() {
@@ -68,7 +77,7 @@ namespace Selen.Sites {
             await UpdateProductsAsync();
             await CheckProductListAsync();
             await DeactivateActions();
-            if (Class365API.SyncStartTime.Minute >= 50) {
+            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await AddProductsAsync();
                 await CheckProductLinksAsync(checkAll: true);
                 await DeactivateAutoActions();
@@ -137,14 +146,28 @@ namespace Selen.Sites {
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
-            try {
-                foreach (var bus in _bus.Where(w => w.IsTimeUpDated()
-                                                 && !string.IsNullOrEmpty(w.ozon)
-                                                 && w.ozon.Contains("http"))) {
-                    await UpdateProductAsync(bus);
+            //список обновленных карточек со ссылкой на объявления
+            var busUpdateList = Class365API._bus.Where(_ => _.ozon != null && _.ozon.Contains("http") && _.IsTimeUpDated()).ToList();
+            //список без дубликатов 
+            busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
+            //добавляю в общий список на обновление
+            _busToUpdate.AddRange(busUpdateList);
+            if (_busToUpdate.Count > 0) {
+                var bu = JsonConvert.SerializeObject(_busToUpdate);
+                File.WriteAllText(_busToUpdateFile, bu);
+            }
+            for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
+                if (Class365API.IsTimeOver)
+                    return;
+                try {
+                    if (await UpdateProductAsync(_busToUpdate[b])) {
+                        _busToUpdate.Remove(_busToUpdate[b]);
+                        var bu = JsonConvert.SerializeObject(_busToUpdate);
+                        File.WriteAllText(_busToUpdateFile, bu);
+                    }
+                } catch (Exception x) {
+                    Log.Add(_l + "UpdateProductsAsync - " + x.Message);
                 }
-            } catch (Exception x) {
-                Log.Add(_l + "UpdateProductsAsync - " + x.Message);
             }
         }
         //проверяем список товаров озон
@@ -214,7 +237,7 @@ namespace Selen.Sites {
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await UpdateProductAsync(Class365API._bus[b], productInfo);
                     }
-                    if (Class365API.SyncStartTime.AddMinutes(15) < DateTime.Now && checkAll)
+                    if (Class365API.IsTimeOver && checkAll)
                         return;
                 } catch (Exception x) {
                     Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
@@ -255,15 +278,17 @@ namespace Selen.Sites {
             }
         }
         //проверка и обновление товара
-        async Task UpdateProductAsync(GoodObject bus, ProductInfo productInfo = null) {
+        async Task<bool> UpdateProductAsync(GoodObject bus, ProductInfo productInfo = null) {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
                 await UpdateProductStocks(bus, productInfo);
                 await UpdateProductPriceAsync(bus, productInfo);
                 await UpdateProduct(bus, productInfo);
+                return true;
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProductAsync ошибка! name:{bus.name} message:{x.Message}");
+                return false;
             }
         }
         //обновление остатков товара на озон
@@ -640,36 +665,37 @@ namespace Selen.Sites {
                     var offset = 0;
                     List<OzonActionProduct> products;
                     OzonActionProducts actionProducts;
-                    do { 
-                        var data5 = new {
-                            action_id = actions.result[i].id,
-                            limit = limit,
-                            offset = offset
-                        };
-                        var res5 = await PostRequestAsync(data5, "/v1/actions/candidates");
-                        actionProducts = JsonConvert.DeserializeObject<OzonActionProducts>(res5);
-                        //отбираем товары, у которых скидка в норме, меньше чем максимально допустимая
-                        products = actionProducts.products.Where(w => w.GetActionPrice() >= w.GetMinPrice()).ToList();
-                        Log.Add($"DeactivateActions: в акции {actions.result[i].id} проверено {offset + limit} кандидатов");
-                        offset += limit;
-                    } while (!products.Any() && offset < actionProducts.total);
-                    //добавляем в данную акцию эти товары
-                    if (products.Any()) {
-                        var data2 = new {
-                            action_id = actions.result[i].id,
-                            products = products.Select(p => new {
-                                product_id = p.id,
-                                action_price = p.action_price,
-                                //stock=p.stock
-                                stock = Class365API.FindGood(_productList.Find(f=>f.product_id==p.id)?.offer_id)?.Amount??1
-                            }).ToArray()
-                        };
-                        var res4 = await PostRequestAsync(data2, "/v1/actions/products/activate");
-                        Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} добавлены товары [{data2.products.Length}] {res4}");
-                    }else
-                        Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} проверено товаров {actionProducts.total}, " +
-                            $"у всех скидка больше максимальной");
-
+                    if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
+                        do {
+                            var data5 = new {
+                                action_id = actions.result[i].id,
+                                limit = limit,
+                                offset = offset
+                            };
+                            var res5 = await PostRequestAsync(data5, "/v1/actions/candidates");
+                            actionProducts = JsonConvert.DeserializeObject<OzonActionProducts>(res5);
+                            //отбираем товары, у которых скидка в норме, меньше чем максимально допустимая
+                            products = actionProducts.products.Where(w => w.GetActionPrice() >= w.GetMinPrice()).ToList();
+                            //Log.Add($"DeactivateActions: в акции {actions.result[i].id} проверено {offset + limit} кандидатов");
+                            offset += limit;
+                        } while (!products.Any() && offset < actionProducts.total);
+                        //добавляем в данную акцию эти товары
+                        if (products.Any()) {
+                            var data2 = new {
+                                action_id = actions.result[i].id,
+                                products = products.Select(p => new {
+                                    product_id = p.id,
+                                    action_price = p.action_price,
+                                    //stock=p.stock
+                                    stock = Class365API.FindGood(_productList.Find(f => f.product_id == p.id)?.offer_id)?.Amount ?? 1
+                                }).ToArray()
+                            };
+                            var res4 = await PostRequestAsync(data2, "/v1/actions/products/activate");
+                            Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} добавлены товары [{data2.products.Length}] {res4}");
+                        } else
+                            Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} проверено кандидатов {actionProducts.total}, " +
+                                $"у всех скидка больше максимальной");
+                    }
                     //если текущей акции нет товаров - пропускаем проверку
                     if (actions.result[i].participating_products_count == 0)
                         continue;
@@ -773,16 +799,16 @@ namespace Selen.Sites {
                 };
                 foreach (var rule in _rules) {
                     var conditions = rule.Elements();
-                    var eq = true;
+                    var doSearch = true;
                     foreach (var condition in conditions) {
-                        if (!eq)
+                        if (!doSearch)
                             break;
                         if (condition.Name == "Starts" && !n.StartsWith(condition.Value))
-                            eq = false;
+                            doSearch = false;
                         else if (condition.Name == "Contains" && !n.Contains(condition.Value))
-                            eq = false;
+                            doSearch = false;
                     }
-                    if (eq)
+                    if (doSearch)
                         a.typeName = GetTypeName(rule);
                 }
                 if (a.typeName == null) {

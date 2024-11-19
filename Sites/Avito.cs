@@ -32,7 +32,7 @@ namespace Selen.Sites {
         int _creditPriceMin;
         int _creditPriceMax;
         string _creditDescription;
-
+        DateTime _lastTimeUploadTime;
 
         string _clientId;// = "4O7a8RcHV1qdcbp_Lr7f";
         string _clientSecret;// = "1JtB0Yi801aPfl2mKLziP_QcauNEaZaTMuG6asuB";
@@ -155,12 +155,12 @@ namespace Selen.Sites {
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
-            if (Class365API.SyncStartTime.Minute % 30 < 25)
+            if (!await DB.GetParamBoolAsync("avito.syncEnable") || 
+                Class365API.SyncStartTime - _lastTimeUploadTime < TimeSpan.FromMinutes(
+                    await DB.GetParamIntAsync("avito.uploadIntervalMinutes"))
+                )
                 return;
-            if (!await DB.GetParamBoolAsync("avito.syncEnable")) {
-                Log.Add(_l + "синхронизация отключена!");
-                return;
-            }
+            _lastTimeUploadTime = Class365API.SyncStartTime;
             await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
                 _cats = XDocument.Load(_catsFile);

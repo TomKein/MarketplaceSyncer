@@ -201,11 +201,11 @@ namespace Selen {
             // 
             // button_PricesIncomeCorrection
             // 
-            this.button_PricesIncomeCorrection.Location = new System.Drawing.Point(416, 8);
+            this.button_PricesIncomeCorrection.Location = new System.Drawing.Point(392, 8);
             this.button_PricesIncomeCorrection.Name = "button_PricesIncomeCorrection";
-            this.button_PricesIncomeCorrection.Size = new System.Drawing.Size(92, 23);
+            this.button_PricesIncomeCorrection.Size = new System.Drawing.Size(116, 23);
             this.button_PricesIncomeCorrection.TabIndex = 115;
-            this.button_PricesIncomeCorrection.Text = "Корекция цен закупки";
+            this.button_PricesIncomeCorrection.Text = "Seller24 закупка";
             this.button_PricesIncomeCorrection.UseVisualStyleBackColor = true;
             this.button_PricesIncomeCorrection.Click += new System.EventHandler(this.Button_PricesCheck_Click);
             // 

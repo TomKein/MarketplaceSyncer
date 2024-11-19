@@ -286,6 +286,10 @@ namespace Selen.Sites {
                 }
                 if (num % 1000 == 0)
                     Log.Add("vk.com: получено товаров " + num);
+                if (Class365API.IsTimeOver) {
+                    Log.Add("vk.com: время истекло, метод GetVKAsync завершен!!");
+                    return;
+                }
             }
             if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10)
                 return;
@@ -295,6 +299,10 @@ namespace Selen.Sites {
         async Task CheckVKAsync() => await Task.Factory.StartNew(() =>  {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
+                if (Class365API.IsTimeOver) {
+                    Log.Add("vk.com: время истекло, метод CheckVKAsync завершен!!");
+                    return;
+                }
                 //ищем индекс в карточках товаров
                 var id = vkMark[i].Id.ToString();
                 int b = Class365API._bus.FindIndex(t => t.vk.Split('_').Last() == id);
@@ -334,6 +342,11 @@ namespace Selen.Sites {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
             for (int b = 0; b < Class365API._bus.Count && ccl > 0; b++) {
+                if (Class365API.IsTimeOver) {
+                    Log.Add("vk.com: время истекло, метод CheckBusAsync завершен!!");
+                    return;
+                }
+
                 //если нет ссылки перехожу к следующей
                 if (!Class365API._bus[b].vk.Contains("http"))
                     continue;

@@ -57,7 +57,10 @@ namespace Selen.Sites {
             _bus = Class365API._bus;
             //интервал проверки
             var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
-            if (Class365API.SyncStartTime.Minute < 55 || uploadInterval == 0 || DateTime.Now.Hour == 0 || DateTime.Now.Hour % uploadInterval != 0)
+            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes || 
+                uploadInterval == 0 || 
+                DateTime.Now.Hour == 0 || 
+                DateTime.Now.Hour % uploadInterval != 0)
                 return true;
             Log.Add(_l + "начало выгрузки...");
             try {

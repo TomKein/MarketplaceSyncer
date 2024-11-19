@@ -18,17 +18,19 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     public class Drom {
-        readonly string _l = "drom.ru: ";     //префикс для лога
-        public Selenium _dr;               //браузер
-        string _url;                //ссылка в карточке товара
-        List<string> _addDesc;          //дополнительное описание
-        List<string> _addDesc2;          //дополнительное описание2
-        int _creditPriceMin;        //цены для рассрочки
+        readonly string _l = "drom.ru: ";   //префикс для лога
+        public Selenium _dr;                //браузер
+        string _url;                        //ссылка в карточке товара
+        List<string> _addDesc;              //дополнительное описание
+        List<string> _addDesc2;             //дополнительное описание2
+        int _creditPriceMin;                //цены для рассрочки
         int _creditPriceMax;
-        string _creditDescription;  //описание для рассрочки
-        bool _isAddWeights;           //добавление веса 
-        float _defWeigth;           //вес по умолчанию 
-        List<GoodObject> _bus;      //ссылка на товары
+        string _creditDescription;          //описание для рассрочки
+        bool _isAddWeights;                 //добавление веса 
+        float _defWeigth;                   //вес по умолчанию 
+        List<GoodObject> _bus;              //ссылка на товары
+        List<GoodObject> _busToUpdate;        //список товаров для обновления
+        readonly string _busToUpdateFile = @"..\data\drom\toupdate.json";
         readonly string _dromBaseUrl = "https://baza.drom.ru/bulletin/";
         readonly string _fileReserve = @"..\data\drom\reserves.json";     //список сделанных резервов
         bool _needRestart = false;
@@ -73,7 +75,15 @@ namespace Selen.Sites {
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
                 _creditDescription = DB.GetParamStr("creditDescription");
 
-                Log.Add(_l + "начало выгрузки...");
+                Log.Add($"{_l} начало выгрузки...");
+                //загружаю список на обновление
+                if (File.Exists(_busToUpdateFile)) {
+                    var f = File.ReadAllText(_busToUpdateFile);
+                    _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                } else
+                    _busToUpdate = new List<GoodObject>();
+
                 await AuthAsync();
                 await GetDromPhotos();
                 await UpAsync();
@@ -82,15 +92,15 @@ namespace Selen.Sites {
                 await AddAsync();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
-                Log.Add(_l + "выгрузка завершена");
+                Log.Add($"{_l} выгрузка завершена");
             } catch (Exception x) {
-                Log.Add(_l + "ошибка синхронизации! - " + x.Message);
+                Log.Add($"{_l} ошибка синхронизации! - {x.Message}");
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
-                    Log.Add(_l + "ошибка браузера! - " + x.Message);
+                    Log.Add($"{_l} ошибка браузера! - {x.Message}");
                     _dr.Quit();
                     _dr = null;
                 }
@@ -194,30 +204,42 @@ namespace Selen.Sites {
 
         async Task UpdateOffersAsync() {
             await Task.Factory.StartNew(() => {
-                for (int b = 0; b < _bus.Count; b++) {
-                    if (_bus[b].IsTimeUpDated() &&
-                        _bus[b].drom != null &&
-                        _bus[b].drom.Contains("http")) {
-                        try {
-                            UpdateOffer(_bus[b]);
-                        } catch (Exception x) {
-                            Debug.WriteLine(x.Message);
-                            if (x.Message.Contains("timed out") ||
-                                x.Message.Contains("already closed") ||
-                                x.Message.Contains("HTTP request") ||
-                                x.Message.Contains("invalid session id") ||
-                                x.Message.Contains("chrome not reachable")) {
-                                throw x;
-                            }
+                //список обновленных карточек со ссылкой на объявления
+                var busUpdateList = Class365API._bus.Where(_ => _.drom != null && _.drom.Contains("http") && _.IsTimeUpDated()).ToList();
+                //список без дубликатов 
+                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
+                //добавляю в общий список на обновление
+                _busToUpdate.AddRange(busUpdateList);
+                if (_busToUpdate.Count > 0) {
+                    var bu = JsonConvert.SerializeObject(_busToUpdate);
+                    File.WriteAllText(_busToUpdateFile, bu);
+                }
+                for (int b = _busToUpdate.Count-1; b >=0; b--) {
+                    if (Class365API.IsTimeOver)
+                        return;
+                    try {
+                        if (UpdateOffer(_bus[b])) {
+                            _busToUpdate.Remove(_busToUpdate[b]);
+                            var bu = JsonConvert.SerializeObject(_busToUpdate);
+                            File.WriteAllText(_busToUpdateFile, bu);
+                        }
+                    } catch (Exception x) {
+                        Debug.WriteLine(x.Message);
+                        if (x.Message.Contains("timed out") ||
+                            x.Message.Contains("already closed") ||
+                            x.Message.Contains("HTTP request") ||
+                            x.Message.Contains("invalid session id") ||
+                            x.Message.Contains("chrome not reachable")) {
+                            throw x;
                         }
                     }
                 }
             });
         }
-        void UpdateOffer(GoodObject b) {
+        bool UpdateOffer(GoodObject b) {
             if (b.drom.Contains("tin/ht") || b.drom.Contains("in/000000000")) {
                 Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
-                return;
+                return false;
             }
             _dr.Navigate(b.drom, "//input[@name='subject']");
             Thread.Sleep(1000);
@@ -236,6 +258,7 @@ namespace Selen.Sites {
                 Delete(b);
             } else
                 Up(b);
+            return true;
         }
         //проверка фотографий в объявлении
         private void CheckPhotos(GoodObject b) {
@@ -277,33 +300,36 @@ namespace Selen.Sites {
             }
         }
         public async Task AddAsync() {
-            var count = await DB.GetParamIntAsync("drom.addCount");
-            for (int b = _bus.Count - 1; b > -1 && count > 0; b--) {
-                if (Class365API.SyncStartTime.Minute < 55 ||
-                    DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
-                    return;
-                if ((_bus[b].drom == null || !_bus[b].drom.Contains("http")) &&
-                    !_bus[b].GroupName().Contains("ЧЕРНОВИК") &&
-                    _bus[b].Amount > 0 &&
-                    _bus[b].Price > 0 &&
-                    _bus[b].images.Count > 0) {
+            var limit = await DB.GetParamIntAsync("drom.addCount");
+            var interval = TimeSpan.FromDays(1).TotalMinutes / limit;
+            var lastAddTime = await DB.GetParamDateTimeAsync("drom.lastAddTime");
+            //если время с прошлой подачи прошло меньше интервала или обновление длится слишком долго - пропуск
+            if (DateTime.Now < lastAddTime.AddMinutes(interval) || Class365API.IsTimeOver)
+                return;
+            //ищем кандидата для подачи объявления
+            var b = _bus.Find(_ => (_.drom == null || !_.drom.Contains("http")) &&
+                    !_.GroupName().Contains("ЧЕРНОВИК") &&
+                    _.Amount > 0 &&
+                    _.Price > 0 &&
+                    _.images.Count > 0);
+            if (b!=null){
                     var t = Task.Factory.StartNew(() => {
                         _dr.Navigate("https://baza.drom.ru/set/city/370?returnUrl=https%3A%2F%2Fbaza.drom.ru%2Fadding%3Ftype%3Dgoods%26city%3D370", "//input[@name='subject']");
                         if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
                             //throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
                             _dr.ButtonClick("//div[@class='adding-rm-draft__caption']");
-                        SetTitle(_bus[b]);
+                        SetTitle(b);
                         _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                         _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
                         //SetPart(_bus[b]);
                         //SetAlternativeParts(_bus[b]);
-                        SetImages(_bus[b]);
-                        SetDesc(_bus[b]);
-                        SetPrice(_bus[b]);
-                        SetOptions(_bus[b]);
-                        SetDiam(_bus[b]);
-                        SetAudioSize(_bus[b]);
-                        SetWeight(_bus[b]);
+                        SetImages(b);
+                        SetDesc(b);
+                        SetPrice(b);
+                        SetOptions(b);
+                        SetDiam(b);
+                        SetAudioSize(b);
+                        SetWeight(b);
                         Thread.Sleep(30000);
                         PressOkButton();
                         //PressPublicFreeButton();
@@ -311,14 +337,11 @@ namespace Selen.Sites {
                     try {
                         await t;
                         await SaveUrlAsync(b);
-                        Log.Add(_l + _bus[b].name + " объявление добавлено");
-                        count--;
+                        Log.Add(_l + b.name + " объявление добавлено");
                     } catch (Exception x) {
-                        Log.Add(_l + _bus[b].name + " ошибка добавления! - " + x.Message);
-                        break;
+                        Log.Add(_l + b.name + " ошибка добавления! - " + x.Message);
                     }
                 }
-            }
         }
         private void SetWeight(GoodObject b) {
             if (_isAddWeights) {
@@ -334,20 +357,20 @@ namespace Selen.Sites {
                 }
             }
         }
-        async Task SaveUrlAsync(int b) {
+        async Task SaveUrlAsync(GoodObject b) {
             string new_id = _dr.GetUrl();
             string pattern = @"(\d+)\.html"; //число в ссылке перед точкой
             var groups = Regex.Match(new_id, pattern).Groups;
             new_id = groups[groups.Count - 1].Value;
             if (string.IsNullOrEmpty(new_id)) {
                 new_id = "0000000000";
-                Log.Add($"{_l} SaveUrlAsync: ошибка определения id! - {_bus[b].name}, сохранено id={new_id}");
+                Log.Add($"{_l} SaveUrlAsync: ошибка определения id! - {b.name}, сохранено id={new_id}");
             }
-            _bus[b].drom = _dromBaseUrl + new_id + "/edit";
+            b.drom = _dromBaseUrl + new_id + "/edit";
             await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                {"id", _bus[b].id},
-                {"name", _bus[b].name},
-                {_url, _bus[b].drom}
+                {"id", b.id},
+                {"name", b.name},
+                {_url, b.drom}
             });
         }
         void SetAudioSize(GoodObject b) {
@@ -600,7 +623,7 @@ namespace Selen.Sites {
                         if (_dr.GetElementsCount("//button[@value='prolongBulletin' and contains(@class,'button on')]") > 0) {
                             _dr.ButtonClick("//button[@value='prolongBulletin' and contains(@class,'button on')]");
                             PressServiseSubmitButton();
-                            EditOffersWithErrors();//todo need this?..
+                            //EditOffersWithErrors();
                         } else
                             break;
                     }
@@ -610,29 +633,29 @@ namespace Selen.Sites {
             }
         }
         //редактирую объявления с ошибками (например, не указан вес)
-        private void EditOffersWithErrors() {
-            var drom = new List<GoodObject>();
-            //для каждого объявления, в статусе которого есть предупреждение
-            foreach (var item in _dr.FindElements("//div[@class='bull-item__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
-                //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
-                if (_rnd.Next(30) != 1)
-                    continue;
-                //сохраняю содержимое предупреждения 
-                var status = item.FindElement(By.XPath(".//div[contains(@class,'alert')]/p")).Text;
-                //сохраняю id объявления
-                var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
-                //добавляю в список
-                drom.Add(new GoodObject {
-                    id = id,
-                    description = status,
-                });
-            }
-            //обрабатываю получившийся список объявлений с ошибками
-            foreach (var item in drom.Where(w => w.description.Contains("содержит ошибки"))) {
-                var b = _bus.Find(f => f.drom.Contains(item.id));
-                UpdateOffer(b);
-            }
-        }
+        //private void EditOffersWithErrors() {
+        //    var drom = new List<GoodObject>();
+        //    //для каждого объявления, в статусе которого есть предупреждение
+        //    foreach (var item in _dr.FindElements("//div[@class='bull-item__content-wrapper']//div[contains(@class,'alert')]/p/../../../../../..")) {
+        //        //собираю для обработки только 3,3% объявлений на странице за раз, чтобы не получить бан
+        //        if (_rnd.Next(30) != 1)
+        //            continue;
+        //        //сохраняю содержимое предупреждения 
+        //        var status = item.FindElement(By.XPath(".//div[contains(@class,'alert')]/p")).Text;
+        //        //сохраняю id объявления
+        //        var id = item.FindElement(By.XPath(".//a[@data-role='bulletin-link']")).GetAttribute("name");
+        //        //добавляю в список
+        //        drom.Add(new GoodObject {
+        //            id = id,
+        //            description = status,
+        //        });
+        //    }
+        //    //обрабатываю получившийся список объявлений с ошибками
+        //    foreach (var item in drom.Where(w => w.description.Contains("содержит ошибки"))) {
+        //        var b = _bus.Find(f => f.drom.Contains(item.id));
+        //        UpdateOffer(b);
+        //    }
+        //}
         //получаю колчество страниц объявлений
         private int GetPagesCount(string type) {
             try {
@@ -656,7 +679,7 @@ namespace Selen.Sites {
                 await Task.Factory.StartNew(() => {
                     var pages = GetPagesCount("all");
                     for (int i = 0; i < count; i++) {
-                        if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                        if (Class365API.IsTimeOver)
                             return;
                         try {
                             var drom = ParsePage(_rnd.Next(1, pages) / _rnd.Next(1, 7));
@@ -674,7 +697,7 @@ namespace Selen.Sites {
             }
         }
         public async Task CheckDraftsAsync() {
-            if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+            if (Class365API.IsTimeOver)
                 return;
             try {
                 await Task.Factory.StartNew(() => {
@@ -702,7 +725,7 @@ namespace Selen.Sites {
                     int cnt = DB.GetParamInt("drom.checkOffersCount");
                     var checkOtOfStock = DB.GetParamBool("drom.checkOffersOutOfStock");
                     for (int i = 1; i <= cnt;) {
-                        if (DateTime.Now - Class365API.SyncStartTime > TimeSpan.FromMinutes(15))
+                        if (Class365API.IsTimeOver)
                             return;
                         try {
                             if (b >= _bus.Count)
@@ -740,6 +763,8 @@ namespace Selen.Sites {
 
         void CheckPage(List<GoodObject> drom) {
             for (int i = 0; i < drom.Count; i++) {
+                if (Class365API.IsTimeOver)
+                    return;
                 CheckItem(drom[i]);
             }
         }
@@ -750,12 +775,7 @@ namespace Selen.Sites {
                 Delete(b);
             }
             if (i > -1 &&
-                ((b.Price != _bus[i].Price && !_bus[i].description.Contains("Залог:")
-
-                    && DateTime.Now.Minute < 50 //ограничитель периода
-                                                //&& _bus[i].price > 500
-
-                ) ||
+                ((b.Price != _bus[i].Price && !_bus[i].description.Contains("Залог:")) ||
                 !b.description.Contains("далено") && _bus[i].Amount <= 0 ||
                 (b.description.Contains("далено") /*|| item.description.Contains("старело")*/) && _bus[i].Amount > 0
                 ) || b.description.Contains("Ожидает публикации")) {

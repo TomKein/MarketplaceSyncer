@@ -63,6 +63,7 @@ namespace Selen {
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         static readonly string _dictionaryFile = @"..\data\dict.txt";   //словать рус-англ аналогов
+        public static int _checkIntervalMinutes;
         private static SyncStatus status;
         public static SyncStatus Status {
             get {
@@ -76,6 +77,11 @@ namespace Selen {
         public static DateTime SyncStartTime { set; get; }
         public static DateTime ScanTime { set; get; }
         public static DateTime LastScanTime { set; get; }
+
+        public static bool IsTimeOver { get {
+                return DateTime.Now > SyncStartTime.AddMinutes(_checkIntervalMinutes);
+            } }
+
         static Random _rnd = new Random();
         static object _lockerRequests = new object();
         static bool _flagRequestActive = false;
@@ -98,6 +104,7 @@ namespace Selen {
             _timer.Interval = 20000;
             _timer.Elapsed += timer_sync_Tick;
             syncAllEvent += SyncAllHandlerAsync;
+            _checkIntervalMinutes = 15;
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
             if (DateTime.Now.Hour < DB.GetParamInt("syncStartHour") ||
@@ -245,7 +252,7 @@ namespace Selen {
             await Class365API.CheckArhiveStatusAsync();
             await Class365API.ClearOldUrls();
             await Class365API.CheckGrammarOfTitlesAndDescriptions();
-            if (Class365API.SyncStartTime.Minute >= 55) {
+            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await Class365API.CheckDubles();
                 await Class365API.CheckMultipleApostrophe();
                 await Class365API.ArtCheck();
@@ -332,6 +339,7 @@ namespace Selen {
             try {
                 SyncStartTime = DateTime.Now;
                 Log.Add($"{_l} GoLiteSync: запрос изменений...");
+                _checkIntervalMinutes = await DB.GetParamIntAsync("checkIntervalMinutes");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
                 var lastLiteScanTime = await DB.GetParamStrAsync("liteScanTime");
                 LastScanTime = await DB.GetParamDateTimeAsync("lastScanTime");
@@ -424,8 +432,8 @@ namespace Selen {
                 ///а дальше всё как обычно, только сайты больше не парсим,
                 ///только вызываем методы обработки изменений и подъема упавших
 
-                if (DateTime.Now.Minute % 15 > 10 && (DateTime.Now.AddMinutes(-5) > ScanTime) ||
-                    LastScanTime.AddMinutes(15) < DateTime.Now) {
+                if (//DateTime.Now.Minute % 15 > 10 && (DateTime.Now.AddMinutes(-5) > ScanTime) ||
+                    LastScanTime.AddMinutes(_checkIntervalMinutes) < DateTime.Now) {
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }
