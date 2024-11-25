@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     public class VK {
+        string _l = "vk.com: ";
         public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
         public List<Market> vkMark = new List<Market>();
         VkApi _vk = new VkApi();
@@ -35,15 +36,17 @@ namespace Selen.Sites {
         public int UrlsCount;
         int _nameLimit = 200;
         List<GoodObject> _bus;
+        List<GoodObject> _busToUpdate;        //список товаров для обновления
+        readonly string _busToUpdateFile = @"..\data\vk\toupdate.json";
         //главный метод синхронизации вк
         public async Task VkSyncAsync() {
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(20000);
-            _bus=Class365API._bus;
+            _bus = Class365API._bus;
             await GetParamsAsync();
             await IsVKAuthorizatedAsync();
-            await EditAsync();
-            if (Class365API.SyncStartTime.Minute < 55 || Class365API.SyncStartTime.Hour % _catalogCheckInterval != 0)
+            await UpdateAll();
+            if (Class365API.SyncStartTime.Minute > Class365API._checkIntervalMinutes || Class365API.SyncStartTime.Hour % _catalogCheckInterval != 0)
                 return;
             await GetAlbumsVKAsync();
             if (vkAlb.Count == 0)
@@ -53,25 +56,45 @@ namespace Selen.Sites {
             await CheckVKAsync();
             await CheckBusAsync();
         }
-        //проверка изменений в бизнес.ру
-        async Task EditAsync() => await Task.Factory.StartNew(() => {
-            for (int b = 0; b < Class365API._bus.Count; b++) {
-                if (Class365API._bus[b].IsTimeUpDated() &&
-                    Class365API._bus[b].vk != null &&
-                    Class365API._bus[b].vk.Contains("http")) {
-                    if (Class365API._bus[b].Amount <= 0) {
-                        var id = long.Parse(Class365API._bus[b].vk.Split('_').Last());
-                        _vk.Markets.Delete(-_marketId, id);
-                        Class365API._bus[b].vk = "";
-                        Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
-                                                    {"id", Class365API._bus[b].id},
-                                                    {"name", Class365API._bus[b].name},
-                                                    {_url, Class365API._bus[b].vk} });
-                        Log.Add("vk.com: " + Class365API._bus[b].name + " - удалено!");
-                        Thread.Sleep(1000);
-                    } else
-                        Edit(b);
+        //проверка карточек
+        async Task UpdateAll() {
+            //список обновленных карточек со ссылкой на объявления
+            var busUpdateList = Class365API._bus.Where(_ => _.vk != null && _.vk.Contains("http") && _.IsTimeUpDated()).ToList();
+            //список без дубликатов 
+            busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
+            //добавляю в общий список на обновление
+            _busToUpdate.AddRange(busUpdateList);
+            if (_busToUpdate.Count > 0) {
+                var bu = JsonConvert.SerializeObject(_busToUpdate);
+                File.WriteAllText(_busToUpdateFile, bu);
+            }
+            for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
+                if (Class365API.IsTimeOver)
+                    return;
+                if (await UpdateOffer(_busToUpdate[b])) {
+                    _busToUpdate.Remove(_busToUpdate[b]);
+                    var bu = JsonConvert.SerializeObject(_busToUpdate);
+                    File.WriteAllText(_busToUpdateFile, bu);
                 }
+            }
+        }
+        async Task<bool> UpdateOffer(GoodObject good) => await Task.Factory.StartNew(() => {
+            try {
+                if (good.Amount <= 0) {
+                    var id = long.Parse(good.vk.Split('_').Last());
+                    _vk.Markets.Delete(-_marketId, id);
+                    good.vk = "";
+                    Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                                    {"id", good.id},
+                                                    {"name", good.name},
+                                                    {_url, good.vk} });
+                    Log.Add($"{_l} UpdateOffer: {good.name} - удалено!");
+                } else
+                    Edit(good);
+                return true;
+            } catch (Exception x) {
+                Log.Add($"{_l} UpdateOffer: ошибка! - {x.Message}");
+                return false;
             }
         });
 
@@ -88,35 +111,44 @@ namespace Selen.Sites {
             _creditPriceMin = DB.GetParamInt("creditPriceMin");
             _creditPriceMax = DB.GetParamInt("creditPriceMax");
             _creditDescription = DB.GetParamStr("creditDescription");
+            //загружаю список на обновление
+            if (File.Exists(_busToUpdateFile)) {
+                var f = File.ReadAllText(_busToUpdateFile);
+                _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+            } else
+                _busToUpdate = new List<GoodObject>();
         });
         //редактирую объявление
-        private void Edit(int b) {
+        private void Edit(GoodObject good) {
             try {
                 //получаю id объявления в вк из ссылки в карточке товара
-                var id = "-" + Class365API._bus[b].vk.Split('-').Last();
+                var id = "-" + good.vk.Split('-').Last();
                 //запрашиваю товар из маркета
                 var vk = _vk.Markets.GetById(new[] { id }, extended: true).First();
                 //готовлю параметры
                 var param = new MarketProductParams();
-                param.Name = Class365API._bus[b].NameLimit(_nameLimit);
-                param.Description = GetDescription(_bus[b]);
+                param.Name = good.NameLimit(_nameLimit);
+                param.Description = GetDescription(good);
                 param.CategoryId = (long) vk.Category.Id;
                 param.ItemId = vk.Id;
                 param.OwnerId = (long) vk.OwnerId;
                 param.MainPhotoId = (long) vk.Photos[0].Id;
                 param.PhotoIds = vk.Photos.Skip(1).Select(s => (long) s.Id);
-                param.Price = (decimal) Class365API._bus[b].Price;
-                param.OldPrice = (decimal) Class365API._bus[b].Price;
+                param.Price = (decimal) good.Price;
+                param.OldPrice = (decimal) good.Price;
                 _vk.Markets.Edit(param);
-                Log.Add("vk.com: " + Class365API._bus[b].name + " - обновлено");
+                Log.Add("vk.com: " + good.name + " - обновлено");
             } catch (Exception x) {
-                Log.Add("vk.com: " + Class365API._bus[b].name + " - ошибка редактирования! - " + x.Message);
+                Log.Add("vk.com: " + good.name + " - ошибка редактирования! - " + x.Message);
             }
-            Thread.Sleep(10000);
+            //Thread.Sleep(10000);
         }
         //добавляю объявления на ВК
         private async Task AddVKAsync() {
             for (int b = 0; b < Class365API._bus.Count && _addCount > 0; b++) {
+                if (Class365API.IsTimeOver)
+                    return;
                 //если есть фотографии, цена, количество и нет привязки на вк
                 if (Class365API._bus[b].images.Count > 0
                     && !Class365API._bus[b].GroupName().Contains("ЧЕРНОВИК")
@@ -269,6 +301,8 @@ namespace Selen.Sites {
             int checkCount = DB.GetParamInt("vk.checkCount");
             vkMark.Clear();
             for (int v = 0; ; v++) {
+                if (Class365API.IsTimeOver)
+                    return;
                 int num = vkMark.Count;
                 try {
                     vkMark.AddRange(
@@ -296,13 +330,11 @@ namespace Selen.Sites {
             throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count + ", checkCount = " + checkCount);
         });
         //проверка каталога объявлений на вк
-        async Task CheckVKAsync() => await Task.Factory.StartNew(() =>  {
+        async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
-                if (Class365API.IsTimeOver) {
-                    Log.Add("vk.com: время истекло, метод CheckVKAsync завершен!!");
+                if (Class365API.IsTimeOver) 
                     return;
-                }
                 //ищем индекс в карточках товаров
                 var id = vkMark[i].Id.ToString();
                 int b = Class365API._bus.FindIndex(t => t.vk.Split('_').Last() == id);
@@ -320,7 +352,7 @@ namespace Selen.Sites {
                         Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
                         Thread.Sleep(2000);
                     }
-                //если изменилась цена, наименование или карточка товара - редактирую
+                    //если изменилась цена, наименование или карточка товара - редактирую
                 } else if (Class365API._bus[b].Price != vkMark[i].Price.Amount / 100 ||
                     Class365API._bus[b].NameLimit(_nameLimit) != vkMark[i].Title || //не совпадает название
 
@@ -328,10 +360,10 @@ namespace Selen.Sites {
                     Class365API._bus[b].Price <= _creditPriceMax && //но описание не содержит информацию о рассрочке - обновляем
                     !vkMark[i].Description.Contains(_creditDescription) ||
 
-                    (vkMark[i].Description.Contains("Наложенный платёж")&& ccl-- > 0) ||
+                    (vkMark[i].Description.Contains("Наложенный платёж") && ccl-- > 0) ||
 
                     Class365API._bus[b].IsTimeUpDated()) {
-                    Edit(b);
+                    Edit(_bus[b]);
                 }
             }
         });
@@ -342,11 +374,8 @@ namespace Selen.Sites {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
             for (int b = 0; b < Class365API._bus.Count && ccl > 0; b++) {
-                if (Class365API.IsTimeOver) {
-                    Log.Add("vk.com: время истекло, метод CheckBusAsync завершен!!");
+                if (Class365API.IsTimeOver)
                     return;
-                }
-
                 //если нет ссылки перехожу к следующей
                 if (!Class365API._bus[b].vk.Contains("http"))
                     continue;

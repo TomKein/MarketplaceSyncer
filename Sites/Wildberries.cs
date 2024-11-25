@@ -51,6 +51,9 @@ namespace Selen.Sites {
 
         readonly string _wareHouseListFile = @"..\data\wildberries\wb_warehouseList.json";  //склады
 
+        List<GoodObject> _busToUpdate;        //список товаров для обновления
+        readonly string _busToUpdateFile = @"..\data\wildberries\toupdate.json";
+
         static object _locker = new object();
         static bool _flag = false;
 
@@ -98,15 +101,24 @@ namespace Selen.Sites {
                     await GetCountriesAsync();
 
                 await GetWarehouseList();
+
+                //загружаю список на обновление
+                if (File.Exists(_busToUpdateFile)) {
+                    var f = File.ReadAllText(_busToUpdateFile);
+                    _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                } else
+                    _busToUpdate = new List<GoodObject>();
+
                 //tests
                 //if (_tnvd == null)
                 //await GetTnvdAsync("7985");
                 //await GetCharcsAsync("7985");
-                
+
                 await GetCardsListAsync();
                 await GetPricesAsync();
                 await GetStocksAsync();
-                await UpdateCardsAsync();
+                await UpdateAll();
                 await AddProductsAsync();
                 CheckSizes();
             } catch (Exception ex) {
@@ -123,7 +135,7 @@ namespace Selen.Sites {
                 data["dateFrom"] = unixTimeStamp.ToString();
                 var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
-                Log.Add($"{_l} получено {wb.orders.Count} заказов:" 
+                Log.Add($"{_l} получено {wb.orders.Count} заказов:"
                     //+$"\n{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}"
                     );
 
@@ -147,12 +159,12 @@ namespace Selen.Sites {
                     if (!reserveList.Contains(order.id)) {
                         //готовим список товаров (id, amount)
                         var goodsDict = new Dictionary<string, int>();
-                        var amount = Class365API._bus.Find(g=>g.id == order.article).GetQuantOfSell();
+                        var amount = Class365API._bus.Find(g => g.id == order.article).GetQuantOfSell();
                         goodsDict.Add(order.article, amount);
                         if (await Class365API.MakeReserve(Selen.Source.Wildberries,
                                                           $"WB order {order.id}",
-                                                          goodsDict, 
-                                                          order.createdAt.ToString())){
+                                                          goodsDict,
+                                                          order.createdAt.ToString())) {
                             //если резерв создан - добавляем в список и сохраняем
                             reserveList.Add(order.id);
                             if (reserveList.Count > 1000) {
@@ -430,10 +442,11 @@ namespace Selen.Sites {
                             Log.Add($"{_l} AddProductsAsync: {good.name} - приоритетный товар, ждем описание категории!");
                             --count;
                         }
+                        Task.Delay(200);
                         continue;
                     }
                     var length = int.Parse(good.length);
-                    if (length < 5) 
+                    if (length < 5)
                         length = 5;
                     var width = int.Parse(good.width) * good.GetQuantOfSell();
                     if (width < 5)
@@ -741,7 +754,7 @@ namespace Selen.Sites {
                 var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
                 var goodNewPrice = GetNewPrice(good);
                 var discount = _cardsPrices.Find(c => c.vendorCode == good.id)?.discount ?? 0;
-                if (wbPrice == goodNewPrice && discount<=_maxDiscont) {
+                if (wbPrice == goodNewPrice && discount <= _maxDiscont) {
                     //wbDiscountedPrice == goodNewPrice) 
                     //Log.Add($"{_l} UpdatePrice: {good.name} - цены не нуждаются в обновлении");
                     return;
@@ -887,53 +900,97 @@ namespace Selen.Sites {
             cl.Dispose();
             return urlList;
         }
-        //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
-        //а также выборочная проверка карточек
-        private async Task UpdateCardsAsync() {
+        async Task UpdateAll() {
             try {
+                //список обновленных карточек со ссылкой на объявления
+                var busUpdateList = Class365API._bus.Where(_ => _.wb != null &&
+                                                                _.wb.Contains("http") &&
+                                                               !_.wb.Contains("/00000/") &&
+                                                                _.IsTimeUpDated()).ToList();
+                //список без дубликатов 
+                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
+                //добавляю в общий список на обновление
+                _busToUpdate.AddRange(busUpdateList);
+                if (_busToUpdate.Count > 0) {
+                    var bu = JsonConvert.SerializeObject(_busToUpdate);
+                    File.WriteAllText(_busToUpdateFile, bu);
+                }
+                for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
+                    if (Class365API.IsTimeOver)
+                        return;
+                    try {
+                        if (await CheckCardAsync(_busToUpdate[b])) {
+                            _busToUpdate.Remove(_busToUpdate[b]);
+                            var bu = JsonConvert.SerializeObject(_busToUpdate);
+                            File.WriteAllText(_busToUpdateFile, bu);
+                            await Task.Delay(100);
+                        }
+                    } catch (Exception x) {
+                        Log.Add(_l + "UpdateProductsAsync - " + x.Message);
+                    }
+                }
+                //теперь выборочная проверка
                 var checkProductCount = await DB.GetParamIntAsync("wb.checkProductCount");
                 var checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
                 if (checkProductIndex >= _cardsList.Count)
                     checkProductIndex = 0;
-                await DB.SetParamAsync("wb.checkProductIndex", (checkProductIndex + checkProductCount).ToString());
-                //для каждой карточки, у которой есть ссылка на WB, но не временная, с 00000
-                foreach (var good in _bus.Where(w => !string.IsNullOrEmpty(w.wb) &&
-                                                w.wb.Contains("http") &&
-                                                !w.wb.Contains("/00000/"))) {
+                busUpdateList = Class365API._bus.Where(_ => _.wb != null &&
+                                                            _.wb.Contains("http") &&
+                                                           !_.wb.Contains("/00000/"))
+                                                .Skip(checkProductIndex)
+                                                .Take(checkProductCount)
+                                                .ToList();
+                for (int b = 0;b < busUpdateList.Count; b++) {
+                    if (Class365API.IsTimeOver)
+                        break;
                     try {
-                        //находим карточку на вб
-                        var card = _cardsList.Find(f => f.vendorCode == good.id);
-                        if (card == null) {
-                            //await SaveUrlAsync(good, -1);
-                            _isCardsListCheckNeeds = true;
-                            _isCardsPricesCheckNeeds = true;
-                            _isCardsStocksCheckNeeds = true;
-                            Log.Add($"{good.name} - карточка не найдена на ВБ!");
-                        } else {
-                            //проверяем остаток на вб
-                            var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
-                            //проверяем цену на вб
-                            var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
-                            var wbDiscount = _cardsPrices.Find(f => f.vendorCode == good.id)?.discount;
-                            var goodNewPrice = GetNewPrice(good);
-                            var goodNewAmount = (int) good.Amount/good.GetQuantOfSell();
-                            //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
-                            if (wbStock != goodNewAmount ||
-                                wbPrice != goodNewPrice ||
-                                wbDiscount > _maxDiscont||
-                                card.photos.Count != good.images.Count ||
-                                good.IsTimeUpDated() ||
-                                --checkProductIndex < 0 && checkProductCount + checkProductIndex >= 0
-                                )
-                                //обновляем карточку на вб
-                                await UpdateCardAsync(good, card);
-                        }
+                        await CheckCardAsync(busUpdateList[b]);
+                        await Task.Delay(100);
+                        checkProductIndex++;
                     } catch (Exception x) {
-                        Log.Add(_l + "UpdateCardsAsync - " + x.Message);
+                        Log.Add(_l + "UpdateProductsAsync - " + x.Message);
                     }
                 }
+                await DB.SetParamAsync("wb.checkProductIndex", checkProductIndex.ToString());
             } catch (Exception x) {
-                Log.Add($"UpdateCardsAsync: ошибка - {x.Message}");
+                Log.Add($"{_l} UpdateAll: ошибка обновления! {x.Message}");
+            }
+        }
+
+
+        //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
+        //а также выборочная проверка карточек
+        private async Task<bool> CheckCardAsync(GoodObject good) {
+            try {
+                //находим карточку на вб
+                var card = _cardsList.Find(f => f.vendorCode == good.id);
+                if (card == null) {
+                    //await SaveUrlAsync(good, -1);
+                    _isCardsListCheckNeeds = true;
+                    _isCardsPricesCheckNeeds = true;
+                    _isCardsStocksCheckNeeds = true;
+                    Log.Add($"{good.name} - карточка не найдена на ВБ!");
+                    return false;
+                } else {
+                    //проверяем остаток на вб
+                    var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
+                    //проверяем цену на вб
+                    var wbPrice = _cardsPrices.Find(f => f.vendorCode == good.id)?.sizes[0].price;
+                    var wbDiscount = _cardsPrices.Find(f => f.vendorCode == good.id)?.discount;
+                    var goodNewPrice = GetNewPrice(good);
+                    var goodNewAmount = (int) good.Amount / good.GetQuantOfSell();
+                    //если отличается остаток, цена, или карточка была обновлена в бизнес.ру
+                    if (wbStock != goodNewAmount ||
+                        wbPrice != goodNewPrice ||
+                        wbDiscount > _maxDiscont ||
+                        card.photos.Count != good.images.Count)
+                        //обновляем карточку на вб
+                        await UpdateCardAsync(good, card);
+                    return true;
+                }
+            } catch (Exception x) {
+                Log.Add(_l + "UpdateCardsAsync - " + x.Message);
+                return false;
             }
         }
         //запорос остатков товара
@@ -980,7 +1037,7 @@ namespace Selen.Sites {
                     card = _cardsList.Find(f => f.vendorCode == good.id);
                 if (card == null)
                     throw new Exception("карточка не найдена!");
-                var amount =(int) good.Amount / good.GetQuantOfSell(); //делим количество шт на квант продажи
+                var amount = (int) good.Amount / good.GetQuantOfSell(); //делим количество шт на квант продажи
                 //если вдруг товар в карточке стал Б/У - зануляем остаток, чтобы снять с продажи на ВБ
                 if (!good.New || amount < 0)
                     amount = 0;
@@ -1208,10 +1265,10 @@ namespace Selen.Sites {
                 stickerList = JsonConvert.DeserializeObject<Stickers>(_jsonResponse);
                 if (stickerList.stickers.Count > 0) {
                     var sticker = stickerList.stickers[0].partA + " " + stickerList.stickers[0].partB;
-                    Log.Add($"GetOrderSticker: получен стикер {sticker}");
+                    Log.Add($"{_l} GetOrderSticker: получен стикер {sticker}");
                     return sticker;
                 } else {
-                    throw new Exception("стикер не получен!");
+                    Log.Add($"{_l} GetOrderSticker: предупреждение! - order {orderId} - стикер не получен!");
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} GetOrderSticker: ошибка! - order {orderId} - {x.Message}");
@@ -1222,13 +1279,13 @@ namespace Selen.Sites {
         public void CheckSizes() {
             Log.Add($"CheckSize: проверяем габариты...");
 
-            foreach(var good in Class365API._bus.Where(g=>g.wb != null && 
+            foreach (var good in Class365API._bus.Where(g => g.wb != null &&
                                                           g.wb.Contains("http") &&
                                                          (g.MaxDimention > 120 ||
                                                           g.SumDimentions > 200 ||
-                                                          g.Weight > 25))) 
+                                                          g.Weight > 25)))
                 Log.Add($"CheckSize: id:{good.id} name:{good.name} wb:{good.wb} - ошибка! габариты за пределами!!");
-            
+
             Log.Add($"CheckSize: проверка завершена.");
         }
 

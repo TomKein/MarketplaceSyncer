@@ -226,6 +226,8 @@ namespace Selen.Sites {
                 items = _productList;
             foreach (var item in items) {
                 try {
+                    if (Class365API.IsTimeOver)
+                        return;
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
                     if (b == -1)
@@ -237,8 +239,6 @@ namespace Selen.Sites {
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await UpdateProductAsync(Class365API._bus[b], productInfo);
                     }
-                    if (Class365API.IsTimeOver && checkAll)
-                        return;
                 } catch (Exception x) {
                     Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
                     _isProductListCheckNeeds = true;
@@ -595,6 +595,8 @@ namespace Selen.Sites {
             Log.Add(_l + "карточек для добавления: " + goods.Count() + " (" + goods2.Count() + ")");
             int i = 0;
             foreach (var good in goods) {
+                if (Class365API.IsTimeOver)
+                    return;
                 try {
                     //проверяем группу товара
                     var attributes = await GetAttributesAsync(good);
@@ -667,6 +669,8 @@ namespace Selen.Sites {
                     OzonActionProducts actionProducts;
                     if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                         do {
+                            if (Class365API.IsTimeOver)
+                                return;
                             var data5 = new {
                                 action_id = actions.result[i].id,
                                 limit = limit,
@@ -754,9 +758,13 @@ namespace Selen.Sites {
         //проверка цен - массовый запрет автодобавления в акции
         public async Task DeactivateAutoActions() {
             try {
+                if (Class365API.IsTimeOver)
+                    return;
                 var priceList = await GetPrices();
                 var autoActionList = priceList.Where(w=>w.price.auto_action_enabled).Take(200);
                 foreach (var product in autoActionList) {
+                    if (Class365API.IsTimeOver)
+                        return;
                     var data = new {
                         prices = new[] {
                             new { 

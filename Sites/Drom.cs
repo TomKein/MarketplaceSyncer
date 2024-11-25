@@ -218,7 +218,7 @@ namespace Selen.Sites {
                     if (Class365API.IsTimeOver)
                         return;
                     try {
-                        if (UpdateOffer(_bus[b])) {
+                        if (UpdateOffer(_busToUpdate[b])) {
                             _busToUpdate.Remove(_busToUpdate[b]);
                             var bu = JsonConvert.SerializeObject(_busToUpdate);
                             File.WriteAllText(_busToUpdateFile, bu);
@@ -848,7 +848,7 @@ namespace Selen.Sites {
                                 imgUrls = imgUrls.Distinct().OrderBy(a => a).ToList();
                             });
                             if (imgUrls.Count == 0)
-                                throw new Exception("сылки для загрузки на фото не найдены!!");
+                                throw new Exception("ссылки для загрузки на фото не найдены!!");
                             //если ссылки на фото найдены
                             for (int i = 0; i < imgUrls.Count; i++) {
                                 //прикрепляю фото в карточку товара в бизнес.ру
