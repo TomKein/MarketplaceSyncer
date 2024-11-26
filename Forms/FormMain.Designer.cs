@@ -43,6 +43,8 @@ namespace Selen {
             this.button_SaveCookie = new System.Windows.Forms.Button();
             this.button_Settings = new System.Windows.Forms.Button();
             this.panel_Buttons = new System.Windows.Forms.Panel();
+            this.button_ShowWarnings = new System.Windows.Forms.Button();
+            this.button_ShowErrors = new System.Windows.Forms.Button();
             this.button_wildberries = new System.Windows.Forms.Button();
             this.label_Avito = new System.Windows.Forms.Label();
             this.button_AvitoCategories = new System.Windows.Forms.Button();
@@ -57,7 +59,7 @@ namespace Selen {
             this.button_Test = new System.Windows.Forms.Button();
             this.panel_Filter = new System.Windows.Forms.Panel();
             this.textBox_LogFilter = new System.Windows.Forms.TextBox();
-            this.button_LogFilterClear = new System.Windows.Forms.Button();
+            this.button_LogShowAll = new System.Windows.Forms.Button();
             this.panel4 = new System.Windows.Forms.Panel();
             this.panel_Buttons.SuspendLayout();
             this.panel_bottom.SuspendLayout();

@@ -64,7 +64,9 @@ namespace Selen {
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         static readonly string _dictionaryFile = @"..\data\dict.txt";   //словать рус-англ аналогов
         public static int _checkIntervalMinutes;
-        private static SyncStatus status;
+        
+        //статус синхронизации
+        static SyncStatus status;
         public static SyncStatus Status {
             get {
                 return status;
@@ -74,15 +76,43 @@ namespace Selen {
                 updatePropertiesEvent.Invoke();
             }
         }
+        //время запуска нового цикла
         public static DateTime SyncStartTime { set; get; }
-        public static DateTime ScanTime { set; get; }
-        public static DateTime LastScanTime { set; get; }
 
+        //время последнего обновления
+        static DateTime lastScanTime;
+        public static DateTime LastScanTime { set { 
+                lastScanTime = value;
+                DB.SetParamAsync("lastScanTime", lastScanTime.ToString());
+                //updatePropertiesEvent.Invoke();
+            } get { 
+                return lastScanTime;
+            } }
+        //время последнего запроса изменений
+        static DateTime _lastLiteScanTime;
+
+        static DateTime lastErrorShowTime;
+        public static DateTime LastErrorShowTime { 
+            set {
+                lastErrorShowTime = value;
+                DB.SetParamAsync("lastErrorShowTime", lastErrorShowTime.ToString());
+            } get { 
+                return lastErrorShowTime;
+            } }
+        static DateTime lastWarningShowTime;
+        public static DateTime LastWarningShowTime { 
+            set { 
+                lastWarningShowTime = value;
+                DB.SetParamAsync("lastWarningShowTime", lastWarningShowTime.ToString());
+            } get { 
+                return lastWarningShowTime;
+            } }
+
+        //ограничение времени цикла синхронизации (10 мин)
         public static bool IsTimeOver { get {
                 return DateTime.Now > SyncStartTime.AddMinutes(_checkIntervalMinutes);
             } }
 
-        static Random _rnd = new Random();
         static object _lockerRequests = new object();
         static bool _flagRequestActive = false;
         static string _labelBusText;
@@ -99,12 +129,15 @@ namespace Selen {
         public static event SyncEventDelegate syncAllEvent = null;
         public static event SyncEventDelegate updatePropertiesEvent = null;
 
-
         static Class365API() {
             _timer.Interval = 20000;
             _timer.Elapsed += timer_sync_Tick;
             syncAllEvent += SyncAllHandlerAsync;
             _checkIntervalMinutes = 15;
+            lastScanTime = DB.GetParamDateTime("lastScanTime");
+            _lastLiteScanTime = lastScanTime;
+            lastErrorShowTime = DB.GetParamDateTime("lastErrorShowTime");
+            lastWarningShowTime = DB.GetParamDateTime("lastWarningShowTime");
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
             if (DateTime.Now.Hour < DB.GetParamInt("syncStartHour") ||
@@ -115,9 +148,6 @@ namespace Selen {
                 await GoFullSync();
             else if (Status == SyncStatus.Waiting)
                 await GoLiteSync();
-            //#if DEBUG 
-            //            return;
-            //#endif
             _timer.Start();
         }
         public static async Task RepairAsync() {
@@ -341,8 +371,6 @@ namespace Selen {
                 Log.Add($"{_l} GoLiteSync: запрос изменений...");
                 _checkIntervalMinutes = await DB.GetParamIntAsync("checkIntervalMinutes");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
-                var lastLiteScanTime = await DB.GetParamStrAsync("liteScanTime");
-                LastScanTime = await DB.GetParamDateTimeAsync("lastScanTime");
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
                 var isBusFileOld = lastWriteBusFile.AddMinutes(5) < LastScanTime;
                 //если файл базы устарел - полный рескан
@@ -360,7 +388,7 @@ namespace Selen {
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" },
-                            {"updated[from]", lastLiteScanTime}
+                            {"updated[from]", _lastLiteScanTime.ToString()}
                     });
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
@@ -376,7 +404,7 @@ namespace Selen {
                             {"with_remains", "1"},
                             {"with_prices", "1"},
                             {"type_price_ids[0]","75524" },
-                            {"updated_remains_prices[from]", lastLiteScanTime}
+                            {"updated_remains_prices[from]", _lastLiteScanTime.ToString()}
                     });
                 s = s.Replace("\"209334\":", "\"drom\":")
                     .Replace("\"209360\":", "\"vk\":")
@@ -417,81 +445,30 @@ namespace Selen {
                 }
 
                 //база теперь должна быть в актуальном состоянии
-                //сохраняем время, на которое база актуальна (только liteScanTime! 
-                //lastScanTime сохраним когда перенесем изменения в объявления!!)
-                //когда реализуем перенос изменения сразу - можно будет оперировать только одной переменной                
+                //сохраняем время, на которое база в кеше актуальна (только liteScanTime!) 
+                //lastScanTime обновляем после переноса изменений на сайты!!)
 
                 LabelBusText = _bus.Count + "/" + _bus.Count(c => c.Amount > 0 && c.Price > 0 && c.images.Count > 0);
-                await DB.SetParamAsync("liteScanTime", SyncStartTime.AddMinutes(-liteScanTimeShift).ToString());
+                _lastLiteScanTime = SyncStartTime.AddMinutes(-liteScanTimeShift);
                 await DB.SetParamAsync("controlBus", _bus.Count.ToString());
 
                 ///вызываем событие в котором сообщаем о том, что в базе есть изменения... на будущее, когда будем переходить на событийную модель
-                ///пока события не реализованы в проекте, поэтому пока мы лишь обновили уже загруженной базе только те карточки, 
-                ///которые изменились с момента последнего запроса
-                ///и дальше сдвинем контрольное время актуальности базы
-                ///а дальше всё как обычно, только сайты больше не парсим,
-                ///только вызываем методы обработки изменений и подъема упавших
+                ///пока события не реализованы в проекте, поэтому пока мы лишь обновили кеш базы, 
+                ///карточки, которые изменились с момента последнего запроса
 
-                if (//DateTime.Now.Minute % 15 > 10 && (DateTime.Now.AddMinutes(-5) > ScanTime) ||
-                    LastScanTime.AddMinutes(_checkIntervalMinutes) < DateTime.Now){
+                if (LastScanTime.AddMinutes(_checkIntervalMinutes) < DateTime.Now){
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }
                 Status = SyncStatus.Waiting;
                 Log.Add(_l + "цикл синхронизации завершен");
-            } catch (Exception ex) {
-                Log.Add(_l + "ошибка синхронизации: " + ex.Message + "\n"
-                    + ex.Source + "\n"
-                    + ex.InnerException?.Message);
+            } catch (Exception x) {
+                Log.Add(_l + "ошибка синхронизации: " + x.Message + "\n"
+                    + x.Source + "\n"
+                    + x.InnerException?.Message);
                 Status = SyncStatus.NeedUpdate;
             }
         }
-        //static async Task<List<GoodObject>> GetBusGoodsAsync(List<string> ids) {
-        //    int requestLimit = 10;
-        //    List<GoodObject> lro = new List<GoodObject>();
-        //    while (ids.Count > 0) {
-        //        var requestId = ids.Take(requestLimit).ToList();
-        //        ids = ids.Skip(requestLimit).ToList();
-        //        var d = new Dictionary<string, string>();
-        //        for (int i = 0; i < requestId.Count; i++)
-        //            d.Add("id[" + i + "]", requestId[i]);
-        //        d.Add("with_attributes", "1");
-        //        d.Add("with_additional_fields", "1");
-        //        d.Add("with_remains", "1");
-        //        d.Add("with_prices", "1");
-        //        d.Add("type_price_ids[0]", "75524");
-        //        int err = 0;
-        //        do {
-        //            string s = "";
-        //            try {
-        //                s = await RequestAsync("get", "goods", d);
-        //                s = s
-        //                    .Replace("\"209334\":", "\"drom\":")
-        //                    .Replace("\"209360\":", "\"vk\":")
-        //                    .Replace("\"854879\":", "\"ozon\":")
-        //                    .Replace("\"854882\":", "\"wb\":");
-        //                lro.AddRange(JsonConvert.DeserializeObject<List<GoodObject>>(s));
-        //                await Task.Delay(100);
-        //                break;
-        //            } catch (Exception x) {
-        //                Log.Add(_l + "ошибка запроса товаров!!! - " + d + " - " + x.Message + " - " + s);
-        //                err++;
-        //                await Task.Delay(60000);
-        //            }
-        //        } while (err < 10);
-        //    }
-        //    return lro;
-        //}
-        //public static bool IsWorkTime() {
-        //    var dt = DateTime.Now;
-        //    if (dt.DayOfWeek == DayOfWeek.Sunday)
-        //        return false;
-        //    if (dt.Hour >= 17 || (dt.AddMinutes(30).Hour < 10)) //c 9-30 до 17
-        //        return false;
-        //    if (dt.DayOfWeek == DayOfWeek.Saturday && dt.Hour >= 15) // суб до 15
-        //        return false;
-        //    return true;
-        //}
         public static async Task SaveBusAsync() {
             try {
                 await Task.Factory.StartNew(() => {
@@ -968,7 +945,7 @@ namespace Selen {
             var s = await RequestAsync("get", "realizations", new Dictionary<string, string>{
                         {"extended", "true"},
                         {"with_goods", "true"},
-                        {"updated[from]", ScanTime.AddMinutes(-30).ToString()},
+                        {"updated[from]", LastScanTime.AddMinutes(-30).ToString()},
                         //{"updated[to]", ScanTime.ToString()},
                     });
             var realizations = JsonConvert.DeserializeObject<List<Realization>>(s);
@@ -1444,7 +1421,7 @@ namespace Selen {
                         if (s.Contains("updated"))
                             Log.Add("AddStickerCodeToReserve: проводка реализации отменена");
                         else
-                            Log.Add("AddStickerCodeToReserve: ОШИБКА! ПРОВОДКА НЕ ОТМЕНЕНА!");
+                            Log.Add("AddStickerCodeToReserve: ошибка при отмене проведения!");
                     }
                 }
                 //теперь меняем комментарий в резерве
@@ -1462,7 +1439,7 @@ namespace Selen {
                         if (s.Contains("updated"))
                             Log.Add("AddStickerCodeToReserve: реализация проведена");
                         else
-                            Log.Add("AddStickerCodeToReserve: ОШИБКА! РЕАЛИЗАЦИЯ НЕ ПРОВЕДЕНА!");
+                            Log.Add("AddStickerCodeToReserve: ошибка при проведении реализации!");
                 }
                 if (result != null && result.Contains("updated")) {
                     Log.Add($"AddStickerCodeToReserve: комментарий в резервировании обновлен ({comment + commentToAdd})");

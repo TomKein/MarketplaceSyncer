@@ -362,7 +362,7 @@ namespace Selen.Sites {
         //список магазинов
         public async Task GetCompains() {
             if (File.Exists(FILE_COMPAIGNS) &&
-                Class365API.ScanTime < File.GetLastWriteTime(FILE_COMPAIGNS).AddDays(7)) {
+                Class365API.LastScanTime < File.GetLastWriteTime(FILE_COMPAIGNS).AddDays(7)) {
                 if (_campaigns == null || _campaigns.campaigns?.Count == 0) {
                     _campaigns = JsonConvert.DeserializeObject<MarketCampaigns>(
                          File.ReadAllText(FILE_COMPAIGNS));

@@ -83,7 +83,16 @@ namespace Selen.Sites {
                     Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
                 } else
                     _busToUpdate = new List<GoodObject>();
-
+                //список обновленных карточек со ссылкой на объявления
+                var busUpdateList = Class365API._bus.Where(_ => _.drom != null && _.drom.Contains("http") && _.IsTimeUpDated()).ToList();
+                //список без дубликатов 
+                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
+                //добавляю в общий список на обновление
+                _busToUpdate.AddRange(busUpdateList);
+                if (_busToUpdate.Count > 0) {
+                    var bu = JsonConvert.SerializeObject(_busToUpdate);
+                    File.WriteAllText(_busToUpdateFile, bu);
+                }
                 await AuthAsync();
                 await GetDromPhotos();
                 await UpAsync();
@@ -204,17 +213,7 @@ namespace Selen.Sites {
 
         async Task UpdateOffersAsync() {
             await Task.Factory.StartNew(() => {
-                //список обновленных карточек со ссылкой на объявления
-                var busUpdateList = Class365API._bus.Where(_ => _.drom != null && _.drom.Contains("http") && _.IsTimeUpDated()).ToList();
-                //список без дубликатов 
-                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
-                //добавляю в общий список на обновление
-                _busToUpdate.AddRange(busUpdateList);
-                if (_busToUpdate.Count > 0) {
-                    var bu = JsonConvert.SerializeObject(_busToUpdate);
-                    File.WriteAllText(_busToUpdateFile, bu);
-                }
-                for (int b = _busToUpdate.Count-1; b >=0; b--) {
+                for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                     if (Class365API.IsTimeOver)
                         return;
                     try {
@@ -304,7 +303,7 @@ namespace Selen.Sites {
             var interval = TimeSpan.FromDays(1).TotalMinutes / limit;
             var lastAddTime = await DB.GetParamDateTimeAsync("drom.lastAddTime");
             //если время с прошлой подачи прошло меньше интервала или обновление длится слишком долго - пропуск
-            if (DateTime.Now < lastAddTime.AddMinutes(interval) || Class365API.IsTimeOver)
+            if (Class365API.SyncStartTime < lastAddTime.AddMinutes(interval) || Class365API.IsTimeOver)
                 return;
             //ищем кандидата для подачи объявления
             var b = _bus.Find(_ => (_.drom == null || !_.drom.Contains("http")) &&
@@ -312,36 +311,37 @@ namespace Selen.Sites {
                     _.Amount > 0 &&
                     _.Price > 0 &&
                     _.images.Count > 0);
-            if (b!=null){
-                    var t = Task.Factory.StartNew(() => {
-                        _dr.Navigate("https://baza.drom.ru/set/city/370?returnUrl=https%3A%2F%2Fbaza.drom.ru%2Fadding%3Ftype%3Dgoods%26city%3D370", "//input[@name='subject']");
-                        if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
-                            //throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
-                            _dr.ButtonClick("//div[@class='adding-rm-draft__caption']");
-                        SetTitle(b);
-                        _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
-                        _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
-                        //SetPart(_bus[b]);
-                        //SetAlternativeParts(_bus[b]);
-                        SetImages(b);
-                        SetDesc(b);
-                        SetPrice(b);
-                        SetOptions(b);
-                        SetDiam(b);
-                        SetAudioSize(b);
-                        SetWeight(b);
-                        Thread.Sleep(30000);
-                        PressOkButton();
-                        //PressPublicFreeButton();
-                    });
-                    try {
-                        await t;
-                        await SaveUrlAsync(b);
-                        Log.Add(_l + b.name + " объявление добавлено");
-                    } catch (Exception x) {
-                        Log.Add(_l + b.name + " ошибка добавления! - " + x.Message);
-                    }
+            if (b != null) {
+                var t = Task.Factory.StartNew(() => {
+                    _dr.Navigate("https://baza.drom.ru/set/city/370?returnUrl=https%3A%2F%2Fbaza.drom.ru%2Fadding%3Ftype%3Dgoods%26city%3D370", "//input[@name='subject']");
+                    if (_dr.GetElementsCount("//div[@class='image-wrapper']/img") > 0)
+                        //throw new Exception("Черновик уже заполнен!");//если уже есть блок фотографий на странице, то черновик уже заполнен, но не опубликован по какой-то причине, например, номер запчасти похож на телефонный номер - объявление не опубликовано, либо превышен дневной лимит подачи
+                        _dr.ButtonClick("//div[@class='adding-rm-draft__caption']");
+                    SetTitle(b);
+                    _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
+                    _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
+                                                                   //SetPart(_bus[b]);
+                                                                   //SetAlternativeParts(_bus[b]);
+                    SetImages(b);
+                    SetDesc(b);
+                    SetPrice(b);
+                    SetOptions(b);
+                    SetDiam(b);
+                    SetAudioSize(b);
+                    SetWeight(b);
+                    Thread.Sleep(30000);
+                    PressOkButton();
+                    //PressPublicFreeButton();
+                });
+                try {
+                    await t;
+                    await SaveUrlAsync(b);
+                    await DB.SetParamAsync("drom.lastAddTime", Class365API.SyncStartTime.ToString());
+                    Log.Add($"{_l} AddAsync: добавлено новое объявление - {b.name}");
+                } catch (Exception x) {
+                    Log.Add($"{_l} AddAsync: ошибка добавления - {b.name} - {x.Message}");
                 }
+            }
         }
         private void SetWeight(GoodObject b) {
             if (_isAddWeights) {

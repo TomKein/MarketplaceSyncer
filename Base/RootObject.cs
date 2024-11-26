@@ -161,8 +161,6 @@ namespace Selen {
         public List<Attributes> attributes { get; set; }
         public string drom { get; set; }
         public string vk { get; set; }
-        //public string kp { get; set; }
-        //public string gde { get; set; }
         public string ozon { get; set; }
         public string wb { get; set; }
         public string measure_id { get; set; }
@@ -172,7 +170,6 @@ namespace Selen {
         public string width { get; set; }
         public string height { get; set; }
         public string hscode_id { get; set; }
-        public static DateTime ScanTime { get; set; }
         public static List<GoodGroupsObject> Groups { get; set; }
         static bool useReserve = DB.GetParamBool("useReserve");
 
@@ -631,7 +628,7 @@ namespace Selen {
 
         public bool IsTimeUpDated() {
             var t = DateTime.Parse(updated);
-            return t.CompareTo(ScanTime) > 0;
+            return t.CompareTo(Class365API.LastScanTime) > 0;
         }
 
         public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ?
@@ -805,9 +802,9 @@ namespace Selen {
         }
         //перечитать марки и модели
         public static void ResetAutos() {
-            if (_autos == null || File.GetLastWriteTime(_autoMarks) > ScanTime) {
+            if (_autos == null || File.GetLastWriteTime(_autoMarks) > Class365API.LastScanTime) {
                 _autos = File.ReadAllLines(_autoMarks);
-                File.SetLastWriteTime(_autoMarks, ScanTime);
+                File.SetLastWriteTime(_autoMarks, Class365API.LastScanTime);
             }
         }
         //перечитать из таблицы настроек

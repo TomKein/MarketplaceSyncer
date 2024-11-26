@@ -37,6 +37,7 @@ namespace Selen {
 
         //писать лог
         bool _writeLog = true;
+        DateTime _logShowFromTime = DateTime.Now.AddYears(-1);
 
         string _headerText = "Синхронизация сайтов ";
         string _status;
@@ -168,7 +169,7 @@ namespace Selen {
             await Task.Delay(10000);
             button_Vk.Invoke(new Action(() => button_Vk.PerformClick()));
             await WaitButtonsActiveAsync();
-            dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.SyncStartTime));
+            Class365API.LastScanTime = Class365API.SyncStartTime;
         }
         //полный скан базы бизнес.ру
         async void BaseGet(object sender, EventArgs e) {
@@ -205,7 +206,7 @@ namespace Selen {
             if (_version > actualVersion)
                 Text += " (тестовая версия)";
             _writeLog = await DB.GetParamBoolAsync("writeLog");
-            dateTimePicker1.Value = DB.GetParamDateTime("lastScanTime");
+            dateTimePicker1.Value = Class365API.LastScanTime;
             _saveCookiesBeforeClose = await DB.GetParamBoolAsync("saveCookiesBeforeClose");
             await CheckMultiRunAsync();
             _drom = new Drom();
@@ -224,7 +225,7 @@ namespace Selen {
                 while (true) {
                     try {
                         //запрашиваю последнюю запись из лога
-                        DataTable table = await DB.GetLogAsync("", 1);
+                        DataTable table = await DB.GetLogAsync("",DateTime.Now.AddDays(1),limit:1);
                         //если запись получена
                         if (table.Rows.Count > 0) {
                             DateTime time = (DateTime) table.Rows[0].ItemArray[1];
@@ -233,11 +234,11 @@ namespace Selen {
                             //есть текст явно указывает, что приложение было остановлено или прошло больше 5 минут выход с true
                             if (text.Contains("синхронизация остановлена") || time.AddMinutes(2) < DateTime.Now)
                                 return;
-                            else
-                                Log.Add("защита от параллельных запусков! повторная попытка через 1 минуту...", false);
-                        } else
-                            Log.Add("ошибка чтения лога - записи не найдены! повторная попытка через 1 минуту...", false);
-                        await Task.Delay(61 * 1000);
+                            else {
+                                Log.Add("защита от параллельных запусков! повторная попытка...", false);
+                                await Task.Delay(10000);
+                            }
+                        } 
                     } catch (Exception x) {
                         Log.Add("ошибка при контроле параллельных запусков - " + x.Message, false);
                     }
@@ -269,15 +270,8 @@ namespace Selen {
             )
                 await Task.Delay(5000);
         }
-        private async void dateTimePicker1_ValueChanged(object sender, EventArgs e) {
-            try {
-                Class365API.ScanTime = dateTimePicker1.Value;
-                await DB.SetParamAsync("lastScanTime", Class365API.ScanTime.ToString());
-                await DB.SetParamAsync("liteScanTime", Class365API.ScanTime.ToString());
-                GoodObject.ScanTime = Class365API.ScanTime;
-            } catch (Exception x) {
-                Log.Add("ошибка изменения даты синхронизации! - " + x.Message + " - " + x.InnerException?.Message);
-            }
+        private void dateTimePicker1_Validated(object sender, EventArgs e) {
+            Class365API.LastScanTime = dateTimePicker1.Value;
         }
         private async void Button_PricesCheck_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
@@ -364,24 +358,38 @@ namespace Selen {
                 Log.Add(x.Message);
             }
         }
-        //очистка фильтра
+        //показать весь лог (сброс фильтра)
         void Button_LogFilterClear_Click(object sender, EventArgs e) {
             textBox_LogFilter.Text = "";
+            _logShowFromTime = DateTime.Now.AddYears(-1);
+        }
+        //показать только ошибки
+        private void button_showErrors_Click(object sender, EventArgs e) {
+            textBox_LogFilter.Text = "ошибка";
+            _logShowFromTime = Class365API.LastErrorShowTime;
+            Class365API.LastErrorShowTime = DateTime.Now;
+        }
+        //показать только предупреждения
+        private void button_showWarnings_Click(object sender, EventArgs e) {
+            textBox_LogFilter.Text = "предупреждение";
+            _logShowFromTime = Class365API.LastWarningShowTime;
+            Class365API.LastWarningShowTime = DateTime.Now;
         }
         async Task PropertiesUpdateHandler() {
+            dateTimePicker1.Invoke(new Action(() => dateTimePicker1.Value = Class365API.LastScanTime));
             label_Bus.Invoke(new Action(()=>label_Bus.Text = Class365API.LabelBusText));
             if (Class365API.Status == SyncStatus.NeedUpdate)
                 label_Bus.Invoke(new Action(() => Text = _headerText + "1."+_version 
-                + " - требуется запрос полной базы товаров"));
+                + " - требуется полное обновление базы товаров"));
             else if (Class365API.Status == SyncStatus.Waiting)
                 label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
                 + " - ожидание..."));
             else if (Class365API.Status == SyncStatus.ActiveLite)
                 label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
-                + " - обновление изменений на сайтах"));
+                + " - синхронизация..."));
             else if (Class365API.Status == SyncStatus.ActiveFull)
                 label_Bus.Invoke(new Action(() => Text = _headerText + "1." + _version 
-                + " - полный запрос и обновление изменений на сайтах"));
+                + " - запрос полной базы товаров и синхронизация..."));
         }
         //закрываем форму, сохраняем настройки
         async void Form1_FormClosing(object sender, FormClosingEventArgs e) {
