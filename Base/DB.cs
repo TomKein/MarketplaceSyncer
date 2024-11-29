@@ -264,10 +264,10 @@ namespace Selen.Base {
                     TruncLog();
             });
         }
-        //удаляю из лога записи старше 30 дней
+        //удаляю из лога записи старше 365 дней
         private static void TruncLog() {
             var query = "DELETE FROM `logs`" +
-                        "WHERE DATE_SUB(CURDATE(),INTERVAL 90 DAY) > `datetime`";
+                        "WHERE DATE_SUB(CURDATE(),INTERVAL 365 DAY) > `datetime`";
             MySqlCommand command = new MySqlCommand(query, connection);
             ExecuteCommandNonQuery(command);
         }

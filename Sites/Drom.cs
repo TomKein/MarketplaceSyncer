@@ -4,6 +4,7 @@ using Selen.Base;
 using Selen.Tools;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -98,18 +99,18 @@ namespace Selen.Sites {
                 await UpAsync();
                 await UpdateOffersAsync();
                 await CheckDraftsAsync();
-                await AddAsync();
+                await Add();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
-                Log.Add($"{_l} выгрузка завершена");
+                Log.Add($"{_l}выгрузка завершена");
             } catch (Exception x) {
-                Log.Add($"{_l} ошибка синхронизации! - {x.Message}");
+                Log.Add($"{_l}ошибка синхронизации! - {x.Message}");
                 if (x.Message.Contains("timed out") ||
                     x.Message.Contains("already closed") ||
                     x.Message.Contains("HTTP request") ||
                     x.Message.Contains("invalid session id") ||
                     x.Message.Contains("chrome not reachable")) {
-                    Log.Add($"{_l} ошибка браузера! - {x.Message}");
+                    Log.Add($"{_l}ошибка браузера! - {x.Message}");
                     _dr.Quit();
                     _dr = null;
                 }
@@ -132,7 +133,7 @@ namespace Selen.Sites {
                         if (_dr.GetElementsCount("//div[@class='personal-box']") > 0)
                             break;
                         if (i == 10)
-                            throw new Exception($"{_l} AuthAsync: ошибка авторизации");
+                            throw new Exception($"{_l}AuthAsync: ошибка авторизации");
                         Thread.Sleep(30000);
                     }
                 }
@@ -150,7 +151,7 @@ namespace Selen.Sites {
                 }
                 //получаю список заказов
                 var orders = await GetOrdersAsync();
-                Log.Add($"{_l} MakeReserve - получено  заказов: " + orders.Count);
+                Log.Add($"{_l}MakeReserve - получено  заказов: " + orders.Count);
                 //для каждого заказа сделать заказ с резервом в бизнес.ру
                 foreach (var order in orders) {
                     //готовим список товаров (id, amount)
@@ -168,7 +169,7 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} MakeReserve - " + x.Message);
+                Log.Add($"{_l}MakeReserve - " + x.Message);
             }
         }
         public async Task<List<DromOrder>> GetOrdersAsync() {
@@ -237,7 +238,7 @@ namespace Selen.Sites {
         }
         bool UpdateOffer(GoodObject b) {
             if (b.drom.Contains("tin/ht") || b.drom.Contains("in/000000000")) {
-                Log.Add(_l + b.name + " - ошибка - неверная ссылка!!");
+                Log.Add($"{_l}предупреждение - неверная ссылка! [{b.id}] {b.name}");
                 return false;
             }
             _dr.Navigate(b.drom, "//input[@name='subject']");
@@ -252,7 +253,7 @@ namespace Selen.Sites {
             SetAlternativeParts(b);
             SetWeight(b);
             PressOkButton();
-            Log.Add(_l + b.name + " - объявление обновлено");
+            Log.Add($"{_l}объявление обновлено - [{b.id}] {b.name}");
             if (b.Amount <= 0) {
                 Delete(b);
             } else
@@ -275,7 +276,7 @@ namespace Selen.Sites {
                 }
                 //загружаю новые фото
                 SetImages(b);
-                Log.Add(_l + b.name + " - фотографии обновлены");
+                Log.Add($"{_l}фотографии обновлены - [{b.id}] {b.name}");
             }
         }
         //заполнить наименование
@@ -298,13 +299,24 @@ namespace Selen.Sites {
                     Log.Add(_l + b.name + " ошибка - объявление не удалено!");
             }
         }
-        public async Task AddAsync() {
+        public async Task Add() {
+            if (Class365API.IsTimeOver)
+                return;
             var limit = await DB.GetParamIntAsync("drom.addCount");
             var interval = TimeSpan.FromDays(1).TotalMinutes / limit;
-            var lastAddTime = await DB.GetParamDateTimeAsync("drom.lastAddTime");
-            //если время с прошлой подачи прошло меньше интервала или обновление длится слишком долго - пропуск
-            if (Class365API.SyncStartTime < lastAddTime.AddMinutes(interval) || Class365API.IsTimeOver)
-                return;
+            //запросим в логах последние записи добавления объявлений используя лимит
+            DataTable table = await DB.GetLogAsync($"{_l}Add: добавлено", limit: limit);
+            //если записи получены и их количество = лимиту делаем проверку времени
+            if (table.Rows.Count == limit) {
+                //получим время самой ранней подачи
+                DateTime time = (DateTime) table.Rows[table.Rows.Count-1].ItemArray[1]; //дата самой ранней подачи
+                //добавляем интервал и получаем время когда можно подать новое объявление
+                //если время со старта цикла еще не наступисло - пропуск подачи
+                if (time.AddDays(1).AddMinutes(interval) > Class365API.SyncStartTime) {
+                    Log.Add($"{_l}Add: пропуск - время следующей подачи после {time.AddDays(1).AddMinutes(interval)}");
+                    return;
+                }
+            }
             //ищем кандидата для подачи объявления
             var b = _bus.Find(_ => (_.drom == null || !_.drom.Contains("http")) &&
                     !_.GroupName().Contains("ЧЕРНОВИК") &&
@@ -320,8 +332,8 @@ namespace Selen.Sites {
                     SetTitle(b);
                     _dr.ButtonClick("//div[@class='table-control']//label");//Автозапчасти или диски - первая кнопка
                     _dr.ButtonClick("//p[@class='type_caption']"); //одна запчасть или 1 комплект - первая кнопка
-                                                                   //SetPart(_bus[b]);
-                                                                   //SetAlternativeParts(_bus[b]);
+                    //SetPart(_bus[b]);
+                    //SetAlternativeParts(_bus[b]);
                     SetImages(b);
                     SetDesc(b);
                     SetPrice(b);
@@ -336,10 +348,9 @@ namespace Selen.Sites {
                 try {
                     await t;
                     await SaveUrlAsync(b);
-                    await DB.SetParamAsync("drom.lastAddTime", Class365API.SyncStartTime.ToString());
-                    Log.Add($"{_l} AddAsync: добавлено новое объявление - {b.name}");
+                    Log.Add($"{_l}Add: добавлено объявление - {b.name}");
                 } catch (Exception x) {
-                    Log.Add($"{_l} AddAsync: ошибка добавления - {b.name} - {x.Message}");
+                    Log.Add($"{_l}Add: ошибка добавления - {b.name} - {x.Message}");
                 }
             }
         }
@@ -886,30 +897,30 @@ namespace Selen.Sites {
     /// вспомогательные типы ///
     ////////////////////////////
     public class DromOrder {
-        public string Id { get; set; }
-        DateTime date;
-        public string Date {
-            get {
-                return date.ToString();
-            }
-            set {
-                var nowDate = DateTime.Now.Date;
-                var tmpStr = value.Replace("сегодня", nowDate.ToString("d MMMM"))
-                                  .Replace("вчера", nowDate.AddDays(-1).ToString("d MMMM"));
-                var year = nowDate.Year.ToString();
-                if (!tmpStr.EndsWith(year))
-                    tmpStr += " " + year;
-                //todo it's better to replace this parsing with culture invariant one! this works only with "ru-RU" culture
-                date = DateTime.ParseExact(tmpStr, "HH:mm, d MMMM yyyy", CultureInfo.CurrentCulture);
-            }
+    public string Id { get; set; }
+    DateTime date;
+    public string Date {
+        get {
+            return date.ToString();
         }
-        public string Status { get; set; }
-        public List<DromOrderItem> Items { get; set; }
+        set {
+            var nowDate = DateTime.Now.Date;
+            var tmpStr = value.Replace("сегодня", nowDate.ToString("d MMMM"))
+                              .Replace("вчера", nowDate.AddDays(-1).ToString("d MMMM"));
+            var year = nowDate.Year.ToString();
+            if (!tmpStr.EndsWith(year))
+                tmpStr += " " + year;
+            //todo it's better to replace this parsing with culture invariant one! this works only with "ru-RU" culture
+            date = DateTime.ParseExact(tmpStr, "HH:mm, d MMMM yyyy", CultureInfo.CurrentCulture);
+        }
     }
-    public class DromOrderItem {
-        public string Id { get; set; }
-        public int Count { get; set; }
-    }
+    public string Status { get; set; }
+    public List<DromOrderItem> Items { get; set; }
+}
+public class DromOrderItem {
+    public string Id { get; set; }
+    public int Count { get; set; }
+}
 
 
 }

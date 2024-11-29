@@ -69,7 +69,7 @@ namespace Selen {
             // 
             // button_Drom
             // 
-            this.button_Drom.Location = new System.Drawing.Point(5, 93);
+            this.button_Drom.Location = new System.Drawing.Point(5, 95);
             this.button_Drom.Name = "button_Drom";
             this.button_Drom.Size = new System.Drawing.Size(113, 23);
             this.button_Drom.TabIndex = 4;
@@ -79,7 +79,7 @@ namespace Selen {
             // 
             // button_Avito
             // 
-            this.button_Avito.Location = new System.Drawing.Point(33, 65);
+            this.button_Avito.Location = new System.Drawing.Point(33, 67);
             this.button_Avito.Name = "button_Avito";
             this.button_Avito.Size = new System.Drawing.Size(85, 25);
             this.button_Avito.TabIndex = 3;
@@ -94,10 +94,10 @@ namespace Selen {
             this.logBox.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.logBox.ForeColor = System.Drawing.Color.LightYellow;
             this.logBox.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            this.logBox.Location = new System.Drawing.Point(139, 0);
+            this.logBox.Location = new System.Drawing.Point(149, 0);
             this.logBox.Name = "logBox";
             this.logBox.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.logBox.Size = new System.Drawing.Size(645, 282);
+            this.logBox.Size = new System.Drawing.Size(635, 352);
             this.logBox.TabIndex = 16;
             this.logBox.Text = "";
             this.logBox.TextChanged += new System.EventHandler(this.RichTextBox1_TextChanged);
@@ -114,7 +114,7 @@ namespace Selen {
             // 
             // button_Vk
             // 
-            this.button_Vk.Location = new System.Drawing.Point(5, 119);
+            this.button_Vk.Location = new System.Drawing.Point(5, 121);
             this.button_Vk.Name = "button_Vk";
             this.button_Vk.Size = new System.Drawing.Size(113, 23);
             this.button_Vk.TabIndex = 7;
@@ -125,7 +125,7 @@ namespace Selen {
             // label_Bus
             // 
             this.label_Bus.AutoSize = true;
-            this.label_Bus.Location = new System.Drawing.Point(5, 43);
+            this.label_Bus.Location = new System.Drawing.Point(10, 50);
             this.label_Bus.Name = "label_Bus";
             this.label_Bus.Size = new System.Drawing.Size(16, 13);
             this.label_Bus.TabIndex = 36;
@@ -134,7 +134,7 @@ namespace Selen {
             // label_Vk
             // 
             this.label_Vk.AutoSize = true;
-            this.label_Vk.Location = new System.Drawing.Point(120, 124);
+            this.label_Vk.Location = new System.Drawing.Point(125, 131);
             this.label_Vk.Name = "label_Vk";
             this.label_Vk.Size = new System.Drawing.Size(16, 13);
             this.label_Vk.TabIndex = 38;
@@ -143,7 +143,7 @@ namespace Selen {
             // label_Drom
             // 
             this.label_Drom.AutoSize = true;
-            this.label_Drom.Location = new System.Drawing.Point(120, 98);
+            this.label_Drom.Location = new System.Drawing.Point(125, 105);
             this.label_Drom.Name = "label_Drom";
             this.label_Drom.Size = new System.Drawing.Size(16, 13);
             this.label_Drom.TabIndex = 58;
@@ -172,7 +172,7 @@ namespace Selen {
             // label_Auto
             // 
             this.label_Auto.AutoSize = true;
-            this.label_Auto.Location = new System.Drawing.Point(115, 148);
+            this.label_Auto.Location = new System.Drawing.Point(120, 155);
             this.label_Auto.Name = "label_Auto";
             this.label_Auto.Size = new System.Drawing.Size(0, 13);
             this.label_Auto.TabIndex = 66;
@@ -180,7 +180,7 @@ namespace Selen {
             // label_lastSyncTime
             // 
             this.label_lastSyncTime.AutoSize = true;
-            this.label_lastSyncTime.Location = new System.Drawing.Point(3, 3);
+            this.label_lastSyncTime.Location = new System.Drawing.Point(8, 8);
             this.label_lastSyncTime.Name = "label_lastSyncTime";
             this.label_lastSyncTime.Size = new System.Drawing.Size(119, 13);
             this.label_lastSyncTime.TabIndex = 98;
@@ -191,7 +191,7 @@ namespace Selen {
             this.dateTimePicker1.CalendarForeColor = System.Drawing.Color.Red;
             this.dateTimePicker1.CustomFormat = "dd.MM.yyyy HH:mm";
             this.dateTimePicker1.Format = System.Windows.Forms.DateTimePickerFormat.Custom;
-            this.dateTimePicker1.Location = new System.Drawing.Point(5, 18);
+            this.dateTimePicker1.Location = new System.Drawing.Point(8, 24);
             this.dateTimePicker1.MaxDate = new System.DateTime(2099, 12, 31, 0, 0, 0, 0);
             this.dateTimePicker1.MinDate = new System.DateTime(2017, 1, 1, 0, 0, 0, 0);
             this.dateTimePicker1.Name = "dateTimePicker1";
@@ -199,7 +199,7 @@ namespace Selen {
             this.dateTimePicker1.Size = new System.Drawing.Size(113, 20);
             this.dateTimePicker1.TabIndex = 99;
             this.dateTimePicker1.Value = new System.DateTime(2020, 9, 2, 5, 50, 0, 0);
-            this.dateTimePicker1.ValueChanged += new System.EventHandler(this.dateTimePicker1_ValueChanged);
+            this.dateTimePicker1.Validated += new System.EventHandler(this.dateTimePicker1_Validated);
             // 
             // button_PricesIncomeCorrection
             // 
@@ -214,7 +214,7 @@ namespace Selen {
             // label_Cdek
             // 
             this.label_Cdek.AutoSize = true;
-            this.label_Cdek.Location = new System.Drawing.Point(120, 150);
+            this.label_Cdek.Location = new System.Drawing.Point(125, 157);
             this.label_Cdek.Name = "label_Cdek";
             this.label_Cdek.Size = new System.Drawing.Size(16, 13);
             this.label_Cdek.TabIndex = 122;
@@ -244,6 +244,9 @@ namespace Selen {
             // 
             this.panel_Buttons.AutoSize = true;
             this.panel_Buttons.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.panel_Buttons.Controls.Add(this.button_LogShowAll);
+            this.panel_Buttons.Controls.Add(this.button_ShowWarnings);
+            this.panel_Buttons.Controls.Add(this.button_ShowErrors);
             this.panel_Buttons.Controls.Add(this.button_wildberries);
             this.panel_Buttons.Controls.Add(this.label_Avito);
             this.panel_Buttons.Controls.Add(this.button_AvitoCategories);
@@ -265,12 +268,35 @@ namespace Selen {
             this.panel_Buttons.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel_Buttons.Location = new System.Drawing.Point(0, 0);
             this.panel_Buttons.Name = "panel_Buttons";
-            this.panel_Buttons.Size = new System.Drawing.Size(139, 307);
+            this.panel_Buttons.Padding = new System.Windows.Forms.Padding(5);
+            this.panel_Buttons.Size = new System.Drawing.Size(149, 377);
             this.panel_Buttons.TabIndex = 146;
+            // 
+            // button_ShowWarnings
+            // 
+            this.button_ShowWarnings.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.button_ShowWarnings.Location = new System.Drawing.Point(5, 326);
+            this.button_ShowWarnings.Name = "button_ShowWarnings";
+            this.button_ShowWarnings.Size = new System.Drawing.Size(139, 23);
+            this.button_ShowWarnings.TabIndex = 156;
+            this.button_ShowWarnings.Text = "Предупреждения";
+            this.button_ShowWarnings.UseVisualStyleBackColor = true;
+            this.button_ShowWarnings.Click += new System.EventHandler(this.button_showWarnings_Click);
+            // 
+            // button_ShowErrors
+            // 
+            this.button_ShowErrors.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.button_ShowErrors.Location = new System.Drawing.Point(5, 349);
+            this.button_ShowErrors.Name = "button_ShowErrors";
+            this.button_ShowErrors.Size = new System.Drawing.Size(139, 23);
+            this.button_ShowErrors.TabIndex = 155;
+            this.button_ShowErrors.Text = "Ошибки";
+            this.button_ShowErrors.UseVisualStyleBackColor = true;
+            this.button_ShowErrors.Click += new System.EventHandler(this.button_showErrors_Click);
             // 
             // button_wildberries
             // 
-            this.button_wildberries.Location = new System.Drawing.Point(5, 223);
+            this.button_wildberries.Location = new System.Drawing.Point(5, 225);
             this.button_wildberries.Name = "button_wildberries";
             this.button_wildberries.Size = new System.Drawing.Size(113, 23);
             this.button_wildberries.TabIndex = 154;
@@ -281,7 +307,7 @@ namespace Selen {
             // label_Avito
             // 
             this.label_Avito.AutoSize = true;
-            this.label_Avito.Location = new System.Drawing.Point(120, 71);
+            this.label_Avito.Location = new System.Drawing.Point(125, 78);
             this.label_Avito.Name = "label_Avito";
             this.label_Avito.Size = new System.Drawing.Size(16, 13);
             this.label_Avito.TabIndex = 153;
@@ -292,7 +318,7 @@ namespace Selen {
             this.button_AvitoCategories.FlatAppearance.BorderSize = 0;
             this.button_AvitoCategories.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.button_AvitoCategories.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button_AvitoCategories.Location = new System.Drawing.Point(4, 65);
+            this.button_AvitoCategories.Location = new System.Drawing.Point(4, 67);
             this.button_AvitoCategories.Name = "button_AvitoCategories";
             this.button_AvitoCategories.Size = new System.Drawing.Size(29, 25);
             this.button_AvitoCategories.TabIndex = 152;
@@ -302,7 +328,7 @@ namespace Selen {
             // 
             // button_MegaMarket
             // 
-            this.button_MegaMarket.Location = new System.Drawing.Point(5, 249);
+            this.button_MegaMarket.Location = new System.Drawing.Point(5, 251);
             this.button_MegaMarket.Name = "button_MegaMarket";
             this.button_MegaMarket.Size = new System.Drawing.Size(113, 23);
             this.button_MegaMarket.TabIndex = 151;
@@ -312,7 +338,7 @@ namespace Selen {
             // 
             // button_ozon
             // 
-            this.button_ozon.Location = new System.Drawing.Point(5, 197);
+            this.button_ozon.Location = new System.Drawing.Point(5, 199);
             this.button_ozon.Name = "button_ozon";
             this.button_ozon.Size = new System.Drawing.Size(113, 23);
             this.button_ozon.TabIndex = 151;
@@ -324,7 +350,7 @@ namespace Selen {
             // 
             this.label_YandexMarket.AutoSize = true;
             this.label_YandexMarket.Enabled = false;
-            this.label_YandexMarket.Location = new System.Drawing.Point(120, 176);
+            this.label_YandexMarket.Location = new System.Drawing.Point(125, 183);
             this.label_YandexMarket.Name = "label_YandexMarket";
             this.label_YandexMarket.Size = new System.Drawing.Size(16, 13);
             this.label_YandexMarket.TabIndex = 150;
@@ -332,7 +358,7 @@ namespace Selen {
             // 
             // button_YandexMarket
             // 
-            this.button_YandexMarket.Location = new System.Drawing.Point(5, 171);
+            this.button_YandexMarket.Location = new System.Drawing.Point(5, 173);
             this.button_YandexMarket.Name = "button_YandexMarket";
             this.button_YandexMarket.Size = new System.Drawing.Size(113, 23);
             this.button_YandexMarket.TabIndex = 149;
@@ -342,7 +368,7 @@ namespace Selen {
             // 
             // button_Izap24
             // 
-            this.button_Izap24.Location = new System.Drawing.Point(4, 145);
+            this.button_Izap24.Location = new System.Drawing.Point(4, 147);
             this.button_Izap24.Name = "button_Izap24";
             this.button_Izap24.Size = new System.Drawing.Size(114, 23);
             this.button_Izap24.TabIndex = 147;
@@ -363,7 +389,7 @@ namespace Selen {
             this.panel_bottom.Controls.Add(this.button_TestPartners);
             this.panel_bottom.Controls.Add(this.button_PricesIncomeCorrection);
             this.panel_bottom.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_bottom.Location = new System.Drawing.Point(0, 307);
+            this.panel_bottom.Location = new System.Drawing.Point(0, 377);
             this.panel_bottom.Name = "panel_bottom";
             this.panel_bottom.Size = new System.Drawing.Size(784, 34);
             this.panel_bottom.TabIndex = 147;
@@ -402,12 +428,11 @@ namespace Selen {
             // panel_Filter
             // 
             this.panel_Filter.Controls.Add(this.textBox_LogFilter);
-            this.panel_Filter.Controls.Add(this.button_LogFilterClear);
             this.panel_Filter.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel_Filter.Location = new System.Drawing.Point(139, 282);
+            this.panel_Filter.Location = new System.Drawing.Point(149, 352);
             this.panel_Filter.Name = "panel_Filter";
             this.panel_Filter.Padding = new System.Windows.Forms.Padding(2);
-            this.panel_Filter.Size = new System.Drawing.Size(645, 25);
+            this.panel_Filter.Size = new System.Drawing.Size(635, 25);
             this.panel_Filter.TabIndex = 148;
             // 
             // textBox_LogFilter
@@ -416,21 +441,21 @@ namespace Selen {
             this.textBox_LogFilter.Font = new System.Drawing.Font("Lucida Console", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBox_LogFilter.Location = new System.Drawing.Point(2, 2);
             this.textBox_LogFilter.Name = "textBox_LogFilter";
-            this.textBox_LogFilter.Size = new System.Drawing.Size(528, 21);
+            this.textBox_LogFilter.Size = new System.Drawing.Size(631, 21);
             this.textBox_LogFilter.TabIndex = 0;
             this.textBox_LogFilter.TextChanged += new System.EventHandler(this.TextBox_LogFilter_TextChanged);
             // 
-            // button_LogFilterClear
+            // button_LogShowAll
             // 
-            this.button_LogFilterClear.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_LogFilterClear.Location = new System.Drawing.Point(530, 2);
-            this.button_LogFilterClear.Margin = new System.Windows.Forms.Padding(5);
-            this.button_LogFilterClear.Name = "button_LogFilterClear";
-            this.button_LogFilterClear.Size = new System.Drawing.Size(113, 21);
-            this.button_LogFilterClear.TabIndex = 1;
-            this.button_LogFilterClear.Text = "Очистить фильтр";
-            this.button_LogFilterClear.UseVisualStyleBackColor = true;
-            this.button_LogFilterClear.Click += new System.EventHandler(this.Button_LogFilterClear_Click);
+            this.button_LogShowAll.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.button_LogShowAll.Location = new System.Drawing.Point(5, 305);
+            this.button_LogShowAll.Margin = new System.Windows.Forms.Padding(5);
+            this.button_LogShowAll.Name = "button_LogShowAll";
+            this.button_LogShowAll.Size = new System.Drawing.Size(139, 21);
+            this.button_LogShowAll.TabIndex = 1;
+            this.button_LogShowAll.Text = "Весь лог";
+            this.button_LogShowAll.UseVisualStyleBackColor = true;
+            this.button_LogShowAll.Click += new System.EventHandler(this.Button_LogFilterClear_Click);
             // 
             // panel4
             // 
@@ -440,7 +465,7 @@ namespace Selen {
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(784, 307);
+            this.panel4.Size = new System.Drawing.Size(784, 377);
             this.panel4.TabIndex = 149;
             // 
             // FormMain
@@ -448,7 +473,7 @@ namespace Selen {
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Gray;
-            this.ClientSize = new System.Drawing.Size(784, 341);
+            this.ClientSize = new System.Drawing.Size(784, 411);
             this.Controls.Add(this.panel4);
             this.Controls.Add(this.panel_bottom);
             this.MaximizeBox = false;
@@ -492,7 +517,7 @@ namespace Selen {
         private System.Windows.Forms.Panel panel_bottom;
         private System.Windows.Forms.Panel panel_Filter;
         private System.Windows.Forms.TextBox textBox_LogFilter;
-        private System.Windows.Forms.Button button_LogFilterClear;
+        private System.Windows.Forms.Button button_LogShowAll;
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.Button button_Izap24;
         private System.Windows.Forms.Button button_Test;
@@ -505,6 +530,8 @@ namespace Selen {
         private System.Windows.Forms.Button button_AvitoCategories;
         private System.Windows.Forms.Label label_Avito;
         private System.Windows.Forms.Button button_wildberries;
+        private System.Windows.Forms.Button button_ShowErrors;
+        private System.Windows.Forms.Button button_ShowWarnings;
     }
 }
 

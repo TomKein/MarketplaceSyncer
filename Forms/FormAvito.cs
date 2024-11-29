@@ -266,7 +266,8 @@ namespace Selen.Forms {
             ruleElement.Add(new XElement("Starts") { Value = splitedString[0].ToLowerInvariant() });
             ruleElement.Add(new XElement("Contains") { Value = splitedString[1].ToLowerInvariant() });
             _cats.Descendants()
-                 .First(f=>f.Attribute("Name")?.Value==_treeParentNodeSelected?.Text)
+                 .First(f=>f.Attribute("Name")?.Value==_treeParentNodeSelected?.Text &&
+                           f.Parent.Attribute("Name")?.Value==_treeParentNodeSelected.Parent?.Text)?
                  .Add(ruleElement);
             //сохраняю и обновляю дерево
             _cats.Save(_catsFile);

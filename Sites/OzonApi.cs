@@ -61,7 +61,6 @@ namespace Selen.Sites {
             if (File.Exists(_busToUpdateFile)) {
                 var f = File.ReadAllText(_busToUpdateFile);
                 _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
-                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
             } else
                 _busToUpdate = new List<GoodObject>();
         }
@@ -72,14 +71,14 @@ namespace Selen.Sites {
             _bus = Class365API._bus;
             _catsXml = XDocument.Load(_rulesFile);
             _rules = _catsXml.Descendants("Rule");
-
+            //await GetWarehouseList();
             await GetCategoriesAsync();
             await UpdateProductsAsync();
             await CheckProductListAsync();
             await DeactivateActions();
+            await CheckProductLinksAsync(checkAll: true);
             if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await AddProductsAsync();
-                await CheckProductLinksAsync(checkAll: true);
                 await DeactivateAutoActions();
             }
         }
@@ -155,6 +154,7 @@ namespace Selen.Sites {
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
                 File.WriteAllText(_busToUpdateFile, bu);
+                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
             }
             for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                 if (Class365API.IsTimeOver)
@@ -282,7 +282,8 @@ namespace Selen.Sites {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
-                await UpdateProductStocks(bus, productInfo);
+                await UpdateProductStocks(bus, productInfo, 1020000901600000);
+                await UpdateProductStocks(bus, productInfo, 1020002368685000);
                 await UpdateProductPriceAsync(bus, productInfo);
                 await UpdateProduct(bus, productInfo);
                 return true;
@@ -292,12 +293,12 @@ namespace Selen.Sites {
             }
         }
         //обновление остатков товара на озон
-        private async Task UpdateProductStocks(GoodObject bus, ProductInfo productInfo) {
+        private async Task UpdateProductStocks(GoodObject bus, ProductInfo productInfo, long warehouseId) {
             try {
                 var amount = bus.Amount;
                 if (!bus.New || amount < 0)
                     amount = 0;
-                if (amount == productInfo.GetStocks())
+                if (amount * 2 == productInfo.GetStocks())
                     return;
                 //объект для запроса
                 var data = new {
@@ -305,19 +306,19 @@ namespace Selen.Sites {
                         new {
                             product_id = productInfo.id,
                             stock = amount.ToString("F0"),
-                            warehouse_id = 1020000901600000
+                            warehouse_id = warehouseId
                         }
                     }
                 };
                 var s = await PostRequestAsync(data, "/v2/products/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                 if (res.First().updated)
-                    Log.Add(_l + bus.name + " остаток обновлен! (" + amount + ")");
+                    Log.Add($"{_l}UpdateProductStocks: остаток для склада id={warehouseId} обновлен - {bus.name} ({amount})");
                 else
                     throw new Exception(s);
 
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка {bus.name} - {x.Message}");
+                Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка склада id={warehouseId} - {bus.name} - {x.Message}");
             }
         }
         //расчет цен с учетом наценки

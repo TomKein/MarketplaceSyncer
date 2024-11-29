@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 210;
+        int _version = 211;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -225,7 +225,7 @@ namespace Selen {
                 while (true) {
                     try {
                         //запрашиваю последнюю запись из лога
-                        DataTable table = await DB.GetLogAsync("",DateTime.Now.AddDays(1),limit:1);
+                        DataTable table = await DB.GetLogAsync("",limit:1);
                         //если запись получена
                         if (table.Rows.Count > 0) {
                             DateTime time = (DateTime) table.Rows[0].ItemArray[1];
@@ -349,7 +349,7 @@ namespace Selen {
         //загружаю лог асинхронно
         async void FillLogAsync() {
             try {
-                DataTable table = await DB.GetLogAsync(textBox_LogFilter.Text, Log.Level);
+                DataTable table = await DB.GetLogAsync(textBox_LogFilter.Text, limit: Log.Level);
                 if (table.Rows.Count > 0)
                     logBox.Text = table.Select().Select(s => s[1] + ": " + s[3]).Aggregate((a, b) => b + "\n" + a) + "\n";
                 else

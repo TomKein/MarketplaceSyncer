@@ -372,7 +372,7 @@ namespace Selen {
                 _checkIntervalMinutes = await DB.GetParamIntAsync("checkIntervalMinutes");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
-                var isBusFileOld = lastWriteBusFile.AddMinutes(5) < LastScanTime;
+                var isBusFileOld = lastWriteBusFile.AddMinutes(_checkIntervalMinutes*2) < LastScanTime;
                 //если файл базы устарел - полный рескан
                 if (isBusFileOld || _bus.Count == 0) {
                     Log.Add($"{_l} GoLiteSync: будет произведен запрос полной базы товаров... isBusFileOld {isBusFileOld}, goods.Count {_bus.Count}, Status {Status}");
@@ -421,7 +421,7 @@ namespace Selen {
                 //если изменений слишком много или сменился день - нужен полный рескан базы
                 if (lightSyncGoods.Count >= 250 ||
                     LastScanTime.Day != DateTime.Now.Day) {
-                    Log.Add(_l + "будет произведен запрос полной базы товаров...");
+                    Log.Add($"{_l} предупреждение - {lightSyncGoods.Count} - слишком много изменений, будет произведен запрос полной базы товаров...");
                     Status = SyncStatus.NeedUpdate;
                     return;
                 }

@@ -42,6 +42,7 @@ namespace Selen.Sites {
                                 price = (float.Parse(price) * good.GetQuantOfSell()).ToString();
                             sheet.Cells[row, 7].Value = price;
                             Log.Add($"{_l} {row} - {good.name} заполнена цена {price}");
+                            await Task.Delay(10);
                         }
                     }
                 }
