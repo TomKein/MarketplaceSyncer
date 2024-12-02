@@ -84,6 +84,7 @@ namespace Selen {
         public static DateTime LastScanTime { set { 
                 lastScanTime = value;
                 DB.SetParamAsync("lastScanTime", lastScanTime.ToString());
+                _lastLiteScanTime = lastScanTime;
                 //updatePropertiesEvent.Invoke();
             } get { 
                 return lastScanTime;

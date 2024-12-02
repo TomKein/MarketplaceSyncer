@@ -11,6 +11,7 @@ using Selen.Base;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
+using OfficeOpenXml;
 
 namespace Selen.Sites {
     public class OzonApi {
@@ -42,7 +43,7 @@ namespace Selen.Sites {
         JArray _categoriesJO;         //список всех категорий товаров на озон JObject
 
         static readonly string _rulesFile = @"..\data\ozon\ozon_categories.xml";
-        static XDocument _catsXml;
+        static XDocument _rulesXML;
         static IEnumerable<XElement> _rules;
 
 
@@ -69,16 +70,16 @@ namespace Selen.Sites {
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
-            _catsXml = XDocument.Load(_rulesFile);
-            _rules = _catsXml.Descendants("Rule");
+            _rulesXML = XDocument.Load(_rulesFile);
+            _rules = _rulesXML.Descendants("Rule");
             //await GetWarehouseList();
             await GetCategoriesAsync();
             await UpdateProductsAsync();
             await CheckProductListAsync();
             await DeactivateActions();
             await CheckProductLinksAsync(checkAll: true);
-            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await AddProductsAsync();
+            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await DeactivateAutoActions();
             }
         }
@@ -466,9 +467,9 @@ namespace Selen.Sites {
                             old_price = GetOldPrice(GetNewPrice(good)).ToString(),
                             weight = (int)(good.Weight*1000),                  //Вес с упаковкой, г
                             weight_unit = "g",
-                            depth = int.Parse(good.width)*10,                       //глубина, мм
-                            height = int.Parse(good.height)*10,                     //высота, мм
-                            width = int.Parse(good.length)*10,                      //высота, мм
+                            depth = (int)(float.Parse(good.width.Replace(".",","))*10),        //мм
+                            height = (int)(float.Parse(good.height.Replace(".",","))*10),      //мм
+                            width = (int)(float.Parse(good.length.Replace(".",","))*10),       //мм
                             dimension_unit = "mm",
                             primary_image = good.images.First().url,                //главное фото
                             images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
@@ -583,7 +584,7 @@ namespace Selen.Sites {
                                      && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)));
+                                     && !exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e))).ToList();
             SaveToFile(goods);
             var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -591,8 +592,8 @@ namespace Selen.Sites {
                                      && w.New
                                      && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
-                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))); //нет в исключениях
-            SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.csv");
+                                     && !exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))).ToList(); //нет в исключениях
+            SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.xlsx");
             Log.Add(_l + "карточек для добавления: " + goods.Count() + " (" + goods2.Count() + ")");
             int i = 0;
             foreach (var good in goods) {
@@ -611,15 +612,14 @@ namespace Selen.Sites {
                                 name = good.NameLimit(_nameLimit),
                                 currency_code="RUB",
                                 offer_id=good.id,
-                                //description_category_id=attributes.categoryId,
                                 description_category_id=attributes.categoryId,
                                 price = GetNewPrice(good).ToString(),
                                 old_price = GetOldPrice(GetNewPrice(good)).ToString(),
-                                weight = (int)(good.Weight*1000),                      //Вес с упаковкой, г
+                                weight = (int)(good.Weight*1000),                           //вес с упаковкой, г
                                 weight_unit = "g",
-                                depth = int.Parse(good.width)*10,                           //глубина, мм
-                                height = int.Parse(good.height)*10,                         //высота, мм
-                                width = int.Parse(good.length)*10,                          //высота, мм
+                                depth = (int)(float.Parse(good.width.Replace(".",","))*10),           //мм
+                                height = (int)(float.Parse(good.height.Replace(".",","))*10),         //мм
+                                width = (int)(float.Parse(good.length.Replace(".",","))*10),          //мм
                                 dimension_unit = "mm",
                                 primary_image = good.images.First().url,                    //главное фото
                                 images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
@@ -762,7 +762,7 @@ namespace Selen.Sites {
                 if (Class365API.IsTimeOver)
                     return;
                 var priceList = await GetPrices();
-                var autoActionList = priceList.Where(w=>w.price.auto_action_enabled).Take(200);
+                var autoActionList = priceList.Where(w => w.price.auto_action_enabled).Take(200);
                 foreach (var product in autoActionList) {
                     if (Class365API.IsTimeOver)
                         return;
@@ -821,27 +821,7 @@ namespace Selen.Sites {
                         a.typeName = GetTypeName(rule);
                 }
                 if (a.typeName == null) {
-                    if ((n.Contains("генератор") || n.Contains("напряжен")) &&
-                        (n.Contains("реле") || n.Contains("регулятор"))) {
-                        a.typeName = "Регулятор напряжения генератора";
-                    } else if (n.Contains("генератор") &&
-                        n.StartsWith("болт ")) {
-                        a.typeName = "Регулятор генератора";
-                    } else if (n.StartsWith("стартер ")) {
-                        a.typeName = "Стартер в сборе";
-                    } else if (n.StartsWith("бендикс") && n.Contains("стартер")) {
-                        a.typeName = "Бендикс стартера";
-                    } else if (n.StartsWith("вилк") && n.Contains("стартер")) {
-                        a.typeName = "Вилка стартера";
-                    } else if (n.Contains("втягивающее") &&
-                        (n.Contains("реле") || n.Contains("стартер"))) {
-                        a.typeName = "Реле втягивающее стартера";
-                    } else if ((n.Contains("гофра") || n.Contains("труба гофрированная")) &&
-                        (n.Contains("универсальная") || n.Contains("площадка") || n.Contains("глушителя"))) {
-                        a.typeName = "Гофра глушителя";
-                    } else if (n.Contains("хомут") && n.Contains("глушителя")) {
-                        a.typeName = "Хомут для глушителя";
-                    } else if (n.Contains("труба") &&
+                    if (n.Contains("труба") &&
                         (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная")) ||
                         n.StartsWith("изгиб трубы глушителя") ||
                         n.StartsWith("труба прямая")
@@ -872,7 +852,10 @@ namespace Selen.Sites {
                         n.Contains("тормоз")) {
                         a.typeName = "Барабан тормозной";
                     } else if (n.Contains("диск") &&
-                        n.Contains("тормоз")) {
+                        n.Contains("тормозной")) {
+                        a.typeName = "Диск тормозной";
+                    } else if (n.Contains("диск") &&
+                        n.Contains("тормозные")) {
                         a.typeName = "Диск тормозной";
                     } else if (n.Contains("колодки") &&
                         n.Contains("тормоз")) {
@@ -1020,6 +1003,8 @@ namespace Selen.Sites {
                         a.typeName = "Присадка в топливо";
                     } else if (n.StartsWith("очиститель") && n.Contains("конд")) {
                         a.typeName = "Очиститель кондиционера";
+                    } else if (n.StartsWith("очиститель") && n.Contains("тормоз")) {
+                        a.typeName = "Очиститель тормозов";
                     } else if (n.Contains("очист") && n.Contains("охл")) {
                         a.typeName = "Очиститель системы охлаждения";
                     } else if ((n.Contains("раскоксовка") || n.Contains("промывка")) && n.Contains("двигат")) {
@@ -1046,10 +1031,6 @@ namespace Selen.Sites {
                     } else if ((n.StartsWith("защита") || n.StartsWith("пыльник")) &&         //Защита нижней части автомобиля
                         (n.Contains("двиг") || n.Contains("карт") || n.Contains("двс"))) {
                         a.typeName = "Защита двигателя и КПП";
-                    } else if (((n.StartsWith("кнопка") || n.StartsWith("блок ")) &&         //Переключатель салона авто
-                        n.Contains("стеклопод")) ||
-                        n.StartsWith("переключатель света")) {
-                        a.typeName = "Переключатель салона автомобиля";
                     } else if ((n.StartsWith("колонка") || n.StartsWith("вал")) &&          //Вал рулевой
                         n.Contains("рулев")) {
                         a.typeName = "Вал рулевой";
@@ -1294,10 +1275,6 @@ namespace Selen.Sites {
                         a.typeName = "Эмаль";
                     } else if (n.StartsWith("хомут ")) {                           //хомуты
                         a.typeName = "Хомут";
-                    } else if (n.StartsWith("ключ комбинированный") ||
-                        n.StartsWith("ключ газовый") ||
-                        n.StartsWith("набор") && n.Contains("ключ")) {             //Ключи
-                        a.typeName = "Ключ";
                     } else if (n.StartsWith("отвертк")) {            //отвертки
                         a.typeName = "Отвертка";
                     } else if (n.StartsWith("головка") &&
@@ -2242,65 +2219,42 @@ namespace Selen.Sites {
             }
         }
         //Сохранение списка карточек, которые можно добавить на озон в виде таблицы
-        void SaveToFile(IEnumerable<GoodObject> goods, string fname = @"..\data\ozon\ozonGoodListForAdding.csv") {
-            StringBuilder s = new StringBuilder();
-            var splt = "\t";
-            s.Append("id");
-            s.Append(splt);
-            s.Append("part");
-            s.Append(splt);
-            s.Append("name");
-            s.Append(splt);
-            s.Append("GroupName");
-            s.Append(splt);
-            s.Append("Amount");
-            s.Append(splt);
-            s.Append("price");
-            s.Append(splt);
-            s.Append("weight");
-            s.Append(splt);
-            s.Append("Width");
-            s.Append(splt);
-            s.Append("length");
-            s.Append(splt);
-            s.Append("Height");
-            s.Append(splt);
-            s.Append("GetManufacture");
-            s.Append(splt);
-            s.Append("images");
-            s.Append(splt);
-            s.Append("Description");
-            s.AppendLine(splt);
-            foreach (var good in goods) {
-                s.Append(good.id);
-                s.Append(splt);
-                s.Append(good.Part);
-                s.Append(splt);
-                s.Append(good.name);
-                s.Append(splt);
-                s.Append(good.GroupName());
-                s.Append(splt);
-                s.Append(good.Amount);
-                s.Append(splt);
-                s.Append(good.Price);
-                s.Append(splt);
-                s.Append(good.weight);
-                s.Append(splt);
-                s.Append(good.width);
-                s.Append(splt);
-                s.Append(good.length);
-                s.Append(splt);
-                s.Append(good.height);
-                s.Append(splt);
-                s.Append(good.GetManufacture());
-                s.Append(splt);
-                s.Append(good.images.Select(g => g.url).Aggregate((a, b) => a + " " + b));
-                s.Append(splt);
-                s.Append(good.description);
-                s.AppendLine(splt);
+        void SaveToFile(List<GoodObject> goods, string fname = @"..\data\ozon\ozonGoodListForAdding.xlsx") {
+            try {
+            var fileInfo = new FileInfo(fname);
+            var excelPackage = new ExcelPackage(fileInfo);
+            excelPackage.Workbook.Worksheets.Add("список для добавления на Озон");
+            var sheet = excelPackage.Workbook.Worksheets[1];
+            sheet.Cells[1, 1].Value = "Id";
+            sheet.Cells[1, 2].Value = "Part";
+            sheet.Cells[1, 3].Value = "Name";
+            sheet.Cells[1, 4].Value = "Amount";
+            sheet.Cells[1, 5].Value = "Price";
+            sheet.Cells[1, 6].Value = "Weight";
+            sheet.Cells[1, 7].Value = "Width";
+            sheet.Cells[1, 8].Value = "Length";
+            sheet.Cells[1, 9].Value = "Height";
+            sheet.Cells[1, 10].Value = "Manufacture";
+            sheet.Cells[1, 11].Value = "Images";
+            goods = goods.OrderBy(o => o.name).ToList();
+                for (int i = 0; i < goods.Count; i++) {
+                    sheet.Cells[i + 2, 1].Value = goods[i].id;
+                    sheet.Cells[i + 2, 2].Value = goods[i].Part;
+                    sheet.Cells[i + 2, 3].Value = goods[i].name;
+                    sheet.Cells[i + 2, 4].Value = goods[i].Amount;
+                    sheet.Cells[i + 2, 5].Value = goods[i].Price;
+                    sheet.Cells[i + 2, 6].Value = goods[i].weight?.ToString("F1") ?? "0";
+                    sheet.Cells[i + 2, 7].Value = goods[i].width;
+                    sheet.Cells[i + 2, 8].Value = goods[i].length;
+                    sheet.Cells[i + 2, 9].Value = goods[i].height;
+                    sheet.Cells[i + 2, 10].Value = goods[i].GetManufacture();
+                    sheet.Cells[i + 2, 11].Value = goods[i].images.Count();
             }
-            File.WriteAllText(fname, s.ToString(), Encoding.UTF8);
-            Log.Add("товары выгружены в ozonGoodListForAdding.csv");
+            excelPackage.Save();
+            Log.Add($"{_l}SaveToFile: список карточек выгружен в {fname}");
+            } catch (Exception x) {
+                Log.Add($"{_l}SaveToFile: ошибка сохранения списка - {x.Message}");
+            }
         }
         //список складов
         async Task GetWarehouseList() {
@@ -2330,14 +2284,14 @@ namespace Selen.Sites {
         public string volume_weight { get; set; }
     }
     public class OzonPrice {
-        public string price {  get; set; }
-        public string old_price {  get; set; }
-        public string retail_price {  get; set; }
-        public string vat {  get; set; }
-        public string min_ozon_price {  get; set; }
-        public string marketing_price {  get; set; }
-        public string marketing_seller_price {  get; set; }
-        public bool auto_action_enabled {  get; set; }
+        public string price { get; set; }
+        public string old_price { get; set; }
+        public string retail_price { get; set; }
+        public string vat { get; set; }
+        public string min_ozon_price { get; set; }
+        public string marketing_price { get; set; }
+        public string marketing_seller_price { get; set; }
+        public bool auto_action_enabled { get; set; }
     }
 
 
@@ -2360,7 +2314,7 @@ namespace Selen.Sites {
             return action_price.Length > 0 ? int.Parse(action_price.Split('.').First()) : 0;
         }
         public int GetMinPrice() {
-            return (int)(GetPrice() * (0.01 * (100 - OzonApi._minPriceProcent)));
+            return (int) (GetPrice() * (0.01 * (100 - OzonApi._minPriceProcent)));
         }
     }
     public class OzonActionsList {

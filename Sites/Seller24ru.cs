@@ -12,7 +12,6 @@ namespace Selen.Sites {
     public class Seller24ru {
 
         string _l = "Seller24ru";
-        string _xlsxFile;//todo remove!
         ExcelPackage _excelPackage;
         List<CurrentPrice> _goodPrices = new List<CurrentPrice>();
 
