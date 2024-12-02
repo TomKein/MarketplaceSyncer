@@ -36,7 +36,6 @@ namespace Selen {
         public string BindedName = "";
 
         //писать лог
-        bool _writeLog = true;
         DateTime _logShowFromTime = DateTime.Now.AddYears(-1);
 
         string _headerText = "Синхронизация сайтов ";
@@ -205,7 +204,6 @@ namespace Selen {
             Log.Level = await DB.GetParamIntAsync("logSize");
             if (_version > actualVersion)
                 Text += " (тестовая версия)";
-            _writeLog = await DB.GetParamBoolAsync("writeLog");
             dateTimePicker1.Value = Class365API.LastScanTime;
             _saveCookiesBeforeClose = await DB.GetParamBoolAsync("saveCookiesBeforeClose");
             await CheckMultiRunAsync();

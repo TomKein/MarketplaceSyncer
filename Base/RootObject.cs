@@ -171,6 +171,7 @@ namespace Selen {
         public string height { get; set; }
         public string hscode_id { get; set; }
         public static List<GoodGroupsObject> Groups { get; set; }
+
         static bool useReserve = DB.GetParamBool("useReserve");
 
         [JsonIgnore]
@@ -251,12 +252,12 @@ namespace Selen {
                                                         : measure_id == "13" ? "компл."
                                                                              : "шт.";
         public string MeasureNameCorrect => measure_id == "11"
-                                                ?Amount % 10 == 1 && Amount != 11 
+                                                ? Amount % 10 == 1 && Amount != 11
                                                     ? "пара"
                                                     : Amount % 10 >= 1 && Amount % 10 <= 4 && (Amount > 20 || Amount < 10)
                                                         ? "пары"
-                                                        :"пар"
-                                            : measure_id == "13" 
+                                                        : "пар"
+                                            : measure_id == "13"
                                                 ? "компл."
                                                 : "шт.";
         //вес товара по умолчанию
@@ -287,10 +288,25 @@ namespace Selen {
         public float MaxDimention => GetDimentions().Max();
         [JsonIgnore]
         public float MultiDimentions => GetDimentions().Aggregate((x1, x2) => x1 * x2);
-        [JsonIgnore] 
+        [JsonIgnore]
         public float VolumeWeight => MultiDimentions / 5000;
         //срок годности по умолчанию
         static string defaultValidity;
+        public int SizeMM(string direction, int MinSize) {
+            string stringValue;
+            if (direction == "length")
+                stringValue = length;
+            else if (direction == "width")
+                stringValue = width;
+            else if (direction == "height")
+                stringValue = height;
+            else
+                stringValue = "0";
+            var intValue = (int) (float.Parse(stringValue.Replace(".", ",")) * 10);
+            if (intValue < MinSize)
+                return MinSize;
+            return intValue;
+        }
         public static void UpdateDefaultValidity() {
             var validity = DB.GetParamStr("defaultValidity");
             if (string.IsNullOrEmpty(validity)) {
@@ -309,7 +325,7 @@ namespace Selen {
         }
         //Атрибут Количество в упаковке, шт
         public string GetPackQuantity() {
-            var quantity = attributes?.Find(f => f.Attribute.id == "2597286"); 
+            var quantity = attributes?.Find(f => f.Attribute.id == "2597286");
             if (quantity != null && quantity.Value.value != "") {
                 return quantity.Value.value;
             } else
@@ -317,7 +333,7 @@ namespace Selen {
         }
         //Атрибут Комплектация
         public string GetComplectation() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543016"); 
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543016");
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -458,7 +474,7 @@ namespace Selen {
         public string GetThickness() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543314");
             if (attribute != null && attribute.Value.value != "") {
-                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
                 return null;
         }
@@ -466,7 +482,7 @@ namespace Selen {
         public string GetHeight() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543149");
             if (attribute != null && attribute.Value.value != "") {
-                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
                 return null;
         }
@@ -474,7 +490,7 @@ namespace Selen {
         public string GetLengthAttr() {
             var attribute = attributes?.Find(f => f.Attribute.id == "2543150");
             if (attribute != null && attribute.Value.value != "") {
-                return (float.Parse(attribute.Value.value.Replace(".",","))*10).ToString("F0"); //см => мм
+                return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
                 return null;
         }
@@ -561,8 +577,9 @@ namespace Selen {
             return true;
         }
         public string NameLimit(int length) {
-            var t = name.Replace("(копия)",""); //удаление признака Копии
+            var t = name.Replace("(копия)", ""); //удаление признака Копии
             t = Regex.Replace(t, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
+            //todo удалить фразы типа сделать фото и т.п.
             while (t.Length > length) {
                 t = t.Remove(t.LastIndexOf(' '));
             }
@@ -871,7 +888,7 @@ namespace Selen {
     }
 
     //////////////////////////////////
-    
+
     public class Realization {
         public string id { get; set; }
         public string number { get; set; }
@@ -1232,14 +1249,16 @@ namespace Selen {
         public string price { get; set; }
         public string updated { get; set; }
         public string price_type_id { get; set; }
-        
+
         [JsonIgnore]
-        public DateTime Updated { 
-            get { 
+        public DateTime Updated {
+            get {
                 return DateTime.Parse(updated);
-            } set { 
+            }
+            set {
                 updated = value.ToString();
-            } }
+            }
+        }
     }
     //public class SupplyGoods { 
     //    public string id { get; set; }

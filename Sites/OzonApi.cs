@@ -78,7 +78,7 @@ namespace Selen.Sites {
             await CheckProductListAsync();
             await DeactivateActions();
             await CheckProductLinksAsync(checkAll: true);
-                await AddProductsAsync();
+            await AddProductsAsync();
             if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                 await DeactivateAutoActions();
             }
@@ -467,9 +467,9 @@ namespace Selen.Sites {
                             old_price = GetOldPrice(GetNewPrice(good)).ToString(),
                             weight = (int)(good.Weight*1000),                  //Вес с упаковкой, г
                             weight_unit = "g",
-                            depth = (int)(float.Parse(good.width.Replace(".",","))*10),        //мм
-                            height = (int)(float.Parse(good.height.Replace(".",","))*10),      //мм
-                            width = (int)(float.Parse(good.length.Replace(".",","))*10),       //мм
+                            depth = good.SizeMM("width",30),           //мм
+                            height = good.SizeMM("height",30),         //мм
+                            width = good.SizeMM("length",30),          //мм
                             dimension_unit = "mm",
                             primary_image = good.images.First().url,                //главное фото
                             images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
@@ -617,9 +617,9 @@ namespace Selen.Sites {
                                 old_price = GetOldPrice(GetNewPrice(good)).ToString(),
                                 weight = (int)(good.Weight*1000),                           //вес с упаковкой, г
                                 weight_unit = "g",
-                                depth = (int)(float.Parse(good.width.Replace(".",","))*10),           //мм
-                                height = (int)(float.Parse(good.height.Replace(".",","))*10),         //мм
-                                width = (int)(float.Parse(good.length.Replace(".",","))*10),          //мм
+                                depth = good.SizeMM("width",30),           //мм
+                                height = good.SizeMM("height",30),         //мм
+                                width = good.SizeMM("length",30),          //мм
                                 dimension_unit = "mm",
                                 primary_image = good.images.First().url,                    //главное фото
                                 images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
@@ -821,24 +821,7 @@ namespace Selen.Sites {
                         a.typeName = GetTypeName(rule);
                 }
                 if (a.typeName == null) {
-                    if (n.Contains("труба") &&
-                        (n.Contains("глушителя") || n.Contains("приемная") || n.Contains("промежуточная")) ||
-                        n.StartsWith("изгиб трубы глушителя") ||
-                        n.StartsWith("труба прямая")
-                        ) {
-                        a.typeName = "Труба выхлопная";
-                    } else if (n.StartsWith("резонатор ") ||
-                        n.StartsWith("пламегаситель ") ||
-                        n.Contains("стронгер")) {
-                        a.typeName = "Резонатор глушителя";
-                    } else if (n.Contains("комплект фланцев с трубой") ||
-                        n.Contains("глушител") &&
-                        (n.Contains("ремкомплект") || n.Contains("фланец"))) {
-                        a.typeName = "Ремкомплект глушителя";
-                    } else if (n.StartsWith("глушитель ") &&
-                        (bus.GroupName().Contains("ыхлопная") || bus.GroupName().Contains("лушител"))) {
-                        a.typeName = "Глушитель";
-                    } else if (n.StartsWith("суппорт ") &&
+                    if (n.StartsWith("суппорт ") &&
                         (bus.GroupName().Contains("тормоз") || n.Contains("тормоз"))) {
                         a.typeName = "Суппорты тормозные";
                     } else if (n.Contains("цилиндр") &&
@@ -1040,9 +1023,6 @@ namespace Selen.Sites {
                         a.typeName = "Компрессор кондиционера";
                     } else if (n.StartsWith("кордщетка") && n.Contains("дрел")) {           //Принадлежности для шлифовки, полировки
                         a.typeName = "Чашка шлифовальная";
-                    } else if ((n.StartsWith("кронштейн") || n.Contains("направляющая"))
-                        && n.Contains("бампер")) {                                          //Кронштейн крепления бампера для авто
-                        a.typeName = "Кронштейн крепления для автомобиля";
                     } else if (n.StartsWith("крыло")) {                                     //Крыло автомобильное
                         a.typeName = "Крыло для автомобиля";
                     } else if (n.Contains("масло") && n.Contains("моторное")) {             //Автохимия - Масло моторное
@@ -1145,13 +1125,6 @@ namespace Selen.Sites {
                     } else if (n.StartsWith("переключатель") &&                              //Переключатель подрулевой 
                           (n.Contains("стеклоочистител") || n.Contains("поворот"))) {
                         a.typeName = "Переключатель подрулевой";
-                    } else if (n.StartsWith("петл") && n.Contains("капота")) {              //Петля капота 
-                        a.typeName = "Петля капота";
-                    } else if (n.StartsWith("петл") && n.Contains("лючка")) {              //Петля лючка бензобака 
-                        a.typeName = "Ремкомплект лючка бензобака";
-                    } else if (n.Contains("глушител") &&                                     //Подвес глушителя 
-                        (n.Contains("подвес") || n.Contains("подушка") || n.Contains("крепление"))) {
-                        a.typeName = "Подушка крепления глушителя";
                     } else if (n.Contains("поддон") &&                                     //Поддон двсгателя 
                         (n.Contains("двс") || n.Contains("двсгателя") || n.Contains("картера"))) {
                         a.typeName = "Поддон картера двигателя";
@@ -1167,8 +1140,6 @@ namespace Selen.Sites {
                     } else if (n.Contains("подшипник") &&          //Подшипник опоры амортизатора
                         (n.Contains("стойк") || n.Contains("аморт") || n.Contains("опор"))) {
                         a.typeName = "Подшипник амортизатора";
-                    } else if (n.StartsWith("полироль ")) {           //Полироль 
-                        a.typeName = "Полироль автомобильный";
                     } else if ((n.StartsWith("помпа") || n.StartsWith("насос ")) &&           //Помпа водяная
                       (n.Contains("водян") || n.Contains("охлажд"))) {
                         a.typeName = "Насос водяной";
@@ -1257,9 +1228,6 @@ namespace Selen.Sites {
                         a.typeName = "Шатун двигателя";
                     } else if (n.StartsWith("штатная подсветка дверей")) {              //Штатная подсветка 
                         a.typeName = "Проекция логотипа автомобиля";
-                    } else if (n.StartsWith("штуцер") &&
-                        (n.Contains("прокачки") || n.Contains("суппорт"))) {              //Штуцер прокачки тормозного суппорта 
-                        a.typeName = "Ремкомплект суппорта";
                     } else if (n.StartsWith("щетка ") &&
                         (n.Contains("дрели") || n.Contains("чашка"))) {              //Щетка для дрели 
                         a.typeName = "Корщетка";
@@ -1299,22 +1267,10 @@ namespace Selen.Sites {
                         a.typeName = "Пыльник ШРУСа";
                     } else if (n.Contains("соединитель") && n.Contains("отоп")) {            // соединители патрубки отопления
                         a.typeName = "Патрубки отопления";
-                    } else if (n.Contains("воронка") && n.Contains("носик")) {            // Воронка техническая
-                        a.typeName = "Воронка техническая";
-                    } else if (n.Contains("щетка") && n.Contains("металлическая")) {            // щетка металическая
-                        a.typeName = "Щетка строительная";
-                    } else if (n.StartsWith("изолента")) {            // изолента
-                        a.typeName = "Изолента";
-                    } else if (n.Contains("холодная") && n.Contains("сварка")) {            // Холодная сварка
-                        a.typeName = "Холодная сварка";
-                    } else if (n.Contains("трос") && n.Contains("буксировочный")) {            // Трос буксировочный
-                        a.typeName = "Трос буксировочный";
                     } else if (n.Contains("кольцо") && n.Contains("уплотнительное")) {            // Кольцо уплотнительное приемной трубы
                         a.typeName = "Кольцо уплотнительное для автомобиля";
                     } else if (n.StartsWith("салфетка")) {            // Салфетка микрофибра
                         a.typeName = "Салфетка автомобильная";
-                    } else if (n.Contains("фиксатор") && n.Contains("резьбы")) {       // Фиксатор резьбы
-                        a.typeName = "Фиксатор резьбы";
                     } else if (n.Contains("быстрый") && n.Contains("старт")) {       // Быстрый старт для двигателя
                         a.typeName = "Жидкость для быстрого запуска";
                     } else if (n.StartsWith("трос") && n.Contains("спидометра")) {       // Трос спидометра
@@ -1455,14 +1411,6 @@ namespace Selen.Sites {
                     } else if (n.StartsWith("бегунок") &&
                         (n.Contains("распределител") || n.Contains("трамбл"))) {
                         a.typeName = "Бегунок распределителя зажигания";
-                    } else if (n.StartsWith("ремень") && n.Contains("грм")) {
-                        a.typeName = "Ремень ГРМ";
-                    } else if (n.StartsWith("ремень") && (n.Contains("клиновой") || n.Contains("приводн"))) {
-                        a.typeName = "Ремень клиновой";
-                    } else if (n.StartsWith("фланец ") && n.Contains("охлаждения")) {
-                        a.typeName = "Фланец охлаждения";
-                    } else if (n.StartsWith("адсорбер") || n.StartsWith("абсорбер топл")) {
-                        a.typeName = "Адсорбер";
                     } else
                         return a;
                 }
@@ -2012,31 +1960,38 @@ namespace Selen.Sites {
         }
 
         //Атрибут Аннотация Описание товара
-        Attribute GetDescriptionAttribute(GoodObject good) => new Attribute {
-            complex_id = 0,
-            id = 4191,
-            values = new Value[] {
-                new Value{
-                    value = good.DescriptionList()
-                                .Where(w=>!w.ToLower().Contains("оригинал")
-                                        &&!w.ToLower().Contains("новая")
-                                        &&!w.ToLower().Contains("новые")
-                                        &&!w.ToLower().Contains("новое")
-                                        &&!w.ToLower().Contains("новый")
-                                        &&!w.ToLower().Contains("недочет")
-                                        &&!w.ToLower().Contains("недочёт")
-                                        &&!w.ToLower().Contains("наличии")
-                                        &&!w.ToLower().Contains("упаковк")
-                                        &&!w.ToLower().Contains("без короб")
-                                        &&!w.ToLower().Contains("уценка")
-                                        &&!w.ToLower().Contains("уценен")
-                                        &&!w.ToLower().Contains("уценён")
-                                        &&!w.ToLower().Contains("витринн")
-                                )
-                                .Aggregate((a,b)=>a+"<br>"+b)
+        Attribute GetDescriptionAttribute(GoodObject good) {
+            try {
+                return new Attribute {
+                    complex_id = 0,
+                    id = 4191,
+                    values = new Value[] {
+                    new Value{
+                        value = good.DescriptionList()
+                            .Where(w=>!w.ToLower().Contains("оригинал")
+                                    &&!w.ToLower().Contains("новая")
+                                    &&!w.ToLower().Contains("новые")
+                                    &&!w.ToLower().Contains("новое")
+                                    &&!w.ToLower().Contains("новый")
+                                    &&!w.ToLower().Contains("недочет")
+                                    &&!w.ToLower().Contains("недочёт")
+                                    &&!w.ToLower().Contains("наличии")
+                                    &&!w.ToLower().Contains("упаковк")
+                                    &&!w.ToLower().Contains("без короб")
+                                    &&!w.ToLower().Contains("уценка")
+                                    &&!w.ToLower().Contains("уценен")
+                                    &&!w.ToLower().Contains("уценён")
+                                    &&!w.ToLower().Contains("витринн")
+                            )
+                            .Aggregate((a,b)=>a+"<br>"+b)
+                    }
                 }
+                };
+            } catch (Exception x) {
+                Log.Add($"{_l}GetDescriptionAttribute: ошибка описания! - {x.Message}");
+                throw x;
             }
-        };
+        }
         //Атрибут Тип товара
         Attribute GetTypeOfProductAttribute(string id, string name) =>
             new Attribute {
@@ -2221,22 +2176,24 @@ namespace Selen.Sites {
         //Сохранение списка карточек, которые можно добавить на озон в виде таблицы
         void SaveToFile(List<GoodObject> goods, string fname = @"..\data\ozon\ozonGoodListForAdding.xlsx") {
             try {
-            var fileInfo = new FileInfo(fname);
-            var excelPackage = new ExcelPackage(fileInfo);
-            excelPackage.Workbook.Worksheets.Add("список для добавления на Озон");
-            var sheet = excelPackage.Workbook.Worksheets[1];
-            sheet.Cells[1, 1].Value = "Id";
-            sheet.Cells[1, 2].Value = "Part";
-            sheet.Cells[1, 3].Value = "Name";
-            sheet.Cells[1, 4].Value = "Amount";
-            sheet.Cells[1, 5].Value = "Price";
-            sheet.Cells[1, 6].Value = "Weight";
-            sheet.Cells[1, 7].Value = "Width";
-            sheet.Cells[1, 8].Value = "Length";
-            sheet.Cells[1, 9].Value = "Height";
-            sheet.Cells[1, 10].Value = "Manufacture";
-            sheet.Cells[1, 11].Value = "Images";
-            goods = goods.OrderBy(o => o.name).ToList();
+                var fileInfo = new FileInfo(fname);
+                var excelPackage = new ExcelPackage(fileInfo);
+                if (excelPackage.Workbook.Worksheets.Count==0) {
+                    excelPackage.Workbook.Worksheets.Add("список для добавления на Озон");
+                }
+                var sheet = excelPackage.Workbook.Worksheets[1];
+                sheet.Cells[1, 1].Value = "Id";
+                sheet.Cells[1, 2].Value = "Part";
+                sheet.Cells[1, 3].Value = "Name";
+                sheet.Cells[1, 4].Value = "Amount";
+                sheet.Cells[1, 5].Value = "Price";
+                sheet.Cells[1, 6].Value = "Weight";
+                sheet.Cells[1, 7].Value = "Width";
+                sheet.Cells[1, 8].Value = "Length";
+                sheet.Cells[1, 9].Value = "Height";
+                sheet.Cells[1, 10].Value = "Manufacture";
+                sheet.Cells[1, 11].Value = "Images";
+                goods = goods.OrderBy(o => o.name).ToList();
                 for (int i = 0; i < goods.Count; i++) {
                     sheet.Cells[i + 2, 1].Value = goods[i].id;
                     sheet.Cells[i + 2, 2].Value = goods[i].Part;
@@ -2249,9 +2206,9 @@ namespace Selen.Sites {
                     sheet.Cells[i + 2, 9].Value = goods[i].height;
                     sheet.Cells[i + 2, 10].Value = goods[i].GetManufacture();
                     sheet.Cells[i + 2, 11].Value = goods[i].images.Count();
-            }
-            excelPackage.Save();
-            Log.Add($"{_l}SaveToFile: список карточек выгружен в {fname}");
+                }
+                excelPackage.Save();
+                Log.Add($"{_l}SaveToFile: список карточек выгружен в {fname}");
             } catch (Exception x) {
                 Log.Add($"{_l}SaveToFile: ошибка сохранения списка - {x.Message}");
             }
