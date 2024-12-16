@@ -79,7 +79,7 @@ namespace Selen.Sites {
                 await CheckProductListAsync();
                 await DeactivateActions();
                 await CheckProductLinksAsync(checkAll: true);
-                await AddProductsAsync();
+                await Add();
                 if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                     await DeactivateAutoActions();
                 }
@@ -165,7 +165,7 @@ namespace Selen.Sites {
                 if (Class365API.IsTimeOver)
                     return;
                 try {
-                    if (await UpdateProductAsync(_busToUpdate[b])) {
+                    if (await Update(_busToUpdate[b])) {
                         _busToUpdate.Remove(_busToUpdate[b]);
                         var bu = JsonConvert.SerializeObject(_busToUpdate);
                         File.WriteAllText(_busToUpdateFile, bu);
@@ -242,7 +242,7 @@ namespace Selen.Sites {
                         checkAll) {                                                         //либо передали флаг проверять всё
                         var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
-                        await UpdateProductAsync(Class365API._bus[b], productInfo);
+                        await Update(Class365API._bus[b], productInfo);
                     }
                 } catch (Exception x) {
                     Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
@@ -283,13 +283,13 @@ namespace Selen.Sites {
             }
         }
         //проверка и обновление товара
-        async Task<bool> UpdateProductAsync(GoodObject bus, ProductInfo productInfo = null) {
+        async Task<bool> Update(GoodObject bus, ProductInfo productInfo = null) {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
-                await UpdateProductStocks(bus, productInfo, 1020000901600000);
-                await UpdateProductStocks(bus, productInfo, 1020002368685000);
-                await UpdateProductPriceAsync(bus, productInfo);
+                await UpdateStocks(bus, productInfo, 1020000901600000);
+                await UpdateStocks(bus, productInfo, 1020002368685000);
+                await UpdatePrice(bus, productInfo);
                 await UpdateProduct(bus, productInfo);
                 return true;
             } catch (Exception x) {
@@ -298,7 +298,7 @@ namespace Selen.Sites {
             }
         }
         //обновление остатков товара на озон
-        private async Task UpdateProductStocks(GoodObject bus, ProductInfo productInfo, long warehouseId) {
+        private async Task UpdateStocks(GoodObject bus, ProductInfo productInfo, long warehouseId) {
             try {
                 var amount = bus.Amount;
                 if (!bus.New || amount < 0)
@@ -354,7 +354,7 @@ namespace Selen.Sites {
             return (int) (Math.Ceiling((newPrice * (1 + _oldPriceProcent / 100)) / 100) * 100);
         }
         //Проверка и обновление цены товара на озон
-        async Task UpdateProductPriceAsync(GoodObject bus, ProductInfo productInfo) {
+        async Task UpdatePrice(GoodObject bus, ProductInfo productInfo) {
             try {
                 var newPrice = GetNewPrice(bus);
                 var oldPrice = GetOldPrice(newPrice);
@@ -558,7 +558,7 @@ namespace Selen.Sites {
             }
         }
         //добавление новых товаров на ozon
-        async Task AddProductsAsync() {
+        async Task Add() {
             var count = await DB.GetParamIntAsync("ozon.countToAdd");
             if (count == 0)
                 return;
@@ -637,10 +637,10 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v3/product/import");
                     var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                     if (res.task_id != default(int)) {
-                        Log.Add(_l + good.name + " - товар отправлен на озон!");
+                        Log.Add($"{_l}Add: добавлен товар - {good.name}");
                         ++i;
                     } else {
-                        Log.Add(_l + good.name + " ошибка отправки товара на озон!");
+                        Log.Add($"{_l}Add: ошибка отправки товара - {good.name}");
                     }
                     var res2 = new ProductImportInfo();
                     await Task.Delay(10000);
@@ -649,12 +649,12 @@ namespace Selen.Sites {
                     };
                     s = await PostRequestAsync(data2, "/v1/product/import/info");
                     res2 = JsonConvert.DeserializeObject<ProductImportInfo>(s);
-                    Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
+                    Log.Add($"{_l}Add: статус товара {good.name} - {res2.items.First().status}");
                     if (res2.items.First().errors.Length > 0)
-                        Log.Add(_l + good.name + " ошибка - " + s);
+                        Log.Add($"{_l}Add: ошибка добавления - {good.name} - {s}");
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add(_l + good.name + " - " + x.Message + x.InnerException?.Message);
+                    Log.Add($"{_l}Add: ошибка добавления - {good.name} - {x.Message + x.InnerException?.Message}");
                 }
                 if (i >= count)
                     break;
@@ -1188,113 +1188,7 @@ namespace Selen.Sites {
                         a.typeName = "Опора КПП";
                     } else if (n.Contains("автотестер")) {                                         // Автотестер
                         a.typeName = "Тестер автомобильный";
-                    } else if (n.StartsWith("предохранител") ||
-                        n.StartsWith("набор предохранителей")) {                                  // Предохранитель 
-                        a.typeName = "Предохранители для автомобиля";
-                        //todo atribute current (A), count in pkg
-                    } else if ((n.Contains("стяжки") || n.Contains("хомуты")) && n.Contains("кабел")) {       // Хомуты (стяжки)
-                        a.typeName = "Болты, гайки, хомуты, стяжки";
-                    } else if (n.StartsWith("рамка") && n.Contains("номер")) {                      // Рамка под номерной знак
-                        a.typeName = "Рамка госномера";
-                    } else if (n.StartsWith("ключ") && n.Contains("свеч")) {                    // Ключ свечной
-                        a.typeName = "Ключ свечной";
-                        //todo atribute length
-                    } else if (n.StartsWith("держатель") &&
-                        (n.Contains("телеф") || n.Contains("навиг"))) {       // Держатель для телефона / навигатора
-                        a.typeName = "Держатель автомобильный";
-                        //todo atribute placement 
-                    } else if (n.StartsWith("съемник") && n.Contains("фильтр")) {       // Съемник масляного фильтра
-                        a.typeName = "Съемник";
-                    } else if (n.StartsWith("баллон") && n.Contains("газовый")) {
-                        a.typeName = "Баллон с газом туристический";
-                    } else if (n.StartsWith("бокорезы")) {
-                        a.typeName = "Бокорезы";
-                        //todo atribute length
-                    } else if (n.Contains("бандаж") && n.Contains("глушителя")) {
-                        a.typeName = "Клейкая лента автомобильная";
-                    } else if (n.StartsWith("грунт ")) {                            // Грунтовка
-                        a.typeName = "Автогрунтовка";
-                    } else if (n.Contains("жилет") && n.Contains("светоотраж")) {
-                        a.typeName = "Светоотражающий жилет";
-                        //todo atrib Целевая аудитория: Взрослая
-                    } else if (n.StartsWith("зажим-крокодил") ||
-                        n.StartsWith("клемма-зажим")) {
-                        a.typeName = "Зажим Крокодил";
-                        //todo atr ед. в одном товаре
-                    } else if (n.StartsWith("кабель для телефона")) {
-                        a.typeName = "Кабель для мобильных устройств";
-                    } else if (n.Contains("клей") && n.Contains("эпоксидный")) {
-                        a.typeName = "Клей эпоксидный";
-                    } else if (n.StartsWith("подшипник") && n.Contains("генератора")) {
-                        a.typeName = "Подшипник генератора";
-                    } else if (n.StartsWith("подшипник") && n.Contains("дифференциала")) {
-                        a.typeName = "Подшипник редуктора";
-                    } else if (n.StartsWith("провода прикуривания")) {
-                        a.typeName = "Провода для прикуривания";
-                    } else if (n.Contains("наконечник") && n.Contains("рулевой")) {
-                        a.typeName = "Наконечник рулевой";
-                    } else if (n.Contains("опора") && n.Contains("шаровая")) {
-                        a.typeName = "Опора шаровая";
-                    } else if ((n.Contains("стойка") || n.Contains("тяга")) && n.Contains("стабилизатора")) {
-                        a.typeName = "Стойка стабилизатора";
-                    } else if (n.Contains("скоба") && n.Contains("стабилизатора")) {
-                        a.typeName = "Стабилизатор поперечной устойчивости";
-                    } else if (n.Contains("кольц") && n.Contains("поршн")) {
-                        a.typeName = "Кольцо поршневое";
-                    } else if (n.Contains("пыльник") && n.Contains("шаров")) {
-                        a.typeName = "Пыльник шаровой опоры";
-                    } else if (n.Contains("сальник") && n.Contains("коленвал")) {
-                        a.typeName = "Сальник вала";
-                    } else if (n.Contains("ремкомплект") && n.Contains("рычаг")) {
-                        a.typeName = "Ремкомплект рычага подвески";
-                    } else if (n.StartsWith("антенна") || n.StartsWith("усилитель антенны")) {
-                        a.typeName = "Антенна автомобильная";
-                    } else if (n.StartsWith("шестерня") && n.Contains("распредвала")) {
-                        a.typeName = "Шестерня распредвала";
-                    } else if (n.Contains("болт") && n.Contains("развальный")) {  //Болт развальный
-                        a.typeName = "Болт с эксцентриком ремкомплект";
-                    } else if (n.StartsWith("болт") && n.Contains("рычага") ||  //Болт крепежный автомобильный
-                               n.StartsWith("болт-шпилька акпп") ||
-                               n.StartsWith("болт натяжителя ремня")) {
-                        a.typeName = "Болт крепежный автомобильный";
-                    } else if (n.StartsWith("втулка") && n.Contains("кпп")) {  //Втулка КПП
-                        a.typeName = "Втулка КПП";
-                    } else if (n.StartsWith("патрон") &&
-                        (n.Contains("поворота") || n.Contains("под лампу")) ||
-                        n.StartsWith("колодка соединительная лампы")) {  //Цоколь автомобильной лампы
-                        a.typeName = "Цоколь автомобильной лампы";
-                    } else if (n.StartsWith("переходник") && n.Contains("тормозной")) {
-                        a.typeName = "Штуцер тормозной трубки";
-                    } else if (n.StartsWith("трос") && n.Contains("газа")) {
-                        a.typeName = "Трос акселератора";
-                    } else if (n.StartsWith("накидная гайка") && n.Contains("топливного насоса")) {  //Ремкомплект насоса топливного
-                        a.typeName = "Ремкомплект насоса топливного";
-                    } else if (n.StartsWith("повторитель поворота")) {      //Повторитель указателя поворота
-                        a.typeName = "Повторитель указателя поворота";
-                    } else if (n.Contains("гур") && (n.StartsWith("трубка") || n.StartsWith("шланг"))) {      //Шланг ГУР
-                        a.typeName = "Шланг ГУР";
-                    } else if (n.StartsWith("знак аварийной остановки")) {      //Знак аварийной остановки
-                        a.typeName = "Знак аварийной остановки";
-                    } else if (n.StartsWith("клей токопроводящий")) {      //Клей автомобильный
-                        a.typeName = "Клей автомобильный";
-                    } else if (n.StartsWith("трещотка флажковая")) {      //Ключ газовый
-                        a.typeName = "Трещотка";
-                    } else if (n.StartsWith("термостат")) {      //Термостат
-                        a.typeName = "Термостат автомобильный";
-                    } else if (n.StartsWith("ремень") && n.Contains("поликлинов")) {
-                        a.typeName = "Ремень поликлиновой";
-                    } else if (n.StartsWith("регулятор") && n.Contains("холост")) {
-                        a.typeName = "Регулятор холостого хода";
-                    } else if (n.StartsWith("трос") && n.Contains("капота")) {
-                        a.typeName = "Трос замка капота";
-                    } else if (n.StartsWith("трос") && n.Contains("сцепления")) {
-                        a.typeName = "Трос сцепления";
-                    } else if (n.StartsWith("трос") &&
-                        (n.Contains("кпп") || n.Contains("передач"))) {
-                        a.typeName = "Трос КПП";
-                    } else if (n.StartsWith("бегунок") &&
-                        (n.Contains("распределител") || n.Contains("трамбл"))) {
-                        a.typeName = "Бегунок распределителя зажигания";
+
                     } else
                         return a;
                 }
