@@ -23,6 +23,8 @@ namespace Selen.Sites {
         readonly string _genFile = @"..\data\avito\avito_generations.txt";
         static readonly string _catsFile = @"..\data\avito\avito_categories.xml";
         static XDocument _cats;
+        static readonly string _sizeValuesFile = @"..\data\avito\avito_audioSize.xml";
+        static XDocument _sizeValues; //размеры динамиков
         static IEnumerable<XElement> _rules;
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
@@ -49,6 +51,7 @@ namespace Selen.Sites {
             _basePath = DB.GetParamStr("avito.basePath");
             _accessToken = DB.GetParamStr("avito.accessToken");
             _hc.BaseAddress = new Uri(_basePath);
+            _sizeValues = XDocument.Load(_sizeValuesFile);
         }
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
@@ -392,6 +395,28 @@ namespace Selen.Sites {
             File.WriteAllText(_genFile, list.Aggregate((a, b) => a + "\n" + b));
             //await Applications.UpdateApplicationListAsync(list);
         }
+        //размер акустики
+        static string SizeValue(string s) {
+            var sizes = _sizeValues.Descendants("Size").Where(w => !w.Value.StartsWith("овал"));
+            var size = sizes.First(d=>d.Value.StartsWith(s));
+            if (size!=null)
+                return size.Value;
+            //если значение не найдено ищем ближайшее
+            //конвертим параметр в число
+            var sFloat = float.Parse(s.Replace(".", ","));
+            //конвертим значения из списка в чила
+            var sizesFloat = sizes.Select(s1 => float.Parse(s1.Value
+                                                              .Split(' ')
+                                                              .First()
+                                                              .Replace(".", ",")));
+            var minDistance = sizesFloat.Select(sf => sf - sFloat).Where(w=>w>0).Min();
+            size = sizes.First(d => d.Value.StartsWith((sFloat+minDistance).ToString()));
+            if (size != null)
+                return size.Value;
+            //если значение не найдено
+            return "10";
+        }
+
         static void GetParams(XElement rule, Dictionary<string, string> d) {
             var parent = rule.Parent;
             if (parent != null) {
@@ -399,8 +424,6 @@ namespace Selen.Sites {
                 d.Add(parent.Name.ToString(), parent.Attribute("Name").Value);
             }
         }
-
-
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(GoodObject b) {
             var name = b.name.ToLowerInvariant()
@@ -462,7 +485,15 @@ namespace Selen.Sites {
                     d.Add("BrushLength", "260");
                     d.Add("SecondBrushLength", "260");
                     d.Add("BrushBrand", "Bosch");
-                }
+                } 
+            }
+            if (d.ContainsKey("GoodsType") && name.StartsWith("динамик")) {
+                d.Add("EquipmentType", "Автоакустика");
+                d.Add("AudioType", b.GetAudioType());
+                d.Add("VoiceCoil", b.GetVoiceCoil());
+                d.Add("Size", SizeValue(b.GetAudioSize()));
+                d.Add("RMS", b.GetRms());
+                d.Add("Impedance", b.GetImpedance());
             }
             // else if (d["ProductType"]== "Колпаки") {}
             //else if (name.StartsWith("шины ") ||

@@ -307,6 +307,9 @@ namespace Selen {
                 return MinSize;
             return intValue;
         }
+        public int SizeSM(string direction, int MinSize) {
+            return SizeMM(direction, MinSize*10) / 10;
+        }
         public static void UpdateDefaultValidity() {
             var validity = DB.GetParamStr("defaultValidity");
             if (string.IsNullOrEmpty(validity)) {
@@ -543,7 +546,7 @@ namespace Selen {
                 return null;
         }
         //Номера из описания
-        public List<string> GetDescriptionNumbers() {
+        public List<string> GetDescriptionNumbers() { //todo переделать с помощью регулярок
             return description.Split('№')
                               .Skip(1)
                               .Select(s => s.Replace("&nbsp;", " ")
@@ -715,6 +718,62 @@ namespace Selen {
             }
             return "";
         }
+        //тип акустики
+        public string GetAudioType() {
+            var d = (name + " " + description).ToLowerInvariant();
+            if (d.Contains("коаксиал"))
+                return "Коаксиальная";
+            else if (d.Contains("твитер") || d.Contains("высокочас") || d.Contains("пищалк"))
+                return "Твитер";
+            else if (d.Contains("сабвуфер"))
+                return "Сабвуфер";
+            return "Среднечастотная";
+        }
+        //количество полос динамика, шт
+        public string GetVoiceCoil() {
+            var d = (name + " " + description).ToLowerInvariant();
+            var pattern = @"полос\D*([0-9]+[.,]*[0-9]*)";
+            var number = Regex.Match(d, pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number))
+                number = "1";
+            return number;
+        }
+        //размер динамика, см
+        public string GetAudioSize() {
+            var d = (name + " " + description).ToLowerInvariant();
+            //ищем размер в см
+            var pattern = @"([0-9]+[.,]*[0-9]*)\s*см";
+            var number = Regex.Match(d, pattern)?.Groups[1]?.Value;
+            if (!string.IsNullOrEmpty(number))
+                return number.Replace(",",".");
+            //ищем размер в мм
+            pattern = @"([0-9]+[.,]*[0-9]*)\s*мм";
+            number = Regex.Match(d, pattern)?.Groups[1]?.Value;
+            if (!string.IsNullOrEmpty(number)) {
+                float fn = float.Parse(number)/10;
+                return fn.ToString().Replace(",",".");
+            }
+            return "10";
+        }
+        //мощность динамика, вт
+        public string GetRms() {
+            var d = (name + " " + description).ToLowerInvariant();
+            var pattern = @"([0-9]+[.,]*[0-9]*)\s*(?:вт|w|ват)";
+            var number = Regex.Match(d, pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number))
+                number = "20";
+            return number;
+        }
+        //сопротивление динамика, ом
+        public string GetImpedance() {
+            var d = (name + " " + description).ToLowerInvariant();
+            var pattern = @"([0-9]+[.,]*[0-9]*)\s*(?:ом|om)";
+            var number = Regex.Match(d, pattern).Groups[1].Value;
+            if (string.IsNullOrEmpty(number))
+                number = "4";
+            return number;
+        }
+
         //получаем колчество отверстий на диске из описания
         public string GetNumberOfHoles() {
             var pattern = @"(?:.+)\s*(\d)(?:\*|x|х)\s*(?:[0-9]+)";
@@ -741,7 +800,7 @@ namespace Selen {
         }
         //производители
         private static string[] manufactures;
-        public string GetManufacture(bool ozon = false) {
+        public string GetManufacture(bool ozon = false, bool wb= false) {
             //проверяю сперва характеристику для озона
             Attributes manufacture = null;
             if (ozon)
@@ -750,6 +809,8 @@ namespace Selen {
             if (manufacture == null)
                 manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
+                if (wb && manufacture.Value.name == "H&Q")
+                    return "";
                 return manufacture.Value.name;
             }
             //если характеристика не указана, то пытаюсь определить из названия и описания

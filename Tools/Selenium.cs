@@ -56,9 +56,9 @@ namespace Selen.Tools {
                     if (String.IsNullOrEmpty(check) ||
                         GetElementsCount(check) > 0)
                         return;
-                    Log.Add("selenium: неудачная попытка загрузки страницы (" + (i + 1) + ") - " + url + " - элемент не найден!");
+                    Log.Add("selenium: Navigate: предупреждение - (" + (i + 1) + ") - " + url + " - элемент не найден!");
                 } catch (Exception x) {
-                    Log.Add("selenium: неудачная попытка загрузки страницы (" + (i + 1) + ") - " + url + " - " + x.Message);
+                    Log.Add("selenium: Navigate: предупреждение - неудачная попытка загрузки страницы (" + (i + 1) + ") - " + url + " - " + x.Message);
                 }
             }
             throw new Exception("selenium: ошибка браузера! - не удается загрузить страницу " + url + " - timed out!");

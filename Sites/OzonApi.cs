@@ -880,9 +880,6 @@ namespace Selen.Sites {
                     } else if (n.Contains("цилиндр ") &&
                         n.Contains("сцеплени") && n.Contains("рабоч")) {
                         a.typeName = "Цилиндр сцепления рабочий";
-                    } else if (n.Contains("вал ") &&
-                        (n.Contains("первичный") || n.Contains("вторичный"))) {
-                        a.typeName = "Вал промежуточный";
                     } else if (n.StartsWith("сайлентблок")) {
                         a.typeName = "Сайлентблок";
                     } else if (n.StartsWith("гайка ")) {
@@ -1079,9 +1076,6 @@ namespace Selen.Sites {
                     } else if (n.StartsWith("решетка") &&
                         (n.Contains("бампер") || n.Contains("радиатор"))) {    //решетка бампера радиатора
                         a.typeName = "Решетка радиатора";
-                    } else if (n.StartsWith("ролик ") &&
-                        n.Contains("ремня")) {              //Ролик натяжной ремня 
-                        a.typeName = "Ролик натяжителя";
                     } else if (n.StartsWith("ручник ")) {    //Ручник 
                         a.typeName = "Рычаг тормоза";
                     } else if (n.StartsWith("рычаг") &&          //Рычаг подвески
@@ -1173,21 +1167,6 @@ namespace Selen.Sites {
                         a.typeName = "Жидкость для быстрого запуска";
                     } else if (n.StartsWith("трос") && n.Contains("спидометра")) {       // Трос спидометра
                         a.typeName = "Трос спидометра";
-                    } else if (n.StartsWith("трос") && (
-                        n.Contains("ручника") ||
-                        n.Contains("тормоз") &&
-                        (n.Contains("ручн") || n.Contains("стоян")))) {       // Трос ручника
-                        a.typeName = "Трос ручного тормоза";
-                    } else if (n.StartsWith("размораживатель") && n.Contains("замков")) {       // Размораживатель замков 
-                        a.typeName = "Размораживатель замков";
-                    } else if (n.Contains("лампа") && (n.Contains("галоген") || n.Contains("ксенон"))) {  // Автолампы 
-                        a.typeName = "Лампа автомобильная";
-                        //todo atributes lapm type, connection
-                    } else if (n.StartsWith("опора") && n.Contains("кпп") ||
-                        n.StartsWith("подушка коробки")) {                                          // Опоры кпп, акпп
-                        a.typeName = "Опора КПП";
-                    } else if (n.Contains("автотестер")) {                                         // Автотестер
-                        a.typeName = "Тестер автомобильный";
 
                     } else
                         return a;
@@ -1263,10 +1242,10 @@ namespace Selen.Sites {
                 complex_id = 0,
                 id = 7366,
                 values = new Value[] {
-                new Value{
-                    value = value
+                    new Value{
+                        value = value
+                    }
                 }
-            }
             };
         }
         //Атрибут Внутренний диаметр, см
@@ -1908,7 +1887,6 @@ namespace Selen.Sites {
                 }
             }
         }
-
         string GetDescriptionCategoryId(string type_id) {
             var token = "..type_id";
             foreach (JToken type in _categoriesJO.SelectTokens(token)) {
@@ -1932,7 +1910,6 @@ namespace Selen.Sites {
             Log.Add(_l + "ОШИБКА - КАТЕГОРИЯ НЕ НАЙДЕНА! - typeName: " + a.typeName);
             return false;
         }
-
         //Запрос атрибутов существующего товара озон
         private async Task<List<ProductsInfoAttr>> GetProductFullInfoAsync(ProductInfo productInfo) {
             try {

@@ -445,15 +445,6 @@ namespace Selen.Sites {
                         Task.Delay(200);
                         continue;
                     }
-                    var length = int.Parse(good.length);
-                    if (length < 5)
-                        length = 5;
-                    var width = int.Parse(good.width) * good.GetQuantOfSell();
-                    if (width < 5)
-                        width = 5;
-                    var height = int.Parse(good.height);
-                    if (height < 5)
-                        height = 5;
                     //формирую объект запроса
                     var data = new[] {
                         new {
@@ -463,11 +454,11 @@ namespace Selen.Sites {
                                     title = good.NameLimit(_nameLimit),
                                     description = GetDescription(good),
                                     vendorCode = good.id,
-                                    brand=good.GetManufacture(),
+                                    brand=good.GetManufacture(wb:true),
                                     dimensions = new {
-                                          length = length,
-                                          width = width,
-                                          height = height
+                                          length = good.SizeSM("length",5),
+                                          width = good.SizeSM("width",5),
+                                          height = good.SizeSM("height",5)
                                     },
                                     characteristics = new List<object>()
                                 }
@@ -940,7 +931,7 @@ namespace Selen.Sites {
                                                 .Skip(checkProductIndex)
                                                 .Take(checkProductCount)
                                                 .ToList();
-                for (int b = 0;b < busUpdateList.Count; b++) {
+                for (int b = 0; b < busUpdateList.Count; b++) {
                     if (Class365API.IsTimeOver)
                         break;
                     try {
@@ -1081,27 +1072,18 @@ namespace Selen.Sites {
                 }
                 if (card == null)
                     throw new Exception("карточка не найдена!!");
-                var length = int.Parse(good.length);
-                if (length < 5)
-                    length = 5;
-                var width = int.Parse(good.width) * good.GetQuantOfSell();
-                if (width < 5)
-                    width = 5;
-                var height = int.Parse(good.height);
-                if (height < 5)
-                    height = 5;
                 //формирую объект запроса
                 var data = new[] {
                     new {
                         nmID = card.nmID,
                         vendorCode = good.id,
-                        brand = good.GetManufacture(),
+                        brand = good.GetManufacture(wb:true),
                         title = good.NameLimit(_nameLimit),
                         description = GetDescription(good),
                         dimensions = new {
-                                length = length,
-                                width = width,
-                                height = height
+                            length = good.SizeSM("length",5),
+                            width = good.SizeSM("width",5),
+                            height = good.SizeSM("height",5)
                         },
                         characteristics = new List<object>(),
                         sizes = new WbSizes[] {
