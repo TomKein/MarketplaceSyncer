@@ -16,6 +16,9 @@ namespace Selen {
         public string id { get; set; }
         public string number { get; set; }
         public string comment { get; set; }
+        public string updated { get; set; }
+        public string responsible_employee_id { get; set; }
+        public string author_employee_id { get; set; }
     }
 
     public class realizationgoods {
@@ -964,7 +967,7 @@ namespace Selen {
         public string currency_value { get; set; }
         //public int nds_include { get; set; }
         public bool held { get; set; }
-        //public string comment { get; set; }
+        public string comment { get; set; }
         //public string customer_order_id { get; set; }
         //public string delivery_order_id { get; set; }
         public string reservation_id { get; set; }

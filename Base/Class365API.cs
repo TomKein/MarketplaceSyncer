@@ -240,9 +240,9 @@ namespace Selen {
                             _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                             //todo добавить параметр в настройки
                             var del = _rr.request_count * (_rr.request_count / 200);
-                            if (_rr.request_count%10==0)
+                            if (_rr.request_count % 10 == 0)
                                 Log.Add($"{_l} REQUEST_COUNT: {_rr.request_count} / delay {del}");
-                            Thread.Sleep(_rr.request_count*3);
+                            Thread.Sleep(_rr.request_count * 3);
                             _flagRequestActive = false;
                             return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                         }
@@ -279,22 +279,22 @@ namespace Selen {
             return md5_str.ToString();
         }
         static async Task SyncAllHandlerAsync() {
-            await Class365API.AddPartNumsAsync();
-            await Class365API.CheckArhiveStatusAsync();
-            await Class365API.ClearOldUrls();
-            await Class365API.CheckGrammarOfTitlesAndDescriptions();
-            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
-                await Class365API.CheckDubles();
-                await Class365API.CheckMultipleApostrophe();
-                await Class365API.ArtCheck();
-                await Class365API.GroupsMoveAsync();                //проверка групп
-                await Class365API.PhotoClearAsync();                //удаление старых фото
-                await Class365API.ArchivateAsync();                 //архивирование карточек
+            await CheckReserve();
+            await AddPartNumsAsync();
+            await CheckArhiveStatusAsync();
+            await ClearOldUrls();
+            await CheckGrammarOfTitlesAndDescriptions();
+            if (SyncStartTime.Minute < _checkIntervalMinutes) {
+                await CheckDubles();
+                await CheckMultipleApostrophe();
+                await ArtCheck();
+                await GroupsMoveAsync();                //проверка групп
+                await PhotoClearAsync();                //удаление старых фото
+                await ArchivateAsync();                 //архивирование карточек
             }
-            await Class365API.CheckRealisationsAsync();             //проверка реализаций, добавление расходов
-            await Class365API.ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
+            await CheckRealisationsAsync();             //проверка реализаций, добавление расходов
+            await ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
         }
-
         public static async Task GoFullSync() {
             Status = SyncStatus.ActiveFull;
             SyncStartTime = DateTime.Now;
@@ -346,7 +346,6 @@ namespace Selen {
             } while (_bus.Count == 0 || Math.Abs(_bus.Count - lastScan) / _bus.Count > 0.01);
             Log.Add("business.ru: получено товаров " + _bus.Count);
         }
-
         public static async Task GetBusGroupsAsync() {
             Log.Add(_l + "GetBusGroupsAsync - получаю список групп...");
             do {
@@ -373,7 +372,7 @@ namespace Selen {
                 _checkIntervalMinutes = await DB.GetParamIntAsync("checkIntervalMinutes");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
-                var isBusFileOld = lastWriteBusFile.AddMinutes(_checkIntervalMinutes*2) < LastScanTime;
+                var isBusFileOld = lastWriteBusFile.AddMinutes(_checkIntervalMinutes * 2) < LastScanTime;
                 //если файл базы устарел - полный рескан
                 if (isBusFileOld || _bus.Count == 0) {
                     Log.Add($"{_l} GoLiteSync: будет произведен запрос полной базы товаров... isBusFileOld {isBusFileOld}, goods.Count {_bus.Count}, Status {Status}");
@@ -457,7 +456,7 @@ namespace Selen {
                 ///пока события не реализованы в проекте, поэтому пока мы лишь обновили кеш базы, 
                 ///карточки, которые изменились с момента последнего запроса
 
-                if (LastScanTime.AddMinutes(_checkIntervalMinutes) < DateTime.Now){
+                if (LastScanTime.AddMinutes(_checkIntervalMinutes) < DateTime.Now) {
                     await SaveBusAsync();
                     await syncAllEvent.Invoke();
                 }
@@ -481,6 +480,53 @@ namespace Selen {
                 });
             } catch (Exception x) {
                 Log.Add($"{_l} SaveBusAsync: ошибка сохранения базы товаров в bus.json - {x.Message}");
+            }
+        }
+        //проверка резерва
+        static async Task CheckReserve() {
+            Log.Add($"{_l}CheckReserve: проверяем резервы");
+            //запросим резервы
+            var s = await RequestAsync("get", "reservations", new Dictionary<string, string>{
+                {"responsible_employee_id", ""},
+                {"updated[from]", SyncStartTime.AddDays(-30).ToString()},
+                {"limit", "10"}
+            });
+            var reserves = JsonConvert.DeserializeObject<List<reservations>>(s);
+            Log.Add($"{_l}CheckReserve: найдено резервов для проверки: {reserves.Count}");
+            foreach (var reserve in reserves) {
+                //если ответственный в резерве уже установлен - пропускаем
+                if (reserve.responsible_employee_id != null) continue;
+                Log.Add($"{_l}CheckReserve: проверяем резерв № {reserve.number}");
+                //ищем реализацию со ссылкой на данный резерв
+                s = await RequestAsync("get", "realizations", new Dictionary<string, string>{
+                                    {"reservation_id", reserve.id}
+                });
+                var reals  = JsonConvert.DeserializeObject<List<Realization>>(s);
+                //если реализация найдена и статус проведен
+                if (reals.Any() && reals[0].held) {
+                    Log.Add($"{_l}CheckReserve: реализация № {reals[0].number} найдена и проведена");
+                    //снимаем проведение с реализации для изменения резерва
+                    s = await RequestAsync("put", "realizations", new Dictionary<string, string> {
+                        { "id", reals[0].id},
+                        { "held", "0"}
+                    });
+                    if (s.Contains("update")) 
+                        Log.Add($"{_l}CheckReserve: проводка реализации отменена");
+                    //теперь меняем ответственного в резерве
+                    s = await RequestAsync("put", "reservations", new Dictionary<string, string>{
+                                    {"id", reserve.id},
+                                    {"responsible_employee_id", RESPONSIBLE_EMPLOYEE_ID}
+                    });
+                    if (s.Contains("update"))
+                        Log.Add($"{_l}CheckReserve: ответственный в реализации добавлен");
+                    //и проводим обратно реализацию
+                    s = await RequestAsync("put", "realizations", new Dictionary<string, string> {
+                        { "id", reals[0].id},
+                        { "held", "1"}
+                    });
+                    if (s.Contains("update")) 
+                        Log.Add($"{_l}CheckReserve: проводка реализации возвращена");
+                }
             }
         }
         //добавить номера из описаний в артикул
@@ -1231,8 +1277,8 @@ namespace Selen {
                 if (Status == SyncStatus.NeedUpdate)
                     return;
                 //запрашиваю товары из документов "ввод на остатки"
-                var s = await Class365API.RequestAsync("get", "remaingoods", new Dictionary<string, string> {
-                        {"limit", Class365API.PAGE_LIMIT_BASE.ToString()},
+                var s = await RequestAsync("get", "remaingoods", new Dictionary<string, string> {
+                        {"limit", PAGE_LIMIT_BASE.ToString()},
                         {"page", i.ToString()},
                     });
                 //если запрос товаров вернул пустой ответ - товары закончились - прерываю цикл
@@ -1243,13 +1289,13 @@ namespace Selen {
                 //перебираю товары из списка
                 foreach (var rg in remainGoods) {
                     //индекс карточки товара
-                    var indBus = Class365API._bus.FindIndex(f => f.id == rg.good_id);
+                    var indBus = _bus.FindIndex(f => f.id == rg.good_id);
                     //если индекс и остаток положительный
-                    if (indBus > -1 && Class365API._bus[indBus].Amount > 0) {
+                    if (indBus > -1 && _bus[indBus].Amount > 0) {
                         //цена ввода на остатки (цена закупки)
                         var priceIn = rg.FloatPrice;
                         //цена отдачи (розничная)
-                        var priceOut = Class365API._bus[indBus].Price;
+                        var priceOut = _bus[indBus].Price;
                         //процент цены закупки от цены отдачи
                         var procentCurrent = 100 * priceIn / priceOut;
                         //если процент различается более чем на 5%
@@ -1257,14 +1303,14 @@ namespace Selen {
                             //новая цена закупки
                             var newPrice = priceOut * procent * 0.01;
                             //- меняем цену закупки
-                            s = await Class365API.RequestAsync("put", "remaingoods", new Dictionary<string, string> {
+                            s = await RequestAsync("put", "remaingoods", new Dictionary<string, string> {
                                 { "id", rg.id },
                                 { "remain_id",rg.remain_id },
                                 { "good_id", rg.good_id},
                                 { "price", newPrice.ToString("#.##")},
                             });
                             if (!string.IsNullOrEmpty(s) && s.Contains("updated"))
-                                Log.Add("business.ru: " + Class365API._bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
+                                Log.Add("business.ru: " + _bus[indBus].name + " - цена закупки изменена с " + priceIn + " на " + newPrice.ToString("#.##"));
                             await Task.Delay(50);
                         }
                     }
@@ -1278,8 +1324,8 @@ namespace Selen {
                 if (Status == SyncStatus.NeedUpdate)
                     return;
                 //запрашиваю товары из документов "Оприходования"
-                var s = await Class365API.RequestAsync("get", "postinggoods", new Dictionary<string, string> {
-                        {"limit", Class365API.PAGE_LIMIT_BASE.ToString()},
+                var s = await RequestAsync("get", "postinggoods", new Dictionary<string, string> {
+                        {"limit", PAGE_LIMIT_BASE.ToString()},
                         {"updated[from]", DateTime.Now.AddHours(-10).ToString("dd.MM.yyyy")},
                         {"page", i.ToString()},
                     });

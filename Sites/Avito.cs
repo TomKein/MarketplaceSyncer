@@ -24,7 +24,11 @@ namespace Selen.Sites {
         static readonly string _catsFile = @"..\data\avito\avito_categories.xml";
         static XDocument _cats;
         static readonly string _sizeValuesFile = @"..\data\avito\avito_audioSize.xml";
-        static XDocument _sizeValues; //размеры динамиков
+        static List<string> _sizeValues; //размеры динамиков
+        static readonly string _rmsValuesFile = @"..\data\avito\avito_audioRms.xml";
+        static List<int> _rmsValues; //мощность динамиков
+        static readonly string _impedanceValuesFile = @"..\data\avito\avito_audioImpedance.xml";
+        static List<float> _impedanceValues; //сопротивление динамиков
         static IEnumerable<XElement> _rules;
         readonly string _autoCatalogUrl = "http://autoload.avito.ru/format/Autocatalog.xml";
         readonly string _applicationAttribureId = "2543011";
@@ -51,7 +55,20 @@ namespace Selen.Sites {
             _basePath = DB.GetParamStr("avito.basePath");
             _accessToken = DB.GetParamStr("avito.accessToken");
             _hc.BaseAddress = new Uri(_basePath);
-            _sizeValues = XDocument.Load(_sizeValuesFile);
+            _sizeValues = XDocument.Load(_sizeValuesFile)
+                                   .Descendants("Size")
+                                   .Where(w => !w.Value.StartsWith("овал"))
+                                   .Select(s=>s.Value)
+                                   .ToList();
+            _rmsValues = XDocument.Load(_rmsValuesFile)
+                                   .Descendants("RMS")
+                                   .Select(s => int.Parse(s.Value))
+                                   .ToList();
+            _impedanceValues = XDocument.Load(_impedanceValuesFile)
+                                   .Descendants("Impedance")
+                                   .Where(w => !w.Value.Contains("×"))
+                                   .Select(s => float.Parse(s.Value.Replace(".", ",")))
+                                   .ToList();
         }
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
@@ -396,25 +413,45 @@ namespace Selen.Sites {
             //await Applications.UpdateApplicationListAsync(list);
         }
         //размер акустики
-        static string SizeValue(string s) {
-            var sizes = _sizeValues.Descendants("Size").Where(w => !w.Value.StartsWith("овал"));
-            var size = sizes.First(d=>d.Value.StartsWith(s));
-            if (size!=null)
-                return size.Value;
+        static string SizeValue(GoodObject b) {
+            var s = b.GetAudioSize();
+            var size = _sizeValues.Where(d=>d.StartsWith(s));
+            if (size.Any())
+                return size.First();
             //если значение не найдено ищем ближайшее
             //конвертим параметр в число
             var sFloat = float.Parse(s.Replace(".", ","));
             //конвертим значения из списка в чила
-            var sizesFloat = sizes.Select(s1 => float.Parse(s1.Value
+            var sizesFloat = _sizeValues.Select(s1 => float.Parse(s1
                                                               .Split(' ')
                                                               .First()
                                                               .Replace(".", ",")));
             var minDistance = sizesFloat.Select(sf => sf - sFloat).Where(w=>w>0).Min();
-            size = sizes.First(d => d.Value.StartsWith((sFloat+minDistance).ToString()));
-            if (size != null)
-                return size.Value;
+            size = _sizeValues.Where(d => d.StartsWith((sFloat+minDistance).ToString()));
+            if (size.Any())
+                return size.First();
             //если значение не найдено
             return "10";
+        }
+        //мощность акустики
+        static string RMSValue(GoodObject b) {
+            string s = b.GetRms();
+            //конвертим параметр в число
+            var sInt = int.Parse(s);
+            var minDistance = _rmsValues.Select(r => r - sInt).Where(w=>w>=0).Min();
+            var rms =  sInt+minDistance;
+            return rms.ToString();
+            //если значение не найдено
+        }
+        //сопротивление акустики
+        static string ImpedanceValue(GoodObject b) {
+            string s = b.GetImpedance();
+            //конвертим параметр в число
+            var sInt = float.Parse(s);
+            var minDistance = _impedanceValues.Select(r => r - sInt).Where(w => w >= 0).Min();
+            var rms = sInt + minDistance;
+            return rms.ToString();
+            //если значение не найдено
         }
 
         static void GetParams(XElement rule, Dictionary<string, string> d) {
@@ -491,9 +528,9 @@ namespace Selen.Sites {
                 d.Add("EquipmentType", "Автоакустика");
                 d.Add("AudioType", b.GetAudioType());
                 d.Add("VoiceCoil", b.GetVoiceCoil());
-                d.Add("Size", SizeValue(b.GetAudioSize()));
-                d.Add("RMS", b.GetRms());
-                d.Add("Impedance", b.GetImpedance());
+                d.Add("Size", SizeValue(b));
+                d.Add("RMS", RMSValue(b));
+                d.Add("Impedance", ImpedanceValue(b));
             }
             // else if (d["ProductType"]== "Колпаки") {}
             //else if (name.StartsWith("шины ") ||
