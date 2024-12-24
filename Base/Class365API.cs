@@ -279,12 +279,12 @@ namespace Selen {
             return md5_str.ToString();
         }
         static async Task SyncAllHandlerAsync() {
-            await CheckReserve();
             await AddPartNumsAsync();
             await CheckArhiveStatusAsync();
             await ClearOldUrls();
             await CheckGrammarOfTitlesAndDescriptions();
             if (SyncStartTime.Minute < _checkIntervalMinutes) {
+                await CheckReserve();
                 await CheckDubles();
                 await CheckMultipleApostrophe();
                 await ArtCheck();
@@ -488,8 +488,8 @@ namespace Selen {
             //запросим резервы
             var s = await RequestAsync("get", "reservations", new Dictionary<string, string>{
                 {"responsible_employee_id", ""},
-                {"updated[from]", SyncStartTime.AddDays(-30).ToString()},
-                {"limit", "10"}
+                {"updated[from]", SyncStartTime.AddHours(-5).ToString()},
+                //{"limit", "200"}
             });
             var reserves = JsonConvert.DeserializeObject<List<reservations>>(s);
             Log.Add($"{_l}CheckReserve: найдено резервов для проверки: {reserves.Count}");

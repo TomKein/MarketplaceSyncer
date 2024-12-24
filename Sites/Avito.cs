@@ -17,9 +17,9 @@ namespace Selen.Sites {
         //получение ключей https://www.avito.ru/professionals/api
         //получение токена https://developers.avito.ru/api-catalog/auth/documentation#operation/getAccessToken
         readonly string _l = "avito: ";
-        readonly string _fileNameExport = @"..\data\avito.xml";
-        readonly string _fileNameStockExport = @"..\data\avitostock.xml";
-        readonly string _autoCatalogFile = @"..\data\autocatalog.xml";
+        readonly string _fileNameExport = @"..\data\avito\avito.xml";
+        readonly string _fileNameStockExport = @"..\data\avito\avitostock.xml";
+        readonly string _autoCatalogFile = @"..\data\avito\autocatalog.xml";
         readonly string _genFile = @"..\data\avito\avito_generations.txt";
         static readonly string _catsFile = @"..\data\avito\avito_categories.xml";
         static XDocument _cats;
@@ -423,9 +423,9 @@ namespace Selen.Sites {
             var sFloat = float.Parse(s.Replace(".", ","));
             //конвертим значения из списка в чила
             var sizesFloat = _sizeValues.Select(s1 => float.Parse(s1
-                                                              .Split(' ')
-                                                              .First()
-                                                              .Replace(".", ",")));
+                                                           .Split(' ')
+                                                           .First()
+                                                           .Replace(".", ",")));
             var minDistance = sizesFloat.Select(sf => sf - sFloat).Where(w=>w>0).Min();
             size = _sizeValues.Where(d => d.StartsWith((sFloat+minDistance).ToString()));
             if (size.Any())
