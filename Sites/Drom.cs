@@ -78,21 +78,23 @@ namespace Selen.Sites {
 
                 Log.Add($"{_l} начало выгрузки...");
                 //загружаю список на обновление
+                List<GoodObject> busToUpdate;
                 if (File.Exists(_busToUpdateFile)) {
                     var f = File.ReadAllText(_busToUpdateFile);
-                    _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
-                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
                 } else
-                    _busToUpdate = new List<GoodObject>();
+                    busToUpdate = new List<GoodObject>();
                 //список обновленных карточек со ссылкой на объявления
-                var busUpdateList = Class365API._bus.Where(_ => _.drom != null && _.drom.Contains("http") && _.IsTimeUpDated()).ToList();
-                //список без дубликатов 
-                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
-                //добавляю в общий список на обновление
-                _busToUpdate.AddRange(busUpdateList);
+                _busToUpdate = Class365API._bus
+                                          .Where(_ => _.drom != null 
+                                                   && _.drom.Contains("http") 
+                                                   && _.IsTimeUpDated()
+                                                   || busToUpdate.Any(b=>b.id==_.id))
+                                          .ToList();
                 if (_busToUpdate.Count > 0) {
                     var bu = JsonConvert.SerializeObject(_busToUpdate);
                     File.WriteAllText(_busToUpdateFile, bu);
+                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
                 }
                 await AuthAsync();
                 await GetDromPhotos();
@@ -132,7 +134,7 @@ namespace Selen.Sites {
                     for (int i = 0; ; i++) {
                         if (_dr.GetElementsCount("//div[@class='personal-box']") > 0)
                             break;
-                        if (i == 10)
+                        if (i == 10 || Class365API.IsTimeOver)
                             throw new Exception($"{_l}AuthAsync: ошибка авторизации");
                         Thread.Sleep(30000);
                     }

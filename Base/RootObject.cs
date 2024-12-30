@@ -812,7 +812,9 @@ namespace Selen {
             if (manufacture == null)
                 manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
-                if (wb && manufacture.Value.name == "H&Q")
+                if (wb && (manufacture.Value.name == "H&Q" ||
+                          manufacture.Value.name == "AUTOMEGA"||
+                          manufacture.Value.name == "CGA"))
                     return "";
                 return manufacture.Value.name;
             }

@@ -36,11 +36,11 @@ namespace Selen.Sites {
                     var good = Class365API.FindGood(id);
                     if (good != null) {
                         var price = await GetPrice(good.id);
-                        if (price != null) {
+                        if (price != 0) {
                             if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell()>1)
-                                price = (float.Parse(price) * good.GetQuantOfSell()).ToString();
-                            sheet.Cells[row, 7].Value = price;
-                            Log.Add($"{_l} {row} - {good.name} заполнена цена {price}");
+                                price = price * good.GetQuantOfSell();
+                            sheet.Cells[row, 7].Value = price.ToString("F1");
+                            Log.Add($"{_l} {row} - {good.name} заполнена цена {sheet.Cells[row, 7].Value}");
                             await Task.Delay(10);
                         }
                     }
@@ -70,12 +70,15 @@ namespace Selen.Sites {
                 }
             return false;
         }
-        public async Task<string> GetPrice(string good_id) {
-            //проверяем цену в коллекции
+        public async Task<float> GetPrice(string good_id) {
+            string price;
+            //проверяем сохраненную цену в коллекции
             if (_goodPrices.Any(a => a.good_id == good_id))
-                return _goodPrices.Find(f => f.good_id == good_id)?.price;
-            //получаем последнюю цену из поступлений
-            var price = await RequestPrice("supplygoods", good_id, new Dictionary<string, string>());
+                price = _goodPrices.Find(f => f.good_id == good_id)?.price;
+            else {
+                //получаем последнюю цену из поступлений
+                price = await RequestPrice("supplygoods", good_id, new Dictionary<string, string>());
+            }
             //если цена не найдена, проверяем оприходования
             if (price == null) {
                 price = await RequestPrice("postinggoods", good_id, new Dictionary<string, string>());
@@ -90,10 +93,11 @@ namespace Selen.Sites {
                     { "price_type_id", "75523" }
                 });
             }
-            price = price?.Replace(".", ",");
             //сохраняем цену в коллекцию
             _goodPrices.Add(new CurrentPrice { good_id = good_id, price = price });
-            return price;
+            if (price == null)
+                return 0;
+            return float.Parse(price.Replace(".", ","));
         }
 
         async Task<string> RequestPrice(string model, string good_id, Dictionary<string, string> dictParams) {

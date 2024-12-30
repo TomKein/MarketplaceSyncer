@@ -249,7 +249,7 @@ namespace Selen.Forms {
         }
         void GetParams(XElement rule, Dictionary<string, string> d) {
             var parent = rule.Parent;
-            if (parent != null) {
+            if (parent != null && parent.Name!="Root") {
                 GetParams(parent, d);
                 d.Add(parent.Name.ToString(), parent.Attribute("Name").Value);
             }

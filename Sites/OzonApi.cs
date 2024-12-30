@@ -38,6 +38,7 @@ namespace Selen.Sites {
         Random _rnd = new Random();
         List<GoodObject> _busToUpdate;        //список товаров для обновления
         readonly string _busToUpdateFile = @"..\data\ozon\toupdate.json";
+        int _newPrice;
 
         //List<Description_category> _categories;         //список всех категорий товаров на озон
         JArray _categoriesJO;         //список всех категорий товаров на озон JObject
@@ -58,12 +59,6 @@ namespace Selen.Sites {
             _oldPriceProcent = DB.GetParamFloat("ozon.oldPriceProcent");
             _minPriceProcent = DB.GetParamFloat("ozon.minPriceProcent");
             _updateFreq = DB.GetParamInt("ozon.updateFreq");
-            //загружаю список на обновление
-            if (File.Exists(_busToUpdateFile)) {
-                var f = File.ReadAllText(_busToUpdateFile);
-                _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
-            } else
-                _busToUpdate = new List<GoodObject>();
         }
         //главный метод
         public async Task SyncAsync() {
@@ -150,12 +145,16 @@ namespace Selen.Sites {
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
+            //загружаю список на обновление
+            List<GoodObject> busToUpdate;
+            if (File.Exists(_busToUpdateFile)) {
+                var f = File.ReadAllText(_busToUpdateFile);
+                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+            } else
+                busToUpdate = new List<GoodObject>();
             //список обновленных карточек со ссылкой на объявления
-            var busUpdateList = Class365API._bus.Where(_ => _.ozon != null && _.ozon.Contains("http") && _.IsTimeUpDated()).ToList();
-            //список без дубликатов 
-            busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
-            //добавляю в общий список на обновление
-            _busToUpdate.AddRange(busUpdateList);
+            _busToUpdate = Class365API._bus.Where(_ => _.ozon != null && _.ozon.Contains("http") && _.IsTimeUpDated()
+                                                              || busToUpdate.Any(b => b.id == _.id)).ToList();
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
                 File.WriteAllText(_busToUpdateFile, bu);
@@ -287,9 +286,10 @@ namespace Selen.Sites {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
-                await UpdateStocks(bus, productInfo, 1020000901600000);
-                await UpdateStocks(bus, productInfo, 1020002368685000);
                 await UpdatePrice(bus, productInfo);
+                await UpdateStocks(bus, productInfo, 1020000901600000); //основной
+                await UpdateStocks(bus, productInfo, 1020002368685000); //realFbs
+                await UpdateStocks(bus, productInfo, 1020005000062736); //эконом
                 await UpdateProduct(bus, productInfo);
                 return true;
             } catch (Exception x) {
@@ -301,10 +301,22 @@ namespace Selen.Sites {
         private async Task UpdateStocks(GoodObject bus, ProductInfo productInfo, long warehouseId) {
             try {
                 var amount = bus.Amount;
+                int warehouseCount;
+                //обнуляем остаток, если остаток ниже нуля или товар стал б/у
                 if (!bus.New || amount < 0)
                     amount = 0;
-                if (amount * 2 == productInfo.GetStocks())
+                //если цена выше 500 и вес больше 3 количество складов 2, иначе 3
+                if (_newPrice > 500 || bus.Weight>3)
+                    warehouseCount = 2;
+                else warehouseCount = 3;
+
+                if (amount * warehouseCount == productInfo.GetStocks())
                     return;
+
+                //если склад Эконом и цена больше 500 - обнуляем остаток
+                if (warehouseId == 1020005000062736 && _newPrice > 500)
+                    amount = 0;
+
                 //объект для запроса
                 var data = new {
                     stocks = new[] {
@@ -356,11 +368,11 @@ namespace Selen.Sites {
         //Проверка и обновление цены товара на озон
         async Task UpdatePrice(GoodObject bus, ProductInfo productInfo) {
             try {
-                var newPrice = GetNewPrice(bus);
-                var oldPrice = GetOldPrice(newPrice);
-                var min_price = (int) (newPrice * (0.01 * (100 - _minPriceProcent)));
+                _newPrice = GetNewPrice(bus);
+                var oldPrice = GetOldPrice(_newPrice);
+                var min_price = (int) (_newPrice * (0.01 * (100 - _minPriceProcent)));
                 //сверяем цены с озоном
-                if (productInfo.GetPrice() != newPrice
+                if (productInfo.GetPrice() != _newPrice
                 || productInfo.GetOldPrice() != oldPrice
                 || productInfo.GetMinPrice() != min_price
                 //|| productInfo.GetMarketingPrice() < newPrice
@@ -371,7 +383,7 @@ namespace Selen.Sites {
                                 /*offer_id = bus.id, */ 
                                 product_id = productInfo.id,
                                 old_price = oldPrice.ToString(),
-                                price = newPrice.ToString(),
+                                price = _newPrice.ToString(),
                                 auto_action_enabled = "DISABLED",//"ENABLED",
                                 price_strategy_enabled = "DISABLED",
                                 min_price = min_price.ToString(),
@@ -382,7 +394,7 @@ namespace Selen.Sites {
                     var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                     if (res.First().updated) {
                         Log.Add(_l + bus.name + " (" + bus.Price + ") цены обновлены! ("
-                                   + newPrice + ", " + oldPrice + ")");
+                                   + _newPrice + ", " + oldPrice + ")");
                     } else {
                         Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.Price + ")" + " >>> " + s);
                     }

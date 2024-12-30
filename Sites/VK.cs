@@ -58,15 +58,21 @@ namespace Selen.Sites {
         }
         //проверка карточек
         async Task UpdateAll() {
+            //загружаю список на обновление
+            List<GoodObject> busToUpdate;
+            if (File.Exists(_busToUpdateFile)) {
+                var f = File.ReadAllText(_busToUpdateFile);
+                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+            } else
+                busToUpdate = new List<GoodObject>();
             //список обновленных карточек со ссылкой на объявления
-            var busUpdateList = Class365API._bus.Where(_ => _.vk != null && _.vk.Contains("http") && _.IsTimeUpDated()).ToList();
-            //список без дубликатов 
-            busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
-            //добавляю в общий список на обновление
-            _busToUpdate.AddRange(busUpdateList);
+            _busToUpdate = Class365API._bus.Where(_ => _.vk != null && _.vk.Contains("http") && _.IsTimeUpDated()
+                                                              || busToUpdate.Any(b => b.id == _.id)).ToList();
+
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
                 File.WriteAllText(_busToUpdateFile, bu);
+                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
             }
             for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                 if (Class365API.IsTimeOver)
@@ -111,13 +117,6 @@ namespace Selen.Sites {
             _creditPriceMin = DB.GetParamInt("creditPriceMin");
             _creditPriceMax = DB.GetParamInt("creditPriceMax");
             _creditDescription = DB.GetParamStr("creditDescription");
-            //загружаю список на обновление
-            if (File.Exists(_busToUpdateFile)) {
-                var f = File.ReadAllText(_busToUpdateFile);
-                _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
-                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
-            } else
-                _busToUpdate = new List<GoodObject>();
         });
         //редактирую объявление
         private void Edit(GoodObject good) {

@@ -102,14 +102,6 @@ namespace Selen.Sites {
 
                 await GetWarehouseList();
 
-                //загружаю список на обновление
-                if (File.Exists(_busToUpdateFile)) {
-                    var f = File.ReadAllText(_busToUpdateFile);
-                    _busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
-                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
-                } else
-                    _busToUpdate = new List<GoodObject>();
-
                 //tests
                 //if (_tnvd == null)
                 //await GetTnvdAsync("7985");
@@ -893,18 +885,25 @@ namespace Selen.Sites {
         }
         async Task UpdateAll() {
             try {
+                //загружаю список на обновление
+                List<GoodObject> busToUpdate;
+                if (File.Exists(_busToUpdateFile)) {
+                    var f = File.ReadAllText(_busToUpdateFile);
+                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                } else
+                    busToUpdate = new List<GoodObject>();
                 //список обновленных карточек со ссылкой на объявления
-                var busUpdateList = Class365API._bus.Where(_ => _.wb != null &&
-                                                                _.wb.Contains("http") &&
-                                                               !_.wb.Contains("/00000/") &&
-                                                                _.IsTimeUpDated()).ToList();
-                //список без дубликатов 
-                busUpdateList = busUpdateList.Where(w => !_busToUpdate.Any(a => a.id == w.id)).ToList();
-                //добавляю в общий список на обновление
-                _busToUpdate.AddRange(busUpdateList);
+                _busToUpdate = Class365API._bus
+                                          .Where(_ => _.wb != null 
+                                                   && _.wb.Contains("http") 
+                                                   &&!_.wb.Contains("/00000/")
+                                                   && _.IsTimeUpDated() 
+                                                   || busToUpdate.Any(b => b.id == _.id))
+                                           .ToList();
                 if (_busToUpdate.Count > 0) {
                     var bu = JsonConvert.SerializeObject(_busToUpdate);
                     File.WriteAllText(_busToUpdateFile, bu);
+                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
                 }
                 for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                     if (Class365API.IsTimeOver)
@@ -925,17 +924,17 @@ namespace Selen.Sites {
                 var checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
                 if (checkProductIndex >= _cardsList.Count)
                     checkProductIndex = 0;
-                busUpdateList = Class365API._bus.Where(_ => _.wb != null &&
+                busToUpdate = Class365API._bus.Where(_ => _.wb != null &&
                                                             _.wb.Contains("http") &&
                                                            !_.wb.Contains("/00000/"))
                                                 .Skip(checkProductIndex)
                                                 .Take(checkProductCount)
                                                 .ToList();
-                for (int b = 0; b < busUpdateList.Count; b++) {
+                for (int b = 0; b < busToUpdate.Count; b++) {
                     if (Class365API.IsTimeOver)
                         break;
                     try {
-                        await CheckCardAsync(busUpdateList[b]);
+                        await CheckCardAsync(busToUpdate[b]);
                         await Task.Delay(100);
                         checkProductIndex++;
                     } catch (Exception x) {
@@ -974,7 +973,8 @@ namespace Selen.Sites {
                     if (wbStock != goodNewAmount ||
                         wbPrice != goodNewPrice ||
                         wbDiscount > _maxDiscont ||
-                        card.photos.Count != good.images.Count)
+                        card.photos.Count != good.images.Count||
+                        good.IsTimeUpDated())
                         //обновляем карточку на вб
                         await UpdateCardAsync(good, card);
                     return true;

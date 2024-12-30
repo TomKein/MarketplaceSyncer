@@ -64,7 +64,7 @@ namespace Selen {
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         static readonly string _dictionaryFile = @"..\data\dict.txt";   //словать рус-англ аналогов
         public static int _checkIntervalMinutes;
-        
+
         //статус синхронизации
         static SyncStatus status;
         public static SyncStatus Status {
@@ -81,31 +81,31 @@ namespace Selen {
 
         //время последнего обновления
         static DateTime lastScanTime;
-        public static DateTime LastScanTime { set { 
+        public static DateTime LastScanTime { set {
                 lastScanTime = value;
                 DB.SetParamAsync("lastScanTime", lastScanTime.ToString());
                 _lastLiteScanTime = lastScanTime;
                 //updatePropertiesEvent.Invoke();
-            } get { 
+            } get {
                 return lastScanTime;
             } }
         //время последнего запроса изменений
         static DateTime _lastLiteScanTime;
 
         static DateTime lastErrorShowTime;
-        public static DateTime LastErrorShowTime { 
+        public static DateTime LastErrorShowTime {
             set {
                 lastErrorShowTime = value;
                 DB.SetParamAsync("lastErrorShowTime", lastErrorShowTime.ToString());
-            } get { 
+            } get {
                 return lastErrorShowTime;
             } }
         static DateTime lastWarningShowTime;
-        public static DateTime LastWarningShowTime { 
-            set { 
+        public static DateTime LastWarningShowTime {
+            set {
                 lastWarningShowTime = value;
                 DB.SetParamAsync("lastWarningShowTime", lastWarningShowTime.ToString());
-            } get { 
+            } get {
                 return lastWarningShowTime;
             } }
 
@@ -1046,10 +1046,13 @@ namespace Selen {
                     });
                     Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
                     LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
-                    _timer.Start();
                     Status = SyncStatus.Waiting;
+                } else {
+                    Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
+                    Status = SyncStatus.NeedUpdate;
                 }
-            }catch (Exception x) {
+                _timer.Start();
+            } catch (Exception x) {
                 Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
                 _timer.Start();
                 Status = SyncStatus.NeedUpdate;
