@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 214;
+        int _version = 215;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -262,11 +262,11 @@ namespace Selen {
                 button_Vk.Enabled &&
                 button_Avito.Enabled &&
                 button_ozon.Enabled&&
-                button_MegaMarket.Enabled&&
+                button_MegaMarket.Enabled &&
                 button_wildberries.Enabled
                 )
             )
-                await Task.Delay(5000);
+            await Task.Delay(5000);
         }
         private void dateTimePicker1_Validated(object sender, EventArgs e) {
             Class365API.LastScanTime = dateTimePicker1.Value;

@@ -11,26 +11,27 @@ using Selen.Base;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
+using OfficeOpenXml;
 
 namespace Selen.Sites {
     public class Wildberries {
+        //const string BASE_API_URL = "https://suppliers-api.wildberries.ru";
+        const string L = "wb: ";
         readonly HttpClient _hc = new HttpClient();
-        //readonly string _baseApiUrl = "https://suppliers-api.wildberries.ru";
-        readonly string _l = "wb: ";                                                    //префикс для лога
         List<GoodObject> _bus;
-        int _nameLimit = 200;                                                           //ограничение длины названия
-        readonly string _url;                                                           //номер поля в карточке
-        readonly int _updateFreq;                                                       //частота обновления списка (часов)
-        int _maxDiscont;                                                                //максимальная скидка %
-        readonly string _baseBusUrl = "https://www.wildberries.ru/catalog/00000/detail.aspx";
-        List<WbCard> _cardsList = new List<WbCard>();                                //список карточек вб
-        readonly string _cardsListFile = @"..\data\wildberries\wb_productList.json";  //ссылка на файл для кеширования списка карточек вб
+        int _nameLimit = 200;                                                               //огрничение длины заголовков
+        readonly string _url;                                                               //номер поля в карточке
+        readonly int _updateFreq;                                                           //частота обновления списка (часов)
+        int _maxDiscont;                                                                    //максимальная скидка %
+        const string BASE_BUS_URL = "https://www.wildberries.ru/catalog/00000/detail.aspx";
+        List<WbCard> _cardsList = new List<WbCard>();                                       //список товаров вб
+        const string CARDS_LIST_FILE = @"..\data\wildberries\wb_productList.json";          //файл для кеширования списка карточек вб
         List<WbPrice> _cardsPrices = new List<WbPrice>();
-        readonly string _cardsPricesFile = @"..\data\wildberries\wb_priceList.json";  //ссылка на файл для кеширования цен вб
+        const string CARDS_PRICES_FILE = @"..\data\wildberries\wb_priceList.json";          //файл для кеширования цен вб
         List<WbStock> _cardsStocks = new List<WbStock>();
-        readonly string _cardsStocksFile = @"..\data\wildberries\wb_stocksList.json";  //ссылка на файл для кеширования остатков вб
+        const string CARDS_STOCKS_FILE = @"..\data\wildberries\wb_stocksList.json";         //файл для кеширования остатков вб
 
-        List<WbWareHouse> _wareHouses;      //список складов
+        List<WbWareHouse> _wareHouses;                                                      //склады
 
         static bool _isCardsListCheckNeeds = true;
         static bool _isCardsPricesCheckNeeds = true;
@@ -38,26 +39,25 @@ namespace Selen.Sites {
 
         string _jsonResponse;
 
-        List<WbCategory> _categories;       //список всех категорий товаров
-        List<WbObject> _objects;            //список всех подкатегорий товаров
-        JArray _objectsJA;                  //список всех подкатегорий товаров в формате JsonArray
+        List<WbCategory> _categories;       //категории товаров
+        List<WbObject> _objects;            //подкатегории товаров
+        JArray _objectsJA;                  //подкатегории товаров в формате JsonArray
         List<WbColor> _colors;              //цвета
         List<WbCountry> _countries;         //страны
-        List<WbTnvd> _tnvd;                 //ТНВЭД код
+        List<WbTnvd> _tnvd;                 //коды ТНВЭД
 
-        readonly string _reserveListFile = @"..\data\wildberries\wb_reserveList.json";
-        readonly string _stickerListFile = @"..\data\wildberries\wb_stickerList.json";
-        readonly string _priorityFile = @"..\data\wildberries\priority.txt";
+        const string RESERVE_LIST_FILE = @"..\data\wildberries\wb_reserveList.json";
+        const string STICKER_LIST_FILE = @"..\data\wildberries\wb_stickerList.json";
 
-        readonly string _wareHouseListFile = @"..\data\wildberries\wb_warehouseList.json";  //склады
+        const string WARE_HOUSE_LIST_FILE = @"..\data\wildberries\wb_warehouseList.json";  //склады
 
         List<GoodObject> _busToUpdate;        //список товаров для обновления
-        readonly string _busToUpdateFile = @"..\data\wildberries\toupdate.json";
+        const string BUS_TO_UPDATE_FILE = @"..\data\wildberries\toupdate.json";
 
         static object _locker = new object();
         static bool _flag = false;
 
-        readonly string _rulesFile = @"..\data\wildberries\wb_categories.xml";
+        const string RULES_FILE = @"..\data\wildberries\wb_categories.xml";
         XDocument _catsXml;
         IEnumerable<XElement> _rules;
 
@@ -68,7 +68,16 @@ namespace Selen.Sites {
                     "набор фиксаторов",
                     "бампер ",
                     "капот ",
-                    "телевизор "
+                    "телевизор ",
+                    "(копия)"
+                };
+        List<string> _exceptionBrands = new List<string> {
+                    "H&Q",
+                    "AUTOMEGA",
+                    "CGA",
+                    "HCCARGO",
+                    "MALO",
+                    "Tech-as"
                 };
         List<string> _exceptionGroups = new List<string> {
                     "черновик"
@@ -85,7 +94,7 @@ namespace Selen.Sites {
         public async Task SyncAsync() {
             try {
                 _bus = Class365API._bus;
-                _catsXml = XDocument.Load(_rulesFile);
+                _catsXml = XDocument.Load(RULES_FILE);
                 _rules = _catsXml.Descendants("Rule");
                 if (_categories == null)
                     await GetCategoriesAsync();
@@ -114,7 +123,7 @@ namespace Selen.Sites {
                 await AddProductsAsync();
                 CheckSizes();
             } catch (Exception ex) {
-                Log.Add($"{_l} SyncAsync: ошибка! - " + ex.Message);
+                Log.Add($"{L} SyncAsync: ошибка! - " + ex.Message);
             }
             //}
         }
@@ -127,21 +136,21 @@ namespace Selen.Sites {
                 data["dateFrom"] = unixTimeStamp.ToString();
                 var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
-                Log.Add($"{_l} получено {wb.orders.Count} заказов:"
+                Log.Add($"{L} получено {wb.orders.Count} заказов:"
                     //+$"\n{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}"
                     );
 
                 //загружаем список заказов, для которых уже делали резервирование
                 var reserveList = new List<string>();
-                if (File.Exists(_reserveListFile)) {
-                    var s = File.ReadAllText(_reserveListFile);
+                if (File.Exists(RESERVE_LIST_FILE)) {
+                    var s = File.ReadAllText(RESERVE_LIST_FILE);
                     var l = JsonConvert.DeserializeObject<List<string>>(s);
                     reserveList.AddRange(l);
                 }
                 //загружаем список заказов, для которых готовы стикеры
                 var stickerList = new List<string>();
-                if (File.Exists(_stickerListFile)) {
-                    var s = File.ReadAllText(_stickerListFile);
+                if (File.Exists(STICKER_LIST_FILE)) {
+                    var s = File.ReadAllText(STICKER_LIST_FILE);
                     var l = JsonConvert.DeserializeObject<List<string>>(s);
                     stickerList.AddRange(l);
                 }
@@ -163,7 +172,7 @@ namespace Selen.Sites {
                                 reserveList.RemoveAt(0);
                             }
                             var s = JsonConvert.SerializeObject(reserveList);
-                            File.WriteAllText(_reserveListFile, s);
+                            File.WriteAllText(RESERVE_LIST_FILE, s);
                         }
                     }
                     //если стикера нет в списке
@@ -181,12 +190,12 @@ namespace Selen.Sites {
                                 stickerList.RemoveAt(0);
                             }
                             var s = JsonConvert.SerializeObject(stickerList);
-                            File.WriteAllText(_stickerListFile, s);
+                            File.WriteAllText(STICKER_LIST_FILE, s);
                         }
                     }
                 }
             } catch (Exception x) {
-                Log.Add(_l + "MakeReserve - " + x.Message);
+                Log.Add(L + "MakeReserve - " + x.Message);
             }
         }
         //GET запросы к api wb
@@ -204,7 +213,7 @@ namespace Selen.Sites {
                 if (_jsonResponse.Contains("\"data\"")) {
                     var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
                     if (responseObject.error)
-                        Log.Add($"{_l} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
+                        Log.Add($"{L} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
                     return JsonConvert.SerializeObject(responseObject.data);
                 }
                 return _jsonResponse;
@@ -234,7 +243,7 @@ namespace Selen.Sites {
                 } else
                     throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
             } catch (Exception x) {
-                Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
             return false;
         }
@@ -247,7 +256,7 @@ namespace Selen.Sites {
                 var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/object/parent/all");
                 _categories = JsonConvert.DeserializeObject<List<WbCategory>>(s);
                 File.WriteAllText(catsFile, s);
-                Log.Add($"{_l} GetCategoriesAsync: получено категорий {_categories.Count}");
+                Log.Add($"{L} GetCategoriesAsync: получено категорий {_categories.Count}");
             } else {
                 var s = File.ReadAllText(catsFile);
                 try {
@@ -275,7 +284,7 @@ namespace Selen.Sites {
                         data["offset"] = last.ToString();
                         var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/object/all");
                         var resultList = JsonConvert.DeserializeObject<List<WbObject>>(s);
-                        Log.Add($"{_l} GetObjectsAsync: {name ?? id} - получено подкатегорий: {resultList.Count}");
+                        Log.Add($"{L} GetObjectsAsync: {name ?? id} - получено подкатегорий: {resultList.Count}");
                         _objects.AddRange(resultList);
                         if (resultList.Count < limit)
                             break;
@@ -288,10 +297,10 @@ namespace Selen.Sites {
                 try {
                     _objects.AddRange(JsonConvert.DeserializeObject<List<WbObject>>(serializedWbObject));
                 } catch (Exception x) {
-                    Log.Add($"{_l} GetObjectsAsync: ошибка загрузки категорий - {x.Message}");
+                    Log.Add($"{L} GetObjectsAsync: ошибка загрузки категорий - {x.Message}");
                 }
             }
-            Log.Add($"{_l} GetObjectsAsync: загружено подкатегорий: {_objects.Count}");
+            Log.Add($"{L} GetObjectsAsync: загружено подкатегорий: {_objects.Count}");
         }
         //Характеристики предмета (подкатегории)
         public async Task<List<WbCharc>> GetCharcsAsync(string subjectId = null) {
@@ -308,13 +317,13 @@ namespace Selen.Sites {
                 var resultList = JsonConvert.DeserializeObject<List<WbCharc>>(s);
                 listCharcs.AddRange(resultList);
                 File.WriteAllText(childWbCharcsFile, JsonConvert.SerializeObject(listCharcs));
-                Log.Add($"{_l} GetCharcsAsync: {subjectId} - получено характеристик: {listCharcs.Count}");
+                Log.Add($"{L} GetCharcsAsync: {subjectId} - получено характеристик: {listCharcs.Count}");
             } else {
                 var s = File.ReadAllText(childWbCharcsFile);
                 try {
                     listCharcs.AddRange(JsonConvert.DeserializeObject<List<WbCharc>>(s));
                 } catch (Exception x) {
-                    Log.Add($"{_l} GetCharcsAsync: ошибка - {x.Message}");
+                    Log.Add($"{L} GetCharcsAsync: ошибка - {x.Message}");
                 }
             }
             return listCharcs;
@@ -328,13 +337,13 @@ namespace Selen.Sites {
                 var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/colors");
                 _colors = JsonConvert.DeserializeObject<List<WbColor>>(s);
                 File.WriteAllText(fileName, s);
-                Log.Add($"{_l} GetCategoriesAsync: получено цветов: {_colors.Count}");
+                Log.Add($"{L} GetCategoriesAsync: получено цветов: {_colors.Count}");
             } else {
                 var s = File.ReadAllText(fileName);
                 try {
                     _colors = JsonConvert.DeserializeObject<List<WbColor>>(s);
                 } catch (Exception x) {
-                    Log.Add($"{_l} GetColorsAsync: ошибка - {x.Message}");
+                    Log.Add($"{L} GetColorsAsync: ошибка - {x.Message}");
                 }
             }
         }
@@ -347,13 +356,13 @@ namespace Selen.Sites {
                 var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/countries");
                 _countries = JsonConvert.DeserializeObject<List<WbCountry>>(s);
                 File.WriteAllText(fileName, s);
-                Log.Add($"{_l} GetCountriesAsync: получено стран: {_countries.Count}");
+                Log.Add($"{L} GetCountriesAsync: получено стран: {_countries.Count}");
             } else {
                 var s = File.ReadAllText(fileName);
                 try {
                     _countries = JsonConvert.DeserializeObject<List<WbCountry>>(s);
                 } catch (Exception x) {
-                    Log.Add($"{_l} GetCountriesAsync: ошибка - {x.Message}");
+                    Log.Add($"{L} GetCountriesAsync: ошибка - {x.Message}");
                 }
             }
         }
@@ -369,13 +378,13 @@ namespace Selen.Sites {
                 var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/tnved");
                 _tnvd = JsonConvert.DeserializeObject<List<WbTnvd>>(s);
                 File.WriteAllText(fileName, s);
-                Log.Add($"{_l} GetTnvdAsync: {subjectID} - получено кодов ТНВЭД: {_tnvd.Count}");
+                Log.Add($"{L} GetTnvdAsync: {subjectID} - получено кодов ТНВЭД: {_tnvd.Count}");
             } else {
                 var s = File.ReadAllText(fileName);
                 try {
                     _tnvd = JsonConvert.DeserializeObject<List<WbTnvd>>(s);
                 } catch (Exception x) {
-                    Log.Add($"{_l} GetTnvdAsync: ошибка - {x.Message}");
+                    Log.Add($"{L} GetTnvdAsync: ошибка - {x.Message}");
                 }
             }
         }
@@ -403,40 +412,13 @@ namespace Selen.Sites {
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
                             .OrderByDescending(o => o.Price).ToList();  //сначала подороже
-            SaveToFile(goods, @"..\data\wildberries\wb_listForAdding.csv");
-            Log.Add($"{_l} карточек для добавления: {goods.Count}");
-
-            //учитываем данные по приоритетам
-            var priorityList = File.ReadLines(_priorityFile)?.ToList();
-            if (priorityList.Any()) {
-                var priorGoods = new List<GoodObject>();
-                foreach (var name in new List<string>(priorityList)) {
-                    var busGood = _bus.Find(f => f.name == name);
-                    if (busGood != null) {
-                        if (goods.Contains(busGood))
-                            priorGoods.Add(busGood);
-                        else {
-                            priorityList.Remove(name);
-                            File.WriteAllLines(_priorityFile, priorityList);
-                        }
-                    }
-                }
-                priorGoods.AddRange(goods);
-                goods = priorGoods.Distinct().ToList();
-            }
-
+            SaveToFile(goods);
+            Log.Add($"{L} карточек для добавления: {goods.Count}");
             foreach (var good in goods) {
                 try {
                     var attributes = await GetAttributesAsync(good);
-                    if (attributes.Count == 0) {
-                        Log.Add($"{_l} AddProductsAsync: {good.name} - категория не определена!");
-                        if (priorityList.Contains(good.name)) {
-                            Log.Add($"{_l} AddProductsAsync: {good.name} - приоритетный товар, ждем описание категории!");
-                            --count;
-                        }
-                        Task.Delay(200);
+                    if (attributes.Count == 0) 
                         continue;
-                    }
                     //формирую объект запроса
                     var data = new[] {
                         new {
@@ -446,7 +428,7 @@ namespace Selen.Sites {
                                     title = good.NameLimit(_nameLimit),
                                     description = GetDescription(good),
                                     vendorCode = good.id,
-                                    brand=good.GetManufacture(wb:true),
+                                    brand = GetBrand(good),
                                     dimensions = new {
                                           length = good.SizeSM("length",5),
                                           width = good.SizeSM("width",5),
@@ -466,18 +448,17 @@ namespace Selen.Sites {
                             data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
                                                                                                                        //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
                     }
-
                     var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/upload");
 
                     if (res) {
-                        Log.Add(_l + good.name + " - товар отправлен на wildberries!");
+                        Log.Add(L + good.name + " - товар отправлен на wildberries!");
                         await SaveUrlAsync(good);
                         _isCardsListCheckNeeds = true;
                     } else {
-                        Log.Add(_l + good.name + " ошибка отправки товара на wildberries!");
+                        Log.Add(L + good.name + " ошибка отправки товара на wildberries!");
                     }
                 } catch (Exception x) {
-                    Log.Add(_l + good.name + " - " + x.Message + x.InnerException?.Message);
+                    Log.Add(L + good.name + " - " + x.Message + x.InnerException?.Message);
                 }
                 if (--count <= 0)
                     break;
@@ -498,7 +479,7 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} GetTypeName: ошибка определения категории - {x.Message}");
+                Log.Add($"{L} GetTypeName: ошибка определения категории - {x.Message}");
             }
         }
         //получить атрибуты и категорию товара 
@@ -595,10 +576,10 @@ namespace Selen.Sites {
         //обновление ссылки в карточке бизнес.ру
         async Task SaveUrlAsync(GoodObject bus, int nmID = 0) {
             try {
-                string newUrl = _baseBusUrl;
+                string newUrl = BASE_BUS_URL;
                 //проверяем ссылку, если она есть, то значит товар был отправлен на вб
                 if (nmID > 0)
-                    newUrl = _baseBusUrl.Replace("/00000/", "/" + nmID + "/");
+                    newUrl = BASE_BUS_URL.Replace("/00000/", "/" + nmID + "/");
                 if (nmID == -1)
                     newUrl = "";
                 if (bus.wb != newUrl) {
@@ -608,11 +589,11 @@ namespace Selen.Sites {
                                 {"name", bus.name},
                                 {_url, bus.wb}
                             });
-                    Log.Add(_l + bus.name + " ссылка на товар обновлена!");
+                    Log.Add(L + bus.name + " ссылка на товар обновлена!");
                 } else
-                    Log.Add(_l + bus.name + " ссылка без изменений!");
+                    Log.Add(L + bus.name + " ссылка без изменений!");
             } catch (Exception x) {
-                Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
+                Log.Add($"{L} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
             }
         }
 
@@ -620,12 +601,12 @@ namespace Selen.Sites {
         public async Task GetCardsListAsync() {
             try {
                 //если файл свежий и обновление списка не требуется
-                if (DateTime.Now < File.GetLastWriteTime(_cardsListFile).AddDays(_updateFreq)
+                if (DateTime.Now < File.GetLastWriteTime(CARDS_LIST_FILE).AddDays(_updateFreq)
                      && !_isCardsListCheckNeeds) {
                     //загружаем с диска, если список пустой
                     if (_cardsList.Count == 0) {
                         _cardsList = JsonConvert.DeserializeObject<List<WbCard>>(
-                            File.ReadAllText(_cardsListFile));
+                            File.ReadAllText(CARDS_LIST_FILE));
                     }
                 } else {
                     _cardsList.Clear();
@@ -648,7 +629,7 @@ namespace Selen.Sites {
                             throw new Exception("запрос товаров вернул ошибку!");
                         var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);
                         _cardsList.AddRange(productList.cards);
-                        Log.Add($"{_l} получено {_cardsList.Count} товаров");
+                        Log.Add($"{L} получено {_cardsList.Count} товаров");
                         //добавляем пагинацию в объект запроса
                         data.settings.cursor = new {
                             limit = limit,
@@ -657,14 +638,14 @@ namespace Selen.Sites {
                         };
                         total = productList.cursor.total;
                     } while (total == limit);
-                    Log.Add(_l + "ProductList - успешно загружено " + _cardsList.Count + " товаров");
-                    File.WriteAllText(_cardsListFile, JsonConvert.SerializeObject(_cardsList));
-                    Log.Add(_l + _cardsListFile + " - сохранено");
+                    Log.Add(L + "ProductList - успешно загружено " + _cardsList.Count + " товаров");
+                    File.WriteAllText(CARDS_LIST_FILE, JsonConvert.SerializeObject(_cardsList));
+                    Log.Add(L + CARDS_LIST_FILE + " - сохранено");
                     _isCardsListCheckNeeds = false; //сбрасываю флаг
                 }
                 await CheckCardsAsync();
             } catch (Exception x) {
-                Log.Add(_l + "ProductList - ошибка загрузки товаров - " + x.Message);
+                Log.Add(L + "ProductList - ошибка загрузки товаров - " + x.Message);
             }
         }
         //список цен товаров
@@ -672,12 +653,12 @@ namespace Selen.Sites {
             try {
                 _maxDiscont = await DB.GetParamIntAsync("wb.maxDiscont");
                 //если файл свежий и обновление списка не требуется
-                if (DateTime.Now < File.GetLastWriteTime(_cardsPricesFile).AddDays(_updateFreq)
+                if (DateTime.Now < File.GetLastWriteTime(CARDS_PRICES_FILE).AddDays(_updateFreq)
                     && !_isCardsPricesCheckNeeds) {
                     //загружаем с диска, если список пустой
                     if (_cardsPrices.Count == 0) {
                         _cardsPrices = JsonConvert.DeserializeObject<List<WbPrice>>(
-                            File.ReadAllText(_cardsPricesFile));
+                            File.ReadAllText(CARDS_PRICES_FILE));
                     }
                 } else {
                     _cardsPrices.Clear();
@@ -692,7 +673,7 @@ namespace Selen.Sites {
                             var res = await GetRequestAsync(data, "https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter");
                             list = JsonConvert.DeserializeObject<ListGoods>(res);
                             _cardsPrices.AddRange(list.listGoods);
-                            Log.Add($"{_l} получено {_cardsPrices.Count} цен товаров");
+                            Log.Add($"{L} получено {_cardsPrices.Count} цен товаров");
                             //добавляем пагинацию в объект запроса
                             if (list.listGoods.Count != limit || _cardsPrices.Count == _cardsList.Count)
                                 break;
@@ -701,7 +682,7 @@ namespace Selen.Sites {
                         } catch (Exception x) {
                             limit /= 2;
                             data["limit"] = limit.ToString();
-                            Log.Add($"{_l} GetPricesAsync: ошибка запроса цен товаров {i++}, limit: {limit} - " + x.Message);
+                            Log.Add($"{L} GetPricesAsync: ошибка запроса цен товаров {i++}, limit: {limit} - " + x.Message);
                             if (limit == 0)
                                 break;
                             //throw new Exception("превышено количество попыток запроса цен!");
@@ -709,17 +690,17 @@ namespace Selen.Sites {
                         }
                     }
                     if (_cardsPrices.Count > 0 && _cardsList.Count - _cardsPrices.Count < 100)
-                        File.WriteAllText(_cardsPricesFile, JsonConvert.SerializeObject(_cardsPrices));
+                        File.WriteAllText(CARDS_PRICES_FILE, JsonConvert.SerializeObject(_cardsPrices));
                     else {
                         _cardsPrices = JsonConvert.DeserializeObject<List<WbPrice>>(
-                            File.ReadAllText(_cardsPricesFile));
-                        Log.Add($"{_l} загружено с диска {_cardsPrices.Count} цен товаров");
+                            File.ReadAllText(CARDS_PRICES_FILE));
+                        Log.Add($"{L} загружено с диска {_cardsPrices.Count} цен товаров");
                     }
-                    Log.Add(_l + _cardsPricesFile + " - сохранено");
+                    Log.Add(L + CARDS_PRICES_FILE + " - сохранено");
                     _isCardsPricesCheckNeeds = false;
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} GetPricesAsync: ошибка загрузки цен товаров!! - " + x.Message);
+                Log.Add($"{L} GetPricesAsync: ошибка загрузки цен товаров!! - " + x.Message);
             }
         }
         //обновление цены товара
@@ -755,11 +736,11 @@ namespace Selen.Sites {
                 var res = await PostRequestAsync(data, "https://discounts-prices-api.wildberries.ru/api/v2/upload/task");
                 if (!res)
                     throw new Exception("ошибка запроса изменения цены");
-                Log.Add($"{_l} UpdatePrice: {good.name} - цены обновлены, {wbPrice} => {goodNewPrice}," +
+                Log.Add($"{L} UpdatePrice: {good.name} - цены обновлены, {wbPrice} => {goodNewPrice}," +
                         $" дисконт {discount} => {newDiscount}");
                 //обновить список карточек вб
             } catch (Exception x) {
-                Log.Add($"{_l} GetPricesAsync: {good.name} - ошибка обновления цен товара - {x.Message}");
+                Log.Add($"{L} GetPricesAsync: {good.name} - ошибка обновления цен товара - {x.Message}");
             }
             _isCardsPricesCheckNeeds = true;
         }
@@ -807,7 +788,7 @@ namespace Selen.Sites {
                         //await UpdateCardAsync(_bus[b], card);
                     }
                 } catch (Exception x) {
-                    Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
+                    Log.Add($"{L} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
                     _isCardsListCheckNeeds = true;
                 }
             }
@@ -822,7 +803,7 @@ namespace Selen.Sites {
                 await UpdatePrice(good, card);
                 await UpdateCard(good, card);
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProductAsync ошибка! name:{good.name} message:{x.Message}");
+                Log.Add($"{L} UpdateProductAsync ошибка! name:{good.name} message:{x.Message}");
             }
         }
         //обновление фотографий
@@ -847,10 +828,10 @@ namespace Selen.Sites {
                 var isSuc = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v3/media/save");
                 if (!isSuc)
                     throw new Exception("запрос на обновление фото вернул ошибку!");
-                Log.Add($"{_l} UpdateMediaAsync: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
+                Log.Add($"{L} UpdateMediaAsync: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
                 card.photos = good.images.Select(i => new WbPhoto { big = i.url }).ToList();
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateMediaAsync ошибка! name:{good.name} message:{x.Message}");
+                Log.Add($"{L} UpdateMediaAsync ошибка! name:{good.name} message:{x.Message}");
             }
             _flag = false;
         }
@@ -877,7 +858,7 @@ namespace Selen.Sites {
                     await Task.Delay(1000);
                     urlList.Add($@"https://avtotehnoshik.ru/{fileName}.jpg");
                 } catch (Exception x) {
-                    throw new Exception($"{_l} SendImagesToFtpAsync: ошибка! - {x.Message}");
+                    throw new Exception($"{L} SendImagesToFtpAsync: ошибка! - {x.Message}");
                 }
             }
             cl.Dispose();
@@ -887,8 +868,8 @@ namespace Selen.Sites {
             try {
                 //загружаю список на обновление
                 List<GoodObject> busToUpdate;
-                if (File.Exists(_busToUpdateFile)) {
-                    var f = File.ReadAllText(_busToUpdateFile);
+                if (File.Exists(BUS_TO_UPDATE_FILE)) {
+                    var f = File.ReadAllText(BUS_TO_UPDATE_FILE);
                     busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
                 } else
                     busToUpdate = new List<GoodObject>();
@@ -902,8 +883,8 @@ namespace Selen.Sites {
                                            .ToList();
                 if (_busToUpdate.Count > 0) {
                     var bu = JsonConvert.SerializeObject(_busToUpdate);
-                    File.WriteAllText(_busToUpdateFile, bu);
-                    Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                    File.WriteAllText(BUS_TO_UPDATE_FILE, bu);
+                    Log.Add($"{L} в списке карточек для обновления {_busToUpdate.Count}");
                 }
                 for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                     if (Class365API.IsTimeOver)
@@ -912,11 +893,11 @@ namespace Selen.Sites {
                         if (await CheckCardAsync(_busToUpdate[b])) {
                             _busToUpdate.Remove(_busToUpdate[b]);
                             var bu = JsonConvert.SerializeObject(_busToUpdate);
-                            File.WriteAllText(_busToUpdateFile, bu);
+                            File.WriteAllText(BUS_TO_UPDATE_FILE, bu);
                             await Task.Delay(100);
                         }
                     } catch (Exception x) {
-                        Log.Add(_l + "UpdateProductsAsync - " + x.Message);
+                        Log.Add(L + "UpdateProductsAsync - " + x.Message);
                     }
                 }
                 //теперь выборочная проверка
@@ -938,12 +919,12 @@ namespace Selen.Sites {
                         await Task.Delay(100);
                         checkProductIndex++;
                     } catch (Exception x) {
-                        Log.Add(_l + "UpdateProductsAsync - " + x.Message);
+                        Log.Add(L + "UpdateProductsAsync - " + x.Message);
                     }
                 }
                 await DB.SetParamAsync("wb.checkProductIndex", checkProductIndex.ToString());
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateAll: ошибка обновления! {x.Message}");
+                Log.Add($"{L} UpdateAll: ошибка обновления! {x.Message}");
             }
         }
 
@@ -980,7 +961,7 @@ namespace Selen.Sites {
                     return true;
                 }
             } catch (Exception x) {
-                Log.Add(_l + "UpdateCardsAsync - " + x.Message);
+                Log.Add(L + "UpdateCardsAsync - " + x.Message);
                 return false;
             }
         }
@@ -988,12 +969,12 @@ namespace Selen.Sites {
         async Task GetStocksAsync() {
             try {
                 //если файл свежий и обновление списка не требуется
-                if (DateTime.Now < File.GetLastWriteTime(_cardsStocksFile).AddDays(_updateFreq)
+                if (DateTime.Now < File.GetLastWriteTime(CARDS_STOCKS_FILE).AddDays(_updateFreq)
                     && !_isCardsStocksCheckNeeds) {
                     //загружаем с диска, если список пустой
                     if (_cardsStocks.Count == 0) {
                         _cardsStocks = JsonConvert.DeserializeObject<List<WbStock>>(
-                            File.ReadAllText(_cardsStocksFile));
+                            File.ReadAllText(CARDS_STOCKS_FILE));
                     }
                 } else {
                     _cardsStocks.Clear();
@@ -1012,13 +993,13 @@ namespace Selen.Sites {
                         _cardsStocks.AddRange(list.stocks);
                         index += limit;
                     } while (index < _cardsList.Count - 1);
-                    Log.Add($"{_l} получено {_cardsStocks.Count} остатков товаров");
-                    File.WriteAllText(_cardsStocksFile, JsonConvert.SerializeObject(_cardsStocks));
-                    Log.Add(_l + _cardsStocksFile + " - сохранено");
+                    Log.Add($"{L} получено {_cardsStocks.Count} остатков товаров");
+                    File.WriteAllText(CARDS_STOCKS_FILE, JsonConvert.SerializeObject(_cardsStocks));
+                    Log.Add(L + CARDS_STOCKS_FILE + " - сохранено");
                     _isCardsStocksCheckNeeds = false;
                 }
             } catch (Exception x) {
-                Log.Add(_l + "GetPricesAsync - ошибка загрузки цен товаров - " + x.Message);
+                Log.Add(L + "GetPricesAsync - ошибка загрузки цен товаров - " + x.Message);
             }
         }
         //обновление остатков товара
@@ -1049,11 +1030,11 @@ namespace Selen.Sites {
                 var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
                 if (!res)
                     throw new Exception("ошибка запроса изменения цены");
-                Log.Add($"{_l} UpdateStocks: {good.name} - остаток обновлен {wbStock} => {amount}");
+                Log.Add($"{L} UpdateStocks: {good.name} - остаток обновлен {wbStock} => {amount}");
                 //запросить новые остатки
                 _isCardsStocksCheckNeeds = true;
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка {good.name} - {x.Message}");
+                Log.Add($"{L} UpdateProductStocks: ошибка обновления остатка {good.name} - {x.Message}");
             }
         }
         //обновление описаний товаров
@@ -1077,7 +1058,7 @@ namespace Selen.Sites {
                     new {
                         nmID = card.nmID,
                         vendorCode = good.id,
-                        brand = good.GetManufacture(wb:true),
+                        brand = GetBrand(good),
                         title = good.NameLimit(_nameLimit),
                         description = GetDescription(good),
                         dimensions = new {
@@ -1117,11 +1098,11 @@ namespace Selen.Sites {
 
                 var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/update");
                 if (res)
-                    Log.Add($"{_l} UpdateCard: {good.name} - карточка обновлена!");
+                    Log.Add($"{L} UpdateCard: {good.name} - карточка обновлена!");
                 else
                     throw new Exception("ошибка обновления карточки!");
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
+                Log.Add($"{L} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
             }
         }
         string GetDescription(GoodObject good) {
@@ -1153,87 +1134,67 @@ namespace Selen.Sites {
         }
 
         //Сохранение списка карточек, которые можно добавить на wb в виде таблицы
-        void SaveToFile(IEnumerable<GoodObject> goods, string fname) {
-            StringBuilder s = new StringBuilder();
-            var splt = "\t";
-            s.Append("id");
-            s.Append(splt);
-            s.Append("part");
-            s.Append(splt);
-            s.Append("name");
-            s.Append(splt);
-            s.Append("GroupName");
-            s.Append(splt);
-            s.Append("Amount");
-            s.Append(splt);
-            s.Append("price");
-            s.Append(splt);
-            s.Append("weight");
-            s.Append(splt);
-            s.Append("Width");
-            s.Append(splt);
-            s.Append("length");
-            s.Append(splt);
-            s.Append("Height");
-            s.Append(splt);
-            s.Append("GetManufacture");
-            s.Append(splt);
-            s.Append("images");
-            s.Append(splt);
-            s.Append("Description");
-            s.AppendLine(splt);
-            foreach (var good in goods) {
-                s.Append(good.id);
-                s.Append(splt);
-                s.Append(good.Part);
-                s.Append(splt);
-                s.Append(good.name);
-                s.Append(splt);
-                s.Append(good.GroupName());
-                s.Append(splt);
-                s.Append(good.Amount);
-                s.Append(splt);
-                s.Append(good.Price);
-                s.Append(splt);
-                s.Append(good.weight);
-                s.Append(splt);
-                s.Append(good.width);
-                s.Append(splt);
-                s.Append(good.length);
-                s.Append(splt);
-                s.Append(good.height);
-                s.Append(splt);
-                s.Append(good.GetManufacture());
-                s.Append(splt);
-                s.Append(good.images.Select(g => g.url).Aggregate((a, b) => a + " " + b));
-                s.Append(splt);
-                s.Append(good.description);
-                s.AppendLine(splt);
+        void SaveToFile(List<GoodObject> goods, string fname = @"..\data\wildberries\wbGoodListForAdding.xlsx") {
+            try {
+                var fileInfo = new FileInfo(fname);
+                var excelPackage = new ExcelPackage(fileInfo);
+                while (excelPackage.Workbook.Worksheets.Count > 0) {
+                    excelPackage.Workbook.Worksheets.Delete(1);
+                }
+                excelPackage.Workbook.Worksheets.Add("список для добавления на WB");
+                var sheet = excelPackage.Workbook.Worksheets[1];
+                sheet.Cells[1, 1].Value = "Id";
+                sheet.Cells[1, 2].Value = "Part";
+                sheet.Cells[1, 3].Value = "Name";
+                sheet.Cells[1, 4].Value = "Amount";
+                sheet.Cells[1, 5].Value = "Price";
+                sheet.Cells[1, 6].Value = "Weight";
+                sheet.Cells[1, 7].Value = "Width";
+                sheet.Cells[1, 8].Value = "Length";
+                sheet.Cells[1, 9].Value = "Height";
+                sheet.Cells[1, 10].Value = "Manufacture";
+                sheet.Cells[1, 11].Value = "Images";
+                goods = goods.OrderBy(o => o.name).ToList();
+                for (int i = 0; i < goods.Count; i++) {
+                    sheet.Cells[i + 2, 1].Value = goods[i].id;
+                    sheet.Cells[i + 2, 2].Value = goods[i].Part;
+                    sheet.Cells[i + 2, 3].Value = goods[i].name;
+                    sheet.Cells[i + 2, 4].Value = goods[i].Amount;
+                    sheet.Cells[i + 2, 5].Value = goods[i].Price;
+                    sheet.Cells[i + 2, 6].Value = goods[i].weight?.ToString("F1") ?? "0";
+                    sheet.Cells[i + 2, 7].Value = goods[i].width;
+                    sheet.Cells[i + 2, 8].Value = goods[i].length;
+                    sheet.Cells[i + 2, 9].Value = goods[i].height;
+                    sheet.Cells[i + 2, 10].Value = goods[i].GetManufacture();
+                    sheet.Cells[i + 2, 11].Value = goods[i].images.Count;
+                }
+                excelPackage.Save();
+                Log.Add($"{L}SaveToFile: список карточек выгружен в {fname}");
+            } catch (Exception x) {
+                Log.Add($"{L}SaveToFile: ошибка сохранения списка - {x.Message}");
             }
-            File.WriteAllText(fname, s.ToString(), Encoding.UTF8);
-            Log.Add($"товары выгружены в {fname}");
         }
         //список складов
         async Task GetWarehouseList() {
             try {
                 //если файл свежий и обновление списка не требуется
-                if (DateTime.Now < File.GetLastWriteTime(_wareHouseListFile).AddDays(_updateFreq * 10)) {
+                if (DateTime.Now < File.GetLastWriteTime(WARE_HOUSE_LIST_FILE).AddDays(_updateFreq * 10)) {
                     //загружаем с диска, если список пустой
                     if (_wareHouses == null) {
                         _wareHouses = JsonConvert.DeserializeObject<List<WbWareHouse>>(
-                            File.ReadAllText(_wareHouseListFile));
+                            File.ReadAllText(WARE_HOUSE_LIST_FILE));
                     }
                 } else {
                     var data = new Dictionary<string, string>();
                     var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/warehouses");
                     if (res != null) {
                         _wareHouses = JsonConvert.DeserializeObject<List<WbWareHouse>>(res);
-                        File.WriteAllText(_wareHouseListFile, res);
+                        File.WriteAllText(WARE_HOUSE_LIST_FILE, res);
                     } else
                         throw new Exception("ошибка запроса складов!");
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} GetWarehouseList: ошибка! - {x.Message}");
+                Log.Add($"{L} GetWarehouseList: ошибка! - {x.Message}");
             }
         }
         //Получить этикетки для сборочных заданий
@@ -1247,13 +1208,13 @@ namespace Selen.Sites {
                 stickerList = JsonConvert.DeserializeObject<Stickers>(_jsonResponse);
                 if (stickerList.stickers.Count > 0) {
                     var sticker = stickerList.stickers[0].partA + " " + stickerList.stickers[0].partB;
-                    Log.Add($"{_l} GetOrderSticker: получен стикер {sticker}");
+                    Log.Add($"{L} GetOrderSticker: получен стикер {sticker}");
                     return sticker;
                 } else {
-                    Log.Add($"{_l} GetOrderSticker: предупреждение! - order {orderId} - стикер не получен!");
+                    Log.Add($"{L} GetOrderSticker: предупреждение! - order {orderId} - стикер не получен!");
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} GetOrderSticker: ошибка! - order {orderId} - {x.Message}");
+                Log.Add($"{L} GetOrderSticker: ошибка! - order {orderId} - {x.Message}");
             }
             return null;
         }
@@ -1270,7 +1231,13 @@ namespace Selen.Sites {
 
             Log.Add($"CheckSize: проверка завершена.");
         }
-
+        //проиизводитель
+        string GetBrand(GoodObject b) {
+            var brand = b.GetManufacture();
+            if (_exceptionBrands.Contains(brand)) 
+                    return "";
+            return brand;
+        }
 
         ///////////////////////////////////////
         ///// классы для работы с запросами ///

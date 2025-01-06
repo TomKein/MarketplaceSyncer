@@ -16,37 +16,42 @@ namespace Selen.Sites {
         List<CurrentPrice> _goodPrices = new List<CurrentPrice>();
 
         public async Task FillPrices() {
-            //открываем файл шаблон
-            if (!OpenFile())
-                return;
-            //для каждого листа в шаблоне (для каждого сайта)
-            for (int i = 1; i <= _excelPackage.Workbook.Worksheets.Count; i++) {
-                //выбираем лист для заполнения
-                var sheet = _excelPackage.Workbook.Worksheets[i];
-                Log.Add($"{_l} заполняю цены в таблицу {sheet.Name}");
-                //колонка с id в таблицах разная - для маркета это 3й столбец, для остальных 4й
-                var idCol = sheet.Name.Contains("Yandex") ? 3 : 4;
-                //перебираем строчки в таблице, пока есть данные в наименованиях
-                for (int row = 2; sheet.Cells[row, 2].Value != null; row++) {
-                    string id = sheet.Cells[row, idCol].Value?.ToString();
-                    //если id не найден - пропускаем 
-                    if (string.IsNullOrEmpty(id))
-                        continue;
-                    //ищем карточку и бизнес.ру
-                    var good = Class365API.FindGood(id);
-                    if (good != null) {
-                        var price = await GetPrice(good.id);
-                        if (price != 0) {
-                            if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell()>1)
-                                price = price * good.GetQuantOfSell();
-                            sheet.Cells[row, 7].Value = price.ToString("F1");
-                            Log.Add($"{_l} {row} - {good.name} заполнена цена {sheet.Cells[row, 7].Value}");
-                            await Task.Delay(10);
+            try {
+                //открываем файл шаблон
+                if (!OpenFile())
+                    return;
+                //для каждого листа в шаблоне (для каждого сайта)
+                for (int i = 1; i <= _excelPackage.Workbook.Worksheets.Count; i++) {
+                    //выбираем лист для заполнения
+                    var sheet = _excelPackage.Workbook.Worksheets[i];
+                    Log.Add($"{_l} заполняю цены в таблицу {sheet.Name}");
+                    //колонка с id в таблицах разная - для маркета это 3й столбец, для остальных 4й
+                    var idCol = sheet.Name.Contains("Yandex") ? 3 : 4;
+                    //перебираем строчки в таблице, пока есть данные в наименованиях
+                    for (int row = 2; sheet.Cells[row, 2].Value != null; row++) {
+                        string id = sheet.Cells[row, idCol].Value?.ToString();
+                        //если id не найден - пропускаем 
+                        if (string.IsNullOrEmpty(id) || sheet.Cells[row, 7].Value != null)
+                            continue;
+                        //ищем карточку и бизнес.ру
+                        var good = Class365API.FindGood(id);
+                        if (good != null) {
+                            var price = await GetPrice(good.id);
+                            if (price != 0) {
+                                if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell()>1)
+                                    price = price * good.GetQuantOfSell();
+                                sheet.Cells[row, 7].Value = price.ToString("F1");
+                                Log.Add($"{_l} {row} - {good.name} заполнена цена {sheet.Cells[row, 7].Value}");
+                                await Task.Delay(10);
+                            }
                         }
+                        if (row%500==0) _excelPackage.Save();
                     }
+                    _excelPackage.Save();
+                    Log.Add($"{_l} таблицу {sheet.Name} заполнена и сохранена");
                 }
-                _excelPackage.Save();
-                Log.Add($"{_l} таблицу {sheet.Name} заполнена и сохранена");
+            } catch (Exception x) {
+                Log.Add($"{_l}FillPrices: ошибка {x.Message}");
             }
         }
         public bool OpenFile() {

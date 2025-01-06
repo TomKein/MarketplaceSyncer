@@ -803,7 +803,7 @@ namespace Selen {
         }
         //производители
         private static string[] manufactures;
-        public string GetManufacture(bool ozon = false, bool wb= false) {
+        public string GetManufacture(bool ozon = false) {
             //проверяю сперва характеристику для озона
             Attributes manufacture = null;
             if (ozon)
@@ -812,10 +812,6 @@ namespace Selen {
             if (manufacture == null)
                 manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
             if (manufacture != null && manufacture.Value.name != "") {
-                if (wb && (manufacture.Value.name == "H&Q" ||
-                          manufacture.Value.name == "AUTOMEGA"||
-                          manufacture.Value.name == "CGA"))
-                    return "";
                 return manufacture.Value.name;
             }
             //если характеристика не указана, то пытаюсь определить из названия и описания

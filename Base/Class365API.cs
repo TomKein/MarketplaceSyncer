@@ -62,7 +62,6 @@ namespace Selen {
         static readonly string RESPONSIBLE_EMPLOYEE_ID = "76221";   //рогачев  76197-радченко
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
-        static readonly string _dictionaryFile = @"..\data\dict.txt";   //словать рус-англ аналогов
         public static int _checkIntervalMinutes;
 
         //статус синхронизации
@@ -1058,70 +1057,12 @@ namespace Selen {
                 Status = SyncStatus.NeedUpdate;
             }
         }
+        //вызов формы обновления описаний
         public static async Task DescriptionsEdit() {
-            //загрузим словарь
-            List<string> eng = new List<string>();
-            List<string> rus = new List<string>();
-            List<string> file = new List<string>(File.ReadAllLines(_dictionaryFile, Encoding.UTF8));
-            foreach (var s in file) {
-                var ar = s.Split(',');
-                eng.Add(ar[0]);
-                rus.Add(ar[1]);
-            }
-            file.Clear();
-            //количество изменений за один раз
-            var n = await DB.GetParamIntAsync("descriptionEditCount");
-            //пробегаемся по описаниям карточек базы
-            for (int i = _bus.Count - 1; i > -1 && n > 0; i--) {
-                if (Status == SyncStatus.NeedUpdate)
-                    return;
-                //если в карточке есть фото и остатки
-                if (_bus[i].images.Count == 0 /*&& bus[i].amount > 0*/)
-                    continue;
-                bool flag_need_formEdit = false;
-                //старое название, нужно обрезать
-                if (_bus[i].description.Contains("Есть и другие")) {
-                    _bus[i].description = _bus[i].description.Replace("Есть и другие", "|").Split('|')[0];
-                    flag_need_formEdit = true;
-                }
-                //для каждого слова из словаря проверим, содержится ли оно в описании
-                for (int d = 0; d < eng.Count; d++) {
-                    //если содержит английское написание И не содержит такого же на русском ИЛИ содержит
-                    if (_bus[i].description.Contains(eng[d]) && !_bus[i].description.Contains(rus[d])) {
-                        _bus[i].description = _bus[i].description.Replace(eng[d], eng[d] + " / " + rus[d]);
-                        flag_need_formEdit = true;
-                        break;
-                    }
-                }
-
-                if (_bus[i].description
-                           .Split('<')
-                           .Skip(1)
-                           .Any(w => !w.StartsWith("p>") &&
-                                     !w.StartsWith("br") &&
-                                     !w.StartsWith("/p")))
-                    flag_need_formEdit = true;
-                if (flag_need_formEdit) {
-                    Form f4 = new FormEdit(_bus[i]);
-                    f4.Owner = Form.ActiveForm;
-                    f4.ShowDialog();
-                    if (f4.DialogResult == DialogResult.OK) {
-                        var s = await RequestAsync("put", "goods", new Dictionary<string, string>() {
-                            {"id", _bus[i].id},
-                            {"name", _bus[i].name},
-                            {"description", _bus[i].description},
-                        });
-                        if (s.Contains("updated"))
-                            Log.Add("business.ru: " + _bus[i].name + " - описание карточки обновлено - " + _bus[i].description + " (ост. " + --n + ")");
-                        else
-                            Log.Add("business.ru: ошибка сохранения изменений " + _bus[i].name + " - " + s + " (ост. " + --n + ")");
-                    }
-                    f4.Dispose();
-                }
-
-            }
-            eng.Clear();
-            rus.Clear();
+            Form f4 = new FormEdit();
+            f4.Owner = Form.ActiveForm;
+            f4.ShowDialog();
+            f4.Dispose();
         }
         public static async Task CheckPartnersDubles() {
             List<PartnerContactinfoClass> pc = new List<PartnerContactinfoClass>();
