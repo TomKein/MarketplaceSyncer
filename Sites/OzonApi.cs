@@ -48,24 +48,12 @@ namespace Selen.Sites {
         static IEnumerable<XElement> _rules;
 
         //списки исключений
-        List<string> _exceptionGoods = new List<string> {
-            "огнетушитель",
-            "фиксаторы грм",
-            "фиксаторы распредвалов",
-            "набор фиксаторов",
-            "бампер ",
-            "капот ",
-            "телевизор "
-        };
-        List<string> _exceptionGroups = new List<string> {
-            "черновик"
-        };
-        //производители, для которых не выгружаем номера и артикулы
-        List<string> _exceptManufactures = new List<string> { 
-            "general motors", 
-            "chery", 
-            "nissan" 
-        };
+        const string EXCEPTION_GOODS_FILE = @"..\data\ozon\exceptionGoodsList.json";
+        const string EXCEPTION_GROUPS_FILE = @"..\data\ozon\exceptionGroupsList.json";
+        const string EXCEPTION_BRANDS_FILE = @"..\data\ozon\exceptionBrandsList.json";
+        List<string> _exceptionGoods;
+        List<string> _exceptionGroups;
+        List<string> _exceptionBrands;
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -84,6 +72,14 @@ namespace Selen.Sites {
                 _bus = Class365API._bus;
                 _rulesXML = XDocument.Load(_rulesFile);
                 _rules = _rulesXML.Descendants("Rule");
+                //загрузка исключений
+                _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GROUPS_FILE));
+                _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GOODS_FILE));
+                _exceptionBrands = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_BRANDS_FILE));
+
                 //await GetWarehouseList();
                 await GetCategoriesAsync();
                 await UpdateProductsAsync();
@@ -260,20 +256,19 @@ namespace Selen.Sites {
                         await Update(Class365API._bus[b], productInfo);
                     }
                 } catch (Exception x) {
-                    Log.Add($"{_l} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
+                    Log.Add($"{_l}CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
                     _isProductListCheckNeeds = true;
                 }
             }
         }
         //расширенная информация о товаре
         private async Task<ProductInfo> GetProductInfoAsync(GoodObject bus) {
-            try {
-                var data = new { offer_id = bus.id };
-                var s = await PostRequestAsync(data, "/v2/product/info");
+            var data = new { offer_id = bus.id };
+            var s = await PostRequestAsync(data, "/v2/product/info");
+            if (s!=null)
                 return JsonConvert.DeserializeObject<ProductInfo>(s);
-            } catch (Exception x) {
-                throw new Exception($"GetProductInfoAsync ошибка! name:{bus.name} message:{x.Message}");
-            }
+            Log.Add($"{_l}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
+            return null;
         }
         //обновление ссылки в карточке бизнес.ру
         async Task SaveUrlAsync(GoodObject bus, ProductInfo productInfo) {
@@ -302,10 +297,12 @@ namespace Selen.Sites {
             try {
                 if (productInfo == null)
                     productInfo = await GetProductInfoAsync(bus);
+                if (productInfo == null)
+                    return true;
                 await UpdatePrice(bus, productInfo);
                 await UpdateStocks(bus, productInfo, 1020000901600000); //основной
                 await UpdateStocks(bus, productInfo, 1020002368685000); //realFbs
-                //await UpdateStocks(bus, productInfo, 1020005000062736);
+                //await UpdateStocks(bus, productInfo, 1020005000062736); //эконом
                 await UpdateProduct(bus, productInfo);
                 return true;
             } catch (Exception x) {
@@ -474,7 +471,7 @@ namespace Selen.Sites {
                 var productFullInfo = await GetProductFullInfoAsync(productInfo);
                 File.WriteAllText(@"..\data\ozon\product_" + productFullInfo.First().offer_id + ".json",
                     JsonConvert.SerializeObject(productFullInfo));                //формирую объект запроса
-                if (attributes.categoryId == "111") {
+                if (attributes.categoryId == "none") {
                     _isProductListCheckNeeds = true;
                     return;
                 }
@@ -595,7 +592,7 @@ namespace Selen.Sites {
                                      && w.length != null
                                      && w.width != null
                                      && w.New
-                                     && !w.ozon.Contains("http")
+                                     && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e))).ToList();
@@ -604,7 +601,7 @@ namespace Selen.Sites {
                                      && w.Price > 0
                                      && w.images.Count > 0
                                      && w.New
-                                     && !w.ozon.Contains("http")
+                                     && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))).ToList(); //нет в исключениях
             SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.xlsx");
@@ -616,7 +613,7 @@ namespace Selen.Sites {
                 try {
                     //проверяем группу товара
                     var attributes = await GetAttributesAsync(good);
-                    if (attributes.typeId == "0" || attributes.categoryId == "111")
+                    if (attributes.typeId == "0" || attributes.categoryId == "none")
                         continue;
                     //формирую объект запроса
                     var data = new {
@@ -817,8 +814,8 @@ namespace Selen.Sites {
             try {
                 var n = bus.name.ToLowerInvariant();
                 var a = new Attributes() {
-                    typeId = "111",
-                    categoryId = "111"
+                    typeId = "none",
+                    categoryId = "none"
                 };
                 foreach (var rule in _rules) {
                     var conditions = rule.Elements();
@@ -835,283 +832,7 @@ namespace Selen.Sites {
                         a.typeName = GetTypeName(rule);
                 }
                 if (a.typeName == null) {
-                    if (n.Contains("ручка") &&
-                        (n.Contains("двери") || n.Contains("наруж") || n.Contains("внутр"))) {
-                        a.typeName = "Ручка дверная автомобильная";
-                    } else if ((n.Contains("мотор") || n.StartsWith("вентилятор")) &&
-                        (n.Contains("печки") || n.Contains("отопителя"))) {
-                        a.typeName = "Электровентилятор отопления";
-                    } else if (n.StartsWith("провод") &&
-                        (n.Contains("высоков") || n.Contains(" в/в") || n.Contains("зажиг"))) {
-                        a.typeName = "Комплект высоковольтных проводов";
-                    } else if (n.StartsWith("датчик") ||
-                        n.StartsWith("обманка датчика") ||
-                        n.StartsWith("выключатель стоп-сигнала")) {
-                        a.typeName = "Датчик для автомобиля";
-                    } else if ((n.StartsWith("заглушка") &&
-                        (n.Contains("бампер") || n.Contains("туман")))) {
-                        a.typeName = "Заглушка бампера автомобиля";
-                    } else if (n.StartsWith("фонарь") ||
-                        n.StartsWith("фонари") || n.StartsWith("стоп дополнительный")) {
-                        a.typeName = "Задний фонарь автомобильный";
-                    } else if (n.StartsWith("насос гур") ||
-                        n.StartsWith("гидроусилитель") ||
-                        n.StartsWith("насос гидроусилителя")) {
-                        a.typeName = "Насос ГУР";
-                    } else if (n.StartsWith("зеркало") &&
-                        (n.Contains("прав") || n.Contains("лев"))) {
-                        a.typeName = "Зеркало боковое";
-                    } else if (n.StartsWith("амортизатор") &&
-                        (n.Contains("багажн") || n.Contains("капот"))) {
-                        a.typeName = "Упор багажника";
-                    } else if (n.StartsWith("амортизатор") &&
-                        (n.Contains("перед") || n.Contains("задн"))) {
-                        a.typeName = "Амортизатор подвески";
-                    } else if (n.StartsWith("бачок") &&
-                        (n.Contains("гур") || n.Contains("гидроусил"))) {
-                        a.typeName = "Бачок ГУР";
-                    } else if (n.Contains("бачок ") &&
-                        n.Contains("стекло")) {
-                        a.typeName = "Бачок стеклоомывателя";
-                    } else if (n.StartsWith("блок управ") &&
-                        (n.Contains("отопител") || n.Contains("печк"))) {
-                        a.typeName = "Блок управления отопителем";
-                    } else if (n.StartsWith("блок ") &&
-                        (n.Contains("управления эур") || n.Contains("управления дв") ||
-                         n.Contains("комфорт") || n.Contains("электрон") || n.Contains("bsi") ||
-                         n.Contains("управления глонас") || n.Contains("адаптивного освещения"))) {
-                        a.typeName = "Блок управления";
-                    } else if (n.StartsWith("блок ") && n.Contains("abs")) {
-                        a.typeName = "Блок ABS";
-                    } else if (n.Contains("цилиндр ") &&
-                        n.Contains("сцеплени") && n.Contains("главный")) {
-                        a.typeName = "Цилиндр сцепления главный";
-                    } else if (n.Contains("цилиндр ") &&
-                        n.Contains("сцеплени") && n.Contains("рабоч")) {
-                        a.typeName = "Цилиндр сцепления рабочий";
-                    } else if (n.StartsWith("сайлентблок")) {
-                        a.typeName = "Сайлентблок";
-                    } else if (n.StartsWith("гайка ")) {
-                        a.typeName = "Гайка крепежная автомобильная";
-                    } else if (n.StartsWith("герметик ")) {
-                        a.typeName = "Герметик автомобильный";
-                    } else if (n.StartsWith("жидкий ключ")) {
-                        a.typeName = "Ключ жидкий";
-                    } else if (n.StartsWith("присадк") && n.Contains("антигель")) {
-                        a.typeName = "Антигель";
-                    } else if ((n.StartsWith("присадк") || n.StartsWith("очистител")) &&
-                        (n.Contains("топл") || n.Contains("инж") || n.Contains("карбюр") ||
-                        n.Contains("форс"))) {
-                        a.typeName = "Очиститель топливной системы";
-                    } else if (n.StartsWith("триботехническ") ||
-                        (n.Contains("присад") && n.Contains("робот"))) {
-                        a.typeName = "Присадка в масло";
-                    } else if (n.StartsWith("присадк")) {
-                        a.typeName = "Присадка в топливо";
-                    } else if (n.StartsWith("очиститель") && n.Contains("конд")) {
-                        a.typeName = "Очиститель кондиционера";
-                    } else if (n.StartsWith("очиститель") && n.Contains("тормоз")) {
-                        a.typeName = "Очиститель тормозов";
-                    } else if (n.Contains("очист") && n.Contains("охл")) {
-                        a.typeName = "Очиститель системы охлаждения";
-                    } else if ((n.Contains("раскоксовка") || n.Contains("промывка")) && n.Contains("двигат")) {
-                        a.typeName = "Раскоксовка двигателя";
-                    } else if (n.StartsWith("антифриз")) {                                  //Автохимия - Антифриз, тосол
-                        a.typeName = "Антифриз";
-                    } else if (n.StartsWith("замок") && n.Contains("двер")) {               //Замок двери
-                        a.typeName = "Замок двери автомобиля";
-                    } else if (n.StartsWith("замок") && n.Contains("капот") ||
-                        n.StartsWith("комплект замка капота")) {                            //Замок капота
-                        a.typeName = "Замок капота";
-                    } else if (n.StartsWith("замок") && n.Contains("багаж")) {              //Замок багажника
-                        a.typeName = "Замок для багажников";
-                    } else if (n.StartsWith("трос") && n.Contains("замка") && n.Contains("двери")) {    //Трос замка двери
-                        a.typeName = "Трос замка двери";
-                    } else if (n.StartsWith("трос") &&
-                        n.Contains("лючка") && n.Contains("бак")) {                       //Трос открывания
-                        a.typeName = "Трос открывания";
-                    } else if (n.Contains("личин")) {                                       //Личинка замка
-                        a.typeName = "Личинка замка";
-                    } else if (n.Contains("заслонка") &&                                    //Дроссельная заслонка
-                        n.Contains("дроссел")) {
-                        a.typeName = "Заслонка дроссельная";
-                    } else if ((n.StartsWith("защита") || n.StartsWith("пыльник")) &&         //Защита нижней части автомобиля
-                        (n.Contains("двиг") || n.Contains("карт") || n.Contains("двс"))) {
-                        a.typeName = "Защита двигателя и КПП";
-                    } else if ((n.StartsWith("колонка") || n.StartsWith("вал")) &&          //Вал рулевой
-                        n.Contains("рулев")) {
-                        a.typeName = "Вал рулевой";
-                    } else if (n.Contains("кулис")) {                                       //Кулиса и составляющие для авто
-                        a.typeName = "Кулиса КПП";
-                    } else if (n.Contains("компрессор кондиционера")) {                     //Компрессор климатической установки для авто
-                        a.typeName = "Компрессор кондиционера";
-                    } else if (n.StartsWith("кордщетка") && n.Contains("дрел")) {           //Принадлежности для шлифовки, полировки
-                        a.typeName = "Чашка шлифовальная";
-                    } else if (n.StartsWith("крыло")) {                                     //Крыло автомобильное
-                        a.typeName = "Крыло для автомобиля";
-                    } else if (n.Contains("масло") && n.Contains("моторное")) {             //Автохимия - Масло моторное
-                        a.typeName = "Масло моторное";
-                    } else if (n.Contains("масло") && n.Contains("трансмис")) {             //Автохимия - Трансмиссионное, гидравлическое масла
-                        a.typeName = "Масло индустриальное";
-                    } else if ((n.StartsWith("жидкость") || n.Contains("масло")) &&
-                        (n.Contains("гур") || n.Contains("гидравлическое"))) {             //Автохимия - Трансмиссионное, гидравлическое масла
-                        a.typeName = "Жидкость для гидроусилителя";
-                    } else if (n.Contains("набор") && n.Contains("инструмента")) {          //Набор для ремонта авто
-                        a.typeName = "Набор инструментов для автомобиля";
-                    } else if (n.Contains("наклад") && n.Contains("порога")) {              //Обшивки салона
-                        a.typeName = "Обшивка салона автомобиля";
-                    } else if (n.StartsWith("стеклоподъемник")) {
-                        a.typeName = "Стеклоподъемник";
-                    } else if (n.StartsWith("брызговик")) {
-                        a.typeName = "Брызговики";
-                    } else if (n.StartsWith("прокладк") &&
-                        n.Contains("впуск") && n.Contains("коллект")) {
-                        a.typeName = "Прокладка впускного коллектора";
-                    } else if (n.StartsWith("прокладк") &&
-                        (n.Contains("радиатор") || n.Contains("масл"))) {
-                        a.typeName = "Прокладка для системы охлаждения автомобиля";
-                    } else if (n.StartsWith("кольцо") &&
-                        n.Contains("форсун")) {
-                        a.typeName = "Кольцо, прокладка форсунки";
-                    } else if (n.StartsWith("камера") &&                                        //Камера заднего вида
-                        n.Contains("задн") && n.Contains("вид")) {
-                        a.typeName = "Камера заднего вида";
-                    } else if (n.StartsWith("колпач") && n.Contains("маслос") ||
-                        n.StartsWith("комплект колпачков маслосъемных")) {                    //Колпачки маслосъёмные
-                        a.typeName = "Колпачок маслосъемный";
-                    } else if (n.StartsWith("комплект") &&                                        //Комплект ГРМ
-                        n.Contains("грм")) {
-                        a.typeName = "Ремкомплект ремня ГРМ";
-                    } else if ((n.StartsWith("молдинг") ||                                        //Молдинг (ресничка) фары 
-                        n.StartsWith("ресничка")) &&
-                        n.Contains("фар")) {
-                        a.typeName = "Накладка на фары";
-                    } else if (n.StartsWith("крышка") &&                                      //Крышка бачка 
-                        n.Contains("бачка") &&
-                        (n.Contains("расшир") || n.Contains("сцепл"))) {
-                        a.typeName = "Крышка бачка расширительного";
-                    } else if (n.StartsWith("моторчик") &&                                    //Моторчик заднего дворника 
-                        n.Contains("зад") &&
-                        (n.Contains("дворник") || n.Contains("стеклооч"))) {
-                        a.typeName = "Мотор стеклоочистителя";
-                    } else if (n.StartsWith("трапеция") &&                                    //Трапеция, рычаг стеклоочистителя 
-                        (n.Contains("дворник") || n.Contains("стеклооч"))) {
-                        a.typeName = "Трапеция стеклоочистителя";
-                    } else if ((n.StartsWith("подшипник") ||                         //Ступица, подшипник колеса 
-                        n.StartsWith("обойма подшипника"))
-                        &&
-                        (n.Contains("ступи") || n.Contains("колес") ||
-                        n.Contains("полуоси") || n.Contains("конический"))) {
-                        a.typeName = "Подшипник ступицы";
-                    } else if (n.StartsWith("гайка под лямбда-зонд")) {                        //Гайка под лямбда-зонд 
-                        a.typeName = "Болты, гайки, хомуты, стяжки";
-                    } else if (n.StartsWith("диск штампованный")) {                            //Диск штампованный 
-                        a.typeName = "Колесный диск";
-                    } else if (n.StartsWith("корпус плоского разъема")) {                         //Корпус плоского разъема 
-                        a.typeName = "Соединитель проводки";
-                    } else if (n.StartsWith("накладка двери")) {                         //Накладка двери 
-                        a.typeName = "Молдинг для автомобиля";
-                    } else if (n.StartsWith("обманка лямбд")) {                         //Обманка лямбды 
-                        a.typeName = "Миникатализатор";
-                    } else if (n.StartsWith("опора") && n.Contains("амортизатора")) {     //Опора амортизатора 
-                        a.typeName = "Опора амортизатора";
-                    } else if ((n.StartsWith("опора") || n.StartsWith("подуш")) &&
-                        (n.Contains("двс") || n.Contains("двигател"))) {                         //Опора двигателя 
-                        a.typeName = "Опора двигателя";
-                    } else if (n.StartsWith("патрубок") && n.Contains("бака") ||
-                        n.StartsWith("штуцер топливной")) {             //Патрубок бака 
-                        a.typeName = "Шланг топливный";
-                    } else if (n.StartsWith("патрубок") &&                                  //Патрубок охлаждения 
-                        (n.Contains("охлаждения") || n.Contains("радиатора"))) {
-                        a.typeName = "Патрубок охлаждения";
-                    } else if (n.StartsWith("подкрыл") &&                                     //подкрылки 
-                        (n.Contains("перед") || n.Contains("зад") || n.Contains("лев") || n.Contains("прав"))) {
-                        a.typeName = "Подкрылки";
-                    } else if (n.StartsWith("прокладка") && n.Contains("зеркал") &&          //Прокладка наружного зеркала
-                        (n.Contains("нар") || n.Contains("прав") || n.Contains("лев"))) {
-                        a.typeName = "Запчасть бокового зеркала";
-                    } else if (n.StartsWith("подшипник") &&          //Подшипник выжимной
-                        n.Contains("выжимной")) {
-                        a.typeName = "Подшипник выжимной";
-                    } else if (n.Contains("подшипник") &&          //Подшипник опоры амортизатора
-                        (n.Contains("стойк") || n.Contains("аморт") || n.Contains("опор"))) {
-                        a.typeName = "Подшипник амортизатора";
-                    } else if (n.StartsWith("поршень") || n.StartsWith("поршни")) {          //Поршень
-                        a.typeName = "Поршень";
-                    } else if ((n.StartsWith("постель") && n.Contains("распредвал")) ||      //Постель с распредвалом
-                      n.StartsWith("распредвал")) {
-                        a.typeName = "Распредвал";
-                    } else if (n.StartsWith("преднатяжитель") && n.Contains("безопасност")) {   //Преднатяжитель ремня безопасности 
-                        a.typeName = "Запчасти автомобильные";
-                    } else if (n.StartsWith("преобразователь") && n.Contains("ржавчины")) {      //Преобразователь ржавчины 
-                        a.typeName = "Преобразователь ржавчины";
-                    } else if ((n.Contains("привод") || n.Contains("полуось")) &&
-                        (n.Contains("лев") || n.Contains("прав"))) {                             //Привод 
-                        a.typeName = "Привод в сборе";
-                    } else if (n.Contains("раскоксовыв") &&
-                        (n.Contains("двигателя") || n.Contains("двс"))) {                      //Раскоксовывание двигателя 
-                        a.typeName = "Раскоксовка двигателя";
-                    } else if (n.StartsWith("расходомер") ||
-                        n.StartsWith("дмрв") || n.StartsWith("датчик расхода")) {              //Расходомер воздуха 
-                        a.typeName = "Датчик массового расхода воздуха";
-                    } else if (n.StartsWith("реле ") &&
-                        n.Contains("поворот")) {              //Реле поворотов
-                        a.typeName = "Реле указателей поворота";
-                    } else if (n.StartsWith("реле ") &&
-                        n.Contains("бензо")) {              //Реле бензонасоса
-                        a.typeName = "Реле бензонасоса";
-                    } else if (n.StartsWith("реле ")) {              //Реле универсальное
-                        a.typeName = "Реле универсальное для автомобиля";
-                    } else if (n.StartsWith("резистор") &&
-                        (n.Contains("вентилятор") || n.Contains("отопител"))) {              //Резистор вентилятора 
-                        a.typeName = "Резистор вентилятора";
-                    } else if (n.Contains("рейка") &&
-                        n.Contains("рулевая")) {              //Рейка рулевая 
-                        a.typeName = "Рейка рулевая";
-                    } else if (n.StartsWith("ремкомплект") &&
-                        n.Contains("суппорт")) {              //Ремкомплект тормозного суппорта 
-                        a.typeName = "Ремкомплект суппорта";
-                    } else if (n.StartsWith("решетка") &&
-                        (n.Contains("бампер") || n.Contains("радиатор"))) {    //решетка бампера радиатора
-                        a.typeName = "Решетка радиатора";
-                    } else if (n.StartsWith("ручник ")) {    //Ручник 
-                        a.typeName = "Рычаг тормоза";
-                    } else if (n.StartsWith("рычаг") &&          //Рычаг подвески
-                        (n.Contains("подвеск") || n.Contains("зад") ||
-                        n.Contains("лев") || n.Contains("прав"))) {
-                        a.typeName = "Рычаг подвески";
-                    } else if (n.StartsWith("свеч") && n.Contains("зажигания") ||
-                        n.StartsWith("ввертыш") && n.Contains("свечной")) {             //Свеча зажигания 
-                        a.typeName = "Свеча зажигания";
-                    } else if (n.StartsWith("смазка ") ||                //Смазка 
-                        n.StartsWith("защита") && n.Contains("клемм")) {
-                        a.typeName = "Смазка";
-                    } else if (n.StartsWith("спойлер") &&
-                        n.Contains("бампера")) {              //Спойлер бампера 
-                        a.typeName = "Спойлер автомобиля";
-                    } else if (n.StartsWith("стекло ") &&
-                        n.Contains("двери")) {              //стекло двери 
-                        a.typeName = "Автостекло";
-                    } else if ((n.StartsWith("стекло ") && n.Contains("зеркала")) ||              //Стекло зеркала 
-                       (n.Contains("зеркальный") && n.Contains("элемент"))) {
-                        a.typeName = "Элемент зеркальный";
-                    } else if (n.StartsWith("струна ") && n.Contains("срезания")) {              //Струна для срезания стекла 
-                        a.typeName = "Специнструмент для авто";
-                    } else if (n.StartsWith("трубка ") && n.Contains("турб")) {              //Трубка турбокомпрессора 
-                        a.typeName = "Патрубок турбокомпрессора";
-                    } else if (n.StartsWith("успокоитель цепи") && n.Contains("грм")) {              //Успокоитель цепи ГРМ 
-                        a.typeName = "Успокоитель цепи ГРМ";
-                    } else if (n.StartsWith("фильтр ") && n.Contains("топливный")) {              //Фильтр топливный 
-                        a.typeName = "Фильтр топливный";
-                    } else if (n.StartsWith("фланец ") &&
-                        (n.Contains("карбюратор") || n.Contains("моновпрыск"))) {              //Фланец карбюратора 
-                        a.typeName = "Ремкомплект карбюратора";
-                    } else if ((n.StartsWith("форсунка") || n.StartsWith("заглушка")) &&
-                        (n.Contains("омывателя") || n.Contains("фар"))) {                    //Форсунка омывателя 
-                        a.typeName = "Форсунка омывателя";
-
-                    } else
-                        return a;
+                    return a;
                 }
                 if (!GetTypeIdAndCategoryId(a))
                     return a;
@@ -1444,7 +1165,7 @@ namespace Selen.Sites {
         Attribute GetOEMAttribute(GoodObject good) {
             var man = good.GetManufacture(true)?
                           .ToLowerInvariant();
-            if (_exceptManufactures.Contains(man))
+            if (_exceptionBrands.Contains(man))
                 return null;
             var value = good.GetOEM();
             if (value == null)
@@ -1593,7 +1314,7 @@ namespace Selen.Sites {
         Attribute GetAlternativesAttribute(GoodObject good) {
             var man = good.GetManufacture(true)?
                           .ToLowerInvariant();
-            if (_exceptManufactures.Contains(man))
+            if (_exceptionBrands.Contains(man))
                 return null;
             var value = good.GetAlternatives();
             if (value == null)
@@ -1763,8 +1484,8 @@ namespace Selen.Sites {
         Attribute GetPartAttribute(GoodObject bus) {
             var man = bus.GetManufacture(true)?
                          .ToLowerInvariant();
-            var part = _exceptManufactures.Contains(man) ? bus.id
-                                                        : bus.part;
+            var part = _exceptionBrands.Contains(man) ? bus.id
+                                                      : bus.part;
             return new Attribute {
                 complex_id = 0,
                 id = 7236,

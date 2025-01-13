@@ -30,6 +30,15 @@ namespace Selen.Sites {
         MarketCampaigns _campaigns;
         List<GoodObject> _bus;
         List<string> _addDesc, _addDesc2;
+
+        //списки исключений
+        const string EXCEPTION_GOODS_FILE = @"..\data\yandex\exceptionGoodsList.json";
+        const string EXCEPTION_GROUPS_FILE = @"..\data\yandex\exceptionGroupsList.json";
+        const string EXCEPTION_BRANDS_FILE = @"..\data\yandex\exceptionBrandsList.json";
+        List<string> _exceptionGoods;
+        Dictionary<string, string> _exceptionBrands;
+        List<string> _exceptionGroups;
+
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
         }
@@ -38,6 +47,12 @@ namespace Selen.Sites {
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
+            _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
+                File.ReadAllText(EXCEPTION_GROUPS_FILE));
+            _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
+                File.ReadAllText(EXCEPTION_GOODS_FILE));
+            _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                File.ReadAllText(EXCEPTION_BRANDS_FILE));
             var gen = Task.Factory.StartNew(() => {
                 //интервал проверки
                 var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
@@ -72,25 +87,14 @@ namespace Selen.Sites {
                 //для каждой карточки
                 foreach (var b in bus) {
                     try {
-                        //исключения
                         var n = b.name.ToLowerInvariant();
-                        if (b.group_id == "2281135" || n.Contains("пепельница") || //// Инструменты (аренда), пепельницы
-                            n.Contains("стекло заднее") || n.Contains("стекло переднее") ||
-                            n.StartsWith("крыша ") || n.Contains("задняя часть кузова") ||  //габаритные зч
-                            n.Contains("крыло заднее") || n.Contains("четверть ") ||
-                            n.Contains("передняя часть кузова") || n.Contains("лонжерон") ||
-                            n.Contains("панель передняя") || n.Contains("морда") ||
-                            n.Contains("телевизор") || n.Contains("переделка")
-                            || n.StartsWith("стекло двер")
-                            || n.StartsWith("стекло лоб")
-                            || n.StartsWith("стекло зад")
-                            || n.StartsWith("стекло перед")
-                            || n.StartsWith("крышка багажника") && n.Contains("стекло")
-                            )
+                        //исключения
+                        if (_exceptionGroups.Contains(b.GroupName())
+                         || _exceptionGoods.Any(e => n.StartsWith(e)))
                             continue;
                         var offer = new XElement("offer", new XAttribute("id", b.id));
                         offer.Add(new XElement("categoryId", b.group_id));
-                        offer.Add(new XElement("name", b.NameLimit(150)));
+                        offer.Add(new XElement("name", b.NameLimit(150, "MARKET_TITLE")));
                         var price = GetPrice2(b);
                         offer.Add(new XElement("price", price));
                         //цена до скидки +10%
@@ -100,7 +104,8 @@ namespace Selen.Sites {
                             offer.Add(new XElement("picture", photo.url));
                         offer.Add(new XElement("description", new XCData(GetDescription(b))));
                         var vendor = b.GetManufacture();
-                        if (vendor != null)
+                        //если пороизводитель не пустой и не содержится в исключениях - добавляем в товар
+                        if (vendor != null && !_exceptionBrands.Any(a=>a.Key == vendor))
                             offer.Add(new XElement("vendor", vendor));
                         //артикул
                         if (!string.IsNullOrEmpty(b.Part))
@@ -195,7 +200,7 @@ namespace Selen.Sites {
             } else
                 Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
-        string GetDescription(GoodObject b, int lenght = 2990) {
+        string GetDescription(GoodObject b, int lenght = 5500) {
             List<string> list = new List<string>();
             list.AddRange(_addDesc);
             if (b.GroupName() != "АВТОХИМИЯ" &&
@@ -237,7 +242,9 @@ namespace Selen.Sites {
                 !b.name.StartsWith("Четверть")
                 )
                 list.AddRange(_addDesc2);
-            var d = b.DescriptionList(lenght, list);
+            var d = b.DescriptionList(lenght);
+            //добавляем к основному описанию специальное
+            d.AddRange(b.DescriptionList(lenght, list, specDesc: "MARKET_DESCRIPTION"));
             return d.Aggregate((a1, a2) => a1 + "\r\n" + a2);
         }
 

@@ -48,6 +48,15 @@ namespace Selen.Sites {
         XDocument autoCatalogXML;
         HttpClient _hc = new HttpClient();
 
+        //списки исключений
+        const string EXCEPTION_GOODS_FILE = @"..\data\avito\exceptionGoodsList.json";
+        const string EXCEPTION_GROUPS_FILE = @"..\data\avito\exceptionGroupsList.json";
+        const string EXCEPTION_BRANDS_FILE = @"..\data\avito\exceptionBrandsList.json";
+        List<string> _exceptionGoods;
+        Dictionary<string, string> _exceptionBrands;
+        List<string> _exceptionGroups;
+
+
         List<GoodObject> _bus;
         public Avito() {
             _clientId = DB.GetParamStr("avito.clientId");
@@ -195,6 +204,13 @@ namespace Selen.Sites {
                 _creditPriceMin = DB.GetParamInt("creditPriceMin");
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
                 _creditDescription = DB.GetParamStr("creditDescription");
+                //загрузка исключений
+                _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GROUPS_FILE));
+                _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GOODS_FILE));
+                _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                    File.ReadAllText(EXCEPTION_BRANDS_FILE));
                 GoodObject.UpdateDefaultVolume();
                 GoodObject.UpdateDefaultWeight();
                 var xml = new XDocument();
@@ -203,14 +219,21 @@ namespace Selen.Sites {
                 var rootStock = new XElement("items", new XAttribute("date", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")),
                                                       new XAttribute("formatVersion", "1"));
                 var days = DB.GetParamInt("avito.daysUpdatedToUpload");
-                //список карточек с положительным остатком и ценой, у которых есть фотографии
+                //список карточек с положительным остатком и ценой,
+                //у которых есть фотографии
+                //и не входит в список исключений,
                 //отсортированный по убыванию цены
-                var bus = _bus.Where(w => w.Price >= priceLevel && w.images.Count > 0 &&
-                                    (w.Amount > 0 ||
-                                     DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime ||
-                                     DateTime.Parse(w.updated_remains_prices).AddHours(2).AddDays(days) > Class365API.LastScanTime))
+                var bus = _bus.Where(w => w.Price >= priceLevel 
+                                       && w.images.Count > 0 
+                                       && !_exceptionGoods.Any(a=>w.name.ToLower().StartsWith(a)) 
+                                       && !_exceptionGroups.Contains(w.GroupName())
+                                       && (w.Amount > 0 ||
+                                            DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime ||
+                                            DateTime.Parse(w.updated_remains_prices).AddHours(2).AddDays(days) > Class365API.LastScanTime
+                                          )
+                                    )
                               .OrderByDescending(o => o.Price);
-                Log.Add(_l + "найдено " + bus.Count() + " товаров для выгрузки");
+                Log.Add(_l + "найдено " + bus?.Count() + " товаров для выгрузки");
                 int i = 0;
                 foreach (var b in bus) {
                     try {
@@ -277,10 +300,10 @@ namespace Selen.Sites {
                         if (i >= offersLimit)
                             break;
                     } catch (Exception x) {
-                        Log.Add(_l + i + " - " + b.name + " - " + x.Message);
+                        Log.Add($"{_l}GenerateXML: ошибка - [{b.id}] {b.name} - {x.Message}");
                     }
                 }
-                Log.Add(_l + "выгружено " + i);
+                Log.Add($"{_l}GenerateXML: выгружено позиций в xml: {i}");
                 xml.Add(root);
                 xmlStock.Add(rootStock);
                 xml.Save(_fileNameExport);
@@ -290,7 +313,7 @@ namespace Selen.Sites {
                 await SftpClient.FtpUploadAsync(_fileNameExport);
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
             } else
-                Log.Add($"{_l} ошибка - файл не отправлен, т.к. меньше минимального размера!");
+                Log.Add($"{_l} ошибка - файл не отправлен, т.к. меньше контрольного размера!");
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);

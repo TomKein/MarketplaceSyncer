@@ -582,8 +582,20 @@ namespace Selen {
             }
             return true;
         }
-        public string NameLimit(int length) {
-            var t = name.Replace("(копия)", ""); //удаление признака Копии
+        public string NameLimit(int length, string specDesc = null) {
+            string t;
+            //если указан параметр - ищем альтернативное название в описании
+            if (specDesc != null) {
+                //var pattern = @"\{([A-Z_.]+)\}\s?([\s|\S]*)\{\/\1\}";  //паттерн для поиска всех тегов
+                //подставляем нужный тег в регулярное выражение
+                var pattern = @"\{(" + specDesc + @")\}\s?([\s|\S]*)\{\/\1\}";
+                var regex = new Regex(pattern);
+                var match = regex.Match(description);
+                t = match.Success ? match.Groups[2].Value.Trim() : name;
+            } else {
+                t = name;
+            }
+            t = t.Replace("(копия)", ""); //удаление признака Копии
             t = Regex.Replace(t, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
             //todo удалить фразы типа сделать фото и т.п.
             while (t.Length > length) {
@@ -595,44 +607,55 @@ namespace Selen {
         public string HtmlDecodedDescription() =>
             Regex.Replace(
                 HttpUtility.HtmlDecode(description)
-                           .Replace("Есть и другие", "|")
-                           .Split('|')[0]
                            .Replace("\n", "|")
                            .Replace("|", " "),
                            "<[^>]+>", " ").Trim();
 
-        public List<string> DescriptionList(int b = 3000, List<string> dop = null, bool removeSpec = false) {
-            string d = description;
+        public List<string> DescriptionList(int b = 3000, List<string> dop = null, bool removeSpec = false, 
+                                            bool removePhone = false, string specDesc = null) {
+            string d;
+            //ищем специальное описание для маркетплейса
+            if (specDesc!= null) {
+                //var pattern = @"\{([A-Z_.]+)\}\s?([\s|\S]*)\{\/\1\}";  //для поиска всех тегов
+                //подставляем нужный тег в регулярное выражение
+                var pattern = @"\{(" + specDesc + @")\}\s?([\s|\S]*)\{\/\1\}";
+                var regex = new Regex(pattern);
+                var match = regex.Match(description);
+                d = match.Success ? match.Groups[2].Value?.Trim() : "";
+                //d = match.Success ? match.Groups[2].Value?.Trim() : description.Split('{').First(); //вариант
+            } else {
+                //иначе используем текст до открывающей фигурной скобки
+                d = description.Split('{').First();
+            }
             if (removeSpec)
                 d = d
-                                    .Replace("/", " ")
-                                    .Replace("\\", " ")
-                                    .Replace("(", " ")
-                                    .Replace(")", " ")
-                                    .Replace("[", " ")
-                                    .Replace("]", " ")
-                                    .Replace("!", " ")
-                                    .Replace("#", " ")
-                                    .Replace("*", " ")
-                                    .Replace("%", " ")
-                                    .Replace("+", " ");
-            d = Regex.Replace(d, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
+                    .Replace("/", " ")
+                    .Replace("\\", " ")
+                    .Replace("(", " ")
+                    .Replace(")", " ")
+                    .Replace("[", " ")
+                    .Replace("]", " ")
+                    .Replace("!", " ")
+                    .Replace("#", " ")
+                    .Replace("*", " ")
+                    .Replace("%", " ")
+                    .Replace("+", " ");
+            if (removePhone)
+                d = Regex.Replace(d, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
             var s = Regex.Replace(d
-                                    .Replace("Есть и другие", "|")
-                                    .Split('|')[0]
-                                    .Replace("\n", "|")
-                                    .Replace("<br />", "|")
-                                    .Replace("<br>", "|")
-                                    .Replace("</p>", "|")
-                                    .Replace("&nbsp;", " ")
-                                    .Replace("&quot;", "")
-                                    .Replace("&gt;", "")
-                                    .Replace(" &gt", ""),
-                                "<[^>]+>", string.Empty)
-                            .Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries)
-                            .Select(ta => ta.Trim())
-                            .Where(tb => tb.Length > 1)
-                            .ToList();
+                                .Replace("\n", "|")
+                                .Replace("<br />", "|")
+                                .Replace("<br>", "|")
+                                .Replace("</p>", "|")
+                                .Replace("&nbsp;", " ")
+                                .Replace("&quot;", "")
+                                .Replace("&gt;", "")
+                                .Replace(" &gt", ""),
+                            "<[^>]+>", string.Empty)
+                    .Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(ta => ta.Trim())
+                    .Where(tb => tb.Length > 1)
+                    .ToList();
             if (IsGroupSolidParts() && dop != null) {
                 s.AddRange(dop);
             }
@@ -898,18 +921,20 @@ namespace Selen {
         }
         //массив размеров сторон (длина, ширина, высота), см
         public float[] GetDimentions() {
-            float[] arr = new float[3];
+            float[] dim = new float[3];
             //сперва проверяю поля карточки
             if (!string.IsNullOrWhiteSpace(this.width) &&
                 !string.IsNullOrWhiteSpace(this.height) &&
                 !string.IsNullOrWhiteSpace(this.length)) {
                 try {
-                    arr[0] = float.Parse(this.length.Replace(".", ","));
-                    arr[1] = float.Parse(this.width.Replace(".", ","));
-                    arr[2] = float.Parse(this.height.Replace(".", ","));
-                    Array.Sort(arr);
-                    Array.Reverse(arr);
-                    return arr;
+                    dim[0] = float.Parse(this.length.Replace(".", ","));
+                    dim[1] = float.Parse(this.width.Replace(".", ","));
+                    dim[2] = float.Parse(this.height.Replace(".", ","));
+                    for(int i = 0; i < 3; i++) 
+                        if (dim[i] < 5) dim[i] = 5;
+                    Array.Sort(dim);
+                    Array.Reverse(dim);
+                    return dim;
                 } catch (Exception x) {
                     Log.Add("GetDimentions: " + name + " - ошибка! неверно заполнен размер в полях: \nдлина " +
                         this.length + " \nширина " + this.width + " \nвысота " + this.height + "\n" + x.Message);
@@ -922,13 +947,13 @@ namespace Selen {
             //средняя длина стороны = кубический корень из объема
             var dimention = Math.Pow((double) volume, 1.0 / 3.0);
             //первую округляю в большую сторону
-            arr[0] = (float) Math.Ceiling(dimention * 20) * 5;
+            dim[0] = (float) Math.Ceiling(dimention * 20) * 5;
             //вторую - в меньшую
-            arr[1] = (float) Math.Floor(dimention * 20) * 5;
+            dim[1] = (float) Math.Floor(dimention * 20) * 5;
             //третью вычисляю от первых двух и округляю до целых
-            arr[2] = (float) Math.Round((double) (100 * volume / (arr[0] * 0.01 * arr[1] * 0.01)));
+            dim[2] = (float) Math.Round((double) (100 * volume / (dim[0] * 0.01 * dim[1] * 0.01)));
             //строка с размерами
-            return arr;
+            return dim;
         }
         //суммарная длина сторон
         public float GetLength() {

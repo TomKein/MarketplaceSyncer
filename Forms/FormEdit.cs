@@ -44,19 +44,20 @@ namespace Selen {
                 Log.Add("FormEdit: ошибка сохранения изменений - " + x.Message);
             }
         }
-        private void button_Cancel_Click(object sender, EventArgs e) {
-            _wc.Dispose();
-            Close();
+        private async void button_Cancel_Click(object sender, EventArgs e) {
+            await UpdateFields();
         }
         async Task UpdateFields() {
             //пробегаемся по индексам
             while (++_index < Class365API._bus.Count) {
                 //проверяем карточку
-                try {                    
-                    if (Class365API.Status == SyncStatus.NeedUpdate || 
-                        Class365API.Status == SyncStatus.ActiveFull || 
-                        Class365API.IsTimeOver)
-                        return;
+                try {
+                    if (Class365API.Status == SyncStatus.NeedUpdate ||
+                        Class365API.Status == SyncStatus.ActiveFull ||
+                        Class365API.IsTimeOver) {
+                        _wc.Dispose();
+                        Close();
+                    }
                     //пропускаем карточки без фото
                     if (Class365API._bus[_index].images.Count == 0)
                         continue;

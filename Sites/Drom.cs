@@ -450,16 +450,19 @@ namespace Selen.Sites {
         void SetImages(GoodObject b) {
             WebClient cl = new WebClient();
             cl.Encoding = Encoding.UTF8;
+            var path = new DirectoryInfo(Application.StartupPath).Parent.FullName;
             var num = b.images.Count > 20 ? 20 : b.images.Count;
             for (int u = 0; u < num; u++) {
                 for (int i = 0; i < 5; i++) {
                     try {
                         byte[] bts = cl.DownloadData(b.images[u].url);
-                        File.WriteAllBytes("drom_" + u + ".jpg", bts);
-                        Thread.Sleep(1000);
-                        _dr.SendKeysToSelector("//input[@type='file']", Application.StartupPath + "\\" + "drom_" + u + ".jpg");
+                        File.WriteAllBytes($"{path}\\data\\drom\\drom_{u}.jpg", bts);
+                        Thread.Sleep(500);
+                        _dr.SendKeysToSelector("//input[@type='file']", $"{path}\\data\\drom\\drom_{u}.jpg");
                         break;
-                    } catch { }
+                    } catch (Exception x) {
+                        Log.Add($"{_l}SetImages: ошибка загрузки фото {b.name} - {x.Message}");
+                    }
                 }
             }
             cl.Dispose();
@@ -470,7 +473,7 @@ namespace Selen.Sites {
             if (_dr.GetElementCSSValue("//label[contains(text(),'Применить из профиля')]", "background")
                 .Contains("rgb(255, 255, 255)")) {
                 _dr.ButtonClick("//label[contains(text(),'Применить из профиля')]");
-                Log.Add(_l + b.name + " - установлен адрес самовывоза");
+                //Log.Add($"{_l}SetAddress: установлен адрес самовывоза для {b.name}");
             }
         }
         void SetPart(GoodObject b, bool clear = false) {

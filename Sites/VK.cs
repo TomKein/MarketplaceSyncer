@@ -236,7 +236,7 @@ namespace Selen.Sites {
                 !b.name.StartsWith("Четверть")
                 )
                 list.AddRange(_dopDesc2);
-            var d = b.DescriptionList(2990, list);
+            var d = b.DescriptionList(2990, list, removePhone:false);
             if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             return d.Aggregate((a1, a2) => a1 + "\n" + a2);

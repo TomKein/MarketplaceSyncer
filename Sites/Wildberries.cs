@@ -48,7 +48,6 @@ namespace Selen.Sites {
 
         const string RESERVE_LIST_FILE = @"..\data\wildberries\wb_reserveList.json";
         const string STICKER_LIST_FILE = @"..\data\wildberries\wb_stickerList.json";
-
         const string WARE_HOUSE_LIST_FILE = @"..\data\wildberries\wb_warehouseList.json";  //склады
 
         List<GoodObject> _busToUpdate;        //список товаров для обновления
@@ -62,27 +61,12 @@ namespace Selen.Sites {
         IEnumerable<XElement> _rules;
 
         //списки исключений
-        List<string> _exceptionGoods = new List<string> {
-                    "фиксаторы грм",
-                    "фиксаторы распредвалов",
-                    "набор фиксаторов",
-                    "бампер ",
-                    "капот ",
-                    "телевизор ",
-                    "(копия)"
-                };
-        List<string> _exceptionBrands = new List<string> {
-                    "H&Q",
-                    "AUTOMEGA",
-                    "CGA",
-                    "HCCARGO",
-                    "MALO",
-                    "Tech-as"
-                };
-        List<string> _exceptionGroups = new List<string> {
-                    "черновик"
-                };
-
+        const string EXCEPTION_GOODS_FILE = @"..\data\wildberries\exceptionGoodsList.json";
+        const string EXCEPTION_GROUPS_FILE = @"..\data\wildberries\exceptionGroupsList.json";
+        const string EXCEPTION_BRANDS_FILE = @"..\data\wildberries\exceptionBrandsList.json";
+        List<string> _exceptionGoods;
+        Dictionary<string,string> _exceptionBrands;
+        List<string> _exceptionGroups;
 
         public Wildberries() {
             var apiKey = DB.GetParamStr("wb.apiKey");
@@ -96,6 +80,12 @@ namespace Selen.Sites {
                 _bus = Class365API._bus;
                 _catsXml = XDocument.Load(RULES_FILE);
                 _rules = _catsXml.Descendants("Rule");
+                _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GROUPS_FILE));
+                _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GOODS_FILE));
+                _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string,string>>(
+                    File.ReadAllText(EXCEPTION_BRANDS_FILE));
                 if (_categories == null)
                     await GetCategoriesAsync();
                 if (_objects == null)
@@ -428,7 +418,7 @@ namespace Selen.Sites {
                                     title = good.NameLimit(_nameLimit),
                                     description = GetDescription(good),
                                     vendorCode = good.id,
-                                    brand = GetBrand(good),
+                                    brand = GetBrand(good, attributes),
                                     dimensions = new {
                                           length = good.SizeSM("length",5),
                                           width = good.SizeSM("width",5),
@@ -528,6 +518,8 @@ namespace Selen.Sites {
                     value = "Тайвань";
                 else if (value.Contains("Китай (Гонконг)"))
                     value = "Гонконг";
+                else if (value.Contains("ОАЭ"))
+                    value = "Объединенные Арабские Эмираты";
                 a.Add(new WbCharc {
                     charcID = 14177451,
                     value = value,
@@ -1058,7 +1050,7 @@ namespace Selen.Sites {
                     new {
                         nmID = card.nmID,
                         vendorCode = good.id,
-                        brand = GetBrand(good),
+                        brand = GetBrand(good,attributes),
                         title = good.NameLimit(_nameLimit),
                         description = GetDescription(good),
                         dimensions = new {
@@ -1106,7 +1098,7 @@ namespace Selen.Sites {
             }
         }
         string GetDescription(GoodObject good) {
-            return good.DescriptionList(5000).Aggregate((a, b) => a + "\n" + b)
+            return good.DescriptionList(2000).Aggregate((a, b) => a + "\n" + b)
                        .Replace("цена за штуку", "$$$")
                        .Replace("ЦЕНА ЗА ШТУКУ", "$$$")
                        .Replace("Цена за штуку", "$$$")
@@ -1232,10 +1224,20 @@ namespace Selen.Sites {
             Log.Add($"CheckSize: проверка завершена.");
         }
         //проиизводитель
-        string GetBrand(GoodObject b) {
+        string GetBrand(GoodObject b, List<WbCharc> attributes) {
             var brand = b.GetManufacture();
-            if (_exceptionBrands.Contains(brand)) 
+            //если список иключений содержит название бренда, проверяем название категории
+            if (_exceptionBrands.Keys.Contains(brand)) {
+                var name = _catsXml.Descendants("Type")
+                                   .First(f => f.Attribute("subjectID")
+                                                .Value == attributes.First()
+                                                                    .subjectID
+                                                                    .ToString())
+                                   .Attribute("name").Value;
+                //если исключение для бренда содержит название категории - не заполняем
+                if (_exceptionBrands[brand].Contains(name))
                     return "";
+            }
             return brand;
         }
 
