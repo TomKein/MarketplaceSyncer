@@ -18,7 +18,7 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     public class VK {
-        string _l = "vk.com: ";
+        static string L = "vk.com: ";
         public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
         public List<Market> vkMark = new List<Market>();
         VkApi _vk = new VkApi();
@@ -39,7 +39,11 @@ namespace Selen.Sites {
         List<GoodObject> _busToUpdate;        //список товаров для обновления
         readonly string _busToUpdateFile = @"..\data\vk\toupdate.json";
         //главный метод синхронизации вк
-        public async Task VkSyncAsync() {
+        public async Task SyncAsync() {
+            if (await DB.GetParamBoolAsync("vk.syncEnable")) {
+                Log.Add($"{L} StartAsync: синхронизация отключена!");
+                return;
+            }
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(20000);
             _bus = Class365API._bus;
@@ -72,7 +76,7 @@ namespace Selen.Sites {
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
                 File.WriteAllText(_busToUpdateFile, bu);
-                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                Log.Add($"{L} в списке карточек для обновления {_busToUpdate.Count}");
             }
             for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                 if (Class365API.IsTimeOver)
@@ -94,12 +98,12 @@ namespace Selen.Sites {
                                                     {"id", good.id},
                                                     {"name", good.name},
                                                     {_url, good.vk} });
-                    Log.Add($"{_l} UpdateOffer: {good.name} - удалено!");
+                    Log.Add($"{L} UpdateOffer: {good.name} - удалено!");
                 } else
                     Edit(good);
                 return true;
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateOffer: ошибка! - {x.Message}");
+                Log.Add($"{L} UpdateOffer: ошибка! - {x.Message}");
                 return false;
             }
         });

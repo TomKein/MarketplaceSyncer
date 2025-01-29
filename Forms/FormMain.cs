@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 216;
+        int _version = 218;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -79,7 +79,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("вк начало выгрузки");
-                await _vk.VkSyncAsync();
+                await _vk.SyncAsync();
                 label_Vk.Text = _vk.MarketCount + "/" + _vk.UrlsCount;
                 Log.Add("вк выгрузка завершена");
                 ChangeStatus(sender, ButtonStates.Active);
@@ -111,10 +111,8 @@ namespace Selen {
         //IZAP24.RU
         async void ButtonIzap24_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            if (await _izap24.SyncAsync())
-                ChangeStatus(sender, ButtonStates.Active);
-            else
-                ChangeStatus(sender, ButtonStates.ActiveWithProblem);
+            await _izap24.SyncAsync();
+            ChangeStatus(sender, ButtonStates.Active);
         }
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
@@ -180,6 +178,8 @@ namespace Selen {
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
             //меняю заголовок окна
+            var user = await DB.GetParamStrAsync("userName");
+            _headerText = "[" + user + "] " + _headerText;
             Text = $"{_headerText} 1.{_version} - загрузка...";
             var actualVersion = DB.GetParamInt("version");
             if (_version < actualVersion) {

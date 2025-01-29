@@ -77,7 +77,7 @@ namespace Selen {
                             var ms = new MemoryStream(byteArray);
                             pictureBox1.Image = Bitmap.FromStream(ms);
                         });
-                    return;
+                        return;
                     }
                 } catch (Exception x) {
                     Log.Add($"{L}ошибка - " + x.Message);

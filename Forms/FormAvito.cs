@@ -280,8 +280,9 @@ namespace Selen.Forms {
         }
 
         private void listBoxExceptions_Click(object sender, EventArgs e) {
-            var txt = listBoxExceptions.SelectedItem.ToString();
-            Clipboard.SetText(txt); 
+            var txt = listBoxExceptions.SelectedItem?.ToString();
+            if (!string.IsNullOrEmpty(txt))
+                Clipboard.SetText(txt); 
         }
     }
 }

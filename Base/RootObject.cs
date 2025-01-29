@@ -165,7 +165,18 @@ namespace Selen {
         public string drom { get; set; }
         public string vk { get; set; }
         public string ozon { get; set; }
-        public string wb { get; set; }
+        public string wb;
+        [JsonIgnore]
+        public string WB { 
+            get {
+                if (wb == null)
+                    return GetWB();
+                return wb;
+            } 
+            set { 
+                if (wb != null) wb = value;
+                else SetWB(value);
+            } }
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }
@@ -321,6 +332,45 @@ namespace Selen {
             } else
                 defaultValidity = "P" + validity + "Y";
         }
+        //Атрибут WB
+        public string GetWB() {
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
+            if (atrId != null) {
+                var atribute = attributes?.Find(f => f.Attribute.id == atrId);
+                if (atribute != null && atribute.Value.value != "")
+                    return atribute.Value.value;
+            }
+            return null;
+        }
+        public async Task<bool> SetWB(string value) {
+            //id атрибута
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
+            //если атрибут существует
+            if (atrId != null) {
+                //проверим, заполнен ли уже в карточе такой атрибут
+                var goodAttr = attributes?.Find(f => f.Attribute.id == atrId);
+                //если атрибута нет - создаем привязку
+
+                //добавляю атрибут в карточку
+                var s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
+                    {"good_id", id},
+                    {"attribute_id", atrId},
+                    {"value", value}
+                });
+                if (s != null && s.Contains("updated")) {
+                    attributes.Add(
+                    new Attributes() {
+                        Attribute = new Attribute() { id = atrId },
+                        Value = new Value() { value = value }
+                    });
+                    Log.Add($"SetWB: {name} - добавлена характеристика WB.RU: {value}");
+                    return true;
+                }
+            }
+            //если нет такого атрибута, то ничего не делаем
+            return false;
+        }
+
         //Атрибут Срок годности, лет
         public string GetValidity() {
             var validity = attributes?.Find(f => f.Attribute.id == "2283760");
@@ -963,7 +1013,8 @@ namespace Selen {
         //квант продажи
         public int GetQuantOfSell() {
             int p;
-            if (int.TryParse((attributes?.Find(f => f.Attribute.id == "2299154")?.Value.value.ToString()) ?? "1", out p))
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Квант продажи")).id;
+            if (int.TryParse((attributes?.Find(f => f.Attribute.id == atrId)?.Value.value.ToString()) ?? "1", out p))
                 return p;
             return 1;
         }
@@ -1347,6 +1398,20 @@ namespace Selen {
             }
         }
     }
+
+    public class AttributesForGoods { 
+        public string id { get; set; }
+        public string name { get; set; }
+        public string updated { get; set; }
+        public bool selectable { get; set; }
+        public bool archive { get; set; }
+        public bool deleted { get; set; }
+    
+    //  'description' => NULL,
+    //  'sort' => 77145,
+    }
+
+
     //public class SupplyGoods { 
     //    public string id { get; set; }
     //    public string good_id { get; set; }

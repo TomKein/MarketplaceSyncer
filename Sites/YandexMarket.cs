@@ -14,7 +14,7 @@ using System.Net.Http;
 namespace Selen.Sites {
     public class YandexMarket {
 
-        readonly string LP = "yandex: ";
+        readonly string L = "yandex: ";
         readonly string FILE_PRIMARY_XML = @"..\data\yandex\yandex.xml";            //выгрузка основной магазин
         readonly string FILE_EXPRESS_XML = @"..\data\yandex\yandex_express.xml";    //выгрузка на экспресс
         readonly string FILE_COMPAIGNS = @"..\data\yandex\compaigns.json";          //список магазинов
@@ -44,6 +44,10 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML() {
+            if (await DB.GetParamBoolAsync("yandex.syncEnable")) {
+                Log.Add($"{L}GenerateXML: синхронизация отключена!");
+                return;
+            }
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
@@ -81,7 +85,7 @@ namespace Selen.Sites {
                                                  DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime ||
                                                  DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price);
-                Log.Add(LP + "найдено " + bus.Count() + " потенциальных объявлений");
+                Log.Add(L + "найдено " + bus.Count() + " потенциальных объявлений");
                 var offers = new XElement("offers");
                 var offersExpress = new XElement("offers");
                 //для каждой карточки
@@ -148,10 +152,10 @@ namespace Selen.Sites {
                         offers.Add(offer);
                         offersExpress.Add(offerExpress);
                     } catch (Exception x) {
-                        Log.Add(LP + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
+                        Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
                     }
                 }
-                Log.Add(LP + "выгружено " + offers.Descendants("offer").Count());
+                Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
                 //создаю необходимый элемент <shop>
                 var shop = new XElement("shop");
                 shop.Add(new XElement("name", "АвтоТехноШик"));
@@ -198,7 +202,7 @@ namespace Selen.Sites {
                 await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
                 await SftpClient.FtpUploadAsync(FILE_EXPRESS_XML);
             } else
-                Log.Add(LP + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
         string GetDescription(GoodObject b, int lenght = 5500) {
             List<string> list = new List<string>();
@@ -392,7 +396,7 @@ namespace Selen.Sites {
                         { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
                     });
                     var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
-                    Log.Add(LP + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);
+                    Log.Add(L + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);
                     //загружаем список заказов, для которых уже делали резервирование
                     var reserveList = new List<string>();
                     if (File.Exists(FILE_RESERVES)) {
@@ -420,7 +424,7 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
-                Log.Add(LP + "MakeReserve - " + x.Message);
+                Log.Add(L + "MakeReserve - " + x.Message);
             }
         }
     }

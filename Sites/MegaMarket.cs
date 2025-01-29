@@ -10,7 +10,7 @@ using Selen.Tools;
 namespace Selen.Sites {
     public class MegaMarket {
 
-        readonly string _l = "megamarket: ";
+        readonly string L = "megamarket: ";
         readonly string FILE_PRIMARY_XML = @"..\data\megamarket\megamarket.xml";
         //readonly string FILE_COMPAIGNS = @"..\data\megamarket\compaigns.json";          //список магазинов
         readonly string FILE_RESERVES = @"..\data\megamarket\reserves.json";       //список сделанных резервов
@@ -23,6 +23,10 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML() {
+            if (await DB.GetParamBoolAsync("megamarket.syncEnable")) {
+                Log.Add($"{L} StartAsync: синхронизация отключена!");
+                return;
+            }
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             var gen = Task.Factory.StartNew(() => {
@@ -49,7 +53,7 @@ namespace Selen.Sites {
                                                  DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price)
                               .Take(DB.GetParamInt("megamarket.uploadLimit")).ToList();
-                Log.Add($"{_l} найдено {bus.Count} потенциальных объявлений");
+                Log.Add($"{L} найдено {bus.Count} потенциальных объявлений");
                 var offers = new XElement("offers");
                 //для каждой карточки
                 foreach (var b in bus) {
@@ -108,10 +112,10 @@ namespace Selen.Sites {
                         //добавляю оффер к офферам
                         offers.Add(offer);
                     } catch (Exception x) {
-                        Log.Add(_l + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
+                        Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
                     }
                 }
-                Log.Add(_l + "выгружено " + offers.Descendants("offer").Count());
+                Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
                 //создаю необходимый элемент <shop>
                 var shop = new XElement("shop");
                 shop.Add(new XElement("name", "АвтоТехноШик"));
@@ -148,7 +152,7 @@ namespace Selen.Sites {
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
             } else
-                Log.Add(_l + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
         }
         //цена продажи
         int GetPrice(GoodObject b) { 

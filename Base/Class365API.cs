@@ -45,10 +45,10 @@ namespace Selen {
         NeedUpdate
     }
     public class Class365API {
-        static readonly string SECRET = @"A9PiFXQcbabLyOolTRRmf4RR8zxWLlVb";
-        static readonly string APP_ID = "768289";
+        static readonly string SECRET;
+        static readonly string APP_ID;
         static readonly string _l = "class365: ";
-        static readonly Uri _baseAdr = new Uri("https://action_37041.business.ru/api/rest/");
+        static readonly Uri BASE_URL;
         static RootResponse _rr = new RootResponse();
         static Dictionary<string, string> _data = new Dictionary<string, string>();
         static HttpClient _hc = new HttpClient();
@@ -63,6 +63,7 @@ namespace Selen {
         static readonly string AUTHOR_EMPLOYEE_ID = "76221";        //рогачев  76197-радченко
         static readonly string PARTNER_ID = "1511892";              //клиент с маркетплейса
         public static int _checkIntervalMinutes;
+        public static List<AttributesForGoods> _attributesForGoods;
 
         //статус синхронизации
         static SyncStatus status;
@@ -138,6 +139,39 @@ namespace Selen {
             _lastLiteScanTime = lastScanTime;
             lastErrorShowTime = DB.GetParamDateTime("lastErrorShowTime");
             lastWarningShowTime = DB.GetParamDateTime("lastWarningShowTime");
+            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                File.ReadAllText(@"..\data\authorization.json"));
+            SECRET = dict["SECRET"];
+            APP_ID = dict["APP_ID"];
+            BASE_URL = new Uri(dict["BASE_URL"]);
+        }
+        public static async Task StartSync() {
+            try {
+                //загружаю атрибуты
+                var sa = await RequestAsync("get", "attributesforgoods", new Dictionary<string, string>());
+                if (sa.Length>4)
+                    _attributesForGoods = JsonConvert.DeserializeObject<List<AttributesForGoods>>(sa);
+
+                if (File.Exists(BUS_FILE_NAME)) {
+                    await GetBusGroupsAsync();
+                    Log.Add("business.ru: загружаю список товаров...");
+                    await Task.Factory.StartNew(() => {
+                        var sb = File.ReadAllText(BUS_FILE_NAME);
+                        _bus = JsonConvert.DeserializeObject<List<GoodObject>>(sb);
+                    });
+                    Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
+                    LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
+                    Status = SyncStatus.Waiting;
+                } else {
+                    Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
+                    Status = SyncStatus.NeedUpdate;
+                }
+                _timer.Start();
+            } catch (Exception x) {
+                Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
+                _timer.Start();
+                Status = SyncStatus.NeedUpdate;
+            }
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
             if (DateTime.Now.Hour < DB.GetParamInt("syncStartHour") ||
@@ -172,7 +206,7 @@ namespace Selen {
             //5
             ps += "&app_psw=" + GetMd5(hashenc);
             //6
-            Uri url = new Uri(_baseAdr, "repair.json?" + ps);
+            Uri url = new Uri(BASE_URL, "repair.json?" + ps);
             HttpResponseMessage res = await _hc.GetAsync(url);
             var js = await res.Content.ReadAsStringAsync();
 
@@ -219,7 +253,7 @@ namespace Selen {
                         qstr += "&app_psw=" + GetMd5(hashenc);
 
                         //5.готовим ссылку
-                        string url = _baseAdr + model + ".json";
+                        string url = BASE_URL + model + ".json";
 
                         //6.выполняем соответствующий запрос
                         if (action.ToUpper() == "GET") {
@@ -570,7 +604,7 @@ namespace Selen {
                     _bus[b].drom = "";
                     _bus[b].vk = "";
                     _bus[b].ozon = "";
-                    _bus[b].wb = "";
+                    _bus[b].WB = "";
                     await RequestAsync("put", "goods", new Dictionary<string, string>{
                         {"id", _bus[b].id},
                         {"name", _bus[b].name},
@@ -685,16 +719,17 @@ namespace Selen {
                         //проверим на нулевое значение
                         _bus[b].part = _bus[b].part ?? "";
                         _bus[b].store_code = _bus[b].store_code ?? "";
-                        if (_bus[b].part.Contains(" ")
-                            || _bus[b].part.Contains(".")
+                        if (//_bus[b].part.Contains(" ")
+                            //|| _bus[b].part.Contains(".")
                             //|| _bus[b].part.Contains("/") && _bus[b].images.Count > 0
                             //|| _bus[b].part.Contains(",") && _bus[b].images.Count > 0
-                            || _bus[b].part.Contains("_")
-                            || _bus[b].store_code.Contains(" ")
-                            || _bus[b].store_code.Contains(".")
-                            || _bus[b].store_code.Contains("_")
-                            || _bus[b].store_code.Contains("(")
-                            || _bus[b].name.StartsWith(" ")
+                            //|| _bus[b].part.Contains("_")
+                            //|| _bus[b].store_code.Contains(" ")
+                            //|| _bus[b].store_code.Contains(".")
+                            //|| _bus[b].store_code.Contains("_")
+                            //|| _bus[b].store_code.Contains("(")
+                            //||
+                            _bus[b].name.StartsWith(" ")
                             || _bus[b].name.EndsWith(" ")
                             || _bus[b].name.Contains("  ")
                             || _bus[b].name.Contains(";")
@@ -1033,29 +1068,6 @@ namespace Selen {
                 }
             }
             Log.Add("CheckRealisationsAsync: метод завершен");
-        }
-        public static async Task StartSync() {
-            try {
-                if (File.Exists(BUS_FILE_NAME)) {
-                    await GetBusGroupsAsync();
-                    Log.Add("business.ru: загружаю список товаров...");
-                    await Task.Factory.StartNew(() => {
-                        var s = File.ReadAllText(BUS_FILE_NAME);
-                        _bus = JsonConvert.DeserializeObject<List<GoodObject>>(s);
-                    });
-                    Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
-                    LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
-                    Status = SyncStatus.Waiting;
-                } else {
-                    Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
-                    Status = SyncStatus.NeedUpdate;
-                }
-                _timer.Start();
-            } catch (Exception x) {
-                Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
-                _timer.Start();
-                Status = SyncStatus.NeedUpdate;
-            }
         }
         //вызов формы обновления описаний
         public static async Task DescriptionsEdit() {

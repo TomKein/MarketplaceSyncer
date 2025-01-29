@@ -67,6 +67,10 @@ namespace Selen.Sites {
         //главный метод
         public async Task SyncAsync() {
             try {
+                if (await DB.GetParamBoolAsync("ozon.syncEnable")) {
+                    Log.Add($"{_l} StartAsync: синхронизация отключена!");
+                    return;
+                }
                 while (Class365API.Status == SyncStatus.NeedUpdate)
                     await Task.Delay(30000);
                 _bus = Class365API._bus;

@@ -62,6 +62,10 @@ namespace Selen.Sites {
             _dr = null;
         }
         public async Task DromStartAsync() {
+            if (await DB.GetParamBoolAsync("drom.syncEnable")) {
+                Log.Add($"{_l} DromStartAsync: синхронизация отключена!");
+                return;
+            }
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
@@ -747,12 +751,11 @@ namespace Selen.Sites {
                             if (b >= _bus.Count)
                                 b = 0;
                             if (_bus[b].drom.Contains("000000000"))
-                                Log.Add($"{_l} CheckOffersAsync: ошибка! - ссылка на объявление неверная!! - id:{_bus[b].id}, {_bus[b].name}");
+                                Log.Add($"{_l}CheckOffersAsync: предупреждение - ссылка на объявление неверная!! - id:{_bus[b].id}, {_bus[b].name}");
                             else if (
                                 (_bus[b].Amount > 0 || checkOtOfStock) &&
                                 _bus[b].drom.Contains("http")) {
-                                i++;
-                                Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i} ({b}/{_bus.Count})");
+                                Log.Add($"{_l} {_bus[b].name} - проверяю объявление {i++} ({b}/{_bus.Count})");
                                 _dr.Navigate(_bus[b].drom, "//span[@data-name='city']");
                                 Thread.Sleep(1000);
                                 SetAddress(_bus[b]);
@@ -773,7 +776,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine(_l + "ошибка! - " + x.Message + " - " + x.InnerException?.Message);
+                Debug.WriteLine($"{_l}CheckOffersAsync: ошибка! - {x.Message} {x.InnerException?.Message}");
             }
         }
 

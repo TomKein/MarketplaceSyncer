@@ -77,6 +77,10 @@ namespace Selen.Sites {
         //главный метод синхронизации
         public async Task SyncAsync() {
             try {
+                if (await DB.GetParamBoolAsync("wb.syncEnable")) {
+                    Log.Add($"{L} StartAsync: синхронизация отключена!");
+                    return;
+                }
                 _bus = Class365API._bus;
                 _catsXml = XDocument.Load(RULES_FILE);
                 _rules = _catsXml.Descendants("Rule");
@@ -397,7 +401,7 @@ namespace Selen.Sites {
                                      && w.MaxDimention <= 120
                                      && w.Weight <= 25
                                      && w.New
-                                     && w.wb.Length == 0
+                                     && w.WB.Length == 0
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
                                      && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
@@ -574,12 +578,12 @@ namespace Selen.Sites {
                     newUrl = BASE_BUS_URL.Replace("/00000/", "/" + nmID + "/");
                 if (nmID == -1)
                     newUrl = "";
-                if (bus.wb != newUrl) {
-                    bus.wb = newUrl;
+                if (bus.WB != newUrl) {
+                    bus.WB = newUrl;
                     await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", bus.id},
                                 {"name", bus.name},
-                                {_url, bus.wb}
+                                {_url, bus.WB}
                             });
                     Log.Add(L + bus.name + " ссылка на товар обновлена!");
                 } else
@@ -773,8 +777,8 @@ namespace Selen.Sites {
                     var b = _bus.FindIndex(_ => _.id == card.vendorCode);
                     if (b == -1)
                         throw new Exception($"карточка бизнес.ру с id = {card.vendorCode} не найдена!");
-                    if (!_bus[b].wb.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
-                        _bus[b].wb.Contains("/00000/") ||                     //либо ссылка есть, но неверный sku
+                    if (!_bus[b].WB.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+                        _bus[b].WB.Contains("/00000/") ||                     //либо ссылка есть, но неверный sku
                         checkAll) {                                           //либо передали флаг проверять всё
                         await SaveUrlAsync(_bus[b], card.nmID);
                         //await UpdateCardAsync(_bus[b], card);
@@ -867,9 +871,9 @@ namespace Selen.Sites {
                     busToUpdate = new List<GoodObject>();
                 //список обновленных карточек со ссылкой на объявления
                 _busToUpdate = Class365API._bus
-                                          .Where(_ => _.wb != null 
-                                                   && _.wb.Contains("http") 
-                                                   &&!_.wb.Contains("/00000/")
+                                          .Where(_ => _.WB != null 
+                                                   && _.WB.Contains("http") 
+                                                   &&!_.WB.Contains("/00000/")
                                                    && _.IsTimeUpDated() 
                                                    || busToUpdate.Any(b => b.id == _.id))
                                            .ToList();
@@ -897,9 +901,9 @@ namespace Selen.Sites {
                 var checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
                 if (checkProductIndex >= _cardsList.Count)
                     checkProductIndex = 0;
-                busToUpdate = Class365API._bus.Where(_ => _.wb != null &&
-                                                            _.wb.Contains("http") &&
-                                                           !_.wb.Contains("/00000/"))
+                busToUpdate = Class365API._bus.Where(_ => _.WB != null &&
+                                                            _.WB.Contains("http") &&
+                                                           !_.WB.Contains("/00000/"))
                                                 .Skip(checkProductIndex)
                                                 .Take(checkProductCount)
                                                 .ToList();
@@ -1098,7 +1102,7 @@ namespace Selen.Sites {
             }
         }
         string GetDescription(GoodObject good) {
-            return good.DescriptionList(2000).Aggregate((a, b) => a + "\n" + b)
+            return good.DescriptionList(2000, removePhone:true).Aggregate((a, b) => a + "\n" + b)
                        .Replace("цена за штуку", "$$$")
                        .Replace("ЦЕНА ЗА ШТУКУ", "$$$")
                        .Replace("Цена за штуку", "$$$")
@@ -1214,18 +1218,18 @@ namespace Selen.Sites {
         public void CheckSizes() {
             Log.Add($"CheckSize: проверяем габариты...");
 
-            foreach (var good in Class365API._bus.Where(g => g.wb != null &&
-                                                          g.wb.Contains("http") &&
+            foreach (var good in Class365API._bus.Where(g => g.WB != null &&
+                                                          g.WB.Contains("http") &&
                                                          (g.MaxDimention > 120 ||
                                                           g.SumDimentions > 200 ||
                                                           g.Weight > 25)))
-                Log.Add($"CheckSize: id:{good.id} name:{good.name} wb:{good.wb} - ошибка! габариты за пределами!!");
+                Log.Add($"CheckSize: id:{good.id} name:{good.name} wb:{good.WB} - ошибка! габариты за пределами!!");
 
             Log.Add($"CheckSize: проверка завершена.");
         }
         //проиизводитель
         string GetBrand(GoodObject b, List<WbCharc> attributes) {
-            var brand = b.GetManufacture();
+            var brand = b.GetManufacture()??"";
             //если список иключений содержит название бренда, проверяем название категории
             if (_exceptionBrands.Keys.Contains(brand)) {
                 var name = _catsXml.Descendants("Type")

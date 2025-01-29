@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 namespace Selen.Sites {
     public class Izap24 {
-        string _l = "izap24: ";
+        static string L = "izap24: ";
         //список товаров
         List<GoodObject> _bus;
         //файл выгрузки
@@ -51,7 +51,11 @@ namespace Selen.Sites {
         };
 
         //старт выгрузки
-        public async Task<bool> SyncAsync() {
+        public async Task SyncAsync() {
+            if (await DB.GetParamBoolAsync("izap24.syncEnable")) {
+                Log.Add($"{L} StartAsync: синхронизация отключена!");
+                return;
+            }
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(60000);
             _bus = Class365API._bus;
@@ -61,18 +65,18 @@ namespace Selen.Sites {
                 uploadInterval == 0 || 
                 DateTime.Now.Hour == 0 || 
                 DateTime.Now.Hour % uploadInterval != 0)
-                return true;
-            Log.Add(_l + "начало выгрузки...");
+                return;
+            Log.Add(L + "начало выгрузки...");
             try {
                 await CreateCsvAsync();
                 await SftpClient.FtpUploadAsync(_fexp);
                 await SftpClient.FtpUploadAsync(_ferr);
                 //SmtpMailClient.SendAsync(_fexp,"izap24-ilnur@mail.ru");
-                Log.Add(_l + "выгрузка успешно завершена");
-                return true;
+                Log.Add(L + "выгрузка успешно завершена");
+                return;
             } catch (Exception x) {
-                Log.Add(_l + "ошибка выгрузки! - " + x.Message);
-                return false;
+                Log.Add(L + "ошибка выгрузки! - " + x.Message);
+                return;
             }
         }
         //формирование файла выгрузки
@@ -121,11 +125,11 @@ namespace Selen.Sites {
                     s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos
                     n++;
                     if (n % 1000 == 0)
-                        Log.Add(_l + "выгружено товаров " + n);
+                        Log.Add(L + "выгружено товаров " + n);
                 }
-                Log.Add(_l + "всего успешно выгружено товаров" + n);
+                Log.Add(L + "всего успешно выгружено товаров" + n);
                 File.WriteAllText(_fexp, s.ToString(), Encoding.UTF8);
-                Log.Add(_l + "пропущено " + e + " товаров");
+                Log.Add(L + "пропущено " + e + " товаров");
                 File.WriteAllText(_ferr, err.ToString(), Encoding.UTF8);
             }));
         }
