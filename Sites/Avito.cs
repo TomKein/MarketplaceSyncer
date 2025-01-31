@@ -257,6 +257,14 @@ namespace Selen.Sites {
                         }
                         ad.Add(images);
 
+                        //доставка!!!
+                        var deliv = new XElement("Delivery");
+                        deliv.Add(new XElement("Option", "ПВЗ"));
+                        //deliv.Add(new XElement("Option", "Свой партнер СДЭК"));
+                        //deliv.Add(new XElement("Option", "Свой партнер Boxberry"));
+                        //deliv.Add(new XElement("Option", "Свой партнер Почта России"));
+                        ad.Add(deliv);
+
                         if (b.Amount <= 0) {
                             ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss") + "+03:00"));
                         }

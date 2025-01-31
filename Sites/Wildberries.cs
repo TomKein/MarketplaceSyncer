@@ -68,6 +68,14 @@ namespace Selen.Sites {
         Dictionary<string,string> _exceptionBrands;
         List<string> _exceptionGroups;
 
+        //наценки
+        int _addPriceLevel1;
+        int _addPriceLevel2;
+        int _addPriceLevel3;
+        int _basePriceProcent;
+        int _kgtPriceProcent;
+        int _minOverPrice;
+
         public Wildberries() {
             var apiKey = DB.GetParamStr("wb.apiKey");
             _hc.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
@@ -77,7 +85,7 @@ namespace Selen.Sites {
         //главный метод синхронизации
         public async Task SyncAsync() {
             try {
-                if (await DB.GetParamBoolAsync("wb.syncEnable")) {
+                if (!await DB.GetParamBoolAsync("wb.syncEnable")) {
                     Log.Add($"{L} StartAsync: синхронизация отключена!");
                     return;
                 }
@@ -104,6 +112,14 @@ namespace Selen.Sites {
                     await GetCountriesAsync();
 
                 await GetWarehouseList();
+
+                _addPriceLevel1 = await DB.GetParamIntAsync("wb.addPriceLevel1");
+                _addPriceLevel2 = await DB.GetParamIntAsync("wb.addPriceLevel2");
+                _addPriceLevel3 = await DB.GetParamIntAsync("wb.addPriceLevel3");
+                _basePriceProcent = await DB.GetParamIntAsync("wb.basePriceProcent");
+                _kgtPriceProcent = await DB.GetParamIntAsync("wb.kgtPriceProcent");
+                _minOverPrice = await DB.GetParamIntAsync("wb.minOverPrice");
+
 
                 //tests
                 //if (_tnvd == null)
@@ -748,19 +764,19 @@ namespace Selen.Sites {
             int overPrice;
             //вес от 50 кг или размер более 200 -- наценка 30% + 3500 р
             if (weight >= 50 || length >= 200)
-                overPrice = (int) (good.Price * 0.30) + 3500;
+                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel3;
             //вес от 30 кг или размер от 150 -- наценка 30% + 2000 р
             else if (weight >= 30 || length >= 150)
-                overPrice = (int) (good.Price * 0.30) + 2000;
+                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel2;
             //вес от 10 кг или размер от 100 -- наценка 1500 р
             else if (weight >= 10 || length >= 100)
-                overPrice = (int) (good.Price * 0.30) + 1500;
+                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel1;
             //для маленьких и легких наценка 40% на всё
             else
-                overPrice = (int) (good.Price * 0.40);
+                overPrice = (int) (good.Price * 0.01 * _basePriceProcent);
             //если наценка меньше 200 р - округляю
-            if (overPrice < 200)
-                overPrice = 200;
+            if (overPrice < _minOverPrice)
+                overPrice = _minOverPrice;
 
             return good.Price * good.GetQuantOfSell() + overPrice;
         }
