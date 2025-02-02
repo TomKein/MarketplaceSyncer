@@ -115,7 +115,8 @@ namespace Selen.Sites {
                 var s = await Class365API.RequestAsync("get", model, dictParams);
                 var priceList = JsonConvert.DeserializeObject<List<CurrentPrice>>(s);
                 if (priceList.Count > 0) {
-                    var priceListSorted = priceList.Where(w => w.price_type_id == null || w.price_type_id == Class365API.BuyPrice.id)//"75523")
+                    var priceListSorted = priceList.Where(w => w.price_type_id == null 
+                                             || w.price_type_id == Class365API.BuyPrice.id)
                                               .OrderByDescending(f => f.Updated).ToList();
                     return priceListSorted.First().price;
                 }
