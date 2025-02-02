@@ -67,7 +67,7 @@ namespace Selen.Sites {
         //главный метод
         public async Task SyncAsync() {
             try {
-                if (await DB.GetParamBoolAsync("ozon.syncEnable")) {
+                if (!await DB.GetParamBoolAsync("ozon.syncEnable")) {
                     Log.Add($"{_l} StartAsync: синхронизация отключена!");
                     return;
                 }
@@ -100,6 +100,10 @@ namespace Selen.Sites {
         }
         public async Task MakeReserve() {
             try {
+                if (!await DB.GetParamBoolAsync("ozon.syncEnable")) {
+                    Log.Add($"{_l}MakeReserve: синхронизация отключена!");
+                    return;
+                }
                 //запросить список заказов со следующими статусами
                 var statuses = new List<string> {
                     "awaiting_packaging",
@@ -144,8 +148,11 @@ namespace Selen.Sites {
                     //готовим список товаров (id, amount)
                     var goodsDict = new Dictionary<string, int>();
                     order.products.ForEach(s => goodsDict.Add(s.offer_id, s.quantity));
-                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Ozon, $"Ozon order {order.posting_number}",
-                                                                   goodsDict, order.in_process_at.AddHours(3).ToString());
+                    var isResMaked = await Class365API.MakeReserve(
+                        Class365API.Source("Ozon"),
+                        $"Ozon order {order.posting_number}",
+                        goodsDict, 
+                        order.in_process_at.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.posting_number);
                         if (reserveList.Count > 1000) {
@@ -599,7 +606,7 @@ namespace Selen.Sites {
                                      && w.ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e))).ToList();
+                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e))).ToList();
             SaveToFile(goods);
             var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -1132,15 +1139,15 @@ namespace Selen.Sites {
         }
         //Атрибут Квант продажи, шт (Кратность покупки)
         Attribute GetMultiplicityAttribute(GoodObject good) {
-            var value = good.GetMultiplicity();
-            if (value == null)
+            var value = good.GetQuantOfSell();
+            if (value == 1)
                 return null;
             return new Attribute {
                 complex_id = 0,
                 id = 21497,
                 values = new Value[] {
                     new Value{
-                        value = value
+                        value = value.ToString()
                     }
                 }
             };

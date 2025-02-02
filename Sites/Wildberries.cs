@@ -15,7 +15,6 @@ using OfficeOpenXml;
 
 namespace Selen.Sites {
     public class Wildberries {
-        //const string BASE_API_URL = "https://suppliers-api.wildberries.ru";
         const string L = "wb: ";
         readonly HttpClient _hc = new HttpClient();
         List<GoodObject> _bus;
@@ -49,6 +48,7 @@ namespace Selen.Sites {
         const string RESERVE_LIST_FILE = @"..\data\wildberries\wb_reserveList.json";
         const string STICKER_LIST_FILE = @"..\data\wildberries\wb_stickerList.json";
         const string WARE_HOUSE_LIST_FILE = @"..\data\wildberries\wb_warehouseList.json";  //склады
+        const string API_KEY_FILE = @"..\data\wildberries\api.key";  //ключ API
 
         List<GoodObject> _busToUpdate;        //список товаров для обновления
         const string BUS_TO_UPDATE_FILE = @"..\data\wildberries\toupdate.json";
@@ -77,7 +77,7 @@ namespace Selen.Sites {
         int _minOverPrice;
 
         public Wildberries() {
-            var apiKey = DB.GetParamStr("wb.apiKey");
+            var apiKey = File.ReadAllText(API_KEY_FILE);
             _hc.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
             _url = DB.GetParamStr("wb.url");
             _updateFreq = DB.GetParamInt("wb.updateFreq");
@@ -139,14 +139,18 @@ namespace Selen.Sites {
         }
         public async Task MakeReserve() {
             try {
+                if (!await DB.GetParamBoolAsync("wb.syncEnable")) {
+                    Log.Add($"{L}MakeReserve: синхронизация отключена!");
+                    return;
+                }
                 var data = new Dictionary<string, string>();
                 data["limit"] = "1000";
                 data["next"] = "0";
                 var unixTimeStamp = (int) DateTime.UtcNow.AddDays(-1).Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
                 data["dateFrom"] = unixTimeStamp.ToString();
-                var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
+                var res = await GetRequestAsync(data, "https://marketplace-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
-                Log.Add($"{L} получено {wb.orders.Count} заказов:"
+                Log.Add($"{L}MakeReserve: получено заказов: {wb.orders.Count}"
                     //+$"\n{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}"
                     );
 
@@ -172,10 +176,11 @@ namespace Selen.Sites {
                         var goodsDict = new Dictionary<string, int>();
                         var amount = Class365API._bus.Find(g => g.id == order.article).GetQuantOfSell();
                         goodsDict.Add(order.article, amount);
-                        if (await Class365API.MakeReserve(Selen.Source.Wildberries,
-                                                          $"WB order {order.id}",
-                                                          goodsDict,
-                                                          order.createdAt.ToString())) {
+                        if (await Class365API.MakeReserve(
+                            Class365API.Source("Wildberries"),
+                            $"WB order {order.id}",
+                            goodsDict,
+                            order.createdAt.ToString())) {
                             //если резерв создан - добавляем в список и сохраняем
                             reserveList.Add(order.id);
                             if (reserveList.Count > 1000) {
@@ -191,9 +196,10 @@ namespace Selen.Sites {
                         var sticker = await GetOrderSticker(order.id.ToString());
                         if (sticker == null)
                             continue;
-                        if (await Class365API.AddStickerCodeToReserve(Selen.Source.Wildberries,
-                                                             $"WB order {order.id}",
-                                                             $", code {sticker}")) {
+                        if (await Class365API.AddStickerCodeToReserve(
+                            Class365API.Source("Wildberries"),
+                            $"WB order {order.id}",
+                            $", code {sticker}")) {
                             //если стикер найден - добавляем в список и сохраняем
                             stickerList.Add(order.id);
                             if (stickerList.Count > 1000) {
@@ -205,12 +211,12 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
-                Log.Add(L + "MakeReserve - " + x.Message);
+                Log.Add($"{L}MakeReserve: ошибка - " + x.Message);
             }
         }
         //GET запросы к api wb
         public async Task<string> GetRequestAsync(Dictionary<string, string> request, string apiRelativeUrl) {
-            //try {
+            try {
             if (request != null) {
                 var qstr = QueryStringBuilder.BuildQueryString(request);
                 apiRelativeUrl += "?" + qstr;
@@ -218,7 +224,7 @@ namespace Selen.Sites {
             HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
             var response = await _hc.SendAsync(requestMessage);
             _jsonResponse = await response.Content.ReadAsStringAsync();
-            await Task.Delay(500);
+            await Task.Delay(1500);
             if (response.StatusCode == HttpStatusCode.OK) {
                 if (_jsonResponse.Contains("\"data\"")) {
                     var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
@@ -229,9 +235,10 @@ namespace Selen.Sites {
                 return _jsonResponse;
             } else
                 throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
-            //} catch (Exception x) {
-            //    Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
-            //}
+            } catch (Exception x) {
+                Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                throw x;
+            }
             //return null;
         }
         //POST запросы к api wb
@@ -245,7 +252,7 @@ namespace Selen.Sites {
                 requestMessage.Content = httpContent;
                 var response = await _hc.SendAsync(requestMessage);
                 _jsonResponse = await response.Content.ReadAsStringAsync();
-                await Task.Delay(500);
+                await Task.Delay(1500);
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NoContent) {
                     if (_jsonResponse.Contains("\"error\":true"))
                         return false;
@@ -263,7 +270,7 @@ namespace Selen.Sites {
             if (File.GetLastWriteTime(catsFile) < DateTime.Now.AddDays(-_updateFreq)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
-                var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/object/parent/all");
+                var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/object/parent/all");
                 _categories = JsonConvert.DeserializeObject<List<WbCategory>>(s);
                 File.WriteAllText(catsFile, s);
                 Log.Add($"{L} GetCategoriesAsync: получено категорий {_categories.Count}");
@@ -292,7 +299,7 @@ namespace Selen.Sites {
                         data["parentID"] = id;
                     for (int last = 0; ; last += limit) {
                         data["offset"] = last.ToString();
-                        var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/object/all");
+                        var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/object/all");
                         var resultList = JsonConvert.DeserializeObject<List<WbObject>>(s);
                         Log.Add($"{L} GetObjectsAsync: {name ?? id} - получено подкатегорий: {resultList.Count}");
                         _objects.AddRange(resultList);
@@ -323,7 +330,7 @@ namespace Selen.Sites {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
                 data["subjectId"] = subjectId;
-                var s = await GetRequestAsync(data, $"https://suppliers-api.wildberries.ru/content/v2/object/charcs/{subjectId}");
+                var s = await GetRequestAsync(data, $"https://content-api.wildberries.ru/content/v2/object/charcs/{subjectId}");
                 var resultList = JsonConvert.DeserializeObject<List<WbCharc>>(s);
                 listCharcs.AddRange(resultList);
                 File.WriteAllText(childWbCharcsFile, JsonConvert.SerializeObject(listCharcs));
@@ -344,7 +351,7 @@ namespace Selen.Sites {
             if (File.GetLastWriteTime(fileName) < DateTime.Now.AddDays(-_updateFreq)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
-                var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/colors");
+                var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/directory/colors");
                 _colors = JsonConvert.DeserializeObject<List<WbColor>>(s);
                 File.WriteAllText(fileName, s);
                 Log.Add($"{L} GetCategoriesAsync: получено цветов: {_colors.Count}");
@@ -363,7 +370,7 @@ namespace Selen.Sites {
             if (File.GetLastWriteTime(fileName) < DateTime.Now.AddDays(-_updateFreq)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
-                var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/countries");
+                var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/directory/countries");
                 _countries = JsonConvert.DeserializeObject<List<WbCountry>>(s);
                 File.WriteAllText(fileName, s);
                 Log.Add($"{L} GetCountriesAsync: получено стран: {_countries.Count}");
@@ -385,7 +392,7 @@ namespace Selen.Sites {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
                 data["subjectID"] = subjectID;
-                var s = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/directory/tnved");
+                var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/directory/tnved");
                 _tnvd = JsonConvert.DeserializeObject<List<WbTnvd>>(s);
                 File.WriteAllText(fileName, s);
                 Log.Add($"{L} GetTnvdAsync: {subjectID} - получено кодов ТНВЭД: {_tnvd.Count}");
@@ -420,7 +427,7 @@ namespace Selen.Sites {
                                      && w.WB.Length == 0
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !_exceptionGroups.Any(e => w.GroupName().ToLowerInvariant().Contains(e)))
+                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e)))
                             .OrderByDescending(o => o.Price).ToList();  //сначала подороже
             SaveToFile(goods);
             Log.Add($"{L} карточек для добавления: {goods.Count}");
@@ -458,8 +465,8 @@ namespace Selen.Sites {
                             data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
                                                                                                                        //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
                     }
-                    var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/upload");
-
+                    var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/upload");
+                    await Task.Delay(1000);
                     if (res) {
                         Log.Add(L + good.name + " - товар отправлен на wildberries!");
                         await SaveUrlAsync(good);
@@ -596,12 +603,6 @@ namespace Selen.Sites {
                     newUrl = "";
                 if (bus.WB != newUrl) {
                     bus.WB = newUrl;
-                    await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
-                                {"id", bus.id},
-                                {"name", bus.name},
-                                {_url, bus.WB}
-                            });
-                    Log.Add(L + bus.name + " ссылка на товар обновлена!");
                 } else
                     Log.Add(L + bus.name + " ссылка без изменений!");
             } catch (Exception x) {
@@ -636,7 +637,7 @@ namespace Selen.Sites {
                         }
                     };
                     do {
-                        var isSuc = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/get/cards/list");
+                        var isSuc = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/get/cards/list");
                         if (!isSuc)
                             throw new Exception("запрос товаров вернул ошибку!");
                         var productList = JsonConvert.DeserializeObject<WbProductList>(_jsonResponse);
@@ -837,7 +838,8 @@ namespace Selen.Sites {
                     nmId = card.nmID,
                     data = urls
                 };
-                var isSuc = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v3/media/save");
+                var isSuc = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v3/media/save");
+                await Task.Delay(1000);
                 if (!isSuc)
                     throw new Exception("запрос на обновление фото вернул ошибку!");
                 Log.Add($"{L} UpdateMediaAsync: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
@@ -855,7 +857,7 @@ namespace Selen.Sites {
             for (int u = 0; u < num; u++) {
                 try {
                     byte[] bts = cl.DownloadData(good.images[u].url);
-                    var fileName = $"wb_{u}";
+                    var fileName = $"wb_{Class365API.ORGANIZATION_ID}_{u}";
                     File.WriteAllBytes($@"..\data\wildberries\{fileName}.jpg", bts);
                     await Task.Delay(500);
                     System.Drawing.Image image = System.Drawing.Image.FromFile($@"..\data\wildberries\{fileName}.jpg");
@@ -998,7 +1000,7 @@ namespace Selen.Sites {
                         var data = new {
                             skus = skus
                         };
-                        var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}");
+                        var res = await PostRequestAsync(data, $"https://marketplace-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}");
                         if (!res)
                             throw new Exception("ошибка запроса остатков");
                         var list = JsonConvert.DeserializeObject<WbStocks>(_jsonResponse);
@@ -1039,7 +1041,7 @@ namespace Selen.Sites {
                             }
                         }
                 };
-                var res = await PostRequestAsync(data, $"https://suppliers-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
+                var res = await PostRequestAsync(data, $"https://marketplace-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
                 if (!res)
                     throw new Exception("ошибка запроса изменения цены");
                 Log.Add($"{L} UpdateStocks: {good.name} - остаток обновлен {wbStock} => {amount}");
@@ -1108,7 +1110,8 @@ namespace Selen.Sites {
                     return;
                 }
 
-                var res = await PostRequestAsync(data, "https://suppliers-api.wildberries.ru/content/v2/cards/update");
+                var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/update");
+                await Task.Delay(1000);
                 if (res)
                     Log.Add($"{L} UpdateCard: {good.name} - карточка обновлена!");
                 else
@@ -1198,7 +1201,7 @@ namespace Selen.Sites {
                     }
                 } else {
                     var data = new Dictionary<string, string>();
-                    var res = await GetRequestAsync(data, "https://suppliers-api.wildberries.ru/api/v3/warehouses");
+                    var res = await GetRequestAsync(data, "https://marketplace-api.wildberries.ru/api/v3/warehouses");
                     if (res != null) {
                         _wareHouses = JsonConvert.DeserializeObject<List<WbWareHouse>>(res);
                         File.WriteAllText(WARE_HOUSE_LIST_FILE, res);

@@ -23,7 +23,7 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML() {
-            if (await DB.GetParamBoolAsync("megamarket.syncEnable")) {
+            if (!await DB.GetParamBoolAsync("megamarket.syncEnable")) {
                 Log.Add($"{L} StartAsync: синхронизация отключена!");
                 return;
             }
@@ -131,7 +131,7 @@ namespace Selen.Sites {
                     //исключение
                     //if (groupId == "2281135")// Инструменты (аренда)
                       //  continue;
-                    categories.Add(new XElement("category", GoodObject.GroupName(groupId), new XAttribute("id", groupId)));
+                    categories.Add(new XElement("category", GoodObject.GetGroupName(groupId), new XAttribute("id", groupId)));
                 }
                 shop.Add(categories);
                 shop.Add(offers);

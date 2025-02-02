@@ -141,6 +141,10 @@ namespace Selen.Sites {
         //резервирование
         public async Task MakeReserve() {
             try {
+                if (!await DB.GetParamBoolAsync("avito.syncEnable")){
+                    Log.Add($"{_l}MakeReserve: синхронизация отключена!");
+                    return;
+                }
                 //получаю список заказов
                 var orders = await PostRequestAsync<AvitoOrders>("/order-management/1/orders");
                 Log.Add($"{_l} MakeReserve - получено  заказов: " + orders.orders.Count);
@@ -164,8 +168,11 @@ namespace Selen.Sites {
                     //готовим список товаров (id, amount)
                     var goodsDict = new Dictionary<string, int>();
                     order.items.ForEach(i => goodsDict.Add(i.id, i.count));
-                    var isResMaked = await Class365API.MakeReserve(Selen.Source.Avito, $"Avito order {order.marketplaceId}",
-                                                                   goodsDict, order.createdAt.AddHours(3).ToString());
+                    var isResMaked = await Class365API.MakeReserve(
+                        Class365API.Source("Avito"), 
+                        $"Avito order {order.marketplaceId}",
+                        goodsDict, 
+                        order.createdAt.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.marketplaceId);
                         if (reserveList.Count > 1000) {
@@ -226,7 +233,7 @@ namespace Selen.Sites {
                 var bus = _bus.Where(w => w.Price >= priceLevel 
                                        && w.images.Count > 0 
                                        && !_exceptionGoods.Any(a=>w.name.ToLower().StartsWith(a)) 
-                                       && !_exceptionGroups.Contains(w.GroupName())
+                                       && !_exceptionGroups.Contains(w.GroupName)
                                        && (w.Amount > 0 ||
                                             DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime ||
                                             DateTime.Parse(w.updated_remains_prices).AddHours(2).AddDays(days) > Class365API.LastScanTime
@@ -301,6 +308,7 @@ namespace Selen.Sites {
                                 }
                             }
                         }
+
                         root.Add(ad);
                         //считаем объявления с положительным остатком
                         if (b.Amount > 0)
@@ -325,14 +333,14 @@ namespace Selen.Sites {
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);
-            if (b.GroupName() != "АВТОХИМИЯ" &&
-                b.GroupName() != "МАСЛА" &&
-                b.GroupName() != "УСЛУГИ" &&
-                b.GroupName() != "Кузов (новое)" &&
-                b.GroupName() != "Аксессуары" &&
-                b.GroupName() != "Кузовные запчасти" &&
-                b.GroupName() != "Инструменты (новые)" &&
-                b.GroupName() != "Инструменты (аренда)" &&
+            if (b.GroupName != "АВТОХИМИЯ" &&
+                b.GroupName != "МАСЛА" &&
+                b.GroupName != "УСЛУГИ" &&
+                b.GroupName != "Кузов (новое)" &&
+                b.GroupName != "Аксессуары" &&
+                b.GroupName != "Кузовные запчасти" &&
+                b.GroupName != "Инструменты (новые)" &&
+                b.GroupName != "Инструменты (аренда)" &&
                 !b.name.StartsWith("Абсорбер") &&
                 !b.name.StartsWith("Балка") &&
                 !b.name.StartsWith("Дверь") &&

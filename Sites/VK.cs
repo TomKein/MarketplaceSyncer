@@ -40,7 +40,7 @@ namespace Selen.Sites {
         readonly string _busToUpdateFile = @"..\data\vk\toupdate.json";
         //главный метод синхронизации вк
         public async Task SyncAsync() {
-            if (await DB.GetParamBoolAsync("vk.syncEnable")) {
+            if (!await DB.GetParamBoolAsync("vk.syncEnable")) {
                 Log.Add($"{L} StartAsync: синхронизация отключена!");
                 return;
             }
@@ -154,7 +154,7 @@ namespace Selen.Sites {
                     return;
                 //если есть фотографии, цена, количество и нет привязки на вк
                 if (Class365API._bus[b].images.Count > 0
-                    && !Class365API._bus[b].GroupName().Contains("ЧЕРНОВИК")
+                    && !Class365API._bus[b].GroupName.Contains("ЧЕРНОВИК")
                     && Class365API._bus[b].Price > 0
                     && Class365API._bus[b].Amount > 0
                     && !Class365API._bus[b].vk.Contains("http")) {
@@ -201,14 +201,14 @@ namespace Selen.Sites {
         string GetDescription(GoodObject b) {
             List<string> list = new List<string>();
             list.AddRange(_dopDesc);
-            if (b.GroupName() != "АВТОХИМИЯ" &&
-                b.GroupName() != "МАСЛА" &&
-                b.GroupName() != "УСЛУГИ" &&
-                b.GroupName() != "Кузов (новое)" &&
-                b.GroupName() != "Аксессуары" &&
-                b.GroupName() != "Кузовные запчасти" &&
-                b.GroupName() != "Инструменты (новые)" &&
-                b.GroupName() != "Инструменты (аренда)" &&
+            if (b.GroupName != "АВТОХИМИЯ" &&
+                b.GroupName != "МАСЛА" &&
+                b.GroupName != "УСЛУГИ" &&
+                b.GroupName != "Кузов (новое)" &&
+                b.GroupName != "Аксессуары" &&
+                b.GroupName != "Кузовные запчасти" &&
+                b.GroupName != "Инструменты (новые)" &&
+                b.GroupName != "Инструменты (аренда)" &&
                 !b.name.StartsWith("Абсорбер") &&
                 !b.name.StartsWith("Балка") &&
                 !b.name.StartsWith("Дверь") &&
@@ -247,7 +247,7 @@ namespace Selen.Sites {
         }
         //привяжем объявление к альбому если есть индекс
         private void AddToAlbum(int b, long itemId) {
-            int vkAlbInd = vkAlb.FindIndex(a => a.Title.ToLowerInvariant() == Class365API._bus[b].GroupName().ToLowerInvariant());
+            int vkAlbInd = vkAlb.FindIndex(a => a.Title.ToLowerInvariant() == Class365API._bus[b].GroupName.ToLowerInvariant());
             if (vkAlbInd > -1) {
                 List<long> sList = new List<long>();
                 sList.Add((long) vkAlb[vkAlbInd].Id);

@@ -175,7 +175,7 @@ namespace Selen {
             } 
             set { 
                 if (wb != null) wb = value;
-                else SetWB(value);
+                SetWB(value);
             } }
         public string measure_id { get; set; }
         public float? weight { get; set; }
@@ -184,6 +184,7 @@ namespace Selen {
         public string width { get; set; }
         public string height { get; set; }
         public string hscode_id { get; set; }
+        public string country_id { get; set; }
         public static List<GoodGroupsObject> Groups { get; set; }
 
         static bool useReserve = DB.GetParamBool("useReserve");
@@ -286,7 +287,9 @@ namespace Selen {
         [JsonIgnore]
         public string WeightString => Weight.ToString("F1").Replace(",", ".");
         [JsonIgnore]
-        public float Weight => (float) ((weight == null || weight == 0) ? defaultWeight : weight);
+        public float Weight => (float) ((weight == null || weight == 0) 
+            ? defaultWeight 
+            : weight + 0.05);
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
@@ -316,7 +319,7 @@ namespace Selen {
                 stringValue = height;
             else
                 stringValue = "0";
-            var intValue = (int) (float.Parse(stringValue.Replace(".", ",")) * 10);
+            var intValue = (int) (float.Parse(stringValue.Replace(".", ",")) * 10) + 20;
             if (intValue < MinSize)
                 return MinSize;
             return intValue;
@@ -340,9 +343,23 @@ namespace Selen {
                 if (atribute != null && atribute.Value.value != "")
                     return atribute.Value.value;
             }
-            return null;
+            return "";
         }
-        public async Task<bool> SetWB(string value) {
+        public async Task SetWB(string value) {
+            if (wb != null) {
+                string url = ((int)UrlCode.wb).ToString();
+                var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
+                                {"id", id},
+                                {"name", name},
+                                {url, value}
+                            });
+                if (s.Contains("updated")) {
+                    Log.Add($"Class365: {name} WB ссылка на товар обновлена! [{value}]"); 
+                } else 
+                    Log.Add($"Class365: {name} ошибка! WB ссылка на товар не обновлена! [{value}]"); 
+            }
+
+
             //id атрибута
             var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
             //если атрибут существует
@@ -364,11 +381,8 @@ namespace Selen {
                         Value = new Value() { value = value }
                     });
                     Log.Add($"SetWB: {name} - добавлена характеристика WB.RU: {value}");
-                    return true;
                 }
             }
-            //если нет такого атрибута, то ничего не делаем
-            return false;
         }
 
         //Атрибут Срок годности, лет
@@ -445,7 +459,8 @@ namespace Selen {
         }
         //Атрибут OEM-номер
         public string GetOEM() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2535412");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("OEM-номер")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -453,74 +468,74 @@ namespace Selen {
         }
         //Атрибут Страна-изготовитель
         public string GetManufactureCountry() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543306");
-            if (attribute != null && attribute.Value.name != "") {
+            if (country_id != null) {
+                return Class365API.Country(country_id).name;
+            }
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Страна-изготовитель")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
+            if (attribute != null && attribute.Value.name != "")
                 return attribute.Value.name;
-            } else
-                return null;
+            return null;
         }
         //Атрибут Тип двигателя
         public string GetMotorType() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543313");
-            if (attribute != null && attribute.Value.name != "") {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543313");//todo name!
+            if (attribute != null && attribute.Value.name != "") 
                 return attribute.Value.name;
-            } else
-                return null;
+             return null;
         }
         //Атрибут Место установки
         public string GetPlacement() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543347");
-            if (attribute != null && attribute.Value.name != "") {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543347");//todo name!
+            if (attribute != null && attribute.Value.name != "") 
                 return attribute.Value.name;
-            } else
-                return null;
+            return null;
         }
         //Атрибут Материал
         public string GetMaterial() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543138");
-            if (attribute != null && attribute.Value.name != "") {
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543138");//todo name!
+            if (attribute != null && attribute.Value.name != "") 
                 return attribute.Value.name;
-            } else
-                return null;
+            return null;
         }
         //Атрибут Срок годности
         public string GetExpirationDays() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2283760");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2283760");//todo name!
             if (attribute != null && attribute.Value.name != "") {
                 var val = float.Parse(attribute.Value.name.Split(' ').First().Replace(".", ","));
                 if (attribute.Value.name.Contains("недел"))
                     return (val * 7).ToString("F0");
                 return (val * 365).ToString("F0");
-            } else
-                return null;
+            }
+            return null;
         }
         //Атрибут Расположение детали
         public string GetPlace() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543152");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543152");//todo name!
             if (attribute != null && attribute.Value.name != "") {
                 return attribute.Value.name;
-            } else
-                return null;
+            }
+            return null;
         }
         //Атрибут Сторона установки
         public string GetSide() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2627738");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2627738");//todo name!
             if (attribute != null && attribute.Value.name != "") {
                 return attribute.Value.name;
-            } else
-                return null;
+            }
+            return null;
         }
-        //Атрибут Кратность покупки
-        public string GetMultiplicity() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2299154");
-            if (attribute != null && attribute.Value.value != "") {
-                return attribute.Value.value;
-            } else
-                return null;
+        //квант продажи
+        public int GetQuantOfSell() {
+            int p;
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Квант продажи")).id;
+            if (int.TryParse((attributes?.Find(f => f.Attribute.id == atrId)?.Value.value.ToString()) ?? "1", out p))
+                return p;
+            return 1;
         }
         //Атрибут Ключевые слова
         public string GetKeywords() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543336");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543336"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -528,7 +543,7 @@ namespace Selen {
         }
         //Атрибут Толщина, мм
         public string GetThickness() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543314");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543314"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -536,7 +551,7 @@ namespace Selen {
         }
         //Атрибут Высота, мм
         public string GetHeight() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543149");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543149"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -544,7 +559,7 @@ namespace Selen {
         }
         //Атрибут Длина, мм
         public string GetLengthAttr() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543150");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543150"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -552,7 +567,7 @@ namespace Selen {
         }
         //Атрибут Объем, л
         public string GetVolume() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2614266");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2614266"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value.Replace(".", ",");
             } else
@@ -560,7 +575,7 @@ namespace Selen {
         }
         //Атрибут Объем, мл
         public string GetVolumeML() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2627783");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2627783"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value.Replace(".", ",").Split(',').First();
             } else
@@ -568,7 +583,7 @@ namespace Selen {
         }
         //Атрибут Количество в упаковке
         public string GetCountInBox() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2597286");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2597286"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -576,7 +591,7 @@ namespace Selen {
         }
         //Атрибут Количество отверстий
         public string GetCountOfHoles() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543014");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543014"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -584,7 +599,7 @@ namespace Selen {
         }
         //Атрибут Внешний диаметр, мм
         public string GetDiameterOut() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543013");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543013"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -592,7 +607,7 @@ namespace Selen {
         }
         //Атрибут Внутренний диаметр, мм
         public string GetDiameterIn() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543147");
+            var attribute = attributes?.Find(f => f.Attribute.id == "2543147"); //todo name!
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -620,16 +635,15 @@ namespace Selen {
 
         //проверяем, нужно ли к товару данной группы прикреплять доп описание про другие запчасти, гарантию и установку
         public bool IsGroupSolidParts() {
-            if (group_id == "169326" || //Корневая группа
-                group_id == "168723" || //Аудио-видеотехника
-                group_id == "168807" || //Шины, диски, колеса
-                group_id == "289732" || //Автохимия
-                group_id == "460974" || //Аксессуары
-                group_id == "430926" || //Масла
-                group_id == "2281135" || //Инструменты (аренда)
-                group_id == "530058") { //Инструменты
+            if (GroupName == "Корневая группа" ||           // "169326" 
+                GroupName == "Аудио-видеотехника" ||        // "168723" 
+                GroupName == "Шины, диски, колеса" ||       // "168807" 
+                GroupName == "Автохимия" ||                 // "289732" 
+                GroupName == "Аксессуары" ||                // "460974" 
+                GroupName == "Масла" ||                     // "430926" 
+                GroupName == "Инструменты (аренда)" ||      // "2281135"
+                GroupName == "Инструменты")                 // "530058"
                 return false;
-            }
             return true;
         }
         public string NameLimit(int length, string specDesc = null) {
@@ -727,9 +741,9 @@ namespace Selen {
             return t.CompareTo(Class365API.LastScanTime) > 0;
         }
 
-        public string GroupName() => Groups.Count(c => c.id == group_id) > 0 ?
-                                    Groups.First(f => f.id == group_id).name : "";
-        public static string GroupName(string group_id) => Groups.Any(c => c.id == group_id) ?
+        [JsonIgnore]
+        public string GroupName => Groups.First(f => f.id == group_id)?.name ?? "";
+        public static string GetGroupName(string group_id) => Groups.Any(c => c.id == group_id) ?
                                                           Groups.First(f => f.id == group_id).name : "";
 
         public string GetDiskSize() {
@@ -745,8 +759,8 @@ namespace Selen {
         [JsonIgnore]
         public bool New {
             get {
-                if (group_id == "289732" || //Автохимия
-                    group_id == "430926")  //Масла
+                if (GroupName == "Автохимия" || //"289732"
+                    GroupName == "Масла")        //"430926"
                     return true;
                 var nameAndDesc = (name + ":" + description);
                 return !(Regex.IsMatch(nameAndDesc, @"(?:[^а-яА-Я_ёЁ]|^)([Бб]\s*[\/\\.\,]*\s*[Уу])[^a-zA-Zа-яА-Я0-9_ёЁ]"));
@@ -879,11 +893,15 @@ namespace Selen {
         public string GetManufacture(bool ozon = false) {
             //проверяю сперва характеристику для озона
             Attributes manufacture = null;
-            if (ozon)
-                manufacture = attributes?.Find(f => f.Attribute.id == "2583395"); //Бренд для озон
+            if (ozon) {
+                var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Brend Ozon")).id;
+                manufacture = attributes?.Find(f => f.Attribute.id == atrId);  //"2583395"); //Бренд для озон
+            }
             //использую основную характеристику в карточке
-            if (manufacture == null)
-                manufacture = attributes?.Find(f => f.Attribute.id == "75579"); //Производитель
+            if (manufacture == null) {
+                var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Производитель")).id;
+                manufacture = attributes?.Find(f => f.Attribute.id == atrId);  //"75579"); //Производитель
+            }
             if (manufacture != null && manufacture.Value.name != "") {
                 return manufacture.Value.name;
             }
@@ -1009,14 +1027,6 @@ namespace Selen {
         public float GetLength() {
             var d = GetDimentions();
             return d[0] + d[1] + d[2];
-        }
-        //квант продажи
-        public int GetQuantOfSell() {
-            int p;
-            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Квант продажи")).id;
-            if (int.TryParse((attributes?.Find(f => f.Attribute.id == atrId)?.Value.value.ToString()) ?? "1", out p))
-                return p;
-            return 1;
         }
     }
     public class ApplicationItem {
@@ -1411,11 +1421,38 @@ namespace Selen {
     //  'sort' => 77145,
     }
 
-
     //public class SupplyGoods { 
     //    public string id { get; set; }
     //    public string good_id { get; set; }
     //    public string price { get; set; }
     //    public DateTime updated { get; set; }
     //}
+
+    public class Class365Source {
+        public string id;
+        public string name;
+        public bool archive;
+        public string updated;
+    }
+    public class Class365CustomerOrderStatus {
+        public string id;
+        public string name;
+        public string updated;
+    }
+    public class Class365Prices {
+        public string id;
+        public string name;
+        public string updated;
+    }
+
+    public class Class365Countries { 
+        public string id;
+        public string name;
+        public string full_name;
+        public string international_name;
+        public string code;
+        public string alfa2;
+        public string alfa3;
+    
+    }
 }

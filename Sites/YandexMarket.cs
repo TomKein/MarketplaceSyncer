@@ -44,7 +44,7 @@ namespace Selen.Sites {
         }
         //генерация xml
         public async Task GenerateXML() {
-            if (await DB.GetParamBoolAsync("yandex.syncEnable")) {
+            if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
                 Log.Add($"{L}GenerateXML: синхронизация отключена!");
                 return;
             }
@@ -93,7 +93,7 @@ namespace Selen.Sites {
                     try {
                         var n = b.name.ToLowerInvariant();
                         //исключения
-                        if (_exceptionGroups.Contains(b.GroupName())
+                        if (_exceptionGroups.Contains(b.GroupName)
                          || _exceptionGoods.Any(e => n.StartsWith(e)))
                             continue;
                         var offer = new XElement("offer", new XAttribute("id", b.id));
@@ -171,7 +171,7 @@ namespace Selen.Sites {
                     //исключение
                     if (groupId == "2281135")// Инструменты (аренда)
                         continue;
-                    categories.Add(new XElement("category", GoodObject.GroupName(groupId), new XAttribute("id", groupId)));
+                    categories.Add(new XElement("category", GoodObject.GetGroupName(groupId), new XAttribute("id", groupId)));
                 }
                 shop.Add(categories);
                 //копия магазина для выгрузки Экспресс
@@ -207,14 +207,14 @@ namespace Selen.Sites {
         string GetDescription(GoodObject b, int lenght = 5500) {
             List<string> list = new List<string>();
             list.AddRange(_addDesc);
-            if (b.GroupName() != "АВТОХИМИЯ" &&
-                b.GroupName() != "МАСЛА" &&
-                b.GroupName() != "УСЛУГИ" &&
-                b.GroupName() != "Кузов (новое)" &&
-                b.GroupName() != "Аксессуары" &&
-                b.GroupName() != "Кузовные запчасти" &&
-                b.GroupName() != "Инструменты (новые)" &&
-                b.GroupName() != "Инструменты (аренда)" &&
+            if (b.GroupName != "АВТОХИМИЯ" &&
+                b.GroupName != "МАСЛА" &&
+                b.GroupName != "УСЛУГИ" &&
+                b.GroupName != "Кузов (новое)" &&
+                b.GroupName != "Аксессуары" &&
+                b.GroupName != "Кузовные запчасти" &&
+                b.GroupName != "Инструменты (новые)" &&
+                b.GroupName != "Инструменты (аренда)" &&
                 !b.name.StartsWith("Абсорбер") &&
                 !b.name.StartsWith("Балка") &&
                 !b.name.StartsWith("Дверь") &&
@@ -387,6 +387,10 @@ namespace Selen.Sites {
         //резервирование
         public async Task MakeReserve() {
             try {
+                if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
+                    Log.Add($"{L}MakeReserve: синхронизация отключена!");
+                    return;
+                }
                 //обновляю список магазинов
                 await GetCompains();
                 //для каждого магазина получаю список заказов
@@ -411,8 +415,10 @@ namespace Selen.Sites {
                         //готовим список товаров (id, amount)
                         var goodsDict = new Dictionary<string, int>();
                         order.items.ForEach(i => goodsDict.Add(i.offerId, i.count));
-                        var isResMaked = await Class365API.MakeReserve(Selen.Source.YandexMarket, $"Yandex.Market order {order.id}",
-                                                                       goodsDict, order.creationDate);
+                        var isResMaked = await Class365API.MakeReserve(
+                            Class365API.Source("Yandex.Market"), 
+                            $"Yandex.Market order {order.id}",
+                            goodsDict, order.creationDate);
                         if (isResMaked) {
                             reserveList.Add(order.id);
                             if (reserveList.Count > 1000) {

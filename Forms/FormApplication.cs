@@ -51,7 +51,7 @@ namespace Selen {
         }
         void FillGoodsList() {
             _goods = _bus.Where(b => b.images.Any())?
-                         .Where(b =>!_groups.Contains(b.GroupName()))?
+                         .Where(b =>!_groups.Contains(b.GroupName))?
                          .Where(b =>!_skipList.Contains(b.name))?
                          .Where(b => b.attributes == null || 
                                     !b.attributes
@@ -92,7 +92,7 @@ namespace Selen {
                 if (_bus[b].attributes != null &&
                     _bus[b].attributes.Any(c => c.Attribute.id == _applicationAttribureId) ||
                     _bus[b].images.Count == 0 ||
-                    _groups.Contains(_bus[b].GroupName())||
+                    _groups.Contains(_bus[b].GroupName)||
                     _skipList.Contains(_bus[b].name))
                     continue;
                 await SetIndexAsync(b);

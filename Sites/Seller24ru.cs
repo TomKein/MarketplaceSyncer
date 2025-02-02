@@ -38,10 +38,11 @@ namespace Selen.Sites {
                         if (good != null) {
                             var price = await GetPrice(good.id);
                             if (price != 0) {
-                                if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell()>1)
+                                if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell() > 1)
                                     price = price * good.GetQuantOfSell();
-                                sheet.Cells[row, 7].Value = price.ToString("F1");
-                                Log.Add($"{_l} {row} - {good.name} заполнена цена {sheet.Cells[row, 7].Value}");
+                                sheet.Cells[row, 7].Value = price.ToString("F2");
+                                if (sheet.Cells[row, 6].Value != sheet.Cells[row, 7].Value)
+                                    Log.Add($"{_l} {row} - {good.name} новая цена закупки {sheet.Cells[row, 6].Value} => {sheet.Cells[row, 7].Value}");
                                 await Task.Delay(10);
                             }
                         }
@@ -95,7 +96,7 @@ namespace Selen.Sites {
             //если цена не найдена, проверяем цену в карточке
             if (price == null) {
                 price = await RequestPrice("currentprices", good_id, new Dictionary<string, string>() {
-                    { "price_type_id", "75523" }
+                    { "price_type_id", Class365API.BuyPrice.id }
                 });
             }
             //сохраняем цену в коллекцию
@@ -114,7 +115,7 @@ namespace Selen.Sites {
                 var s = await Class365API.RequestAsync("get", model, dictParams);
                 var priceList = JsonConvert.DeserializeObject<List<CurrentPrice>>(s);
                 if (priceList.Count > 0) {
-                    var priceListSorted = priceList.Where(w => w.price_type_id == null || w.price_type_id == "75523")
+                    var priceListSorted = priceList.Where(w => w.price_type_id == null || w.price_type_id == Class365API.BuyPrice.id)//"75523")
                                               .OrderByDescending(f => f.Updated).ToList();
                     return priceListSorted.First().price;
                 }

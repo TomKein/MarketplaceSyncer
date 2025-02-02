@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 219;
+        int _version = 220;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -45,8 +45,6 @@ namespace Selen {
         public FormMain() {
             CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
             InitializeComponent();
-            Class365API.syncAllEvent += SyncAllHandlerAsync;
-            Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
         }
 
         //========================
@@ -150,9 +148,9 @@ namespace Selen {
             //await _mm.MakeReserve();  //TODO mm reserve?
             await _drom.MakeReserve();
 
-            button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
-            await Task.Delay(2000);
             button_wildberries.Invoke(new Action(() => button_wildberries.PerformClick()));
+            await Task.Delay(2000);
+            button_Drom.Invoke(new Action(() => button_Drom.PerformClick()));
             await Task.Delay(2000);
             button_Avito.Invoke(new Action(()=> button_Avito.PerformClick()));
             await Task.Delay(2000);
@@ -181,7 +179,7 @@ namespace Selen {
             var user = await DB.GetParamStrAsync("userName");
             _headerText = "[" + user + "] " + _headerText;
             Text = $"{_headerText} 1.{_version} - загрузка...";
-            var actualVersion = DB.GetParamInt("version");
+            var actualVersion = await DB.GetParamIntAsync("version");
             if (_version < actualVersion) {
                 var url = await DB.GetParamStrAsync("newVersionUrl");
                 var res = MessageBox.Show($"Необходимо обновление программы! Нажмите ОК для скачивания!",
@@ -198,6 +196,7 @@ namespace Selen {
                 Close();
                 return;
             }
+            await Task.Delay(200);
             //подписываю обработчик на событие
             Log.LogUpdate += LogUpdate;
             //устанавливаю глубину логирования
@@ -215,6 +214,8 @@ namespace Selen {
             _mm = new MegaMarket();
             _wb = new Wildberries();
             _yandexMarket = new YandexMarket();
+            Class365API.syncAllEvent += SyncAllHandlerAsync;
+            Class365API.updatePropertiesEvent += PropertiesUpdateHandler;
             Class365API.StartSync();
         }
         //проверка на параллельный запуск
@@ -447,7 +448,7 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("test start");
-
+                await _wb.MakeReserve();
                 Log.Add("test end");
             } catch (Exception x) {
                 Log.Add(x.Message);

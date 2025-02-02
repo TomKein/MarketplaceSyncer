@@ -52,7 +52,7 @@ namespace Selen.Sites {
 
         //старт выгрузки
         public async Task SyncAsync() {
-            if (await DB.GetParamBoolAsync("izap24.syncEnable")) {
+            if (!await DB.GetParamBoolAsync("izap24.syncEnable")) {
                 Log.Add($"{L} StartAsync: синхронизация отключена!");
                 return;
             }

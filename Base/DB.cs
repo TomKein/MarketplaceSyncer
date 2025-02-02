@@ -38,9 +38,6 @@ namespace Selen.Base {
             }
         }
         //деструктор - закрывает соединение на всякий случай
-        ~DB() {
-            CloseConnection();
-        }
         //открыть соединение
         public static void OpenConnection() {
             if (connection.State == ConnectionState.Closed) { 
