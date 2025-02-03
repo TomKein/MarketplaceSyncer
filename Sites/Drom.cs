@@ -368,15 +368,11 @@ namespace Selen.Sites {
         }
         private void SetWeight(GoodObject b) {
             if (_isAddWeights) {
-                var weight = b.weight ?? _defWeigth;
-                if (weight == 0)
-                    weight = _defWeigth;
-
                 //проверка заполнения веса
                 var w = _dr.GetElementAttribute("//input[@name='delivery[postProviderWeight]']", "value");
                 if (string.IsNullOrEmpty(w) || float.Parse(w.Replace(".", ",")) != b.Weight) {
                     _dr.WriteToSelector("//input[@name='delivery[postProviderWeight]']",
-                    weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
+                    b.Weight.ToString("0.00") + OpenQA.Selenium.Keys.Tab);
                 }
             }
         }

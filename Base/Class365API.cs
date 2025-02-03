@@ -63,7 +63,7 @@ namespace Selen {
         //закупочные цены
         public static List<Class365Prices> _buyPrices;
         public static Class365Prices BuyPrice =>
-            _salePrices.Find(f => f.name.StartsWith("Закуп") || f.name.StartsWith("Отпускн"));
+            _buyPrices.Find(f => f.name.StartsWith("Закуп"));
         //страны
         public static List<Class365Countries> _countries;
         public static Class365Countries Country(string id) => _countries.Find(f => f.id == id);
