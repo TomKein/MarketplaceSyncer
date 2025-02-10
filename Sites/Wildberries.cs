@@ -891,7 +891,7 @@ namespace Selen.Sites {
                 List<GoodObject> busToUpdate;
                 if (File.Exists(BUS_TO_UPDATE_FILE)) {
                     var f = File.ReadAllText(BUS_TO_UPDATE_FILE);
-                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
                 } else
                     busToUpdate = new List<GoodObject>();
                 //список обновленных карточек со ссылкой на объявления
@@ -1103,8 +1103,7 @@ namespace Selen.Sites {
                     else if (a.charcType == "2")
                         data[0].characteristics.Add(new { id = a.charcID, value = a.value as string[] });
                     else if (a.charcType == "4")
-                        data[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
-                                                                                                       //data[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
+                        data[0].characteristics.Add(new { id = a.charcID, value = Math.Round((decimal)(float) a.value, 2) });
                 }
                 //сравниваем основные поля и характеристики
                 if (card.title == data[0].title &&
@@ -1119,13 +1118,12 @@ namespace Selen.Sites {
                 }
 
                 var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/update");
-                await Task.Delay(1000);
                 if (res)
                     Log.Add($"{L} UpdateCard: {good.name} - карточка обновлена!");
                 else
                     throw new Exception("ошибка обновления карточки!");
             } catch (Exception x) {
-                Log.Add($"{L} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
+                Log.Add($"{L} UpdateCard: ошибка обновления описания {good.id} {good.name} - {x.Message}");
             }
         }
         string GetDescription(GoodObject good) {

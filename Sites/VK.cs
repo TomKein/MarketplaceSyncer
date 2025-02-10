@@ -66,7 +66,7 @@ namespace Selen.Sites {
             List<GoodObject> busToUpdate;
             if (File.Exists(_busToUpdateFile)) {
                 var f = File.ReadAllText(_busToUpdateFile);
-                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
             } else
                 busToUpdate = new List<GoodObject>();
             //список обновленных карточек со ссылкой на объявления

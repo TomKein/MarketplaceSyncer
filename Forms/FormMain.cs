@@ -166,13 +166,6 @@ namespace Selen {
             await WaitButtonsActiveAsync();
             Class365API.LastScanTime = Class365API.SyncStartTime;
         }
-        //полный скан базы бизнес.ру
-        async void BaseGet(object sender, EventArgs e) {
-            ChangeStatus(sender, ButtonStates.NoActive);
-            Log.Add("Для запуска переставить время на 20 минут назад. Запуск по кнопке больше не осуществляем!");
-
-            ChangeStatus(sender, ButtonStates.Active);
-        }
         //загрузка формы
         private async void FormMain_Load(object sender, EventArgs e) {
             //меняю заголовок окна
@@ -415,6 +408,8 @@ namespace Selen {
             fs.ShowDialog();
             fs.Dispose();
             ChangeStatus(sender, ButtonStates.Active);
+            //обновляю глубину логирования после закрытия настроек
+            Log.Level = DB.GetParamInt("logSize");
         }
         //окно веса, размеры
         private async void Button_WeightsDimensions_ClickAsync(object sender, EventArgs e) {

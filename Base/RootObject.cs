@@ -289,7 +289,7 @@ namespace Selen {
         [JsonIgnore]
         public float Weight => (float) ((weight == null || weight == 0) 
             ? defaultWeight 
-            : weight + 0.05);
+            : weight + (weight < 1 ? 0.05 : 0)); //если вес меньше 1 кг, то добавляем 50 г на упаковку, для большого веса это не актуально
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
@@ -358,29 +358,51 @@ namespace Selen {
                 } else 
                     Log.Add($"Class365: {name} ошибка! WB ссылка на товар не обновлена! [{value}]"); 
             }
-
-
-            //id атрибута
+            //ищем id атрибута в бизнес.ру по названию
             var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
             //если атрибут существует
             if (atrId != null) {
-                //проверим, заполнен ли уже в карточе такой атрибут
-                var goodAttr = attributes?.Find(f => f.Attribute.id == atrId);
-                //если атрибута нет - создаем привязку
-
-                //добавляю атрибут в карточку
-                var s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
-                    {"good_id", id},
-                    {"attribute_id", atrId},
-                    {"value", value}
-                });
-                if (s != null && s.Contains("updated")) {
-                    attributes.Add(
-                    new Attributes() {
-                        Attribute = new Attribute() { id = atrId },
-                        Value = new Value() { value = value }
+                //проверим, заполнен ли уже в карточке товара такой атрибут
+                var s = await Class365API.RequestAsync("get", "goodsattributes", new Dictionary<string, string>() {
+                        {"good_id",id },
+                        {"attribute_id", atrId}
                     });
-                    Log.Add($"SetWB: {name} - добавлена характеристика WB.RU: {value}");
+                var googAtribute = JsonConvert.DeserializeObject<List<GoodsAttributes>>(s);
+                //если атрибут уже заполнен - меняем значение
+                if (googAtribute.Any()){
+                    s = await Class365API.RequestAsync("put", "goodsattributes", new Dictionary<string, string>() {
+                        {"id", googAtribute[0].id},
+                        {"value", value}
+                    });
+                    //обновляем в кешированной карточке
+                    if (s != null && s.Contains("updated")) {
+                        var cardAttr = attributes.Find(f => f.Attribute.id == atrId);
+                        if (cardAttr != null) 
+                            cardAttr.Value.value = value;
+                        else 
+                            attributes.Add(
+                                new Attributes() {
+                                    Attribute = new Attribute() { id = atrId },
+                                    Value = new Value() { value = value }
+                            });
+                        Log.Add($"SetWB: {name} - отредактирована характеристика WB.RU: {value}");
+                    }
+                } else { 
+                    //если атрибута нет - добавляю атрибут в карточку
+                    s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
+                        {"good_id", id},
+                        {"attribute_id", atrId},
+                        {"value", value}
+                    });
+                    if (s != null && s.Contains("updated")) {
+                        //добавляем в кешированной карточке
+                        attributes.Add(
+                        new Attributes() {
+                            Attribute = new Attribute() { id = atrId },
+                            Value = new Value() { value = value }
+                        });
+                        Log.Add($"SetWB: {name} - добавлена характеристика WB.RU: {value}");
+                    }
                 }
             }
         }
@@ -647,7 +669,8 @@ namespace Selen {
             return true;
         }
         public string NameLimit(int length, string specDesc = null) {
-            string t;
+            //todo удалить фразы типа сделать фото и т.п.
+            string n;
             //если указан параметр - ищем альтернативное название в описании
             if (specDesc != null) {
                 //var pattern = @"\{([A-Z_.]+)\}\s?([\s|\S]*)\{\/\1\}";  //паттерн для поиска всех тегов
@@ -655,17 +678,20 @@ namespace Selen {
                 var pattern = @"\{(" + specDesc + @")\}\s?([\s|\S]*)\{\/\1\}";
                 var regex = new Regex(pattern);
                 var match = regex.Match(description);
-                t = match.Success ? match.Groups[2].Value.Trim() : name;
+                n = match.Success ? match.Groups[2].Value.Trim() : name;
             } else {
-                t = name;
+                n = name;
             }
-            t = t.Replace("(копия)", ""); //удаление признака Копии
-            t = Regex.Replace(t, "([7-9]\\d{9,10})", string.Empty); //удаляем номера, похожие на телефон
-            //todo удалить фразы типа сделать фото и т.п.
-            while (t.Length > length) {
-                t = t.Remove(t.LastIndexOf(' '));
+            n = n.Replace("(копия)", "");
+            //удаляю номера, похожие на телефон
+            n = Regex.Replace(n, "([7-9]\\d{9,10})", string.Empty); 
+            //удаляю html разметку
+            n = Regex.Replace(n, "<[^>]+>", string.Empty); 
+            //ограничение длины
+            while (n.Length > length) {
+                n = n.Remove(n.LastIndexOf(' '));
             }
-            return t;
+            return n;
         }
 
         public string HtmlDecodedDescription() =>
@@ -685,7 +711,7 @@ namespace Selen {
                 var pattern = @"\{(" + specDesc + @")\}\s?([\s|\S]*)\{\/\1\}";
                 var regex = new Regex(pattern);
                 var match = regex.Match(description);
-                d = match.Success ? match.Groups[2].Value?.Trim() : "";
+                d = match.Success ? match.Groups[2].Value?.Trim() : description.Split('{').First();
                 //d = match.Success ? match.Groups[2].Value?.Trim() : description.Split('{').First(); //вариант
             } else {
                 //иначе используем текст до открывающей фигурной скобки
