@@ -96,6 +96,8 @@ namespace Selen.Sites {
                 }
             }catch(Exception x) {
                 Log.Add($"{_l}SyncAsync: ошибка - {x.Message} - {x?.InnerException}");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         public async Task MakeReserve() {
@@ -164,6 +166,8 @@ namespace Selen.Sites {
                 }
             } catch (Exception x) {
                 Log.Add(_l + "MakeReserve - " + x.Message);
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
@@ -297,8 +301,7 @@ namespace Selen.Sites {
                             {_url, bus.ozon}
                         });
                     Log.Add(_l + bus.name + " ссылка на товар обновлена!");
-                } else
-                    Log.Add(_l + bus.name + " ссылка без изменений!");
+                }
             } catch (Exception x) {
                 Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
             }
@@ -354,6 +357,8 @@ namespace Selen.Sites {
 
             } catch (Exception x) {
                 Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка склада id={warehouseId} - {bus.name} - {x.Message}");
+                //if (DB.GetParamBool("alertSound"))
+                //    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //расчет цен с учетом наценки
@@ -573,7 +578,7 @@ namespace Selen.Sites {
                 }
                 ////
                 var res2 = new ProductImportInfo();
-                await Task.Delay(10000);
+                await Task.Delay(1000);
                 var data2 = new {
                     task_id = res.task_id.ToString()
                 };
@@ -616,7 +621,7 @@ namespace Selen.Sites {
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))).ToList(); //нет в исключениях
             SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.xlsx");
-            Log.Add(_l + "карточек для добавления: " + goods.Count() + " (" + goods2.Count() + ")");
+            Log.Add(_l + "карточек для добавления: " + goods.Count + " (" + goods2.Count + ")");
             int i = 0;
             foreach (var good in goods) {
                 if (Class365API.IsTimeOver)
@@ -811,6 +816,8 @@ namespace Selen.Sites {
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} DeactivateAutoActions: ошибка отмены автоакций! - {x.Message}");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         string GetTypeName(XElement rule) {

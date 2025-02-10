@@ -184,6 +184,8 @@ namespace Selen.Sites {
                 }
             } catch (Exception x) {
                 Log.Add($"{_l} MakeReserve - " + x.Message);
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //выгрузка XML
@@ -317,6 +319,8 @@ namespace Selen.Sites {
                             break;
                     } catch (Exception x) {
                         Log.Add($"{_l}GenerateXML: ошибка - [{b.id}] {b.name} - {x.Message}");
+                        if (DB.GetParamBool("alertSound"))
+                            new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     }
                 }
                 Log.Add($"{_l}GenerateXML: выгружено позиций в xml: {i}");
@@ -328,8 +332,11 @@ namespace Selen.Sites {
             if (new FileInfo(_fileNameExport).Length > await DB.GetParamIntAsync("avito.xmlMinSize")) {
                 await SftpClient.FtpUploadAsync(_fileNameExport);
                 await SftpClient.FtpUploadAsync(_fileNameStockExport);
-            } else
+            } else {
                 Log.Add($"{_l} ошибка - файл не отправлен, т.к. меньше контрольного размера!");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
+            }
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);

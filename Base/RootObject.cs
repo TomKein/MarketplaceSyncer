@@ -27,7 +27,7 @@ namespace Selen {
         public string updated { get; set; }
     }
 
-    public class Goodsattributes {
+    public class GoodsAttributes {
         public string id { get; set; }
         public string good_id { get; set; }
         public string attribute_id { get; set; }

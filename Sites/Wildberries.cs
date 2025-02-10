@@ -133,7 +133,10 @@ namespace Selen.Sites {
                 await AddProductsAsync();
                 CheckSizes();
             } catch (Exception ex) {
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L} SyncAsync: ошибка! - " + ex.Message);
+                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
             //}
         }
@@ -211,7 +214,10 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L}MakeReserve: ошибка - " + x.Message);
+                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //GET запросы к api wb
@@ -252,7 +258,7 @@ namespace Selen.Sites {
                 requestMessage.Content = httpContent;
                 var response = await _hc.SendAsync(requestMessage);
                 _jsonResponse = await response.Content.ReadAsStringAsync();
-                await Task.Delay(1500);
+                await Task.Delay(3000);
                 if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.NoContent) {
                     if (_jsonResponse.Contains("\"error\":true"))
                         return false;
@@ -466,7 +472,6 @@ namespace Selen.Sites {
                                                                                                                        //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
                     }
                     var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/upload");
-                    await Task.Delay(1000);
                     if (res) {
                         Log.Add(L + good.name + " - товар отправлен на wildberries!");
                         await SaveUrlAsync(good);
@@ -816,6 +821,8 @@ namespace Selen.Sites {
                 await UpdatePrice(good, card);
                 await UpdateCard(good, card);
             } catch (Exception x) {
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L} UpdateProductAsync ошибка! name:{good.name} message:{x.Message}");
             }
         }
@@ -951,11 +958,10 @@ namespace Selen.Sites {
                 var card = _cardsList.Find(f => f.vendorCode == good.id);
                 if (card == null) {
                     //await SaveUrlAsync(good, -1);
-                    _isCardsListCheckNeeds = true;
-                    _isCardsPricesCheckNeeds = true;
-                    _isCardsStocksCheckNeeds = true;
-                    Log.Add($"{good.name} - карточка не найдена на ВБ!");
-                    return false;
+                    //_isCardsListCheckNeeds = true;
+                    //_isCardsPricesCheckNeeds = true;
+                    //_isCardsStocksCheckNeeds = true;
+                    Log.Add($"предупреждение: {good.name} - карточка не найдена на ВБ!");
                 } else {
                     //проверяем остаток на вб
                     var wbStock = _cardsStocks.Find(f => f.sku == card.sizes[0].skus[0])?.amount;
@@ -972,8 +978,8 @@ namespace Selen.Sites {
                         good.IsTimeUpDated())
                         //обновляем карточку на вб
                         await UpdateCardAsync(good, card);
-                    return true;
                 }
+                return true;
             } catch (Exception x) {
                 Log.Add(L + "UpdateCardsAsync - " + x.Message);
                 return false;
@@ -1048,6 +1054,8 @@ namespace Selen.Sites {
                 //запросить новые остатки
                 _isCardsStocksCheckNeeds = true;
             } catch (Exception x) {
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L} UpdateProductStocks: ошибка обновления остатка {good.name} - {x.Message}");
             }
         }

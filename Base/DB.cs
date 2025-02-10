@@ -35,6 +35,8 @@ namespace Selen.Base {
                 //сохраняю ссылку на себя
             } catch (Exception x) {
                 Debug.WriteLine(x.Message);
+                if (GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //деструктор - закрывает соединение на всякий случай
@@ -76,8 +78,10 @@ namespace Selen.Base {
                     Log.Add("mysql: ошибка обращения к базе данных! (" + i + ") - " + x.Message, writeDb: false);
                     Thread.Sleep(10000);
                 }
-                if (i >= 5) {
+                if (i >= 10) {
                     Log.Add("mysql: ошибка обращения к базе данных! - превышено количество попыток обращений!", writeDb: false);
+                    if (GetParamBool("alertSound"))
+                        new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     break;
                 }
             }

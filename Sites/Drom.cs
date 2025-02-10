@@ -85,7 +85,7 @@ namespace Selen.Sites {
                 List<GoodObject> busToUpdate;
                 if (File.Exists(_busToUpdateFile)) {
                     var f = File.ReadAllText(_busToUpdateFile);
-                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f);
+                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
                 } else
                     busToUpdate = new List<GoodObject>();
                 //список обновленных карточек со ссылкой на объявления
@@ -120,6 +120,8 @@ namespace Selen.Sites {
                     _dr.Quit();
                     _dr = null;
                 }
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         async Task AuthAsync() {
@@ -182,6 +184,8 @@ namespace Selen.Sites {
                 }
             } catch (Exception x) {
                 Log.Add($"{L}MakeReserve - " + x.Message);
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         public async Task<List<DromOrder>> GetOrdersAsync() {

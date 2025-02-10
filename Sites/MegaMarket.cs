@@ -46,10 +46,10 @@ namespace Selen.Sites {
                 GoodObject.UpdateDefaultValidity();
                 //получаю список карточек - новые, с положительным остатком и ценой, у которых есть фотографии
                 //отсортированный по цене вниз
-                var bus = Class365API._bus.Where(w => w.New && w.Price > 0 && 
-                                                 w.images.Count > 0 && 
-                                                 (w.Amount > 0 || 
-                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime || 
+                var bus = Class365API._bus.Where(w => w.New && w.Price > 0 &&
+                                                 w.images.Count > 0 &&
+                                                 (w.Amount > 0 ||
+                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime ||
                                                  DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
                               .OrderByDescending(o => o.Price)
                               .Take(DB.GetParamInt("megamarket.uploadLimit")).ToList();
@@ -96,10 +96,10 @@ namespace Selen.Sites {
 
                         //количество 
                         var outlet = new XElement("outlet", new XAttribute("id", "AvtoTehnoshik40"), new XAttribute("instock", b.Amount));
-                        var outlets = new XElement("outlets",outlet);
+                        var outlets = new XElement("outlets", outlet);
                         offer.Add(outlets);
 
-                        offer.Add(new XElement("param", new XAttribute("name", "Вес"), new XAttribute("unit","кг"), b.WeightString));
+                        offer.Add(new XElement("param", new XAttribute("name", "Вес"), new XAttribute("unit", "кг"), b.WeightString));
                         offer.Add(new XElement("param", new XAttribute("name", "Габариты"), new XAttribute("unit", "см"), $"{b.length} x {b.width} x {b.height}"));
                         if (b.GetManufactureCountry() != null)
                             offer.Add(new XElement("param", new XAttribute("name", "Страна изготовитель"), b.GetManufactureCountry()));
@@ -113,6 +113,8 @@ namespace Selen.Sites {
                         offers.Add(offer);
                     } catch (Exception x) {
                         Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
+                        if (DB.GetParamBool("alertSound"))
+                            new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     }
                 }
                 Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
@@ -130,7 +132,7 @@ namespace Selen.Sites {
                 foreach (var groupId in groupsIds) {
                     //исключение
                     //if (groupId == "2281135")// Инструменты (аренда)
-                      //  continue;
+                    //  continue;
                     categories.Add(new XElement("category", GoodObject.GetGroupName(groupId), new XAttribute("id", groupId)));
                 }
                 shop.Add(categories);
@@ -151,8 +153,11 @@ namespace Selen.Sites {
             if (await gen) { // && new FileInfo(FILE_PRIMARY_XML).Length > await DB.GetParamIntAsync("megamarket.xmlMinSize")) {
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
-            } else
+            } else {
                 Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
+            }
         }
         //цена продажи
         int GetPrice(GoodObject b) { 

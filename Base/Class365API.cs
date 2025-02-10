@@ -158,6 +158,7 @@ namespace Selen {
                 
             } catch (Exception ex) {
                 Log.Add($"{L} ошибка чтения начальных параметров - {ex.Message}");
+                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         public static async Task StartSync() {
@@ -215,6 +216,7 @@ namespace Selen {
                 Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
                 _timer.Start();
                 Status = SyncStatus.NeedUpdate;
+                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
@@ -417,6 +419,7 @@ namespace Selen {
                     }
                 } catch (Exception x) {
                     Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     await Task.Delay(60000);
                 }
                 await DB.SetParamAsync("controlBus", _bus.Count.ToString());
@@ -435,6 +438,7 @@ namespace Selen {
                     _busGroups.AddRange(tmp2);
                 } catch (Exception x) {
                     Log.Add(L + "GetBusGroupsAsync - ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException?.Message);
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     await Task.Delay(60000);
                 }
             } while (_busGroups.Count < 3);
@@ -540,6 +544,7 @@ namespace Selen {
                 Status = SyncStatus.Waiting;
                 Log.Add(L + "цикл синхронизации завершен");
             } catch (Exception x) {
+                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add(L + "ошибка синхронизации: " + x.Message + "\n"
                     + x.Source + "\n"
                     + x.InnerException?.Message);
@@ -1207,7 +1212,7 @@ namespace Selen {
                                 {"good_id",_bus[b].id},
                                 {"attribute_id",atrId }
                             });
-            var attr = JsonConvert.DeserializeObject<Goodsattributes[]>(s);
+            var attr = JsonConvert.DeserializeObject<GoodsAttributes[]>(s);
             //удаляю привязку по id
             if (attr.Any()) {
                 s = await RequestAsync("delete", "goodsattributes", new Dictionary<string, string> {
