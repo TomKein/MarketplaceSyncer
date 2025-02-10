@@ -448,7 +448,7 @@ namespace Selen.Sites {
                             subjectID = attributes.First().subjectID,
                             variants = new[] {
                                 new {
-                                    title = good.NameLimit(_nameLimit),
+                                    title = good.NameLimit(_nameLimit, "WB_TITLE"),
                                     description = GetDescription(good),
                                     vendorCode = good.id,
                                     brand = GetBrand(good, attributes),
@@ -1081,7 +1081,7 @@ namespace Selen.Sites {
                         nmID = card.nmID,
                         vendorCode = good.id,
                         brand = GetBrand(good,attributes),
-                        title = good.NameLimit(_nameLimit),
+                        title = good.NameLimit(_nameLimit, "WB_TITLE"),
                         description = GetDescription(good),
                         dimensions = new {
                             length = good.SizeSM("length",5),
@@ -1127,7 +1127,7 @@ namespace Selen.Sites {
             }
         }
         string GetDescription(GoodObject good) {
-            return good.DescriptionList(2000, removePhone:true).Aggregate((a, b) => a + "\n" + b)
+            return good.DescriptionList(2000, removePhone:true, specDesc:"WB_DESCRIPTION").Aggregate((a, b) => a + "\n" + b)
                        .Replace("цена за штуку", "$$$")
                        .Replace("ЦЕНА ЗА ШТУКУ", "$$$")
                        .Replace("Цена за штуку", "$$$")

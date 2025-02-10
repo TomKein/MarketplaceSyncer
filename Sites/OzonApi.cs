@@ -246,15 +246,15 @@ namespace Selen.Sites {
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckProductLinksAsync(bool checkAll = false) {
             List<ProductListItem> items;
+            var _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
             if (checkAll) {
                 var _checkProductCount = await DB.GetParamIntAsync("ozon.checkProductCount");
-                var _checkProductIndex = await DB.GetParamIntAsync("ozon.checkProductIndex");
                 if (_checkProductIndex >= _productList.Count)
                     _checkProductIndex = 0;
-                await DB.SetParamAsync("ozon.checkProductIndex", (_checkProductIndex + _checkProductCount).ToString());
                 items = _productList.Skip(_checkProductIndex).Take(_checkProductCount).ToList<ProductListItem>();
             } else
                 items = _productList;
+            var i = 0;
             foreach (var item in items) {
                 try {
                     if (Class365API.IsTimeOver)
@@ -269,9 +269,12 @@ namespace Selen.Sites {
                         var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await Update(Class365API._bus[b], productInfo);
+                        Log.Add($"{_l}CheckGoodsAsync: проверен {_bus[b].name} [{++i}/{_checkProductIndex}]");
+                        if (checkAll)
+                            await DB.SetParamAsync("ozon.checkProductIndex", (++_checkProductIndex).ToString());
                     }
                 } catch (Exception x) {
-                    Log.Add($"{_l}CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
+                    Log.Add($"{_l}CheckGoodsAsync: ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
                     _isProductListCheckNeeds = true;
                 }
             }
@@ -1420,8 +1423,8 @@ namespace Selen.Sites {
                                     &&!w.ToLower().Contains("уценен")
                                     &&!w.ToLower().Contains("уценён")
                                     &&!w.ToLower().Contains("витринн")
-                            )
-                            .Aggregate((a,b)=>a+"<br>"+b)
+                            )?.Aggregate((a,b)=>a+"<br>"+b)
+                            ??good.name
                     }
                 }
                 };
