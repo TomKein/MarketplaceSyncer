@@ -94,7 +94,7 @@ namespace Selen.Sites {
                 if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                     await DeactivateAutoActions();
                 }
-            }catch(Exception x) {
+            } catch (Exception x) {
                 Log.Add($"{_l}SyncAsync: ошибка - {x.Message} - {x?.InnerException}");
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
@@ -176,7 +176,7 @@ namespace Selen.Sites {
             List<GoodObject> busToUpdate;
             if (File.Exists(_busToUpdateFile)) {
                 var f = File.ReadAllText(_busToUpdateFile);
-                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f)??new List<GoodObject>();
+                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
             } else
                 busToUpdate = new List<GoodObject>();
             //список обновленных карточек со ссылкой на объявления
@@ -219,13 +219,13 @@ namespace Selen.Sites {
                     var total = 0;
                     do {
                         var data = new {
-                            //filter = new {
-                            //    visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
-                            //},
+                            filter = new {
+                                visibility = "ALL" //VISIBLE, INVISIBLE, EMPTY_STOCK, READY_TO_SUPPLY, STATE_FAILED
+                            },
                             last_id = last_id,
                             limit = 1000
                         };
-                        var result = await PostRequestAsync(data, "/v2/product/list");
+                        var result = await PostRequestAsync(data, "/v3/product/list");
                         var productList = JsonConvert.DeserializeObject<ProductList>(result);
                         last_id = productList.last_id;
                         total = productList.total;
@@ -261,9 +261,9 @@ namespace Selen.Sites {
                         return;
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
-                    if (b == -1)
-                        throw new Exception("карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
-                    if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+                    if (b == -1) {
+                        Log.Add("предупреждение: карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
+                    } else if (!Class365API._bus[b].ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
                         Class365API._bus[b].ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
                         checkAll) {                                                         //либо передали флаг проверять всё
                         var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
@@ -283,7 +283,7 @@ namespace Selen.Sites {
         private async Task<ProductInfo> GetProductInfoAsync(GoodObject bus) {
             var data = new { offer_id = bus.id };
             var s = await PostRequestAsync(data, "/v2/product/info");
-            if (s!=null)
+            if (s != null)
                 return JsonConvert.DeserializeObject<ProductInfo>(s);
             Log.Add($"{_l}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
             return null;
@@ -1604,7 +1604,7 @@ namespace Selen.Sites {
                     },
                     limit = 100
                 };
-                var s = await PostRequestAsync(data, "/v3/products/info/attributes");
+                var s = await PostRequestAsync(data, "/v4/product/info/attributes");
                 s = s.Replace("attribute_id", "id");
                 return JsonConvert.DeserializeObject<List<ProductsInfoAttr>>(s);
             } catch (Exception x) {
@@ -1617,7 +1617,7 @@ namespace Selen.Sites {
             try {
                 var fileInfo = new FileInfo(fname);
                 var excelPackage = new ExcelPackage(fileInfo);
-                while (excelPackage.Workbook.Worksheets.Count>0) {
+                while (excelPackage.Workbook.Worksheets.Count > 0) {
                     excelPackage.Workbook.Worksheets.Delete(1);
                 }
                 excelPackage.Workbook.Worksheets.Add("список для добавления на Озон");
@@ -1937,8 +1937,8 @@ namespace Selen.Sites {
     public class ProductListItem {
         public int product_id { get; set; }
         public string offer_id { get; set; }
-        public bool is_fbo_visible { get; set; }
-        public bool is_fbs_visible { get; set; }
+        //public bool is_fbo_visible { get; set; }
+        //public bool is_fbs_visible { get; set; }
         public bool archived { get; set; }
         public bool is_discounted { get; set; }
     }
@@ -2017,7 +2017,7 @@ namespace Selen.Sites {
     public class ProductsInfoAttr {
         public int id { get; set; }
         public string barcode { get; set; }
-        public int category_id { get; set; }
+        //public int category_id { get; set; }
         public string name { get; set; }
         public string offer_id { get; set; }
         public int height { get; set; }
@@ -2026,15 +2026,18 @@ namespace Selen.Sites {
         public string dimension_unit { get; set; }
         public int weight { get; set; }
         public string weight_unit { get; set; }
-        public Image[] images { get; set; }
-        public string image_group_id { get; set; }
-        public object[] images360 { get; set; }
+        public int type_id { get; set; }
+        public string primary_image { get; set; }
+        //public Image[] images { get; set; }
+        public string[] images { get; set; }
+        //public string image_group_id { get; set; }
+        //public object[] images360 { get; set; }
         public object[] pdf_list { get; set; }
         public Attribute[] attributes { get; set; }
         public object[] complex_attributes { get; set; }
         public string color_image { get; set; }
-        public string last_id { get; set; }
-        public int description_category_id { get; set; }
+        //public string last_id { get; set; }
+        //public int description_category_id { get; set; }
     }
     public class Image {
         public string file_name { get; set; }
