@@ -1415,6 +1415,8 @@ namespace Selen {
                             });
             if (s == null || !s.Contains("updated")) {
                 Log.Add(L + "MakeReserve - ошибка создания заказа!");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 return false;
             }
             Log.Add("MakeReserve - заказ создан");
@@ -1431,6 +1433,8 @@ namespace Selen {
             });
             if (s == null || !s.Contains("updated")) {
                 Log.Add(L + "MakeReserve - ошибка создания резерва!");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 return false;
             }
             Log.Add("MakeReserve - резерв для заказа создан: "+ comment);
@@ -1444,6 +1448,8 @@ namespace Selen {
                             });
                 if (s == null || !s.Contains("updated")) {
                     Log.Add(L + "MakeReserve - ошибка добавления товара в заказ! - " + good.Key);
+                    if (DB.GetParamBool("alertSound"))
+                        new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     return false;
                 }
                 Log.Add("MakeReserve - " + good.Key + " товар добавлен в заказ (" + good.Value + ")");
@@ -1451,6 +1457,8 @@ namespace Selen {
                 _bus[b].Reserve += good.Value;
                 _bus[b].updated = SyncStartTime.ToString();
             }
+            if (DB.GetParamBool("alertOrder"))
+                new System.Media.SoundPlayer(@"..\data\neworder.wav").Play();
             return true;
         }
         public static async Task<bool> AddStickerCodeToReserve(Class365Source source, string comment, string commentToAdd) {

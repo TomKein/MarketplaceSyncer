@@ -109,7 +109,7 @@ namespace Selen.Sites {
                         offer.Add(new XElement("description", new XCData(GetDescription(b))));
                         var vendor = b.GetManufacture();
                         //если пороизводитель не пустой и не содержится в исключениях - добавляем в товар
-                        if (vendor != null && !_exceptionBrands.Any(a=>a.Key == vendor))
+                        if (vendor != null && !_exceptionBrands.Any(a => a.Key == vendor))
                             offer.Add(new XElement("vendor", vendor));
                         //артикул
                         if (!string.IsNullOrEmpty(b.Part))
@@ -122,7 +122,7 @@ namespace Selen.Sites {
                             var condition = new XElement("condition", new XAttribute("type", "preowned"));
                             //внешний вид - хороший, есть следы использования
                             condition.Add(new XElement("quality", "good"));
-                            condition.Add(new XElement("reason", GetDescription(b,lenght:390)));
+                            condition.Add(new XElement("reason", GetDescription(b, lenght: 390)));
                             //сохраняю в оффер
                             offer.Add(condition);
                         }
@@ -153,6 +153,8 @@ namespace Selen.Sites {
                         offersExpress.Add(offerExpress);
                     } catch (Exception x) {
                         Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
+                        if (DB.GetParamBool("alertSound"))
+                            new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     }
                 }
                 Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
@@ -201,8 +203,11 @@ namespace Selen.Sites {
                 //отправляю файл на сервер
                 await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
                 await SftpClient.FtpUploadAsync(FILE_EXPRESS_XML);
-            } else
+            } else {
                 Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
+            }
         }
         string GetDescription(GoodObject b, int lenght = 5500) {
             List<string> list = new List<string>();
@@ -431,6 +436,8 @@ namespace Selen.Sites {
                 }
             } catch (Exception x) {
                 Log.Add(L + "MakeReserve - " + x.Message);
+                if (DB.GetParamBool("alertSound"))
+                    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
     }

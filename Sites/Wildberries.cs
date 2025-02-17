@@ -807,7 +807,7 @@ namespace Selen.Sites {
                     }
                 } catch (Exception x) {
                     Log.Add($"{L} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
-                    _isCardsListCheckNeeds = true;
+                    //_isCardsListCheckNeeds = true;
                 }
             }
         }

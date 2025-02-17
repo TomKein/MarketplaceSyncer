@@ -153,7 +153,7 @@ namespace Selen.Sites {
                     var isResMaked = await Class365API.MakeReserve(
                         Class365API.Source("Ozon"),
                         $"Ozon order {order.posting_number}",
-                        goodsDict, 
+                        goodsDict,
                         order.in_process_at.AddHours(3).ToString());
                     if (isResMaked) {
                         reserveList.Add(order.posting_number);

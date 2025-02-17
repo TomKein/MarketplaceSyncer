@@ -449,7 +449,7 @@ namespace Selen.Sites {
                 Login = DB.GetParamStr("vk.login"),
                 Password = DB.GetParamStr("vk.password"),
                 Settings = Settings.All,
-                AccessToken = DB.GetParamStr("vk.accessToken")
+                AccessToken = DB.GetParamStr("vk.accessToken")//vk1.a.0TMsogM0BD8IUc-aJPDMZeEX1Fp4mwfoV0XCECHXkTxGcleir8TjQUlfNrr9wavfUuvASI48lmXkWM7I5KbcbakJX4XnOm-kLtPwreNWazr10eqlR_5dIEYNj1mlB92IhcxfSO-tuwv9Gx-FY2lhAfo1p8dRtLYBSA6H7rxiRH1KrbnP8jgwHZ3Jy35yc_vZ0BusGCMHu3SN7w0uxVnx0Q
             });
         });
     }
