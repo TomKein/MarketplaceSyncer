@@ -310,7 +310,6 @@ namespace Selen.Sites {
                                 }
                             }
                         }
-
                         root.Add(ad);
                         //считаем объявления с положительным остатком
                         if (b.Amount > 0)

@@ -164,19 +164,30 @@ namespace Selen {
         public List<Attributes> attributes { get; set; }
         public string drom { get; set; }
         public string vk { get; set; }
-        public string ozon { get; set; }
+        public string ozon;
+        [JsonIgnore]
+        public string Ozon {
+            get {
+                if (ozon == null)
+                    return GetUrl("OZON.RU");
+                return ozon;
+            }
+            set {
+                SetUrl(UrlCode.Ozon, ozon, "OZON.RU", value);
+            }
+        }
         public string wb;
         [JsonIgnore]
-        public string WB { 
+        public string WB {
             get {
                 if (wb == null)
-                    return GetWB();
+                    return GetUrl("WB.RU");
                 return wb;
-            } 
-            set { 
-                if (wb != null) wb = value;
-                SetWB(value);
-            } }
+            }
+            set {
+                SetUrl(UrlCode.WB, wb, "WB.RU", value);
+            }
+        }
         public string measure_id { get; set; }
         public float? weight { get; set; }
         public float? volume { get; set; }
@@ -287,8 +298,8 @@ namespace Selen {
         [JsonIgnore]
         public string WeightString => Weight.ToString("F1").Replace(",", ".");
         [JsonIgnore]
-        public float Weight => (float) ((weight == null || weight == 0) 
-            ? defaultWeight 
+        public float Weight => (float) ((weight == null || weight == 0)
+            ? defaultWeight
             : weight + (weight < 1 ? 0.05 : 0)); //если вес меньше 1 кг, то добавляем 50 г на упаковку, для большого веса это не актуально
         //объем товара по умолчанию
         static float defaultVolume;
@@ -325,7 +336,7 @@ namespace Selen {
             return intValue;
         }
         public int SizeSM(string direction, int MinSize) {
-            return SizeMM(direction, MinSize*10) / 10;
+            return SizeMM(direction, MinSize * 10) / 10;
         }
         public static void UpdateDefaultValidity() {
             var validity = DB.GetParamStr("defaultValidity");
@@ -335,9 +346,9 @@ namespace Selen {
             } else
                 defaultValidity = "P" + validity + "Y";
         }
-        //Атрибут WB
-        public string GetWB() {
-            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
+        //Атрибуты
+        public string GetUrl(string name) {
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith(name))?.id;
             if (atrId != null) {
                 var atribute = attributes?.Find(f => f.Attribute.id == atrId);
                 if (atribute != null && atribute.Value.value != "")
@@ -345,21 +356,30 @@ namespace Selen {
             }
             return "";
         }
-        public async Task SetWB(string value) {
-            if (wb != null) {
-                string url = ((int)UrlCode.wb).ToString();
+        public async Task SetUrl(UrlCode urlCode, string field, string attributeName, string value) {
+            //если поле не нулевое - сохраняем ссылку в поле
+            if (field != null) {
+                if (urlCode == UrlCode.Ozon)
+                    ozon = value;
+                else if (urlCode == UrlCode.WB)
+                    wb = value;
+                else if (urlCode == UrlCode.Drom)
+                    drom = value;
+                else if (urlCode == UrlCode.VK)
+                    vk = value;
+                string url = ((int) urlCode).ToString();
                 var s = await Class365API.RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", id},
                                 {"name", name},
                                 {url, value}
                             });
                 if (s.Contains("updated")) {
-                    Log.Add($"Class365: {name} WB ссылка на товар обновлена! [{value}]"); 
-                } else 
-                    Log.Add($"Class365: {name} ошибка! WB ссылка на товар не обновлена! [{value}]"); 
+                    Log.Add($"Class365: {name} {urlCode} - ссылка на товар обновлена! [{value}]");
+                } else
+                    Log.Add($"Class365: {name} ошибка! {urlCode} ссылка на товар не обновлена! [{value}]");
             }
             //ищем id атрибута в бизнес.ру по названию
-            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("WB.RU"))?.id;
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith(attributeName))?.id;
             //если атрибут существует
             if (atrId != null) {
                 //проверим, заполнен ли уже в карточке товара такой атрибут
@@ -369,7 +389,7 @@ namespace Selen {
                     });
                 var googAtribute = JsonConvert.DeserializeObject<List<GoodsAttributes>>(s);
                 //если атрибут уже заполнен - меняем значение
-                if (googAtribute.Any()){
+                if (googAtribute.Any()) {
                     s = await Class365API.RequestAsync("put", "goodsattributes", new Dictionary<string, string>() {
                         {"id", googAtribute[0].id},
                         {"value", value}
@@ -377,17 +397,17 @@ namespace Selen {
                     //обновляем в кешированной карточке
                     if (s != null && s.Contains("updated")) {
                         var cardAttr = attributes.Find(f => f.Attribute.id == atrId);
-                        if (cardAttr != null) 
+                        if (cardAttr != null)
                             cardAttr.Value.value = value;
-                        else 
+                        else
                             attributes.Add(
                                 new Attributes() {
                                     Attribute = new Attribute() { id = atrId },
                                     Value = new Value() { value = value }
-                            });
-                        Log.Add($"SetWB: {name} - отредактирована характеристика WB.RU: {value}");
+                                });
+                        Log.Add($"SetWB: {name} - отредактирована характеристика {urlCode}: {value}");
                     }
-                } else { 
+                } else {
                     //если атрибута нет - добавляю атрибут в карточку
                     s = await Class365API.RequestAsync("post", "goodsattributes", new Dictionary<string, string>() {
                         {"good_id", id},
@@ -401,7 +421,7 @@ namespace Selen {
                             Attribute = new Attribute() { id = atrId },
                             Value = new Value() { value = value }
                         });
-                        Log.Add($"SetWB: {name} - добавлена характеристика WB.RU: {value}");
+                        Log.Add($"SetWB: {name} - добавлена характеристика {urlCode}: {value}");
                     }
                 }
             }
@@ -409,7 +429,8 @@ namespace Selen {
 
         //Атрибут Срок годности, лет
         public string GetValidity() {
-            var validity = attributes?.Find(f => f.Attribute.id == "2283760");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Срок годности")).id;
+            var validity = attributes?.Find(f => f.Attribute.id == atrId);
             if (validity != null && validity.Value.name != "") {
                 return validity.Value.name;
             } else
@@ -417,7 +438,8 @@ namespace Selen {
         }
         //Атрибут Количество в упаковке, шт
         public string GetPackQuantity() {
-            var quantity = attributes?.Find(f => f.Attribute.id == "2597286");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Количество в упаковке")).id;
+            var quantity = attributes?.Find(f => f.Attribute.id == atrId);
             if (quantity != null && quantity.Value.value != "") {
                 return quantity.Value.value;
             } else
@@ -425,7 +447,8 @@ namespace Selen {
         }
         //Атрибут Комплектация
         public string GetComplectation() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543016");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Комплектация")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -433,7 +456,8 @@ namespace Selen {
         }
         //Атрибут Гарантия
         public string GetGaranty() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2539132");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Гарантия")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -441,7 +465,8 @@ namespace Selen {
         }
         //Атрибут Альтернативные артикулы
         public string GetAlternatives() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543012");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Альтернативные артикулы")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -449,7 +474,8 @@ namespace Selen {
         }
         //Атрибут Количество заводских упаковок
         public string GetFabricBoxCount() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543424");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Количество заводских упаковок")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -457,7 +483,8 @@ namespace Selen {
         }
         //Атрибут Цвет товара
         public string GetColor() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543422");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Цвет товара")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.name;
             } else
@@ -465,7 +492,8 @@ namespace Selen {
         }
         //Атрибут Вид техники
         public string GetTechType() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543335");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Вид техники")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.name;
             } else
@@ -473,7 +501,8 @@ namespace Selen {
         }
         //Атрибут Класс опасности товара
         public string GetDangerClass() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2604819");
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Класс опасности")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -501,39 +530,42 @@ namespace Selen {
         }
         //Атрибут Тип двигателя
         public string GetMotorType() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543313");//todo name!
-            if (attribute != null && attribute.Value.name != "") 
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Тип двигателя")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
+            if (attribute != null && attribute.Value.name != "")
                 return attribute.Value.name;
-             return null;
+            return null;
         }
         //Атрибут Место установки
         public string GetPlacement() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543347");//todo name!
-            if (attribute != null && attribute.Value.name != "") 
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Место установки")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
+            if (attribute != null && attribute.Value.name != "")
                 return attribute.Value.name;
             return null;
         }
         //Атрибут Материал
         public string GetMaterial() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543138");//todo name!
-            if (attribute != null && attribute.Value.name != "") 
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Материал")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
+            if (attribute != null && attribute.Value.name != "")
                 return attribute.Value.name;
             return null;
         }
         //Атрибут Срок годности
         public string GetExpirationDays() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2283760");//todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Срок годности")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.name != "") {
                 var val = float.Parse(attribute.Value.name.Split(' ').First().Replace(".", ","));
-                if (attribute.Value.name.Contains("недел"))
-                    return (val * 7).ToString("F0");
                 return (val * 365).ToString("F0");
             }
             return null;
         }
         //Атрибут Расположение детали
         public string GetPlace() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543152");//todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Расположение детали")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.name != "") {
                 return attribute.Value.name;
             }
@@ -541,7 +573,8 @@ namespace Selen {
         }
         //Атрибут Сторона установки
         public string GetSide() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2627738");//todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Сторона установки")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.name != "") {
                 return attribute.Value.name;
             }
@@ -557,7 +590,8 @@ namespace Selen {
         }
         //Атрибут Ключевые слова
         public string GetKeywords() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543336"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Ключевые слова")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -565,7 +599,8 @@ namespace Selen {
         }
         //Атрибут Толщина, мм
         public string GetThickness() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543314"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Толщина")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -573,7 +608,8 @@ namespace Selen {
         }
         //Атрибут Высота, мм
         public string GetHeight() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543149"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Высота")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -581,7 +617,8 @@ namespace Selen {
         }
         //Атрибут Длина, мм
         public string GetLengthAttr() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543150"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Длина")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -589,7 +626,8 @@ namespace Selen {
         }
         //Атрибут Объем, л
         public string GetVolume() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2614266"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Объем, л")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value.Replace(".", ",");
             } else
@@ -597,7 +635,8 @@ namespace Selen {
         }
         //Атрибут Объем, мл
         public string GetVolumeML() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2627783"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Объем, мл")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value.Replace(".", ",").Split(',').First();
             } else
@@ -605,7 +644,8 @@ namespace Selen {
         }
         //Атрибут Количество в упаковке
         public string GetCountInBox() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2597286"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Количество в упаковке")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -613,7 +653,8 @@ namespace Selen {
         }
         //Атрибут Количество отверстий
         public string GetCountOfHoles() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543014"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Количество отверстий")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return attribute.Value.value;
             } else
@@ -621,7 +662,8 @@ namespace Selen {
         }
         //Атрибут Внешний диаметр, мм
         public string GetDiameterOut() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543013"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Внешний диаметр")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -629,7 +671,8 @@ namespace Selen {
         }
         //Атрибут Внутренний диаметр, мм
         public string GetDiameterIn() {
-            var attribute = attributes?.Find(f => f.Attribute.id == "2543147"); //todo name!
+            var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Внутренний диаметр")).id;
+            var attribute = attributes?.Find(f => f.Attribute.id == atrId);
             if (attribute != null && attribute.Value.value != "") {
                 return (float.Parse(attribute.Value.value.Replace(".", ",")) * 10).ToString("F0"); //см => мм
             } else
@@ -684,9 +727,9 @@ namespace Selen {
             }
             n = n.Replace("(копия)", "");
             //удаляю номера, похожие на телефон
-            n = Regex.Replace(n, "([7-9]\\d{9,10})", string.Empty); 
+            n = Regex.Replace(n, "([7-9]\\d{9,10})", string.Empty);
             //удаляю html разметку
-            n = Regex.Replace(n, "<[^>]+>", string.Empty); 
+            n = Regex.Replace(n, "<[^>]+>", string.Empty);
             //ограничение длины
             while (n.Length > length) {
                 n = n.Remove(n.LastIndexOf(' '));
@@ -701,11 +744,11 @@ namespace Selen {
                            .Replace("|", " "),
                            "<[^>]+>", " ").Trim();
 
-        public List<string> DescriptionList(int b = 3000, List<string> dop = null, bool removeSpec = false, 
+        public List<string> DescriptionList(int b = 3000, List<string> dop = null, bool removeSpec = false,
                                             bool removePhone = false, string specDesc = null) {
             string d;
             //ищем специальное описание для маркетплейса
-            if (specDesc!= null) {
+            if (specDesc != null) {
                 //var pattern = @"\{([A-Z_.]+)\}\s?([\s|\S]*)\{\/\1\}";  //для поиска всех тегов
                 //подставляем нужный тег в регулярное выражение
                 var pattern = @"\{(" + specDesc + @")\}\s?([\s|\S]*)\{\/\1\}";
@@ -861,13 +904,13 @@ namespace Selen {
             var pattern = @"([0-9]+[.,]*[0-9]*)\s*см";
             var number = Regex.Match(d, pattern)?.Groups[1]?.Value;
             if (!string.IsNullOrEmpty(number))
-                return number.Replace(",",".");
+                return number.Replace(",", ".");
             //ищем размер в мм
             pattern = @"([0-9]+[.,]*[0-9]*)\s*мм";
             number = Regex.Match(d, pattern)?.Groups[1]?.Value;
             if (!string.IsNullOrEmpty(number)) {
-                float fn = float.Parse(number)/10;
-                return fn.ToString().Replace(",",".");
+                float fn = float.Parse(number) / 10;
+                return fn.ToString().Replace(",", ".");
             }
             return "10";
         }
@@ -920,8 +963,8 @@ namespace Selen {
             //проверяю сперва характеристику для озона
             Attributes manufacture = null;
             if (ozon) {
-                var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Brend Ozon")).id;
-                manufacture = attributes?.Find(f => f.Attribute.id == atrId);  //"2583395"); //Бренд для озон
+                var atrId = Class365API._attributesForGoods.First(a => a.name.StartsWith("Brend Ozon"))?.id;
+                manufacture = id != null ? attributes?.Find(f => f.Attribute.id == atrId) : null;  //"2583395"); //Бренд для озон
             }
             //использую основную характеристику в карточке
             if (manufacture == null) {
@@ -1024,8 +1067,9 @@ namespace Selen {
                     dim[0] = float.Parse(this.length.Replace(".", ","));
                     dim[1] = float.Parse(this.width.Replace(".", ","));
                     dim[2] = float.Parse(this.height.Replace(".", ","));
-                    for(int i = 0; i < 3; i++) 
-                        if (dim[i] < 5) dim[i] = 5;
+                    for (int i = 0; i < 3; i++)
+                        if (dim[i] < 5)
+                            dim[i] = 5;
                     Array.Sort(dim);
                     Array.Reverse(dim);
                     return dim;
@@ -1435,16 +1479,16 @@ namespace Selen {
         }
     }
 
-    public class AttributesForGoods { 
+    public class AttributesForGoods {
         public string id { get; set; }
         public string name { get; set; }
         public string updated { get; set; }
         public bool selectable { get; set; }
         public bool archive { get; set; }
         public bool deleted { get; set; }
-    
-    //  'description' => NULL,
-    //  'sort' => 77145,
+
+        //  'description' => NULL,
+        //  'sort' => 77145,
     }
 
     //public class SupplyGoods { 
@@ -1471,7 +1515,7 @@ namespace Selen {
         public string updated;
     }
 
-    public class Class365Countries { 
+    public class Class365Countries {
         public string id;
         public string name;
         public string full_name;
@@ -1479,6 +1523,6 @@ namespace Selen {
         public string code;
         public string alfa2;
         public string alfa3;
-    
+
     }
 }

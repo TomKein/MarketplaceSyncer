@@ -18,10 +18,10 @@ using Selen.Tools;
 namespace Selen {
     public delegate Task SyncEventDelegate();
     public enum UrlCode {
-        drom = 209334,
-        vk = 209360,
-        ozon = 854879,
-        wb = 854882
+        Drom = 209334,
+        VK = 209360,
+        Ozon = 854879,
+        WB = 854882
     }
     public enum SyncStatus {
         Waiting,
@@ -649,10 +649,10 @@ namespace Selen {
                     &&
                     (!string.IsNullOrEmpty(_bus[b].drom) ||
                     !string.IsNullOrEmpty(_bus[b].vk) ||
-                    !string.IsNullOrEmpty(_bus[b].ozon))) {
+                    !string.IsNullOrEmpty(_bus[b].Ozon))) {
                     _bus[b].drom = "";
                     _bus[b].vk = "";
-                    _bus[b].ozon = "";
+                    _bus[b].Ozon = "";
                     _bus[b].WB = "";
                     await RequestAsync("put", "goods", new Dictionary<string, string>{
                         {"id", _bus[b].id},

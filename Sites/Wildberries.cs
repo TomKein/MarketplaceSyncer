@@ -86,7 +86,7 @@ namespace Selen.Sites {
         public async Task SyncAsync() {
             try {
                 if (!await DB.GetParamBoolAsync("wb.syncEnable")) {
-                    Log.Add($"{L} StartAsync: синхронизация отключена!");
+                    Log.Add($"{L}Sync: синхронизация отключена!");
                     return;
                 }
                 _bus = Class365API._bus;
@@ -101,7 +101,7 @@ namespace Selen.Sites {
                 if (_categories == null)
                     await GetCategoriesAsync();
                 if (_objects == null)
-                    await GetObjectsAsync(new[] { "760", "6240", "8555", "1162", "479", "6237", "3", "2050", "6119" });
+                    await GetObjectsAsync(new[] { "8891", "760", "6240", "8555", "1162", "479", "6237", "3", "2050", "6119" });
                 if (_objectsJA == null) {
                     var str = JsonConvert.SerializeObject(_objects);
                     _objectsJA = JArray.Parse(str);
@@ -120,12 +120,6 @@ namespace Selen.Sites {
                 _kgtPriceProcent = await DB.GetParamIntAsync("wb.kgtPriceProcent");
                 _minOverPrice = await DB.GetParamIntAsync("wb.minOverPrice");
 
-
-                //tests
-                //if (_tnvd == null)
-                //await GetTnvdAsync("7985");
-                //await GetCharcsAsync("7985");
-
                 await GetCardsListAsync();
                 await GetPricesAsync();
                 await GetStocksAsync();
@@ -135,10 +129,9 @@ namespace Selen.Sites {
             } catch (Exception ex) {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
-                Log.Add($"{L} SyncAsync: ошибка! - " + ex.Message);
+                Log.Add($"{L}Sync: ошибка - " + ex.Message);
                 new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
-            //}
         }
         public async Task MakeReserve() {
             try {
@@ -153,9 +146,7 @@ namespace Selen.Sites {
                 data["dateFrom"] = unixTimeStamp.ToString();
                 var res = await GetRequestAsync(data, "https://marketplace-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(_jsonResponse);
-                Log.Add($"{L}MakeReserve: получено заказов: {wb.orders.Count}"
-                    //+$"\n{wb.orders.Select(s => s.id).Aggregate((x1, x2) => x1 + "\n" + x2)}"
-                    );
+                Log.Add($"{L}MakeReserve: получено заказов: {wb.orders.Count}");
 
                 //загружаем список заказов, для которых уже делали резервирование
                 var reserveList = new List<string>();
@@ -217,32 +208,37 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L}MakeReserve: ошибка - " + x.Message);
-                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
         //GET запросы к api wb
         public async Task<string> GetRequestAsync(Dictionary<string, string> request, string apiRelativeUrl) {
             try {
-            if (request != null) {
-                var qstr = QueryStringBuilder.BuildQueryString(request);
-                apiRelativeUrl += "?" + qstr;
-            }
-            HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
-            var response = await _hc.SendAsync(requestMessage);
-            _jsonResponse = await response.Content.ReadAsStringAsync();
-            await Task.Delay(1500);
-            if (response.StatusCode == HttpStatusCode.OK) {
-                if (_jsonResponse.Contains("\"data\"")) {
-                    var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
-                    if (responseObject.error)
-                        Log.Add($"{L} GetRequestAsync: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
-                    return JsonConvert.SerializeObject(responseObject.data);
+                if (request != null) {
+                    var qstr = QueryStringBuilder.BuildQueryString(request);
+                    apiRelativeUrl += "?" + qstr;
                 }
-                return _jsonResponse;
-            } else
-                throw new Exception($"{response.StatusCode} {response.ReasonPhrase} {response.Content} // {_jsonResponse}");
+                HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("GET"), apiRelativeUrl);
+
+                HttpResponseMessage response = null;
+                for (int i = 0; i < 5; i++) {
+                    response = await _hc.SendAsync(requestMessage);
+                    _jsonResponse = await response.Content.ReadAsStringAsync();
+                    await Task.Delay(1500);
+
+                    if (response.StatusCode == HttpStatusCode.OK) {
+                        if (_jsonResponse.Contains("\"data\"")) {
+                            var responseObject = JsonConvert.DeserializeObject<WbResponse>(_jsonResponse);
+                            if (responseObject.error)
+                                Log.Add($"{L}GetRequest: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
+                            else
+                                return JsonConvert.SerializeObject(responseObject.data);
+                        }else
+                            return _jsonResponse;
+                    }
+                }
+                throw new Exception($"{response?.StatusCode} {response?.ReasonPhrase} {response?.Content} // {_jsonResponse}");
             } catch (Exception x) {
-                Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{L}GetRequest: ошибка - apiRelativeUrl:{apiRelativeUrl}, request:{request}, message:{x.Message}");
                 throw x;
             }
             //return null;
@@ -786,11 +782,6 @@ namespace Selen.Sites {
 
             return good.Price * good.GetQuantOfSell() + overPrice;
         }
-        //цена до скидки (старая)
-        //private int GetOldPrice(int newPrice) {
-        //    return (int) (Math.Ceiling((newPrice * (1 + _oldPriceProcent / 100)) / 100) * 100);
-        //}
-
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckCardsAsync(bool checkAll = false) {
             foreach (var card in _cardsList) {
@@ -798,15 +789,15 @@ namespace Selen.Sites {
                     //карточка в бизнес.ру с id = vendorCode товара на вб
                     var b = _bus.FindIndex(_ => _.id == card.vendorCode);
                     if (b == -1)
-                        throw new Exception($"карточка бизнес.ру с id = {card.vendorCode} не найдена!");
-                    if (!_bus[b].WB.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
+                        Log.Add($"{L}CheckCards: предупреждение - карточка бизнес.ру с id = {card.vendorCode} не найдена!");
+                    else if (!_bus[b].WB.Contains("http") ||                  //если карточка найдена,но товар не привязан к бизнес.ру
                         _bus[b].WB.Contains("/00000/") ||                     //либо ссылка есть, но неверный sku
                         checkAll) {                                           //либо передали флаг проверять всё
                         await SaveUrlAsync(_bus[b], card.nmID);
                         //await UpdateCardAsync(_bus[b], card);
                     }
                 } catch (Exception x) {
-                    Log.Add($"{L} CheckGoodsAsync ошибка! checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
+                    Log.Add($"{L} CheckGoodsAsync ошибка - checkAll:{checkAll} offer_id:{card.vendorCode} message:{x.Message}");
                     //_isCardsListCheckNeeds = true;
                 }
             }
@@ -823,7 +814,7 @@ namespace Selen.Sites {
             } catch (Exception x) {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
-                Log.Add($"{L} UpdateProductAsync ошибка! name:{good.name} message:{x.Message}");
+                Log.Add($"{L} UpdateProductAsync ошибка - name:{good.name} message:{x.Message}");
             }
         }
         //обновление фотографий
@@ -849,10 +840,10 @@ namespace Selen.Sites {
                 await Task.Delay(1000);
                 if (!isSuc)
                     throw new Exception("запрос на обновление фото вернул ошибку!");
-                Log.Add($"{L} UpdateMediaAsync: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
+                Log.Add($"{L}UpdateMedia: {good.name} -  фотографии успешно обновлены! ({urls.Count})");
                 card.photos = good.images.Select(i => new WbPhoto { big = i.url }).ToList();
             } catch (Exception x) {
-                Log.Add($"{L} UpdateMediaAsync ошибка! name:{good.name} message:{x.Message}");
+                Log.Add($"{L}UpdateMedia: ошибка - name:{good.name} message:{x.Message}");
             }
             _flag = false;
         }
@@ -879,7 +870,7 @@ namespace Selen.Sites {
                     await Task.Delay(1000);
                     urlList.Add($@"https://avtotehnoshik.ru/{fileName}.jpg");
                 } catch (Exception x) {
-                    throw new Exception($"{L} SendImagesToFtpAsync: ошибка! - {x.Message}");
+                    throw new Exception($"{L}SendImagesToFtp: ошибка! - {x.Message}");
                 }
             }
             cl.Dispose();
