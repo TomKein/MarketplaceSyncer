@@ -348,7 +348,7 @@ namespace Selen.Sites {
         //обновление остатков товара на озон
         private async Task UpdateStocks(GoodObject bus, ProductInfo productInfo, OzonWareHouse warehouse) {
             try {
-                var amount = bus.Amount;
+                var amount = (int) bus.Amount;
                 //обнуляем остаток, если остаток ниже нуля или товар стал б/у
                 if (!bus.New || amount < 0)
                     amount = 0;
@@ -784,7 +784,6 @@ namespace Selen.Sites {
         }
         //массовый запрос цен
         async Task<List<OzonPriceListItem>> GetPrices() {
-            //var last_id = "";
             var cursor = "";
             var total = 0;
             var priceList = new List<OzonPriceListItem>();
@@ -1701,7 +1700,6 @@ namespace Selen.Sites {
     public class OzonPriceList {
         public List<OzonPriceListItem> items { get; set; }
         public int total { get; set; }
-        //public string last_id { get; set; }
         public string cursor { get; set; }
     }
     public class OzonPriceListItem {
@@ -1975,12 +1973,6 @@ namespace Selen.Sites {
         public bool archived { get; set; }
         public bool is_discounted { get; set; }
     }
-    /////////////////////////////////////////
-    //public class ProductInfoStocks {
-    //    public Item[] items { get; set; }
-    //    public int total { get; set; }
-    //    public string last_id { get; set; }
-    //}
     public class Item {
         public int product_id { get; set; }
         public string offer_id { get; set; }
