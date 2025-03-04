@@ -22,13 +22,19 @@ namespace Selen.Sites {
         readonly string _url;                                                               //номер поля в карточке
         readonly int _updateFreq;                                                           //частота обновления списка (часов)
         int _maxDiscont;                                                                    //максимальная скидка %
-        const string BASE_BUS_URL = "https://www.wildberries.ru/catalog/00000/detail.aspx";
-        List<WbCard> _cardsList = new List<WbCard>();                                       //список товаров вб
-        const string CARDS_LIST_FILE = @"..\data\wildberries\wb_productList.json";          //файл для кеширования списка карточек вб
+        const string BASE_BUS_URL = "https://www.wildberries.ru/catalog/00000/detail.aspx"; //временная ссылка для бизнес.ру
+        const string CARDS_LIST_FILE = @"..\data\wildberries\wb_productList.json";          //товары
+        List<WbCard> _cardsList = new List<WbCard>();
+        const string CARDS_PRICES_FILE = @"..\data\wildberries\wb_priceList.json";          //цены
         List<WbPrice> _cardsPrices = new List<WbPrice>();
-        const string CARDS_PRICES_FILE = @"..\data\wildberries\wb_priceList.json";          //файл для кеширования цен вб
+        const string CARDS_STOCKS_FILE = @"..\data\wildberries\wb_stocksList.json";         //остатки
         List<WbStock> _cardsStocks = new List<WbStock>();
-        const string CARDS_STOCKS_FILE = @"..\data\wildberries\wb_stocksList.json";         //файл для кеширования остатков вб
+        const string COLORS_FILE = @"..\data\wildberries\wb_colors.json";                   //цвета
+        List<WbColor> _colors;
+        const string CATEGORIES_FILE = @"..\data\wildberries\wb_categories.json";           //категории товаров
+        List<WbCategory> _categories;       
+        const string SUBJECTS_CHARCS_FILE = @"..\data\wildberries\wb_subjects_charcs.json"; //характеристики подкатегорий
+        List<WbCharc> _subjectsCharcs;
 
         List<WbWareHouse> _wareHouses;                                                      //склады
 
@@ -38,10 +44,8 @@ namespace Selen.Sites {
 
         string _jsonResponse;
 
-        List<WbCategory> _categories;       //категории товаров
         List<WbObject> _objects;            //подкатегории товаров
         JArray _objectsJA;                  //подкатегории товаров в формате JsonArray
-        List<WbColor> _colors;              //цвета
         List<WbCountry> _countries;         //страны
         List<WbTnvd> _tnvd;                 //коды ТНВЭД
 
@@ -110,6 +114,7 @@ namespace Selen.Sites {
                     await GetColorsAsync();
                 if (_countries == null)
                     await GetCountriesAsync();
+                await GetSubjectsCharcs();
 
                 await GetWarehouseList();
 
@@ -124,6 +129,7 @@ namespace Selen.Sites {
                 await GetPricesAsync();
                 await GetStocksAsync();
                 await UpdateAll();
+                await UpdateRandom();
                 await AddProductsAsync();
                 CheckSizes();
             } catch (Exception ex) {
@@ -268,16 +274,15 @@ namespace Selen.Sites {
         }
         //Родительские категории товаров
         public async Task GetCategoriesAsync() {
-            var catsFile = @"..\data\wildberries\wb_categories.json";
-            if (File.GetLastWriteTime(catsFile) < DateTime.Now.AddDays(-_updateFreq)) {
+            if (File.GetLastWriteTime(CATEGORIES_FILE) < DateTime.Now.AddDays(-_updateFreq)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
                 var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/object/parent/all");
                 _categories = JsonConvert.DeserializeObject<List<WbCategory>>(s);
-                File.WriteAllText(catsFile, s);
+                File.WriteAllText(CATEGORIES_FILE, s);
                 Log.Add($"{L} GetCategoriesAsync: получено категорий {_categories.Count}");
             } else {
-                var s = File.ReadAllText(catsFile);
+                var s = File.ReadAllText(CATEGORIES_FILE);
                 try {
                     _categories = JsonConvert.DeserializeObject<List<WbCategory>>(s);
                 } catch (Exception x) {
@@ -321,44 +326,60 @@ namespace Selen.Sites {
             }
             Log.Add($"{L} GetObjectsAsync: загружено подкатегорий: {_objects.Count}");
         }
-        //Характеристики предмета (подкатегории)
-        public async Task<List<WbCharc>> GetCharcsAsync(string subjectId = null) {
-            if (subjectId == null)
-                return null;
-            var listCharcs = new List<WbCharc>();
-            var childWbCharcsFile = $@"..\data\wildberries\wb_{subjectId}_charcs.json";
-            var lastWriteTime = File.GetLastWriteTime(childWbCharcsFile);
-            if (lastWriteTime < DateTime.Now.AddDays(-_updateFreq)) {
-                var data = new Dictionary<string, string>();
-                data["locale"] = "ru";
-                data["subjectId"] = subjectId;
-                var s = await GetRequestAsync(data, $"https://content-api.wildberries.ru/content/v2/object/charcs/{subjectId}");
-                var resultList = JsonConvert.DeserializeObject<List<WbCharc>>(s);
-                listCharcs.AddRange(resultList);
-                File.WriteAllText(childWbCharcsFile, JsonConvert.SerializeObject(listCharcs));
-                Log.Add($"{L} GetCharcsAsync: {subjectId} - получено характеристик: {listCharcs.Count}");
+        //характеристики подкатегорий
+        public async Task GetSubjectsCharcs() {
+            if (_subjectsCharcs != null) return;
+            if (File.GetLastWriteTime(SUBJECTS_CHARCS_FILE) < DateTime.Now.AddDays(-_updateFreq)) {
+                _subjectsCharcs = new List<WbCharc>();
+                Log.Add($"{L} GetSubjectsCharcs: файл характеристик подкатегорий устарел, они будут запрошены заново");
             } else {
-                var s = File.ReadAllText(childWbCharcsFile);
                 try {
-                    listCharcs.AddRange(JsonConvert.DeserializeObject<List<WbCharc>>(s));
+                    var s = File.ReadAllText(SUBJECTS_CHARCS_FILE);
+                    _subjectsCharcs = JsonConvert.DeserializeObject<List<WbCharc>>(s);
+                    Log.Add($"{L} GetSubjectsCharcs: загружены характеристики подкатегорий: {_subjectsCharcs.Count}");
                 } catch (Exception x) {
-                    Log.Add($"{L} GetCharcsAsync: ошибка - {x.Message}");
+                    Log.Add($"{L} GetSubjectsCharcs: ошибка загрузки характеристик категорйи - {x.Message}");
                 }
             }
-            return listCharcs;
+        }
+        //Характеристики предмета (подкатегории)
+        public async Task<List<WbCharc>> GetCharcsAsync(int subjectId) {
+            //если наш список характеристик уже содержит характеристики для требуемого id - используем
+            try {
+                if (_subjectsCharcs.Any(a=>a.subjectID == subjectId)) {
+                    return _subjectsCharcs.Where(w=>w.subjectID == subjectId).ToList();
+                }
+                //иначе запрашиваем характеристики с вб
+                var data = new Dictionary<string, string>();
+                data["locale"] = "ru";
+                data["subjectId"] = subjectId.ToString();
+                var s = await GetRequestAsync(data, $"https://content-api.wildberries.ru/content/v2/object/charcs/{subjectId}");
+                var resultList = JsonConvert.DeserializeObject<List<WbCharc>>(s);
+                if (resultList.Count > 0) {
+                    Log.Add($"{L}GetCharcs: [{subjectId}] {resultList[0].subjectName} - получено характеристик: {resultList.Count}");
+                    _subjectsCharcs.AddRange(resultList);
+                    File.WriteAllText(SUBJECTS_CHARCS_FILE, JsonConvert.SerializeObject(_subjectsCharcs));
+                    Log.Add($"{L}GetCharcs: список характеристик сохранен: {_subjectsCharcs.Count}");
+                    return resultList;
+                } else {
+                    Log.Add($"{L}GetCharcs: предупреждение - характеристики {subjectId} не получены!");
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}GetCharcs: ошибка - {x.Message}");
+            }
+            return null;
         }
         //Цвет
         public async Task GetColorsAsync() {
-            var fileName = @"..\data\wildberries\wb_colors.json";
-            if (File.GetLastWriteTime(fileName) < DateTime.Now.AddDays(-_updateFreq)) {
+            if (File.GetLastWriteTime(COLORS_FILE) < DateTime.Now.AddDays(-_updateFreq)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
                 var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/directory/colors");
                 _colors = JsonConvert.DeserializeObject<List<WbColor>>(s);
-                File.WriteAllText(fileName, s);
+                File.WriteAllText(COLORS_FILE, s);
                 Log.Add($"{L} GetCategoriesAsync: получено цветов: {_colors.Count}");
             } else {
-                var s = File.ReadAllText(fileName);
+                var s = File.ReadAllText(COLORS_FILE);
                 try {
                     _colors = JsonConvert.DeserializeObject<List<WbColor>>(s);
                 } catch (Exception x) {
@@ -464,8 +485,7 @@ namespace Selen.Sites {
                         else if (a.charcType == "2")
                             data[0].variants[0].characteristics.Add(new { id = a.charcID, value = a.value as string[] });
                         else if (a.charcType == "4")
-                            data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (float) a.value });  //todo валидно??
-                                                                                                                       //data[0].variants[0].characteristics.Add(new { id = a.charcID, value = (int) a.value });
+                            data[0].variants[0].characteristics.Add(new { id = a.charcID, value = Math.Round((decimal) (float) a.value, 2) }); 
                     }
                     var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/upload");
                     if (res) {
@@ -557,17 +577,30 @@ namespace Selen.Sites {
                 throw new Exception($"GetManufactureCountry: {x.Message}");
             }
         }
-        //Атрибут Вес с упаковкой  (кг)
+        //Атрибут Вес 
         async Task GetWeight(GoodObject good, List<WbCharc> a) {
             try {
-                a.Add(new WbCharc {
+                var charcs = await GetCharcsAsync(a[0].subjectID);
+                if (charcs.Any(_ => _.charcID == 88952))         //Вес товара с упаковкой (г)
+                    a.Add(new WbCharc {
+                        charcID = 88952,
+                        value = good.Weight*1000, //кг => г
+                        charcType = "4"
+                    });
+                if (charcs.Any(_=> _.charcID == 89008))         //Вес товара без упаковки (г)
+                    a.Add(new WbCharc {
+                        charcID = 89008,
+                        value = good.WeightNet*1000, //кг => г
+                        charcType = "4"
+                    });
+                if (charcs.Any(_=>_.charcID == 88953))          //Вес с упаковкой (кг)
+                    a.Add(new WbCharc {
                     charcID = 88953,
-                    value = good.Weight,                //todo дробное число валидно?
-                                                        //value = (int) good.Weight,
+                    value = good.Weight,
                     charcType = "4"
                 });
             } catch (Exception x) {
-                throw new Exception($"GetWeight: {x.Message}");
+                throw new Exception($"{L}GetWeight: ошибка - {x.Message}");
             }
         }
         //Атрибут Артикул производителя
@@ -878,26 +911,7 @@ namespace Selen.Sites {
         }
         async Task UpdateAll() {
             try {
-                //загружаю список на обновление
-                List<GoodObject> busToUpdate;
-                if (File.Exists(BUS_TO_UPDATE_FILE)) {
-                    var f = File.ReadAllText(BUS_TO_UPDATE_FILE);
-                    busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
-                } else
-                    busToUpdate = new List<GoodObject>();
-                //список обновленных карточек со ссылкой на объявления
-                _busToUpdate = Class365API._bus
-                                          .Where(_ => _.WB != null 
-                                                   && _.WB.Contains("http") 
-                                                   &&!_.WB.Contains("/00000/")
-                                                   && _.IsTimeUpDated() 
-                                                   || busToUpdate.Any(b => b.id == _.id))
-                                           .ToList();
-                if (_busToUpdate.Count > 0) {
-                    var bu = JsonConvert.SerializeObject(_busToUpdate);
-                    File.WriteAllText(BUS_TO_UPDATE_FILE, bu);
-                    Log.Add($"{L} в списке карточек для обновления {_busToUpdate.Count}");
-                }
+                await GetGoodListToUpdate();
                 for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                     if (Class365API.IsTimeOver)
                         return;
@@ -912,17 +926,51 @@ namespace Selen.Sites {
                         Log.Add(L + "UpdateProductsAsync - " + x.Message);
                     }
                 }
-                //теперь выборочная проверка
+            } catch (Exception x) {
+                Log.Add($"{L}UpdateAll: ошибка обновления! {x.Message}");
+            }
+        }
+        //готовлю список на обновление
+        async Task GetGoodListToUpdate() => await Task.Factory.StartNew(() => {
+            List<GoodObject> busToUpdate;
+            if (File.Exists(BUS_TO_UPDATE_FILE)) {
+                var f = File.ReadAllText(BUS_TO_UPDATE_FILE);
+                busToUpdate = JsonConvert.DeserializeObject<List<GoodObject>>(f) ?? new List<GoodObject>();
+            } else
+                busToUpdate = new List<GoodObject>();
+            //список обновленных карточек со ссылкой на объявления
+            _busToUpdate = Class365API._bus
+                                        .Where(_ => _.WB != null
+                                                && _.WB.Contains("http")
+                                                && !_.WB.Contains("/00000/")
+                                                && _.IsTimeUpDated()
+                                                || busToUpdate.Any(b => b.id == _.id)
+
+                                                || _cardsPrices.Find(f => f.vendorCode == _.id)?.discount > _maxDiscont
+
+                                                )
+                                        .ToList();
+            if (_busToUpdate.Count > 0) {
+                var bu = JsonConvert.SerializeObject(_busToUpdate);
+                File.WriteAllText(BUS_TO_UPDATE_FILE, bu);
+                Log.Add($"{L}карточек в списке для обновления: {_busToUpdate.Count}");
+            }
+        });
+        //выборочная проверка и обновление
+        async Task UpdateRandom() {
+            try {
                 var checkProductCount = await DB.GetParamIntAsync("wb.checkProductCount");
                 var checkProductIndex = await DB.GetParamIntAsync("wb.checkProductIndex");
                 if (checkProductIndex >= _cardsList.Count)
                     checkProductIndex = 0;
-                busToUpdate = Class365API._bus.Where(_ => _.WB != null &&
-                                                            _.WB.Contains("http") &&
-                                                           !_.WB.Contains("/00000/"))
-                                                .Skip(checkProductIndex)
-                                                .Take(checkProductCount)
-                                                .ToList();
+                List<GoodObject> busToUpdate = await Task<List<GoodObject>>.Factory.StartNew(() => {
+                    return Class365API._bus.Where(_ => _.WB != null &&
+                                                                _.WB.Contains("http") &&
+                                                               !_.WB.Contains("/00000/"))
+                                                    .Skip(checkProductIndex)
+                                                    .Take(checkProductCount)
+                                                    .ToList();
+                });
                 for (int b = 0; b < busToUpdate.Count; b++) {
                     if (Class365API.IsTimeOver)
                         break;
@@ -931,15 +979,15 @@ namespace Selen.Sites {
                         await Task.Delay(100);
                         checkProductIndex++;
                     } catch (Exception x) {
-                        Log.Add(L + "UpdateProductsAsync - " + x.Message);
+                        Log.Add($"{L}UpdateAll - " + x.Message);
                     }
                 }
                 await DB.SetParamAsync("wb.checkProductIndex", checkProductIndex.ToString());
-            } catch (Exception x) {
-                Log.Add($"{L} UpdateAll: ошибка обновления! {x.Message}");
+            }
+            catch (Exception x) {
+                Log.Add($"{L}ошибка выборочной проверки - {x.Message}");
             }
         }
-
 
         //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
         //а также выборочная проверка карточек
@@ -1110,11 +1158,11 @@ namespace Selen.Sites {
 
                 var res = await PostRequestAsync(data, "https://content-api.wildberries.ru/content/v2/cards/update");
                 if (res)
-                    Log.Add($"{L} UpdateCard: {good.name} - карточка обновлена!");
+                    Log.Add($"{L}UpdateCard: {good.name} - карточка обновлена!");
                 else
                     throw new Exception("ошибка обновления карточки!");
             } catch (Exception x) {
-                Log.Add($"{L} UpdateCard: ошибка обновления описания {good.id} {good.name} - {x.Message}");
+                Log.Add($"{L}UpdateCard: ошибка обновления описания {good.id} {good.name} - {x.Message}");
             }
         }
         string GetDescription(GoodObject good) {

@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 226;
+        int _version = 227;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -443,7 +443,11 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("test start");
-                await _wb.MakeReserve();
+                
+                
+                await _wb.GetCharcsAsync(7985);
+                
+                
                 Log.Add("test end");
             } catch (Exception x) {
                 Log.Add(x.Message);

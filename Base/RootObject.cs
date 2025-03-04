@@ -298,9 +298,12 @@ namespace Selen {
         [JsonIgnore]
         public string WeightString => Weight.ToString("F1").Replace(",", ".");
         [JsonIgnore]
-        public float Weight => (float) ((weight == null || weight == 0)
-            ? defaultWeight
-            : weight + (weight < 1 ? 0.05 : 0)); //если вес меньше 1 кг, то добавляем 50 г на упаковку, для большого веса это не актуально
+        public float WeightNet => (float) ((weight == null || weight == 0) ? defaultWeight
+                                                                           : weight);
+
+        [JsonIgnore]
+        //меньше 1 кг добавляем 50 г на упаковку, для большого веса +100 г
+        public float Weight => (float) (WeightNet + (WeightNet < 1 ? 0.05 : 0.1)); 
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
