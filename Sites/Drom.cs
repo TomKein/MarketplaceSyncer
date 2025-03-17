@@ -253,9 +253,9 @@ namespace Selen.Sites {
             });
         }
         bool UpdateOffer(GoodObject b) {
-            if (b.drom.Contains("tin/ht") || b.drom.Contains("in/000000000")) {
-                Log.Add($"{L}предупреждение - неверная ссылка! [{b.id}] {b.name}");
-                return false;
+            if (b.drom.Contains("tin/ht") || b.drom.Contains("in/000000000") || b.drom.Length < 30) {
+                Log.Add($"{L}предупреждение - неверная ссылка! [{b.id}] {b.name} => '{b.drom}'");
+                return true;
             }
             _dr.Navigate(b.drom, "//input[@name='subject']");
             Thread.Sleep(1000);

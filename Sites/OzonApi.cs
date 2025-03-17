@@ -879,7 +879,7 @@ namespace Selen.Sites {
                     return a;
                 a.additionalAttributes.AddAttribute(await GetPlaceAttributeAsync(bus, a));
                 a.additionalAttributes.AddAttribute(GetPackQuantityAttribute(bus));
-                a.additionalAttributes.AddAttribute(GetCountAttribute());
+                a.additionalAttributes.AddAttribute(GetCountAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetTypeOfProductAttribute(a.typeId, a.typeName));
                 a.additionalAttributes.AddAttribute(GetBrendAttribute(bus));
                 a.additionalAttributes.AddAttribute(GetPartAttribute(bus));
@@ -1476,14 +1476,14 @@ namespace Selen.Sites {
                     }
                 }
             };
-        //Атрибут Количество штук (обязательный параметр)
-        Attribute GetCountAttribute(int cnt = 1) =>
+        //Атрибут Количество штук (обязательный параметр) = Количество в упаковке
+        Attribute GetCountAttribute(GoodObject bus) =>
             new Attribute {
                 complex_id = 0,
                 id = 7202,
                 values = new Value[] {
                     new Value{
-                        value = cnt.ToString()
+                        value = bus.GetPackQuantity()
                     }
                 }
             };

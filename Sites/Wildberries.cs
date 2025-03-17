@@ -700,7 +700,7 @@ namespace Selen.Sites {
             try {
                 _maxDiscont = await DB.GetParamIntAsync("wb.maxDiscont");
                 //если файл свежий и обновление списка не требуется
-                if (DateTime.Now < File.GetLastWriteTime(CARDS_PRICES_FILE).AddDays(_updateFreq)
+                if (DateTime.Now < File.GetLastWriteTime(CARDS_PRICES_FILE).AddHours(1)
                     && !_isCardsPricesCheckNeeds) {
                     //загружаем с диска, если список пустой
                     if (_cardsPrices.Count == 0) {
@@ -975,9 +975,14 @@ namespace Selen.Sites {
                     if (Class365API.IsTimeOver)
                         break;
                     try {
-                        await CheckCardAsync(busToUpdate[b]);
-                        await Task.Delay(100);
-                        checkProductIndex++;
+                        var card = _cardsList.Find(f => f.vendorCode == busToUpdate[b].id);
+                        if (card == null) {
+                            Log.Add($"предупреждение: {busToUpdate[b].name} - карточка не найдена на ВБ!");
+                        } else {
+                            await UpdateCardAsync(busToUpdate[b], card);
+                            await Task.Delay(100);
+                            checkProductIndex++;
+                        }
                     } catch (Exception x) {
                         Log.Add($"{L}UpdateAll - " + x.Message);
                     }
