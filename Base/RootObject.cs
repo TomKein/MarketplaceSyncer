@@ -303,7 +303,7 @@ namespace Selen {
 
         [JsonIgnore]
         //меньше 1 кг добавляем 50 г на упаковку, для большого веса +100 г
-        public float Weight => (float) (WeightNet + (WeightNet < 1 ? 0.05 : 0.1)); 
+        public float Weight => (float) (WeightNet + (WeightNet < 1 ? 0.05 : 0.1));
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
@@ -1067,12 +1067,9 @@ namespace Selen {
                 !string.IsNullOrWhiteSpace(this.height) &&
                 !string.IsNullOrWhiteSpace(this.length)) {
                 try {
-                    dim[0] = float.Parse(this.length.Replace(".", ","));
-                    dim[1] = float.Parse(this.width.Replace(".", ","));
-                    dim[2] = float.Parse(this.height.Replace(".", ","));
-                    for (int i = 0; i < 3; i++)
-                        if (dim[i] < 5)
-                            dim[i] = 5;
+                    dim[0] = SizeSM("length", 5);
+                    dim[1] = SizeSM("width", 5);
+                    dim[2] = SizeSM("height", 5);
                     Array.Sort(dim);
                     Array.Reverse(dim);
                     return dim;
@@ -1528,4 +1525,33 @@ namespace Selen {
         public string alfa3;
 
     }
+
+    public class Class365SalePriceList {
+        public string id;
+        public string number;
+        public string date;
+        public string updated;
+        //goods
+        //parent_price_list_id
+        //deleted
+        //departments_ids
+        //owner_employee_id
+        //organization_id
+        //responsible_employee_id
+    }
+    public class Class365PriceListGoodPrices {
+        public string id;
+        public string price_list_good_id;
+        public string price_type_id;
+        public float price;
+        public string updated;
+        //goods
+        //parent_price_list_id
+        //deleted
+        //departments_ids
+        //owner_employee_id
+        //organization_id
+        //responsible_employee_id
+    }
+
 }

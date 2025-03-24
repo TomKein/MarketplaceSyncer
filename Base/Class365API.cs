@@ -460,6 +460,10 @@ namespace Selen {
                     Status = SyncStatus.NeedUpdate;
                     return;
                 }
+
+                //обновляем цены (костыль из-за проблемы в бизнес.ру, в дальнейшем удалить!)
+                await updatePrices();
+
                 lightSyncGoods.Clear();
                 //новые или измененные карточки товаров
                 string s = await RequestAsync("get", "goods", new Dictionary<string, string>{
@@ -551,6 +555,39 @@ namespace Selen {
                 Status = SyncStatus.NeedUpdate;
             }
         }
+        //обновление назначений цен (костыль, для обновления карточек - баг бизнес.ру)
+        private static async Task updatePrices() {
+            var priceListType = new[] { "salepricelistgoodprices", "buypricelistgoodprices" };
+            foreach (var type in priceListType) {
+                //новые или измененные отпускные цены товаров
+                string s = await RequestAsync("get", type, new Dictionary<string, string>{
+                                {"updated[from]", _lastLiteScanTime.AddMinutes(-60).ToString()}
+                            });
+                var priceLists = JsonConvert.DeserializeObject<List<Class365PriceListGoodPrices>>(s);
+                foreach (var priceList in priceLists) { 
+                    //меняем цену на 1 копейку
+                    s = await RequestAsync("put", type, new Dictionary<string, string>{
+                                        {"id", priceList.id},
+                                        {"price", (priceList.price+0.01).ToString("#.##").Replace(",",".")}
+                        });
+                    if (s.Contains("updated"))
+                        Log.Add($"назначение цен {priceList.id} обновлено => {(priceList.price + 0.01).ToString("#.##")}");
+                    else
+                        Log.Add($"ошибка обновления назначения цен {priceList.id} => {(priceList.price + 0.01).ToString("#.##")}");
+                    //теперь меняем обратно
+                    s = await RequestAsync("put", type, new Dictionary<string, string>{
+                                        {"id", priceList.id},
+                                        {"price", priceList.price.ToString("#.##").Replace(",",".")}
+                        });
+                    if (s.Contains("updated"))
+                        Log.Add($"назначение цен {priceList.id} обновлено => {priceList.price.ToString("#.##")}");
+                    else
+                        Log.Add($"ошибка обновления назначения цен {priceList.id} => {priceList.price.ToString("#.##")}");
+                    
+                }
+            }
+        }
+
         public static async Task SaveBusAsync() {
             try {
                 await Task.Factory.StartNew(() => {

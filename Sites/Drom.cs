@@ -268,6 +268,7 @@ namespace Selen.Sites {
             SetPart(b);
             SetAlternativeParts(b);
             SetWeight(b);
+            SetDiskParams(b);
             PressOkButton();
             Log.Add($"{L}объявление обновлено - [{b.id}] {b.name}");
             if (b.Amount <= 0) {
@@ -354,7 +355,7 @@ namespace Selen.Sites {
                     SetDesc(b);
                     SetPrice(b);
                     SetOptions(b);
-                    SetDiam(b);
+                    SetDiskParams(b);
                     SetAudioSize(b);
                     SetWeight(b);
                     Thread.Sleep(30000);
@@ -418,11 +419,11 @@ namespace Selen.Sites {
 
             }
         }
-        void SetDiam(GoodObject b) {
-            if (b.GroupName == "Шины, диски, колеса") {
-                _dr.ButtonClick("//div[@data-name='wheelDiameter']//div[contains(@class,'chosen-container-single')]");
-                _dr.WriteToSelector("//div[@data-name='wheelDiameter']//input", b.GetDiskSize() + OpenQA.Selenium.Keys.Enter);
-                _dr.WriteToSelector("//input[@name='quantity']", "1");
+        void SetDiskParams(GoodObject b) {
+            if (b.GroupName == "Шины, диски, колеса" || b.name.StartsWith("Диск") && b.name.Contains("R")) {
+                var size = b.GetDiskSize();
+                if (_dr.GetElementAttribute("//div[@data-name='wheelDiameter']//input", "value") != size)
+                    _dr.WriteToSelector("//div[@data-name='wheelDiameter']//input", b.GetDiskSize() + OpenQA.Selenium.Keys.Enter);
                 string dtype;
                 switch (b.DiskType()) {
                     case "Литые":
@@ -432,10 +433,16 @@ namespace Selen.Sites {
                         dtype = "Кованый";
                         break;
                     default:
-                        dtype = "Литой";
+                        dtype = "Штампованный";
                         break;
                 }
-                _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", dtype + OpenQA.Selenium.Keys.Enter);
+                if (_dr.GetElementAttribute($"//div[@data-name='diskType']//input[@value='{dtype.ToLower()}']","checked")!="true")
+                    _dr.ButtonClick($"//div[@data-name='diskType']//label[text()='{dtype}']/..");
+                if (_dr.GetElementAttribute("//div[@data-name='model']//input[@data-role='name-input']", "value").Length == 0)
+                    _dr.WriteToSelector("//div[@data-name='model']//input[@data-role='name-input']", dtype + OpenQA.Selenium.Keys.Enter);
+                //количество комплектов (всегда 1)
+                if (_dr.GetElementAttribute("//input[@name='quantity']", "value") != "1")
+                    _dr.WriteToSelector("//input[@name='quantity']", "1" + OpenQA.Selenium.Keys.Tab);
             }
         }
         void SetOptions(GoodObject b) {

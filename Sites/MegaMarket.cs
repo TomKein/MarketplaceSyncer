@@ -160,10 +160,9 @@ namespace Selen.Sites {
             }
         }
         //цена продажи
-        int GetPrice(GoodObject b) { 
+        int GetPrice(GoodObject b) {
             var weight = b.Weight;
-            var d = b.GetDimentions();
-            var length = d[0] + d[1] + d[2];
+            var length = b.SizeSM("length", 5) + b.SizeSM("width", 5) + b.SizeSM("height", 5);
             //наценка 30% на всё
             int overPrice = (int) (b.Price * 0.30);
             //если наценка меньше 200 р - округляю

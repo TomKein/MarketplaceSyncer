@@ -792,28 +792,26 @@ namespace Selen.Sites {
             _isCardsPricesCheckNeeds = true;
         }
         //расчет цен WB с учетом наценки
-        private int GetNewPrice(GoodObject good) {
-            var weight = good.Weight * good.GetQuantOfSell();
-            var d = good.GetDimentions();
-            var length = d[0] + d[1] + d[2] * good.GetQuantOfSell();
+        private int GetNewPrice(GoodObject g) {
+            var weight = g.Weight * g.GetQuantOfSell();
+            var length = g.SizeSM("length", 5) + g.SizeSM("width", 5) + g.SizeSM("height", 5) * g.GetQuantOfSell();
             int overPrice;
             //вес от 50 кг или размер более 200 -- наценка 30% + 3500 р
             if (weight >= 50 || length >= 200)
-                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel3;
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel3;
             //вес от 30 кг или размер от 150 -- наценка 30% + 2000 р
             else if (weight >= 30 || length >= 150)
-                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel2;
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel2;
             //вес от 10 кг или размер от 100 -- наценка 1500 р
             else if (weight >= 10 || length >= 100)
-                overPrice = (int) (good.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel1;
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel1;
             //для маленьких и легких наценка 40% на всё
             else
-                overPrice = (int) (good.Price * 0.01 * _basePriceProcent);
+                overPrice = (int) (g.Price * 0.01 * _basePriceProcent);
             //если наценка меньше 200 р - округляю
             if (overPrice < _minOverPrice)
                 overPrice = _minOverPrice;
-
-            return good.Price * good.GetQuantOfSell() + overPrice;
+            return g.Price * g.GetQuantOfSell() + overPrice;
         }
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckCardsAsync(bool checkAll = false) {
@@ -949,6 +947,7 @@ namespace Selen.Sites {
                                                 || _cardsPrices.Find(f => f.vendorCode == _.id)?.discount > _maxDiscont
 
                                                 )
+                                        .OrderBy(_=> _cardsPrices.Find(f => f.vendorCode == _.id)?.discount)
                                         .ToList();
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
