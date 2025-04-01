@@ -10,6 +10,7 @@ using Selen.Base;
 using Selen.Tools;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 
 namespace Selen.Sites {
     public class YandexMarket {
@@ -30,6 +31,8 @@ namespace Selen.Sites {
         MarketCampaigns _campaigns;
         List<GoodObject> _bus;
         List<string> _addDesc, _addDesc2;
+        float _oldPriceProcent;
+        int _maxDiscount;
 
         //списки исключений
         const string EXCEPTION_GOODS_FILE = @"..\data\yandex\exceptionGoodsList.json";
@@ -41,8 +44,16 @@ namespace Selen.Sites {
 
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
+            Task.Factory.StartNew(() => { 
+                _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
+                _maxDiscount = DB.GetParamInt("yandex.maxDiscount");
+            });
         }
         //генерация xml
+        public async Task StartSync() {
+            await GenerateXML();
+            await UpdateActions();
+        }
         public async Task GenerateXML() {
             if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
                 Log.Add($"{L}GenerateXML: синхронизация отключена!");
@@ -70,7 +81,7 @@ namespace Selen.Sites {
                 //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
                 var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
                 //старая цена из настроек
-                var oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
+                _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
                 //обновляю вес товара по умолчанию
                 GoodObject.UpdateDefaultWeight();
                 //обновляю объем товара по умолчанию
@@ -102,7 +113,7 @@ namespace Selen.Sites {
                         var price = GetPrice2(b);
                         offer.Add(new XElement("price", price));
                         //цена до скидки +10%
-                        offer.Add(new XElement("oldprice", (Math.Ceiling((price * (1 + oldPriceProcent / 100)) / 100) * 100).ToString("F0")));
+                        offer.Add(new XElement("oldprice", ((long) ((price / (1 - _oldPriceProcent / 100)) / 10) * 10).ToString("F0")));
                         offer.Add(new XElement("currencyId", "RUR"));
                         foreach (var photo in b.images.Take(20))
                             offer.Add(new XElement("picture", photo.url));
@@ -251,13 +262,12 @@ namespace Selen.Sites {
                 !b.name.StartsWith("Четверть")
                 )
                 list.AddRange(_addDesc2);
-            var d = b.DescriptionList(lenght);
+            //var d = b.DescriptionList(lenght);
             //добавляем к основному описанию специальное
-            d.AddRange(b.DescriptionList(lenght, list, specDesc: "MARKET_DESCRIPTION"));
+            //d.AddRange(b.DescriptionList(lenght, list, specDesc: "MARKET_DESCRIPTION"));
+            var d = b.DescriptionList(lenght, list, specDesc: "MARKET_DESCRIPTION");
             return d.Aggregate((a1, a2) => a1 + "\r\n" + a2);
         }
-
-
         float GetAmountExpress(GoodObject b) {
             var size = b.GetDimentions();
             if (size[0] > EXPRESS_MAX_LENGTH ||
@@ -345,29 +355,34 @@ namespace Selen.Sites {
             return (int) (newPrice / 10) * 10; //округление цен до 10 р
         }
         //работа с api
-        public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
+        public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
             try {
-                if (request != null) {
-                    var qstr = QueryStringBuilder.BuildQueryString(request);
+                if (query != null) {
+                    var qstr = QueryStringBuilder.BuildQueryString(query);
                     apiRelativeUrl += "?" + qstr;
                 }
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
                 requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
+                if (body != null) { 
+                    var httpContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
+                    requestMessage.Content = httpContent;
+                }
+
                 var response = await _hc.SendAsync(requestMessage);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
                     var json = await response.Content.ReadAsStringAsync();
                     return json;
-                } else
-                    throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
+                } else 
+                    throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + await response.Content.ReadAsStringAsync());
             } catch (Exception x) {
                 Log.Add(" ошибка запроса! - " + x.Message);
                 throw;
             }
         }
-        public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
+        public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
             try {
-                var response = await PostRequestAsync(apiRelativeUrl, request, method);
+                var response = await PostRequestAsync(apiRelativeUrl, query, body, method);
                 T obj = JsonConvert.DeserializeObject<T>(response);
                 return obj;
             } catch (Exception x) {
@@ -440,21 +455,215 @@ namespace Selen.Sites {
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
+        //обновление акций
+        public async Task UpdateActions() {
+            try {
+                //проверяем акции только раз в час, в начале часа
+                if (Class365API.SyncStartTime.Minute > Class365API._checkIntervalMinutes)
+                    return;
+                await GetCompains();
+                //запрашиваем список акций
+                var businessId = _campaigns.campaigns[0].business.id;
+                var path = $"businesses/{businessId}/promos";
+                var body = new {
+                    participation = "PARTICIPATING_NOW"
+                };
+                var actions = await PostRequestAsync<MarketActions>(path, body: body, method: "POST");
+                //проверяем список товаров в каждой акции
+                var limit = 450;
+                foreach (var promo in actions.result.promos) {
+                    path = $"businesses/{businessId}/promos/offers";
+                    var query = new Dictionary<string, string> {
+                        {"limit", limit.ToString()}
+                    };
+                    var promoId = promo.id;
+                    string page_token = null;
+                    List<MarketActionOffer> offers = new List<MarketActionOffer>();
+                    do {
+                        if (page_token != null)
+                            query["page_token"] = page_token;
+                        var body2 = new {
+                            promoId = promoId
+                        };
+                        var requestOffers = await PostRequestAsync<MarketActionOffers>(path, query: query, body: body2, method: "POST");
+                        offers.AddRange(requestOffers.result.offers);
+                        page_token = requestOffers.result.paging.nextPageToken;
+                    } while (page_token != null);
+                    Log.Add($"{L}UpdateActions: [{promo.id}] {promo.name} - получено товаров " +
+                            $"{promo.assortmentInfo.potentialOffers}, активно товаров {promo.assortmentInfo.activeOffers}");
+                    //списки товаров на добавление и удаление из акций
+                    List<MarketActionOffer> toAdd = new List<MarketActionOffer>();
+                    List<MarketActionOffer> toDelete = new List<MarketActionOffer>();
+
+                    //проверим товары в данной акции
+                    foreach (var offer in offers) {
+                        //проверим скидки
+                        var oldPrice = offer.@params.discountParams.price;              //зачеркнутая цена в акции (до скидки)
+                        var promoPrice = offer.@params.discountParams.promoPrice;       //цена по акции
+                        var maxPromoPrice = offer.@params.discountParams.maxPromoPrice; //максимальная цена по акции >= цена по акции
+
+                        var b = Class365API.GoodById(offer.offerId);                    //карточка в бизнес.ру
+                        var catalogPrice = GetPrice2(b);                                //наша цена в каталоге
+
+                        //считаем дисконт, как отношение максимальной цены по акции к нашей цене в каталоге
+                        var discount = 100 * (catalogPrice - maxPromoPrice) / (float) catalogPrice;
+                        
+                        //новая цена для акции
+                        var promoPriceNew = catalogPrice > maxPromoPrice ? maxPromoPrice : catalogPrice;
+                        //новая зачеркнутая цена для акции
+                        var oldPriceNew = (long) ((promoPriceNew / (1 - _oldPriceProcent/100))/10)*10;
+
+                        //если скидка больше допустимой - убираем из акции
+                        if (discount > _maxDiscount) {
+                            if (offer.status != "NOT_PARTICIPATING" && toDelete.Count < 100) {
+                                toDelete.Add(offer);
+                                Log.Add($"{L}UpdateActions: [{offer.offerId}] {b.name} " +
+                                    $"- удаляем из акции, скидка {discount} > {_maxDiscount}, oldPrice = {oldPriceNew}, promoPrice = {promoPriceNew}");
+                            }
+                        }
+                        //если скидка в пределах допустимой - добавляем в акцию
+                        if (discount <= _maxDiscount) {
+                            //если статус = не участвует, либо цена до скидки не равна расчетной, либо цена со скидкой не равна максимальной
+                            if (offer.status != "AUTO" && (offer.status == "NOT_PARTICIPATING" || oldPriceNew != oldPrice || promoPriceNew != promoPrice) && toAdd.Count < 100) {
+                                offer.@params.discountParams.price = oldPriceNew;
+                                offer.@params.discountParams.promoPrice = promoPriceNew;
+                                toAdd.Add(offer);
+                                Log.Add($"{L}UpdateActions: [{offer.offerId}] {b.name} " +
+                                    $"- добавляем в акцию, скидка {discount} <= {_maxDiscount}, oldPrice = {oldPriceNew}, promoPrice = {promoPriceNew}");
+                            }
+                        }
+                    }
+
+                    //удаляем товары из акции списком
+                    if (toDelete.Count > 0) {
+                        path = $"businesses/{businessId}/promos/offers/delete";
+                        var body3 = new {
+                            promoId = promoId,
+                            offerIds = toDelete.Select(s => s.offerId).ToArray()
+                        };
+                        var requestResult = await PostRequestAsync(path, body: body3, method: "POST");
+                        Log.Add($"{L}UpdateActions: результат удаления - {requestResult}");
+                    }
+                    //добавляем товары в акцию списком
+                    if (toAdd.Count > 0) {
+                        path = $"businesses/{businessId}/promos/offers/update";
+                        var body4 = new {
+                            promoId = promoId,
+                            offers = toAdd.Select(s => new {
+                                offerId = s.offerId,
+                                @params = new {
+                                    discountParams = new {
+                                        promoPrice = s.@params.discountParams.promoPrice,
+                                        price = s.@params.discountParams.price
+                                    }
+                                }
+                            }).ToArray()
+                        };
+                        var requestResult = await PostRequestAsync(path, body: body4, method: "POST");
+                        Log.Add($"{L}UpdateActions: результат добавления - {requestResult}");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}UpdateActions: ошибка {x.Message}");
+            }
+        }
     }
     /////////////////////////////////////
     /// классы для работы с запросами ///
     /////////////////////////////////////
+    public class MarketActionOffers {
+        public MarketActionOffersResult result { get; set; }        //Список товаров, которые участвуют или могут участвовать в акции
+        public string status { get; set; }                          //Тип ответа: OK, ERROR
+    }
+    public class MarketActionOffersResult {
+        public MarketActionOffer[] offers { get; set; }             //Товары, которые участвуют или могут участвовать в акции
+        public MarketForwardPager paging { get; set; }              //Ссылка на следующую страницу
+    }
+    public class MarketActionOffer {
+        public string offerId { get; set; }                         //Ваш SKU — идентификатор товара в вашей системе
+        public MarketOfferParams @params {  get; set; }             //Параметры товара в акции
+        public string status { get; set; }                          //Статус товара в акции
+        public MarketAutoParticipationDetails autoParticipatingDetails { get; set; } //Информация об автоматическом добавлении товара в акцию
+    }
+    public class MarketOfferParams { 
+        public MarketOfferDiscountParams discountParams { get; set; } //Параметры товара в акции с типом DIRECT_DISCOUNT или BLUE_FLASH
+        public MarketPromocodeParams promocodeParams { get; set; }  //Параметры товара в акции с типом MARKET_PROMOCODE
+    }
+    public class MarketForwardPager {
+        public string nextPageToken { get; set; }                   //Идентификатор следующей страницы результатов
+    }
+    public class MarketAutoParticipationDetails {
+        public int[] campaignIds { get; set; }                      //Магазины, в которых товар добавлен в акцию автоматически
+    }
+    public class MarketOfferDiscountParams {
+        public long maxPromoPrice { get; set; }                     //Максимально возможная цена для участия в акции
+        public long price { get; set; }                             //Зачеркнутая цена — та, по которой товар продавался до акции
+        public long promoPrice { get; set; }                        //Цена по акции — та, по которой вы хотите продавать товар
+    }
+    public class MarketPromocodeParams {
+        public long maxPrice { get; set; }                          //Максимально возможная цена для участия в акции до применения промокода
+    }
+    public class MarketActions {
+        public MarketActionsResult result { get; set; }             //Информация об акциях Маркета
+        public string status { get; set; }                          //Тип ответа: OK, ERROR
+    }
+    public class MarketActionsResult {
+        public MarketPromos[] promos { get; set; }
+    }
+    public class MarketPromos {
+        public MarketAssortmentInfo assortmentInfo {  get; set; }   //Информация о товарах в акции
+        public MarketBestsellerInfo bestsellerInfo { get; set; }    //Информация об акции «Бестселлеры Маркета».
+        public string id { get; set; }                              //Идентификатор акции
+        public string name { get; set; }                            //Название акции
+        public MarketMechanicsInfo mechanicsInfo { get; set; }      //Информация о типе акции
+        public bool participating { get; set; }                     //Участвует или участвовал ли продавец в этой акции
+
+        public MarketPromoPeriod period { get; set; }               //Время проведения акции
+    
+        public string[] channels { get; set; }           //Список каналов продвижения товаров
+        public MarketPromoConstrains constraints { get; set; }      //Ограничения в акции
+    }
+    public class MarketAssortmentInfo {
+        public int activeOffers { get; set; }                       //Количество товаров, которые участвуют или участвовали в акции
+        public int potentialOffers { get; set; }                    //Количество доступных товаров в акции
+        public bool processing {  get; set; }                       //Есть ли изменения в ассортименте, которые еще не применились
+    }
+    public class MarketBestsellerInfo {
+        public bool bestseller {  get; set; }                       //Является ли акция «Бестселлером Маркета»
+        public string entryDeadline { get; set; }                   //До какой даты можно добавить товар в акцию «Бестселлеры Маркета»
+        public bool renewalEnabled { get; set; }                    //Включен ли автоматический перенос ассортимента между акциями «Бестселлеры Маркета».
+    }
+    public class MarketMechanicsInfo {
+        public string type { get; set; }                            //Тип акции: DIRECT_DISCOUNT, BLUE_FLASH, MARKET_PROMOCODE
+        public MarketPromocodeInfo promocodeInfo { get; set; }      //Информация для типа MARKET_PROMOCODE. Параметр заполняется только для этого типа акции
+    }
+    public class MarketPromocodeInfo {
+        public int discount { get; set; }                           //Процент скидки по промокоду
+        public string promocode { get; set; }                       //Промокод
+    }
+    public class MarketPromoPeriod {
+        public string dateTimeFrom { get; set; }                    //Дата и время начала акции
+        public string dateTimeTo { get; set; }                      //Дата и время окончания акции
+    }
+    public class MarketPromoConstrains {
+        public int[] warehouseIds { get; set; }                     //Идентификаторы складов, для которых действует акция
+    }
     public class MarketCampaigns {
-        public List<MarketCampaign> campaigns { get; set; }
-        public Pager pager { get; set; }
+        public List<MarketCampaign> campaigns { get; set; }         //Список с информацией по каждому магазину
+        public MarketPager pager { get; set; }
     }
     public class MarketCampaign {
         public string domain { get; set; }
         public string id { get; set; }
         public string clientId { get; set; }
+        public MarketBusiness business { get; set; }                //Информация о кабинете
+    }
+    public class MarketBusiness {
+        public int id { get; set; }
+        public string name { get; set; }
     }
     public class MarketOrders {
-        public Pager pager { get; set; }
+        public MarketPager pager { get; set; }
         public List<MarketOrder> orders { get; set; }
     }
     public class MarketOrder {
@@ -471,7 +680,7 @@ namespace Selen.Sites {
         public float price { get; set; }
         public int count { get; set; }
     }
-    public class Pager {
+    public class MarketPager {
         public int total { get; set; }
         public int from { get; set; }
         public int to { get; set; }

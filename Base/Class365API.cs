@@ -462,7 +462,7 @@ namespace Selen {
                 }
 
                 //обновляем цены (костыль из-за проблемы в бизнес.ру, в дальнейшем удалить!)
-                await updatePrices();
+                await UpdatePrices();
 
                 lightSyncGoods.Clear();
                 //новые или измененные карточки товаров
@@ -556,7 +556,7 @@ namespace Selen {
             }
         }
         //обновление назначений цен (костыль, для обновления карточек - баг бизнес.ру)
-        private static async Task updatePrices() {
+        private static async Task UpdatePrices() {
             var priceListType = new[] { "salepricelistgoodprices", "buypricelistgoodprices" };
             foreach (var type in priceListType) {
                 //новые или измененные отпускные цены товаров
