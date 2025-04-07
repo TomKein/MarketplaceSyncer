@@ -260,7 +260,7 @@ namespace Selen.Sites {
             }
         }
         //отгружаю фото на сервер вк
-        private void UploadPhotos(int b, ref long mainPhoto, ref List<long> dopPhotos) {
+        private void UploadPhotos(int b, ref long mainPhoto, ref List<long> dopPhotos) { //todo vk - replace folder for tmp image files
             //количество фото ограничиваем до 5
             int numPhotos = Class365API._bus[b].images.Count > 5 ? 5 : Class365API._bus[b].images.Count;
             //отправляем каждую фотку на сервер вк

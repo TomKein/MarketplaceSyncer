@@ -472,7 +472,8 @@ namespace Selen.Sites {
                                     dimensions = new {
                                           length = good.SizeSM("length",5),
                                           width = good.SizeSM("width",5),
-                                          height = good.SizeSM("height",5)
+                                          height = good.SizeSM("height",5),
+                                          weightBrutto = good.Weight
                                     },
                                     characteristics = new List<object>()
                                 }
@@ -568,6 +569,8 @@ namespace Selen.Sites {
                     value = "Гонконг";
                 else if (value.Contains("ОАЭ"))
                     value = "Объединенные Арабские Эмираты";
+                else if (value.Contains("Соединенные Штаты"))
+                    value = "США";
                 a.Add(new WbCharc {
                     charcID = 14177451,
                     value = value,
@@ -581,24 +584,24 @@ namespace Selen.Sites {
         async Task GetWeight(GoodObject good, List<WbCharc> a) {
             try {
                 var charcs = await GetCharcsAsync(a[0].subjectID);
-                if (charcs.Any(_ => _.charcID == 88952))         //Вес товара с упаковкой (г)
-                    a.Add(new WbCharc {
-                        charcID = 88952,
-                        value = good.Weight*1000, //кг => г
-                        charcType = "4"
-                    });
+                //if (charcs.Any(_ => _.charcID == 88952))         //Вес товара с упаковкой (г)
+                //    a.Add(new WbCharc {
+                //        charcID = 88952,
+                //        value = good.Weight*1000, //кг => г
+                //        charcType = "4"
+                //    });
                 if (charcs.Any(_=> _.charcID == 89008))         //Вес товара без упаковки (г)
                     a.Add(new WbCharc {
                         charcID = 89008,
                         value = good.WeightNet*1000, //кг => г
                         charcType = "4"
                     });
-                if (charcs.Any(_=>_.charcID == 88953))          //Вес с упаковкой (кг)
-                    a.Add(new WbCharc {
-                    charcID = 88953,
-                    value = good.Weight,
-                    charcType = "4"
-                });
+                //if (charcs.Any(_=>_.charcID == 88953))          //Вес с упаковкой (кг)
+                //    a.Add(new WbCharc {
+                //    charcID = 88953,
+                //    value = good.Weight,
+                //    charcType = "4"
+                //});
             } catch (Exception x) {
                 throw new Exception($"{L}GetWeight: ошибка - {x.Message}");
             }
@@ -698,7 +701,7 @@ namespace Selen.Sites {
         //список цен товаров
         public async Task GetPricesAsync() {
             try {
-                _maxDiscont = await DB.GetParamIntAsync("wb.maxDiscont");
+                _maxDiscont = await DB.GetParamIntAsync("wb.maxDiscount");
                 //если файл свежий и обновление списка не требуется
                 if (DateTime.Now < File.GetLastWriteTime(CARDS_PRICES_FILE).AddHours(1)
                     && !_isCardsPricesCheckNeeds) {
@@ -846,6 +849,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                 Log.Add($"{L} UpdateProductAsync ошибка - name:{good.name} message:{x.Message}");
+                throw x;
             }
         }
         //обновление фотографий
@@ -979,17 +983,17 @@ namespace Selen.Sites {
                             Log.Add($"предупреждение: {busToUpdate[b].name} - карточка не найдена на ВБ!");
                         } else {
                             await UpdateCardAsync(busToUpdate[b], card);
-                            await Task.Delay(100);
+                            await Task.Delay(200);
                             checkProductIndex++;
                         }
                     } catch (Exception x) {
-                        Log.Add($"{L}UpdateAll - " + x.Message);
+                        Log.Add($"{L}UpdateRandom: ошибка - " + x.Message);
                     }
                 }
                 await DB.SetParamAsync("wb.checkProductIndex", checkProductIndex.ToString());
             }
             catch (Exception x) {
-                Log.Add($"{L}ошибка выборочной проверки - {x.Message}");
+                Log.Add($"{L}UpdateRandom: ошибка выборочной проверки - {x.Message}");
             }
         }
 
@@ -1129,7 +1133,8 @@ namespace Selen.Sites {
                         dimensions = new {
                             length = good.SizeSM("length",5),
                             width = good.SizeSM("width",5),
-                            height = good.SizeSM("height",5)
+                            height = good.SizeSM("height",5),
+                            weightBrutto = good.Weight
                         },
                         characteristics = new List<object>(),
                         sizes = new WbSizes[] {
@@ -1155,6 +1160,7 @@ namespace Selen.Sites {
                     card.dimensions.length == data[0].dimensions.length &&
                     card.dimensions.width == data[0].dimensions.width &&
                     card.dimensions.height == data[0].dimensions.height &&
+                    card.dimensions.weightBrutto == data[0].dimensions.weightBrutto &&
                     IsCharacteristicsEqual(card, data[0].characteristics)) {
                     //Log.Add($"{_l} UpdateCard: {card.title} - карточка не нуждается в обновлении");
                     return;
@@ -1357,6 +1363,7 @@ namespace Selen.Sites {
             public int length { get; set; } //Длина, см
             public int width { get; set; } //Ширина, см
             public int height { get; set; } //Высота, см
+            public float weightBrutto { get; set; } //новое свойство для передачи веса брутто!!
             public bool isValid { get; set; } //корректность габаритов
         }
         public class WbPhoto {

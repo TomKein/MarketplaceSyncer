@@ -48,6 +48,8 @@ namespace Selen {
         public static List<GoodObject> _bus = new List<GoodObject>();
         public static List<GoodObject> lightSyncGoods = new List<GoodObject>();
         public static List<AttributesForGoods> _attributesForGoods;
+        //поиск товара по id
+        public static GoodObject GoodById(string id) => _bus.Find(f => f.id == id);
         //источники заказа
         public static List<Class365Source> _source;
         public static Class365Source Source(string name) =>
@@ -65,7 +67,7 @@ namespace Selen {
         public static Class365Prices BuyPrice =>
             _buyPrices.Find(f => f.name.StartsWith("Закуп"));
         //страны
-        public static List<Class365Countries> _countries;
+        public static List<Class365Countries> _countries = new List<Class365Countries>();
         public static Class365Countries Country(string id) => _countries.Find(f => f.id == id);
 
         private static System.Timers.Timer _timer = new System.Timers.Timer();
@@ -119,7 +121,6 @@ namespace Selen {
         public static bool IsTimeOver { get {
                 return DateTime.Now > SyncStartTime.AddMinutes(_checkIntervalMinutes);
             } }
-
         static object _lockerRequests = new object();
         static bool _flagRequestActive = false;
         static string _labelBusText;
@@ -132,10 +133,8 @@ namespace Selen {
                 updatePropertiesEvent.Invoke();
             }
         }
-
         public static event SyncEventDelegate syncAllEvent = null;
         public static event SyncEventDelegate updatePropertiesEvent = null;
-
         static Class365API() {
             try {
                 var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(
@@ -163,62 +162,91 @@ namespace Selen {
         }
         public static async Task StartSync() {
             try {
-                //загружаю атрибуты
-                var sa = await RequestAsync("get", "attributesforgoods", new Dictionary<string, string>());
-                if (sa.Length>4)
-                    _attributesForGoods = JsonConvert.DeserializeObject<List<AttributesForGoods>>(sa);
-                //загружаю источники заказа
-                if (_source == null) {
-                    var src = await RequestAsync("get", "requestsource", new Dictionary<string, string>());
-                    if (src.Length > 4)
-                        _source = JsonConvert.DeserializeObject<List<Class365Source>>(src);
-                }
-                //загружаю статусы заказов
-                if (_orderStatuses == null) {
-                    var stat = await RequestAsync("get", "customerorderstatus", new Dictionary<string, string>());
-                    if (stat.Length > 4)
-                        _orderStatuses = JsonConvert.DeserializeObject<List<Class365CustomerOrderStatus>>(stat);
-                }
-                //цены
-                if (_salePrices == null) {
-                    var sp = await RequestAsync("get", "salepricetypes", new Dictionary<string, string>());
-                    if (sp.Length > 4)
-                        _salePrices = JsonConvert.DeserializeObject<List<Class365Prices>>(sp);
-                }
-                if (_buyPrices == null) {
-                    var bp = await RequestAsync("get", "buypricetypes", new Dictionary<string, string>());
-                    if (bp.Length > 4)
-                        _buyPrices = JsonConvert.DeserializeObject<List<Class365Prices>>(bp);
-                }
-                //страны
-                if (_countries == null) {
-                    var c = await RequestAsync("get", "countries", new Dictionary<string, string>());
-                    if (c.Length > 4)
-                        _countries = JsonConvert.DeserializeObject<List<Class365Countries>>(c);
-                }
-
-                if (File.Exists(BUS_FILE_NAME)) {
-                    await GetBusGroupsAsync();
-                    Log.Add("business.ru: загружаю список товаров...");
-                    await Task.Factory.StartNew(() => {
-                        var sb = File.ReadAllText(BUS_FILE_NAME);
-                        _bus = JsonConvert.DeserializeObject<List<GoodObject>>(sb);
-                    });
-                    Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
-                    LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
-                    Status = SyncStatus.Waiting;
-                } else {
-                    Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
-                    Status = SyncStatus.NeedUpdate;
-                }
-                _timer.Start();
+                await GetAttributes();
+                await GetOrderSources();
+                await GetOrderStatuses();
+                await GetPrices();
+                await GetCounties();
+                await LoadGoodList();
             } catch (Exception x) {
                 Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
-                _timer.Start();
                 Status = SyncStatus.NeedUpdate;
                 new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+#if DEBUG
+            return;
+#endif
+            _timer.Start();
         }
+        //Загружаем список товаров из файла
+        private static async Task LoadGoodList() {
+            if (File.Exists(BUS_FILE_NAME)) {
+                await GetBusGroupsAsync();
+                Log.Add("business.ru: загружаю список товаров...");
+                await Task.Factory.StartNew(() => {
+                    var sb = File.ReadAllText(BUS_FILE_NAME);
+                    _bus = JsonConvert.DeserializeObject<List<GoodObject>>(sb);
+                });
+                Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
+                LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
+                Status = SyncStatus.Waiting;
+            } else {
+                Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
+                Status = SyncStatus.NeedUpdate;
+            }
+        }
+        //загружаю список статусов заказов
+        private static async Task GetOrderStatuses() {
+            //загружаю статусы заказов
+            if (_orderStatuses == null) {
+                var stat = await RequestAsync("get", "customerorderstatus", new Dictionary<string, string>());
+                if (stat.Length > 4)
+                    _orderStatuses = JsonConvert.DeserializeObject<List<Class365CustomerOrderStatus>>(stat);
+            }
+        }
+        //загружаю источники заказа
+        private static async Task GetOrderSources() {
+            if (_source == null) {
+                var src = await RequestAsync("get", "requestsource", new Dictionary<string, string>());
+                if (src.Length > 4)
+                    _source = JsonConvert.DeserializeObject<List<Class365Source>>(src);
+            }
+        }
+        //загружаю атрибуты
+        private static async Task GetAttributes() {
+            var sa = await RequestAsync("get", "attributesforgoods", new Dictionary<string, string>());
+            if (sa.Length > 4)
+                _attributesForGoods = JsonConvert.DeserializeObject<List<AttributesForGoods>>(sa);
+        }
+        //Загружаем типы цен
+        private static async Task GetPrices() {
+            if (_salePrices == null) {
+                var sp = await RequestAsync("get", "salepricetypes", new Dictionary<string, string>());
+                if (sp.Length > 4)
+                    _salePrices = JsonConvert.DeserializeObject<List<Class365Prices>>(sp);
+            }
+            if (_buyPrices == null) {
+                var bp = await RequestAsync("get", "buypricetypes", new Dictionary<string, string>());
+                if (bp.Length > 4)
+                    _buyPrices = JsonConvert.DeserializeObject<List<Class365Prices>>(bp);
+            }
+        }
+        //загружаем страны
+        private static async Task GetCounties() {
+            if (_countries.Count == 0) {
+                for (int i = 1; ; i++) {
+                    var c = await RequestAsync("get", "countries", new Dictionary<string, string> {
+                            {"page", i.ToString() },
+                            {"limit","200" }
+                        });
+                    if (c.Length > 4)
+                        _countries.AddRange(JsonConvert.DeserializeObject<List<Class365Countries>>(c));
+                    else
+                        break;
+                }
+            }
+        }
+
         private static async void timer_sync_Tick(object sender, ElapsedEventArgs e) {
             if (DateTime.Now.Hour < DB.GetParamInt("syncStartHour") ||
                 DateTime.Now.Hour >= DB.GetParamInt("syncStopHour"))
@@ -462,7 +490,8 @@ namespace Selen {
                 }
 
                 //обновляем цены (костыль из-за проблемы в бизнес.ру, в дальнейшем удалить!)
-                await UpdatePrices();
+                //await 
+                    UpdatePrices();
 
                 lightSyncGoods.Clear();
                 //новые или измененные карточки товаров
@@ -561,7 +590,7 @@ namespace Selen {
             foreach (var type in priceListType) {
                 //новые или измененные отпускные цены товаров
                 string s = await RequestAsync("get", type, new Dictionary<string, string>{
-                                {"updated[from]", _lastLiteScanTime.AddMinutes(-60).ToString()}
+                                {"updated[from]", _lastLiteScanTime.AddMinutes(-30).ToString()}
                             });
                 var priceLists = JsonConvert.DeserializeObject<List<Class365PriceListGoodPrices>>(s);
                 foreach (var priceList in priceLists) { 

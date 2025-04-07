@@ -25,7 +25,8 @@ namespace Selen.Sites {
         readonly int EXPRESS_MAX_HEIGHT = 43;
         readonly int EXPRESS_MAX_WEIGHT = 30;
         // Получение токена https://yandex.ru/dev/market/partner-api/doc/ru/concepts/authorization#token
-        readonly string ACCESS_TOKEN = "Bearer y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
+        readonly string ACCESS_TOKEN_FILE = @"..\data\yandex\api.key";
+        readonly string ACCESS_TOKEN;
         public static string BasePath = "https://api.partner.market.yandex.ru";
         HttpClient _hc = new HttpClient();
         MarketCampaigns _campaigns;
@@ -39,11 +40,12 @@ namespace Selen.Sites {
         const string EXCEPTION_GROUPS_FILE = @"..\data\yandex\exceptionGroupsList.json";
         const string EXCEPTION_BRANDS_FILE = @"..\data\yandex\exceptionBrandsList.json";
         List<string> _exceptionGoods;
-        Dictionary<string, string> _exceptionBrands;
+        List<string> _exceptionBrands;
         List<string> _exceptionGroups;
 
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
+            ACCESS_TOKEN = File.ReadAllText(ACCESS_TOKEN_FILE);
             Task.Factory.StartNew(() => { 
                 _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
                 _maxDiscount = DB.GetParamInt("yandex.maxDiscount");
@@ -55,167 +57,177 @@ namespace Selen.Sites {
             await UpdateActions();
         }
         public async Task GenerateXML() {
-            if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
-                Log.Add($"{L}GenerateXML: синхронизация отключена!");
-                return;
-            }
-            while (Class365API.Status == SyncStatus.NeedUpdate)
-                await Task.Delay(30000);
-            _bus = Class365API._bus;
-            _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
-                File.ReadAllText(EXCEPTION_GROUPS_FILE));
-            _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
-                File.ReadAllText(EXCEPTION_GOODS_FILE));
-            _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string, string>>(
-                File.ReadAllText(EXCEPTION_BRANDS_FILE));
-            var gen = Task.Factory.StartNew(() => {
-                //интервал проверки
-                var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
-                if (uploadInterval == 0 || DateTime.Now.Hour % uploadInterval != 0)
-                    return false;
-                //доп. описание
-                _addDesc = JsonConvert.DeserializeObject<List<string>>(
-                    DB.GetParamStr("yandex.addDescription"));
-                _addDesc2 = JsonConvert.DeserializeObject<List<string>>(
-                    DB.GetParamStr("yandex.addDescription2"));
-                //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
-                var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
-                //старая цена из настроек
-                _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
-                //обновляю вес товара по умолчанию
-                GoodObject.UpdateDefaultWeight();
-                //обновляю объем товара по умолчанию
-                GoodObject.UpdateDefaultVolume();
-                //обновляю срок годности товара по умолчанию
-                GoodObject.UpdateDefaultValidity();
-                //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
-                //отсортированный по цене вниз
-                var bus = Class365API._bus.Where(w => w.Price > 0 &&
-                                                 w.images.Count > 0 &&
-                                                 (w.Amount > 0 ||
-                                                 DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime ||
-                                                 DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
-                              .OrderByDescending(o => o.Price);
-                Log.Add(L + "найдено " + bus.Count() + " потенциальных объявлений");
-                var offers = new XElement("offers");
-                var offersExpress = new XElement("offers");
-                //для каждой карточки
-                foreach (var b in bus) {
-                    try {
-                        var n = b.name.ToLowerInvariant();
-                        //исключения
-                        if (_exceptionGroups.Contains(b.GroupName)
-                         || _exceptionGoods.Any(e => n.StartsWith(e)))
-                            continue;
-                        var offer = new XElement("offer", new XAttribute("id", b.id));
-                        offer.Add(new XElement("categoryId", b.group_id));
-                        offer.Add(new XElement("name", b.NameLimit(150, "MARKET_TITLE")));
-                        var price = GetPrice2(b);
-                        offer.Add(new XElement("price", price));
-                        //цена до скидки +10%
-                        offer.Add(new XElement("oldprice", ((long) ((price / (1 - _oldPriceProcent / 100)) / 10) * 10).ToString("F0")));
-                        offer.Add(new XElement("currencyId", "RUR"));
-                        foreach (var photo in b.images.Take(20))
-                            offer.Add(new XElement("picture", photo.url));
-                        offer.Add(new XElement("description", new XCData(GetDescription(b))));
-                        var vendor = b.GetManufacture();
-                        //если пороизводитель не пустой и не содержится в исключениях - добавляем в товар
-                        if (vendor != null && !_exceptionBrands.Any(a => a.Key == vendor))
-                            offer.Add(new XElement("vendor", vendor));
-                        //артикул
-                        if (!string.IsNullOrEmpty(b.Part))
-                            offer.Add(new XElement("vendorCode", b.Part));
-                        offer.Add(new XElement("weight", b.WeightString));
-                        offer.Add(new XElement("dimensions", b.GetDimentionsString()));
-                        //блок ресейл
-                        if (!b.New) {
-                            //состояние - бывший в употреблении
-                            var condition = new XElement("condition", new XAttribute("type", "preowned"));
-                            //внешний вид - хороший, есть следы использования
-                            condition.Add(new XElement("quality", "good"));
-                            condition.Add(new XElement("reason", GetDescription(b, lenght: 390)));
-                            //сохраняю в оффер
-                            offer.Add(condition);
+            try {
+                if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
+                    Log.Add($"{L}GenerateXML: синхронизация отключена!");
+                    return;
+                }
+                while (Class365API.Status == SyncStatus.NeedUpdate)
+                    await Task.Delay(30000);
+                _bus = Class365API._bus;
+                _exceptionGroups = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GROUPS_FILE));
+                _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_GOODS_FILE));
+                _exceptionBrands = JsonConvert.DeserializeObject<List<string>>(
+                    File.ReadAllText(EXCEPTION_BRANDS_FILE));
+                var gen = Task.Factory.StartNew(() => {
+                    //интервал проверки
+                    var uploadInterval = DB.GetParamInt("yandex.uploadInterval");
+                    if (uploadInterval == 0 || DateTime.Now.Hour % uploadInterval != 0)
+                        return false;
+                    //доп. описание
+                    _addDesc = JsonConvert.DeserializeObject<List<string>>(
+                        DB.GetParamStr("yandex.addDescription"));
+                    _addDesc2 = JsonConvert.DeserializeObject<List<string>>(
+                        DB.GetParamStr("yandex.addDescription2"));
+                    //конвертирую время в необходимый формат 2022-12-11T17:26:06.6560855+03:00
+                    var timeNow = XmlConvert.ToString(DateTime.Now, XmlDateTimeSerializationMode.Local);
+                    //старая цена из настроек
+                    _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
+                    //обновляю вес товара по умолчанию
+                    GoodObject.UpdateDefaultWeight();
+                    //обновляю объем товара по умолчанию
+                    GoodObject.UpdateDefaultVolume();
+                    //обновляю срок годности товара по умолчанию
+                    GoodObject.UpdateDefaultValidity();
+                    //получаю список карточек с положительным остатком и ценой, у которых есть фотографии
+                    //отсортированный по цене вниз
+                    var bus = Class365API._bus.Where(w => w.Price > 0 
+                                                  && w.images.Count > 0 
+                                                  && (w.Amount > 0 ||
+                                                     DateTime.Parse(w.updated).AddDays(5) > Class365API.LastScanTime ||
+                                                     DateTime.Parse(w.updated_remains_prices).AddDays(5) > Class365API.LastScanTime))
+                                  .OrderByDescending(o => o.Price);
+                    Log.Add(L + "найдено " + bus.Count() + " потенциальных объявлений");
+                    var offers = new XElement("offers");
+                    var offersExpress = new XElement("offers");
+                    //для каждой карточки
+                    foreach (var b in bus) {
+                        try {
+                            var n = b.name.ToLowerInvariant();
+                            //исключения по бренду
+                            var vendor = b.GetManufacture()??"";
+                            var vendorLow = vendor.ToLowerInvariant();
+                            if (_exceptionBrands.Any(e => e.Contains(vendorLow)))
+                                continue;
+                            //по группам товаров
+                            if (_exceptionGroups.Contains(b.GroupName)
+                             || _exceptionGoods.Any(e => n.StartsWith(e)))
+                                continue;
+                            var offer = new XElement("offer", new XAttribute("id", b.id));
+                            offer.Add(new XElement("categoryId", b.group_id));
+                            offer.Add(new XElement("name", b.NameLimit(150, "MARKET_TITLE")));
+                            var price = GetPrice2(b);
+                            offer.Add(new XElement("price", price));
+                            //цена до скидки +10%
+                            offer.Add(new XElement("oldprice", ((long) ((price / (1 - _oldPriceProcent / 100)) / 10) * 10).ToString("F0")));
+                            offer.Add(new XElement("currencyId", "RUR"));
+                            foreach (var photo in b.images.Take(20))
+                                offer.Add(new XElement("picture", photo.url));
+                            offer.Add(new XElement("description", new XCData(GetDescription(b))));
+                            //если производитель не пустой и не содержится в исключениях - добавляем в товар
+                            if (vendor != null)
+                                offer.Add(new XElement("vendor", vendor));
+                            //артикул
+                            if (!string.IsNullOrEmpty(b.Part))
+                                offer.Add(new XElement("vendorCode", b.Part));
+                            offer.Add(new XElement("weight", b.WeightString));
+                            offer.Add(new XElement("dimensions", b.GetDimentionsString()));
+                            //блок ресейл
+                            if (!b.New) {
+                                //состояние - бывший в употреблении
+                                var condition = new XElement("condition", new XAttribute("type", "preowned"));
+                                //внешний вид - хороший, есть следы использования
+                                condition.Add(new XElement("quality", "good"));
+                                condition.Add(new XElement("reason", GetDescription(b, lenght: 390)));
+                                //сохраняю в оффер
+                                offer.Add(condition);
+                            }
+                            //срок годности (если группа масла, автохимия, аксессуары)
+                            if (!b.IsGroupSolidParts())
+                                offer.Add(new XElement("period-of-validity-days", b.GetValidity().Split(' ').First()));
+                            //квант продажи
+                            int quant = b.GetQuantOfSell();
+                            if (quant != 1) {
+                                offer.Add(new XElement("min-quantity", quant));
+                                offer.Add(new XElement("step-quantity", quant));
+                            }
+
+                            //копия оффера для склада Экспресс
+                            var offerExpress = new XElement(offer);
+
+                            //количество 
+                            offer.Add(new XElement("count", b.Amount));
+
+                            var amountExpress = GetAmountExpress(b);
+                            offerExpress.Add(new XElement("count", amountExpress));
+
+                            //если надо снять
+                            offer.Add(new XElement("disabled", b.Amount <= 0 ? "true" : "false"));
+                            offerExpress.Add(new XElement("disabled", amountExpress <= 0 ? "true" : "false"));
+                            //добавляю оффер к офферам
+                            offers.Add(offer);
+                            offersExpress.Add(offerExpress);
+                        } catch (Exception x) {
+                            Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
+                            if (DB.GetParamBool("alertSound"))
+                                new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                         }
-                        //срок годности (если группа масла, автохимия, аксессуары)
-                        if (!b.IsGroupSolidParts())
-                            offer.Add(new XElement("period-of-validity-days", b.GetValidity().Split(' ').First()));
-                        //квант продажи
-                        int quant = b.GetQuantOfSell();
-                        if (quant != 1) {
-                            offer.Add(new XElement("min-quantity", quant));
-                            offer.Add(new XElement("step-quantity", quant));
-                        }
-
-                        //копия оффера для склада Экспресс
-                        var offerExpress = new XElement(offer);
-
-                        //количество 
-                        offer.Add(new XElement("count", b.Amount));
-
-                        var amountExpress = GetAmountExpress(b);
-                        offerExpress.Add(new XElement("count", amountExpress));
-
-                        //если надо снять
-                        offer.Add(new XElement("disabled", b.Amount <= 0 ? "true" : "false"));
-                        offerExpress.Add(new XElement("disabled", amountExpress <= 0 ? "true" : "false"));
-                        //добавляю оффер к офферам
-                        offers.Add(offer);
-                        offersExpress.Add(offerExpress);
-                    } catch (Exception x) {
-                        Log.Add(L + b.name + " - ОШИБКА ВЫГРУЗКИ! - " + x.Message);
-                        if (DB.GetParamBool("alertSound"))
-                            new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     }
-                }
-                Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
-                //создаю необходимый элемент <shop>
-                var shop = new XElement("shop");
-                shop.Add(new XElement("name", "АвтоТехноШик"));
-                shop.Add(new XElement("company", "АвтоТехноШик"));
-                shop.Add(new XElement("url", "https://автотехношик.рф"));
-                shop.Add(new XElement("platform", "Satom.ru"));
-                //список групп, в которых нашлись товары
-                var groupsIds = bus.Select(s => s.group_id).Distinct();
-                //создаю необходимый элемент <categories>
-                var categories = new XElement("categories");
-                //заполняю категории
-                foreach (var groupId in groupsIds) {
-                    //исключение
-                    if (groupId == "2281135")// Инструменты (аренда)
-                        continue;
-                    categories.Add(new XElement("category", GoodObject.GetGroupName(groupId), new XAttribute("id", groupId)));
-                }
-                shop.Add(categories);
-                //копия магазина для выгрузки Экспресс
-                var shopExpress = new XElement(shop);
+                    Log.Add(L + "выгружено " + offers.Descendants("offer").Count());
+                    //создаю необходимый элемент <shop>
+                    var shop = new XElement("shop");
+                    shop.Add(new XElement("name", "АвтоТехноШик"));
+                    shop.Add(new XElement("company", "АвтоТехноШик"));
+                    shop.Add(new XElement("url", "https://автотехношик.рф"));
+                    shop.Add(new XElement("platform", "Satom.ru"));
+                    //список групп, в которых нашлись товары
+                    var groupsIds = bus.Select(s => s.group_id).Distinct();
+                    //создаю необходимый элемент <categories>
+                    var categories = new XElement("categories");
+                    //заполняю категории
+                    foreach (var groupId in groupsIds) {
+                        //исключение
+                        if (groupId == "2281135")// Инструменты (аренда)
+                            continue;
+                        categories.Add(new XElement("category", GoodObject.GetGroupName(groupId), new XAttribute("id", groupId)));
+                    }
+                    shop.Add(categories);
+                    //копия магазина для выгрузки Экспресс
+                    var shopExpress = new XElement(shop);
 
-                shop.Add(offers);
-                shopExpress.Add(offersExpress);
-                //создаю корневой элемент 
-                var root = new XElement("yml_catalog", new XAttribute("date", timeNow));
-                var rootExpress = new XElement(root);
-                //добавляю shop в root 
-                root.Add(shop);
-                rootExpress.Add(shopExpress);
-                //создаю новый xml
-                var xml = new XDocument();
-                var xmlExpress = new XDocument();
-                //добавляю root в документ
-                xml.Add(root);
-                xmlExpress.Add(rootExpress);
-                //сохраняю файл
-                xml.Save(FILE_PRIMARY_XML);
-                xmlExpress.Save(FILE_EXPRESS_XML);
-                return true;
-            });
-            //если файл сгенерирован и его размер ок
-            if (await gen && new FileInfo(FILE_PRIMARY_XML).Length > await DB.GetParamIntAsync("yandex.xmlMinSize")) {
-                //отправляю файл на сервер
-                await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
-                await SftpClient.FtpUploadAsync(FILE_EXPRESS_XML);
-            } else {
-                Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                    shop.Add(offers);
+                    shopExpress.Add(offersExpress);
+                    //создаю корневой элемент 
+                    var root = new XElement("yml_catalog", new XAttribute("date", timeNow));
+                    var rootExpress = new XElement(root);
+                    //добавляю shop в root 
+                    root.Add(shop);
+                    rootExpress.Add(shopExpress);
+                    //создаю новый xml
+                    var xml = new XDocument();
+                    var xmlExpress = new XDocument();
+                    //добавляю root в документ
+                    xml.Add(root);
+                    xmlExpress.Add(rootExpress);
+                    //сохраняю файл
+                    xml.Save(FILE_PRIMARY_XML);
+                    xmlExpress.Save(FILE_EXPRESS_XML);
+                    return true;
+                });
+                //если файл сгенерирован и его размер ок
+                if (await gen && new FileInfo(FILE_PRIMARY_XML).Length > await DB.GetParamIntAsync("yandex.xmlMinSize")) {
+                    //отправляю файл на сервер
+                    await SftpClient.FtpUploadAsync(FILE_PRIMARY_XML);
+                    await SftpClient.FtpUploadAsync(FILE_EXPRESS_XML);
+                } else {
+                    Log.Add(L + "файл не отправлен - ОШИБКА РАЗМЕРА ФАЙЛА!");
+                    if (DB.GetParamBool("alertSound"))
+                        new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
+                }
+            } catch (Exception ex) {
+                Log.Add($"GenerateXML: ошибка {ex.Message}");
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
@@ -362,12 +374,12 @@ namespace Selen.Sites {
                     apiRelativeUrl += "?" + qstr;
                 }
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
-                requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
+                //requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
+                requestMessage.Headers.Add("Api-Key", ACCESS_TOKEN);
                 if (body != null) { 
                     var httpContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
                     requestMessage.Content = httpContent;
                 }
-
                 var response = await _hc.SendAsync(requestMessage);
                 await Task.Delay(500);
                 if (response.StatusCode == HttpStatusCode.OK) {
@@ -466,7 +478,8 @@ namespace Selen.Sites {
                 var businessId = _campaigns.campaigns[0].business.id;
                 var path = $"businesses/{businessId}/promos";
                 var body = new {
-                    participation = "PARTICIPATING_NOW"
+                    //participation = "PARTICIPATING_NOW"
+                    mechanics = "DIRECT_DISCOUNT"
                 };
                 var actions = await PostRequestAsync<MarketActions>(path, body: body, method: "POST");
                 //проверяем список товаров в каждой акции

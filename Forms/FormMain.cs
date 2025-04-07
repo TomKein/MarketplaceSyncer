@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 229;
+        int _version = 232;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -115,7 +115,7 @@ namespace Selen {
         //YANDEX MARKET
         async void ButtonYandexMarket_Click(object sender, EventArgs e) {
             ChangeStatus(sender, ButtonStates.NoActive);
-            await _yandexMarket.GenerateXML();
+            await _yandexMarket.StartSync();
             ChangeStatus(sender, ButtonStates.Active);
         }
         //OZON
@@ -443,11 +443,10 @@ namespace Selen {
             ChangeStatus(sender, ButtonStates.NoActive);
             try {
                 Log.Add("test start");
-                
-                
-                await _wb.GetCharcsAsync(7985);
-                
-                
+
+                await _yandexMarket.UpdateActions();
+
+
                 Log.Add("test end");
             } catch (Exception x) {
                 Log.Add(x.Message);

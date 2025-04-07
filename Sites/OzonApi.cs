@@ -21,7 +21,7 @@ namespace Selen.Sites {
         readonly string _baseApiUrl = "https://api-seller.ozon.ru";
         readonly string _baseBusUrl = "https://www.ozon.ru/context/detail/id/";
         readonly string _url;                         //номер поля в карточке
-        readonly string _l = "ozon: ";                //префикс для лога
+        readonly string L = "ozon: ";                //префикс для лога
         readonly float _oldPriceProcent;
         public static float _minPriceProcent;
         List<ProductListItem> _productList = new List<ProductListItem>();   //список товаров, получаемый из /v2/product/list
@@ -78,7 +78,7 @@ namespace Selen.Sites {
         public async Task SyncAsync() {
             try {
                 if (!await DB.GetParamBoolAsync("ozon.syncEnable")) {
-                    Log.Add($"{_l} StartAsync: синхронизация отключена!");
+                    Log.Add($"{L} StartAsync: синхронизация отключена!");
                     return;
                 }
                 while (Class365API.Status == SyncStatus.NeedUpdate)
@@ -112,7 +112,7 @@ namespace Selen.Sites {
                     await DeactivateAutoActions();
                 }
             } catch (Exception x) {
-                Log.Add($"{_l}SyncAsync: ошибка - {x.Message} - {x?.InnerException}");
+                Log.Add($"{L}SyncAsync: ошибка - {x.Message} - {x?.InnerException}");
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
@@ -120,7 +120,7 @@ namespace Selen.Sites {
         public async Task MakeReserve() {
             try {
                 if (!await DB.GetParamBoolAsync("ozon.syncEnable")) {
-                    Log.Add($"{_l}MakeReserve: синхронизация отключена!");
+                    Log.Add($"{L}MakeReserve: синхронизация отключена!");
                     return;
                 }
                 //запросить список заказов со следующими статусами
@@ -149,7 +149,7 @@ namespace Selen.Sites {
                     var result = await PostRequestAsync(data, "/v3/posting/fbs/unfulfilled/list");
                     var res = JsonConvert.DeserializeObject<Postings>(result);
                     postings.postings.AddRange(res.postings);
-                    Log.Add($"{_l} получено {res.postings.Count} заказов " + status);
+                    Log.Add($"{L} получено {res.postings.Count} заказов " + status);
                     postings.count += res.count;
                 }
                 //загружаем список заказов, для которых уже делали резервирование
@@ -182,7 +182,7 @@ namespace Selen.Sites {
                     }
                 }
             } catch (Exception x) {
-                Log.Add(_l + "MakeReserve - " + x.Message);
+                Log.Add(L + "MakeReserve - " + x.Message);
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
@@ -202,7 +202,7 @@ namespace Selen.Sites {
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
                 File.WriteAllText(_busToUpdateFile, bu);
-                Log.Add($"{_l} в списке карточек для обновления {_busToUpdate.Count}");
+                Log.Add($"{L} в списке карточек для обновления {_busToUpdate.Count}");
             }
             for (int b = _busToUpdate.Count - 1; b >= 0; b--) {
                 if (Class365API.IsTimeOver)
@@ -214,7 +214,7 @@ namespace Selen.Sites {
                         File.WriteAllText(_busToUpdateFile, bu);
                     }
                 } catch (Exception x) {
-                    Log.Add(_l + "UpdateProductsAsync - " + x.Message);
+                    Log.Add(L + "UpdateProductsAsync - " + x.Message);
                 }
             }
         }
@@ -247,17 +247,17 @@ namespace Selen.Sites {
                         last_id = productList.last_id;
                         total = productList.total;
                         _productList.AddRange(productList.items);
-                        Log.Add($"{_l} получено {_productList.Count} товаров");
+                        Log.Add($"{L} получено {_productList.Count} товаров");
                     } while (_productList.Count < total);
-                    Log.Add(_l + "ProductList - успешно загружено " + _productList.Count + " товаров");
+                    Log.Add(L + "ProductList - успешно загружено " + _productList.Count + " товаров");
                     File.WriteAllText(_productListFile, JsonConvert.SerializeObject(_productList));
-                    Log.Add(_l + _productListFile + " - сохранено");
+                    Log.Add(L + _productListFile + " - сохранено");
                     File.SetLastWriteTime(_productListFile, startTime);
                     _isProductListCheckNeeds = false; //сбрасываю флаг
                 }
                 await CheckProductLinksAsync();
             } catch (Exception x) {
-                Log.Add(_l + "ProductList - ошибка загрузки товаров - " + x.Message);
+                Log.Add(L + "ProductList - ошибка загрузки товаров - " + x.Message);
             }
         }
         //проверяем привязку товаров в карточки бизнес.ру
@@ -279,19 +279,19 @@ namespace Selen.Sites {
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
                     if (b == -1) {
-                        Log.Add("предупреждение: карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
+                        Log.Add($"{L}CheckProductLinksAsync: предупреждение - карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
                     } else if (!Class365API._bus[b].Ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
                         Class365API._bus[b].Ozon.Split('/').Last().Length < 3 ||            //либо ссылка есть, но неверный sku
                         checkAll) {                                                         //либо передали флаг проверять всё
                         var productInfo = await GetProductInfoAsync(Class365API._bus[b]);
                         await SaveUrlAsync(Class365API._bus[b], productInfo);
                         await Update(Class365API._bus[b], productInfo);
-                        Log.Add($"{_l}CheckGoodsAsync: проверен {_bus[b].name} [{++i}/{_checkProductIndex}]");
+                        Log.Add($"{L}CheckGoodsAsync: проверен {_bus[b].name} [{++i}/{_checkProductIndex}]");
                         if (checkAll)
                             await DB.SetParamAsync("ozon.checkProductIndex", (++_checkProductIndex).ToString());
                     }
                 } catch (Exception x) {
-                    Log.Add($"{_l}CheckGoodsAsync: ошибка! checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
+                    Log.Add($"{L}CheckGoodsAsync: ошибка - checkAll:{checkAll} offer_id:{item.offer_id} message:{x.Message}");
                     _isProductListCheckNeeds = true;
                 }
             }
@@ -304,7 +304,7 @@ namespace Selen.Sites {
                 var products = JsonConvert.DeserializeObject< ProductsInfo > (s);
                 return products?.items?.First();
             }
-            Log.Add($"{_l}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
+            Log.Add($"{L}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
             return null;
         }
         //обновление ссылки в карточке бизнес.ру
@@ -312,7 +312,7 @@ namespace Selen.Sites {
             try {
                 var sku = productInfo.GetSku();
                 if (sku == "0") {
-                    Log.Add(_l + "SaveUrlAsync - ошибка! - " + bus.name + " - sku: 0");
+                    Log.Add(L + "SaveUrlAsync - ошибка! - " + bus.name + " - sku: 0");
                 }
                 var newUrl = _baseBusUrl + sku;
                 if (bus.Ozon != newUrl) {
@@ -322,10 +322,10 @@ namespace Selen.Sites {
                             {"name", bus.name},
                             {_url, bus.Ozon}
                         });
-                    Log.Add(_l + bus.name + " ссылка на товар обновлена!");
+                    Log.Add(L + bus.name + " ссылка на товар обновлена!");
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
+                Log.Add($"{L} SaveUrlAsync ошибка! name:{bus.name} message:{x.Message}");
             }
         }
         //проверка и обновление товара
@@ -341,7 +341,7 @@ namespace Selen.Sites {
                 await UpdateProduct(bus, productInfo);
                 return true;
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProductAsync ошибка! name:{bus.name} message:{x.Message}");
+                Log.Add($"{L} UpdateProductAsync ошибка! name:{bus.name} message:{x.Message}");
                 return false;
             }
         }
@@ -368,12 +368,12 @@ namespace Selen.Sites {
                 var s = await PostRequestAsync(data, "/v2/products/stocks");
                 var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                 if (res.First().updated)
-                    Log.Add($"{_l}UpdateProductStocks: остаток для склада \"{warehouse.name}\" обновлен - {bus.name} ({amount})");
+                    Log.Add($"{L}UpdateProductStocks: остаток для склада \"{warehouse.name}\" обновлен - {bus.name} ({amount})");
                 else
                     throw new Exception(s);
 
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProductStocks: ошибка обновления остатка склада \"{warehouse.name}\" - {bus.name} - {x.Message}");
+                Log.Add($"{L} UpdateProductStocks: ошибка обновления остатка склада \"{warehouse.name}\" - {bus.name} - {x.Message}");
                 //if (DB.GetParamBool("alertSound"))
                 //    new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
@@ -433,14 +433,14 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v1/product/import/prices");
                     var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                     if (res.First().updated) {
-                        Log.Add(_l + bus.name + " (" + bus.Price + ") цены обновлены! ("
+                        Log.Add(L + bus.name + " (" + bus.Price + ") цены обновлены! ("
                                    + _newPrice + ", " + oldPrice + ")");
                     } else {
-                        Log.Add(_l + bus.name + " ошибка! цены не обновлены! (" + bus.Price + ")" + " >>> " + s);
+                        Log.Add(L + bus.name + " ошибка! цены не обновлены! (" + bus.Price + ")" + " >>> " + s);
                     }
                 }
             } catch (Exception x) {
-                Log.Add(_l + " ошибка обновления цены! - " + x.Message);
+                Log.Add(L + " ошибка обновления цены! - " + x.Message);
             }
         }
         //запросы к api ozon
@@ -470,7 +470,7 @@ namespace Selen.Sites {
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
                 //throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
-                Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
             return null;
         }
@@ -491,7 +491,7 @@ namespace Selen.Sites {
                 } else
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
             } catch (Exception x) {
-                Log.Add($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
+                Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
             }
             return null;
         }
@@ -577,7 +577,7 @@ namespace Selen.Sites {
                         if (i != null) {
                             //проверяю бренд
                             if (i.id == 85 && i.values[0].value != item.values[0].value) {
-                                Log.Add(_l + good.name + " - заменить бренд в бизнесе! - " + item.values[0].value + " на " + i.values[0].value);
+                                Log.Add(L + good.name + " - заменить бренд в бизнесе! - " + item.values[0].value + " на " + i.values[0].value);
                                 //временно пропускаю карточку, чтобы не слетать на модерацию по бренду
                                 continue;
                             }
@@ -592,9 +592,9 @@ namespace Selen.Sites {
                 var s = await PostRequestAsync(data, "/v3/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                 if (res.task_id != default(int)) {
-                    Log.Add($"{_l} UpdateProduct: id:{good.id} {good.name} - товар отправлен на озон!");
+                    Log.Add($"{L} UpdateProduct: id:{good.id} {good.name} - товар отправлен на озон!");
                 } else {
-                    Log.Add($"{_l} UpdateProduct: id:{good.id} {good.name} - ошибка отправки товара на озон! - {s}");
+                    Log.Add($"{L} UpdateProduct: id:{good.id} {good.name} - ошибка отправки товара на озон! - {s}");
                 }
                 ////
                 var res2 = new ProductImportInfo();
@@ -604,12 +604,12 @@ namespace Selen.Sites {
                 };
                 s = await PostRequestAsync(data2, "/v1/product/import/info");
                 res2 = JsonConvert.DeserializeObject<ProductImportInfo>(s);
-                Log.Add(_l + good.name + " status товара - " + res2.items.First().status);
+                Log.Add(L + good.name + " status товара - " + res2.items.First().status);
                 if (res2.items.First().errors.Length > 0)
-                    Log.Add(_l + good.name + " ошибка - " + s);
+                    Log.Add(L + good.name + " ошибка - " + s);
                 ////
             } catch (Exception x) {
-                Log.Add($"{_l} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
+                Log.Add($"{L} UpdateProduct: ошибка обновления описания {good.id} {good.name} - {x.Message}");
             }
         }
         //добавление новых товаров на ozon
@@ -641,7 +641,7 @@ namespace Selen.Sites {
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))).ToList(); //нет в исключениях
             SaveToFile(goods2, @"..\data\ozon\ozonGoodListForAdding_all.xlsx");
-            Log.Add(_l + "карточек для добавления: " + goods.Count + " (" + goods2.Count + ")");
+            Log.Add(L + "карточек для добавления: " + goods.Count + " (" + goods2.Count + ")");
             int i = 0;
             foreach (var good in goods) {
                 if (Class365API.IsTimeOver)
@@ -679,10 +679,10 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v3/product/import");
                     var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
                     if (res.task_id != default(int)) {
-                        Log.Add($"{_l}Add: добавлен товар - {good.name}");
+                        Log.Add($"{L}Add: добавлен товар - {good.name}");
                         ++i;
                     } else {
-                        Log.Add($"{_l}Add: ошибка отправки товара - {good.name}");
+                        Log.Add($"{L}Add: ошибка отправки товара - {good.name}");
                     }
                     var res2 = new ProductImportInfo();
                     await Task.Delay(10000);
@@ -691,12 +691,12 @@ namespace Selen.Sites {
                     };
                     s = await PostRequestAsync(data2, "/v1/product/import/info");
                     res2 = JsonConvert.DeserializeObject<ProductImportInfo>(s);
-                    Log.Add($"{_l}Add: статус товара {good.name} - {res2.items.First().status}");
+                    Log.Add($"{L}Add: статус товара {good.name} - {res2.items.First().status}");
                     if (res2.items.First().errors.Length > 0)
-                        Log.Add($"{_l}Add: ошибка добавления - {good.name} - {s}");
+                        Log.Add($"{L}Add: ошибка добавления - {good.name} - {s}");
                     _isProductListCheckNeeds = true;
                 } catch (Exception x) {
-                    Log.Add($"{_l}Add: ошибка добавления - {good.name} - {x.Message + x.InnerException?.Message}");
+                    Log.Add($"{L}Add: ошибка добавления - {good.name} - {x.Message + x.InnerException?.Message}");
                 }
                 if (i >= count)
                     break;
@@ -744,9 +744,9 @@ namespace Selen.Sites {
                                 }).ToArray()
                             };
                             var res4 = await PostRequestAsync(data2, "/v1/actions/products/activate");
-                            Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} добавлены товары [{data2.products.Length}] {res4}");
+                            Log.Add($"{L} DeactivateActions: в акцию {actions.result[i].id} добавлены товары [{data2.products.Length}] {res4}");
                         } else
-                            Log.Add($"{_l} DeactivateActions: в акцию {actions.result[i].id} проверено кандидатов {actionProducts.total}, " +
+                            Log.Add($"{L} DeactivateActions: в акцию {actions.result[i].id} проверено кандидатов {actionProducts.total}, " +
                                 $"у всех скидка больше максимальной");
                     }
                     //если текущей акции нет товаров - пропускаем проверку
@@ -776,10 +776,10 @@ namespace Selen.Sites {
                         product_ids = products.Select(p => p.id).ToArray()
                     };
                     var res3 = await PostRequestAsync(data6, "/v1/actions/products/deactivate");
-                    Log.Add($"{_l} DeactivateActions: из акции {actions.result[i].id} удалены товары [{data6.product_ids.Length}] {res3}");
+                    Log.Add($"{L} DeactivateActions: из акции {actions.result[i].id} удалены товары [{data6.product_ids.Length}] {res3}");
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} DeactivateActions: ошибка! - {x.Message}");
+                Log.Add($"{L} DeactivateActions: ошибка! - {x.Message}");
             }
         }
         //массовый запрос цен
@@ -802,7 +802,7 @@ namespace Selen.Sites {
                 cursor = pl.cursor;
                 total = pl.total;
                 priceList.AddRange(pl.items);
-                Log.Add($"{_l} получено {priceList.Count} цен товаров");
+                Log.Add($"{L} получено {priceList.Count} цен товаров");
             } while (priceList.Count < total);
             return priceList;
         }
@@ -832,13 +832,13 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v1/product/import/prices");
                     var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                     if (res.First().updated) {
-                        Log.Add($"{_l} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция отменена!");
+                        Log.Add($"{L} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция отменена!");
                     } else {
-                        Log.Add($"{_l} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция не отменена!");
+                        Log.Add($"{L} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция не отменена!");
                     }
                 }
             } catch (Exception x) {
-                Log.Add($"{_l} DeactivateAutoActions: ошибка отмены автоакций! - {x.Message}");
+                Log.Add($"{L} DeactivateAutoActions: ошибка отмены автоакций! - {x.Message}");
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
@@ -1023,7 +1023,7 @@ namespace Selen.Sites {
             //await UpdateVedAsync(a.typeId);
             var code = tnved.Find(f => f.value.Contains(value));
             if (code == null || code.id == null || code.value == null) {
-                Log.Add($"{_l} GetTNVEDAttribute: предупреждение - ТНВЭД {good.hscode_id} не найден! наименование: {good.name}, id: {good.id}");
+                Log.Add($"{L} GetTNVEDAttribute: предупреждение - ТНВЭД {good.hscode_id} не найден! наименование: {good.name}, id: {good.id}");
                 return null;
             }
             return new Attribute {
@@ -1449,7 +1449,7 @@ namespace Selen.Sites {
                 }
                 };
             } catch (Exception x) {
-                Log.Add($"{_l}GetDescriptionAttribute: ошибка описания! [{good.id}] {good.name} - {x.Message}");
+                Log.Add($"{L}GetDescriptionAttribute: ошибка описания! [{good.id}] {good.name} - {x.Message}");
                 throw x;
             }
         }
@@ -1599,7 +1599,7 @@ namespace Selen.Sites {
                     return categoryId;
                 }
             }
-            Log.Add(_l + "ОШИБКА - КАТЕГОРИЯ НЕ НАЙДЕНА! - type_id: " + type_id);
+            Log.Add(L + "ОШИБКА - КАТЕГОРИЯ НЕ НАЙДЕНА! - type_id: " + type_id);
             return "";
         }
         bool GetTypeIdAndCategoryId(Attributes a) {
@@ -1611,7 +1611,7 @@ namespace Selen.Sites {
                     return true;
                 }
             }
-            Log.Add(_l + "ОШИБКА - КАТЕГОРИЯ НЕ НАЙДЕНА! - typeName: " + a.typeName);
+            Log.Add(L + "ОШИБКА - КАТЕГОРИЯ НЕ НАЙДЕНА! - typeName: " + a.typeName);
             return false;
         }
         //Запрос атрибутов существующего товара озон
@@ -1628,7 +1628,7 @@ namespace Selen.Sites {
                 s = s.Replace("attribute_id", "id");
                 return JsonConvert.DeserializeObject<List<ProductsInfoAttr>>(s);
             } catch (Exception x) {
-                Log.Add(_l + " ошибка - " + x.Message + x.InnerException?.Message);
+                Log.Add(L + " ошибка - " + x.Message + x.InnerException?.Message);
                 throw;
             }
         }
@@ -1668,9 +1668,9 @@ namespace Selen.Sites {
                     sheet.Cells[i + 2, 11].Value = goods[i].images.Count;
                 }
                 excelPackage.Save();
-                Log.Add($"{_l}SaveToFile: список карточек выгружен в {fname}");
+                Log.Add($"{L}SaveToFile: список карточек выгружен в {fname}");
             } catch (Exception x) {
-                Log.Add($"{_l}SaveToFile: ошибка сохранения списка - {x.Message}");
+                Log.Add($"{L}SaveToFile: ошибка сохранения списка - {x.Message}");
             }
         }
         //список складов
@@ -1683,7 +1683,7 @@ namespace Selen.Sites {
                 File.WriteAllText(_warehouseListFile, s);
                 _warehouseList = JsonConvert.DeserializeObject<List<OzonWareHouse>>(s);
             } catch (Exception x) {
-                Log.Add($"{_l} GetWarehouseList: ошибка запроса списка складов! - {x.Message}");
+                Log.Add($"{L} GetWarehouseList: ошибка запроса списка складов! - {x.Message}");
                 throw x;
             }
         }

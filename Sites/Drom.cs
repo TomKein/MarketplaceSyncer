@@ -240,7 +240,7 @@ namespace Selen.Sites {
                             File.WriteAllText(_busToUpdateFile, bu);
                         }
                     } catch (Exception x) {
-                        Debug.WriteLine(x.Message);
+                        Log.Add($"{L}UpdateOffersAsync: {x.Message}");
                         if (x.Message.Contains("timed out") ||
                             x.Message.Contains("already closed") ||
                             x.Message.Contains("HTTP request") ||
@@ -726,7 +726,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine(L + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
+                Log.Add(L + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
         public async Task CheckDraftsAsync() {
@@ -747,7 +747,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine(L + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
+                Log.Add(L + " ошибка парсинга! - " + x.Message + " - " + x.InnerException?.Message);
             }
         }
 
@@ -789,7 +789,7 @@ namespace Selen.Sites {
                     }
                 });
             } catch (Exception x) {
-                Debug.WriteLine($"{L}CheckOffersAsync: ошибка! - {x.Message} {x.InnerException?.Message}");
+                Log.Add($"{L}CheckOffersAsync: ошибка! - {x.Message} {x.InnerException?.Message}");
             }
         }
 

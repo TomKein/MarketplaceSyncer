@@ -274,6 +274,10 @@ namespace Selen.Sites {
                         //deliv.Add(new XElement("Option", "Свой партнер Почта России"));
                         ad.Add(deliv);
 
+                        //способ связи
+                        ad.Add(new XElement("ContactMethod", "В сообщениях"));
+
+
                         if (b.Amount <= 0) {
                             ad.Add(new XElement("DateEnd", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss") + "+03:00"));
                         }

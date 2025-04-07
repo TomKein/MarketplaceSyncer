@@ -303,7 +303,7 @@ namespace Selen {
 
         [JsonIgnore]
         //меньше 1 кг добавляем 50 г на упаковку, для большого веса +100 г
-        public float Weight => (float) (WeightNet + (WeightNet < 1 ? 0.05 : 0.1));
+        public float Weight => (float)Math.Round( (WeightNet + (WeightNet < 1 ? 0.05 : 0.1)), 3);
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
