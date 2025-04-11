@@ -69,7 +69,7 @@ namespace Selen.Sites {
         const string EXCEPTION_GROUPS_FILE = @"..\data\wildberries\exceptionGroupsList.json";
         const string EXCEPTION_BRANDS_FILE = @"..\data\wildberries\exceptionBrandsList.json";
         List<string> _exceptionGoods;
-        Dictionary<string,string> _exceptionBrands;
+        Dictionary<string, string> _exceptionBrands;
         List<string> _exceptionGroups;
 
         //наценки
@@ -100,7 +100,7 @@ namespace Selen.Sites {
                     File.ReadAllText(EXCEPTION_GROUPS_FILE));
                 _exceptionGoods = JsonConvert.DeserializeObject<List<string>>(
                     File.ReadAllText(EXCEPTION_GOODS_FILE));
-                _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string,string>>(
+                _exceptionBrands = JsonConvert.DeserializeObject<Dictionary<string, string>>(
                     File.ReadAllText(EXCEPTION_BRANDS_FILE));
                 if (_categories == null)
                     await GetCategoriesAsync();
@@ -238,7 +238,7 @@ namespace Selen.Sites {
                                 Log.Add($"{L}GetRequest: ошибка - {responseObject.errorText}; {responseObject.additionalErrors}");
                             else
                                 return JsonConvert.SerializeObject(responseObject.data);
-                        }else
+                        } else
                             return _jsonResponse;
                     }
                 }
@@ -328,7 +328,8 @@ namespace Selen.Sites {
         }
         //характеристики подкатегорий
         public async Task GetSubjectsCharcs() {
-            if (_subjectsCharcs != null) return;
+            if (_subjectsCharcs != null)
+                return;
             if (File.GetLastWriteTime(SUBJECTS_CHARCS_FILE) < DateTime.Now.AddDays(-_updateFreq)) {
                 _subjectsCharcs = new List<WbCharc>();
                 Log.Add($"{L} GetSubjectsCharcs: файл характеристик подкатегорий устарел, они будут запрошены заново");
@@ -346,8 +347,8 @@ namespace Selen.Sites {
         public async Task<List<WbCharc>> GetCharcsAsync(int subjectId) {
             //если наш список характеристик уже содержит характеристики для требуемого id - используем
             try {
-                if (_subjectsCharcs.Any(a=>a.subjectID == subjectId)) {
-                    return _subjectsCharcs.Where(w=>w.subjectID == subjectId).ToList();
+                if (_subjectsCharcs.Any(a => a.subjectID == subjectId)) {
+                    return _subjectsCharcs.Where(w => w.subjectID == subjectId).ToList();
                 }
                 //иначе запрашиваем характеристики с вб
                 var data = new Dictionary<string, string>();
@@ -407,25 +408,44 @@ namespace Selen.Sites {
             }
         }
         //ТНВЭД код
-        public async Task GetTnvdAsync(string subjectID = null) {
-            if (subjectID == null)
+        public async Task GetTnvdAsync(GoodObject g, List<WbCharc> a) {
+            try {
+                //тнвэд в картоке товара
+                var goodTNVED = g.hscode_id;
+                //id подгруппы
+                var subjectID = a[0].subjectID;
+                //характеристики подгруппы
+                var objectCharcs = await GetCharcsAsync(subjectID);
+                //если среди характеристик подгруппы вб нет тнвэд, то пропуск
+                if (!objectCharcs.Any(c => c.charcID == 15000001)) // как вариант "name": "ТНВЭД"
                 return;
+
             var fileName = $@"..\data\wildberries\wb_tnvd_{subjectID}.json";
-            if (File.GetLastWriteTime(fileName) < DateTime.Now.AddDays(-_updateFreq)) {
+                if (File.GetLastWriteTime(fileName) < DateTime.Now.AddDays(-_updateFreq * 3)) {
                 var data = new Dictionary<string, string>();
                 data["locale"] = "ru";
-                data["subjectID"] = subjectID;
+                    data["subjectID"] = subjectID.ToString();
                 var s = await GetRequestAsync(data, "https://content-api.wildberries.ru/content/v2/directory/tnved");
                 _tnvd = JsonConvert.DeserializeObject<List<WbTnvd>>(s);
                 File.WriteAllText(fileName, s);
-                Log.Add($"{L} GetTnvdAsync: {subjectID} - получено кодов ТНВЭД: {_tnvd.Count}");
+                    Log.Add($"{L}GetTnvdAsync: {subjectID} - получено кодов ТНВЭД: {_tnvd.Count}");
             } else {
                 var s = File.ReadAllText(fileName);
-                try {
                     _tnvd = JsonConvert.DeserializeObject<List<WbTnvd>>(s);
-                } catch (Exception x) {
-                    Log.Add($"{L} GetTnvdAsync: ошибка - {x.Message}");
                 }
+                //если не содержится в списке - выдаем предупреждение
+                if (!_tnvd.Any(t => t.tnved == goodTNVED))
+                    Log.Add($"{L}GetTnvdAsync: {goodTNVED} - не найден в списке кодов ТНВЭД на WB: " +
+                        $"{_tnvd.Select(s => s.tnved).Aggregate((a1, a2) => a1 + "; " + a2).ToString()}");
+                //добавляем характеристику
+                if (goodTNVED != null)
+                    a.Add(new WbCharc {
+                        charcID = 15000001,
+                        value = goodTNVED,
+                        charcType = "1"
+                    });
+                } catch (Exception x) {
+                Log.Add($"{L}GetTnvdAsync: ошибка - {x.Message}");
             }
         }
         //добавление новых товаров на wb
@@ -550,6 +570,7 @@ namespace Selen.Sites {
                 await GetWeight(bus, a);
                 await GetPart(bus, a);
                 await GetColor(bus, a);
+                await GetTnvdAsync(bus, a);
                 return a;
             } catch (Exception x) {
                 throw new Exception($"GetAttributesAsync: {bus.name} - {x.Message}");
@@ -590,10 +611,10 @@ namespace Selen.Sites {
                 //        value = good.Weight*1000, //кг => г
                 //        charcType = "4"
                 //    });
-                if (charcs.Any(_=> _.charcID == 89008))         //Вес товара без упаковки (г)
+                if (charcs.Any(_ => _.charcID == 89008))         //Вес товара без упаковки (г)
                     a.Add(new WbCharc {
                         charcID = 89008,
-                        value = good.WeightNet*1000, //кг => г
+                        value = good.WeightNet * 1000, //кг => г
                         charcType = "4"
                     });
                 //if (charcs.Any(_=>_.charcID == 88953))          //Вес с упаковкой (кг)
@@ -951,7 +972,7 @@ namespace Selen.Sites {
                                                 || _cardsPrices.Find(f => f.vendorCode == _.id)?.discount > _maxDiscont
 
                                                 )
-                                        .OrderBy(_=> _cardsPrices.Find(f => f.vendorCode == _.id)?.discount)
+                                        .OrderBy(_ => _cardsPrices.Find(f => f.vendorCode == _.id)?.discount)
                                         .ToList();
             if (_busToUpdate.Count > 0) {
                 var bu = JsonConvert.SerializeObject(_busToUpdate);
@@ -991,15 +1012,14 @@ namespace Selen.Sites {
                     }
                 }
                 await DB.SetParamAsync("wb.checkProductIndex", checkProductIndex.ToString());
-            }
-            catch (Exception x) {
+            } catch (Exception x) {
                 Log.Add($"{L}UpdateRandom: ошибка выборочной проверки - {x.Message}");
             }
         }
 
         //проверка всех карточек в бизнесе, которые изменились или имеют расхождения на вб
         //а также выборочная проверка карточек
-        private async Task<bool> CheckCardAsync(GoodObject good) {
+        public async Task<bool> CheckCardAsync(GoodObject good) {
             try {
                 //находим карточку на вб
                 var card = _cardsList.Find(f => f.vendorCode == good.id);
@@ -1021,7 +1041,7 @@ namespace Selen.Sites {
                     if (wbStock != goodNewAmount ||
                         wbPrice != goodNewPrice ||
                         wbDiscount > _maxDiscont ||
-                        card.photos.Count != good.images.Count||
+                        card.photos.Count != good.images.Count ||
                         good.IsTimeUpDated())
                         //обновляем карточку на вб
                         await UpdateCardAsync(good, card);
@@ -1151,7 +1171,7 @@ namespace Selen.Sites {
                     else if (a.charcType == "2")
                         data[0].characteristics.Add(new { id = a.charcID, value = a.value as string[] });
                     else if (a.charcType == "4")
-                        data[0].characteristics.Add(new { id = a.charcID, value = Math.Round((decimal)(float) a.value, 2) });
+                        data[0].characteristics.Add(new { id = a.charcID, value = Math.Round((decimal) (float) a.value, 2) });
                 }
                 //сравниваем основные поля и характеристики
                 if (card.title == data[0].title &&
@@ -1176,7 +1196,7 @@ namespace Selen.Sites {
             }
         }
         string GetDescription(GoodObject good) {
-            return good.DescriptionList(2000, removePhone:true, specDesc:"WB_DESCRIPTION").Aggregate((a, b) => a + "\n" + b)
+            return good.DescriptionList(2000, removePhone: true, specDesc: "WB_DESCRIPTION").Aggregate((a, b) => a + "\n" + b)
                        .Replace("цена за штуку", "$$$")
                        .Replace("ЦЕНА ЗА ШТУКУ", "$$$")
                        .Replace("Цена за штуку", "$$$")
@@ -1303,7 +1323,7 @@ namespace Selen.Sites {
         }
         //проиизводитель
         string GetBrand(GoodObject b, List<WbCharc> attributes) {
-            var brand = b.GetManufacture()??"";
+            var brand = b.GetManufacture() ?? "";
             //если список иключений содержит название бренда, проверяем название категории
             if (_exceptionBrands.Keys.Contains(brand)) {
                 var name = _catsXml.Descendants("Type")

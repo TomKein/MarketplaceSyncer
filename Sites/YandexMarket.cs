@@ -109,7 +109,7 @@ namespace Selen.Sites {
                             //исключения по бренду
                             var vendor = b.GetManufacture()??"";
                             var vendorLow = vendor.ToLowerInvariant();
-                            if (_exceptionBrands.Any(e => e.Contains(vendorLow)))
+                            if (vendorLow.Length > 0 && _exceptionBrands.Any(e => e.Contains(vendorLow)))
                                 continue;
                             //по группам товаров
                             if (_exceptionGroups.Contains(b.GroupName)
@@ -367,14 +367,13 @@ namespace Selen.Sites {
             return (int) (newPrice / 10) * 10; //округление цен до 10 р
         }
         //работа с api
-        public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
+        public async Task<string> RequestAsync(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
             try {
                 if (query != null) {
                     var qstr = QueryStringBuilder.BuildQueryString(query);
                     apiRelativeUrl += "?" + qstr;
                 }
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod(method), apiRelativeUrl);
-                //requestMessage.Headers.Add("Authorization", ACCESS_TOKEN);
                 requestMessage.Headers.Add("Api-Key", ACCESS_TOKEN);
                 if (body != null) { 
                     var httpContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
@@ -394,7 +393,7 @@ namespace Selen.Sites {
         }
         public async Task<T> PostRequestAsync<T>(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
             try {
-                var response = await PostRequestAsync(apiRelativeUrl, query, body, method);
+                var response = await RequestAsync(apiRelativeUrl, query, body, method);
                 T obj = JsonConvert.DeserializeObject<T>(response);
                 return obj;
             } catch (Exception x) {
@@ -428,7 +427,7 @@ namespace Selen.Sites {
                 //для каждого магазина получаю список заказов
                 foreach (var campaign in _campaigns.campaigns) {
                     var campaignId = campaign.id;
-                    var s = await PostRequestAsync($"/campaigns/{campaignId}/orders", new Dictionary<string, string> {
+                    var s = await RequestAsync($"/campaigns/{campaignId}/orders", new Dictionary<string, string> {
                         { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
                     });
                     var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
@@ -515,7 +514,7 @@ namespace Selen.Sites {
                         var promoPrice = offer.@params.discountParams.promoPrice;       //цена по акции
                         var maxPromoPrice = offer.@params.discountParams.maxPromoPrice; //максимальная цена по акции >= цена по акции
 
-                        var b = Class365API.GoodById(offer.offerId);                    //карточка в бизнес.ру
+                        var b = Class365API.GetGoodById(offer.offerId);                    //карточка в бизнес.ру
                         var catalogPrice = GetPrice2(b);                                //наша цена в каталоге
 
                         //считаем дисконт, как отношение максимальной цены по акции к нашей цене в каталоге
@@ -554,7 +553,7 @@ namespace Selen.Sites {
                             promoId = promoId,
                             offerIds = toDelete.Select(s => s.offerId).ToArray()
                         };
-                        var requestResult = await PostRequestAsync(path, body: body3, method: "POST");
+                        var requestResult = await RequestAsync(path, body: body3, method: "POST");
                         Log.Add($"{L}UpdateActions: результат удаления - {requestResult}");
                     }
                     //добавляем товары в акцию списком
@@ -572,7 +571,7 @@ namespace Selen.Sites {
                                 }
                             }).ToArray()
                         };
-                        var requestResult = await PostRequestAsync(path, body: body4, method: "POST");
+                        var requestResult = await RequestAsync(path, body: body4, method: "POST");
                         Log.Add($"{L}UpdateActions: результат добавления - {requestResult}");
                     }
                 }

@@ -49,7 +49,7 @@ namespace Selen {
         public static List<GoodObject> lightSyncGoods = new List<GoodObject>();
         public static List<AttributesForGoods> _attributesForGoods;
         //поиск товара по id
-        public static GoodObject GoodById(string id) => _bus.Find(f => f.id == id);
+        public static GoodObject GetGoodById(string id) => _bus.Find(f => f.id == id);
         //источники заказа
         public static List<Class365Source> _source;
         public static Class365Source Source(string name) =>
@@ -156,7 +156,7 @@ namespace Selen {
                 lastWarningShowTime = DB.GetParamDateTime("lastWarningShowTime");
                 
             } catch (Exception ex) {
-                Log.Add($"{L} ошибка чтения начальных параметров - {ex.Message}");
+                Log.Add($"{L}ошибка чтения начальных параметров - {ex.Message}");
                 new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
         }
@@ -169,12 +169,12 @@ namespace Selen {
                 await GetCounties();
                 await LoadGoodList();
             } catch (Exception x) {
-                Log.Add($"business.ru: ошибка загрузки файла базы карточек товаров! запросим базу с бизнес.ру - {x.Message}");
+                Log.Add($"{L}StartSync: ошибка загрузки карточек товаров из файла! - {x.Message}");
                 Status = SyncStatus.NeedUpdate;
                 new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
 #if DEBUG
-            return;
+//            return;
 #endif
             _timer.Start();
         }
@@ -182,16 +182,15 @@ namespace Selen {
         private static async Task LoadGoodList() {
             if (File.Exists(BUS_FILE_NAME)) {
                 await GetBusGroupsAsync();
-                Log.Add("business.ru: загружаю список товаров...");
                 await Task.Factory.StartNew(() => {
                     var sb = File.ReadAllText(BUS_FILE_NAME);
                     _bus = JsonConvert.DeserializeObject<List<GoodObject>>(sb);
                 });
-                Log.Add("business.ru: загружено " + _bus.Count + " карточек товаров");
+                Log.Add($"{L}LoadGoodList: загружено " + _bus.Count + " карточек товаров");
                 LabelBusText = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Price > 0 && c.Amount > 0);
                 Status = SyncStatus.Waiting;
             } else {
-                Log.Add("business.ru: предупреждение - файл не найден, будет произведен запрос полной базы карточек товаров");
+                Log.Add($"{L}LoadGoodList: предупреждение - файл не найден, будет произведен запрос всех карточек товаров");
                 Status = SyncStatus.NeedUpdate;
             }
         }
@@ -286,18 +285,18 @@ namespace Selen {
 
             if (res.StatusCode != HttpStatusCode.OK || js.Contains("Превышение лимита")) {
                 _rr.token = "";
-                Log.Add("business.ru: ошибка получения токена авторизации! - " + res.StatusCode.ToString());
-                await Task.Delay(60000);
+                Log.Add($"{L}RepairAsync: ошибка получения токена! - {res.StatusCode.ToString()}");
+                await Task.Delay(30000);
             } else {
                 //сохраним токен
                 _rr = JsonConvert.DeserializeObject<RootResponse>(js);
-                Log.Add("business.ru: получен новый токен!");
+                Log.Add($"{L}RepairAsync: получен новый токен!");
             }
-            await Task.Delay(1000);
+            await Task.Delay(500);
         }
         public static async Task<string> RequestAsync(string action, string model, Dictionary<string, string> par) {
             while (_flagRequestActive) {
-                await Task.Delay(5000);
+                await Task.Delay(3000);
             }
             lock (_lockerRequests) {
                 _flagRequestActive = true;
@@ -346,19 +345,19 @@ namespace Selen {
                             var js = await httpResponseMessage.Content.ReadAsStringAsync();
                             _rr = JsonConvert.DeserializeObject<RootResponse>(js);
                             //todo добавить параметр в настройки
-                            var del = _rr.request_count * (_rr.request_count / 200);
+                            var delay = _rr.request_count * (_rr.request_count / 200);
                             if (_rr.request_count % 10 == 0)
-                                Log.Add($"{L} REQUEST_COUNT: {_rr.request_count} / delay {del}");
+                                Log.Add($"{L}RequestAsync: REQUEST_COUNT={_rr.request_count}, delay={delay}");
                             Thread.Sleep(_rr.request_count * 3);
                             _flagRequestActive = false;
                             return _rr != null ? JsonConvert.SerializeObject(_rr.result) : "";
                         }
-                        Log.Add("business.ru: ошибка запроса - " + httpResponseMessage.StatusCode.ToString());
+                        Log.Add($"{L}RequestAsync: ошибка запроса - {httpResponseMessage.StatusCode.ToString()}");
                         await RepairAsync();
                         qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
                         await Task.Delay(20000);
                     } catch (Exception x) {
-                        Log.Add($"{L} RequestAsync - ошибка запроса к бизнес.ру [{i}] - {x.Message}");
+                        Log.Add($"{L}RequestAsync: ошибка запроса к бизнес.ру [{i}] - {x.Message}");
                         await Task.Delay(20000);
                         qstr = qstr.Contains("&app_psw=") ? qstr.Replace("&app_psw=", "|").Split('|')[0] : qstr;
                         _rr.token = "";
@@ -366,7 +365,7 @@ namespace Selen {
                     }
                 };
             } catch (Exception x) {
-                Log.Add($"{L} RequestAsync - ошибка запроса к бизнес.ру [fatal] - {x.Message}");
+                Log.Add($"{L}RequestAsync - ошибка запроса к бизнес.ру - {x.Message}");
                 _flagRequestActive = false;
             }
             return "";
@@ -387,7 +386,7 @@ namespace Selen {
         }
         static async Task SyncAllHandlerAsync() {
             await AddPartNumsAsync();
-            await CheckArhiveStatusAsync();
+            await CheckArhiveStatus();
             await ClearOldUrls();
             await CheckGrammarOfTitlesAndDescriptions();
             if (SyncStartTime.Minute < _checkIntervalMinutes) {
@@ -405,15 +404,15 @@ namespace Selen {
         public static async Task GoFullSync() {
             Status = SyncStatus.ActiveFull;
             SyncStartTime = DateTime.Now;
-            Log.Add(L + "старт полного цикла синхронизации");
+            Log.Add($"{L}GoFullSync: старт полного цикла синхронизации");
             await GetBusGroupsAsync();
             await GetBusGoodsAsync2();
             var tlog = _bus.Count + "/" + _bus.Count(c => c.images.Count > 0 && c.Amount > 0 && c.Price > 0);
-            Log.Add(L + "получено товаров с остатками " + tlog);
+            Log.Add($"{L}GoFullSync: получено товаров с остатками {tlog}");
             LabelBusText = tlog;
             await SaveBusAsync();
             await syncAllEvent();
-            Log.Add(L + "полный цикл синхронизации завершен");
+            Log.Add($"{L}GoFullSync: - полный цикл синхронизации завершен");
             Status = SyncStatus.Waiting;
         }
         public static async Task GetBusGoodsAsync2() {
@@ -441,21 +440,20 @@ namespace Selen {
                                 .Replace("\"854879\":", "\"ozon\":")
                                 .Replace("\"854882\":", "\"wb\":");
                             _bus.AddRange(JsonConvert.DeserializeObject<List<GoodObject>>(s));
-                            Log.Add(L + "GetBusGoodsAsync2 - получено " + _bus.Count.ToString() + " товаров");
+                            Log.Add($"{L}GetBusGoodsAsync2: получено {_bus.Count.ToString()} товаров");
                         } else
                             break;
                     }
                 } catch (Exception x) {
-                    Log.Add("business.ru: ошибка при запросе товаров из базы!!! - " + x.Message);
+                    Log.Add($"{L}GetBusGoodsAsync2: ошибка при запросе товаров из базы!!! - {x.Message}");
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     await Task.Delay(60000);
                 }
                 await DB.SetParamAsync("controlBus", _bus.Count.ToString());
             } while (_bus.Count == 0 || Math.Abs(_bus.Count - lastScan) / _bus.Count > 0.01);
-            Log.Add("business.ru: получено товаров " + _bus.Count);
+            Log.Add($"{L}GetBusGoodsAsync2: получено товаров {_bus.Count}");
         }
         public static async Task GetBusGroupsAsync() {
-            Log.Add(L + "GetBusGroupsAsync - получаю список групп...");
             do {
                 _busGroups.Clear();
                 try {
@@ -465,26 +463,26 @@ namespace Selen {
                     var tmp2 = JsonConvert.DeserializeObject<List<GoodGroupsObject>>(tmp);
                     _busGroups.AddRange(tmp2);
                 } catch (Exception x) {
-                    Log.Add(L + "GetBusGroupsAsync - ошибка запроса групп товаров из базы!!! - " + x.Message + " - " + x.InnerException?.Message);
+                    Log.Add($"{L}GetBusGroupsAsync: ошибка запроса групп товаров из базы! - {x.Message} - {x.InnerException?.Message}");
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
                     await Task.Delay(60000);
                 }
             } while (_busGroups.Count < 3);
-            Log.Add(L + "GetBusGroupsAsync - получено " + _busGroups.Count + " групп товаров");
+            Log.Add($"{L}GetBusGroupsAsync: получено {_busGroups.Count} групп товаров");
             GoodObject.Groups = _busGroups;
         }
         public static async Task GoLiteSync() {
             Status = SyncStatus.ActiveLite;
             try {
                 SyncStartTime = DateTime.Now;
-                Log.Add($"{L} GoLiteSync: запрос изменений...");
+                Log.Add($"{L}GoLiteSync: запрос изменений...");
                 _checkIntervalMinutes = await DB.GetParamIntAsync("checkIntervalMinutes");
                 var liteScanTimeShift = await DB.GetParamIntAsync("liteScanTimeShift");
                 var lastWriteBusFile = File.GetLastWriteTime(BUS_FILE_NAME);
                 var isBusFileOld = lastWriteBusFile.AddMinutes(_checkIntervalMinutes * 2) < LastScanTime;
                 //если файл базы устарел - полный рескан
                 if (isBusFileOld || _bus.Count == 0) {
-                    Log.Add($"{L} GoLiteSync: будет произведен запрос полной базы товаров... isBusFileOld {isBusFileOld}, goods.Count {_bus.Count}, Status {Status}");
+                    Log.Add($"{L}GoLiteSync: будет произведен запрос полной базы товаров... isBusFileOld={isBusFileOld}, goods.Count={_bus.Count}, Status={Status}");
                     Status = SyncStatus.NeedUpdate;
                     return;
                 }
@@ -535,14 +533,15 @@ namespace Selen {
                 //если изменений слишком много или сменился день - нужен полный рескан базы
                 if (lightSyncGoods.Count >= 250 ||
                     LastScanTime.Day != DateTime.Now.Day) {
-                    Log.Add($"{L} предупреждение - {lightSyncGoods.Count} изменений, {(DateTime.Now- LastScanTime).Hours} ч прошло с последней синхронизации, требуется полное обновление базы товаров...");
+                    Log.Add($"{L}GoLiteSync: предупреждение - {lightSyncGoods.Count} изменений, " +
+                        $"{(DateTime.Now- LastScanTime).Hours} ч прошло с последней синхронизации, нужно полное обновление списка товаров...");
                     Status = SyncStatus.NeedUpdate;
                     return;
                 }
-                Log.Add(L + "изменены карточки: " + lightSyncGoods.Count + " (с фото, ценой и остатками: " +
-                    lightSyncGoods.Count(c => c.Amount > 0 && c.Price > 0 && c.images.Count > 0) + ")");
+                Log.Add($"{L}GoLiteSync: изменены карточки: {lightSyncGoods.Count} (с фото, ценой и остатками: " +
+                    $"{lightSyncGoods.Count(c => c.Amount > 0 && c.Price > 0 && c.images.Count > 0)})");
                 foreach (var item in lightSyncGoods) {
-                    Log.Add($"{L} {item.name} (цена {item.Price}, своб. остаток {item.Amount}, резерв {item.Reserve})");
+                    Log.Add($"{L}GoLiteSync: {item.name} (цена {item.Price}, своб. остаток {item.Amount}, резерв {item.Reserve})");
                 }
                 //переносим обновления в загруженную базу
                 foreach (var lg in lightSyncGoods) {
@@ -575,12 +574,10 @@ namespace Selen {
                     await syncAllEvent.Invoke();
                 }
                 Status = SyncStatus.Waiting;
-                Log.Add(L + "цикл синхронизации завершен");
+                Log.Add($"{L}GoLiteSync: цикл синхронизации завершен");
             } catch (Exception x) {
                 new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
-                Log.Add(L + "ошибка синхронизации: " + x.Message + "\n"
-                    + x.Source + "\n"
-                    + x.InnerException?.Message);
+                Log.Add($"{L}GoLiteSync: ошибка синхронизации: {x.Message} - {x.Source} - {x.InnerException?.Message}");
                 Status = SyncStatus.NeedUpdate;
             }
         }
@@ -600,18 +597,18 @@ namespace Selen {
                                         {"price", (priceList.price+0.01).ToString("#.##").Replace(",",".")}
                         });
                     if (s.Contains("updated"))
-                        Log.Add($"назначение цен {priceList.id} обновлено => {(priceList.price + 0.01).ToString("#.##")}");
+                        Log.Add($"{L}UpdatePrices: назначение цен {priceList.id} обновлено => {(priceList.price + 0.01).ToString("#.##")}");
                     else
-                        Log.Add($"ошибка обновления назначения цен {priceList.id} => {(priceList.price + 0.01).ToString("#.##")}");
+                        Log.Add($"{L}UpdatePrices: ошибка обновления назначения цен {priceList.id} => {(priceList.price + 0.01).ToString("#.##")}");
                     //теперь меняем обратно
                     s = await RequestAsync("put", type, new Dictionary<string, string>{
                                         {"id", priceList.id},
                                         {"price", priceList.price.ToString("#.##").Replace(",",".")}
                         });
                     if (s.Contains("updated"))
-                        Log.Add($"назначение цен {priceList.id} обновлено => {priceList.price.ToString("#.##")}");
+                        Log.Add($"{L}UpdatePrices: назначение цен {priceList.id} обновлено => {priceList.price.ToString("#.##")}");
                     else
-                        Log.Add($"ошибка обновления назначения цен {priceList.id} => {priceList.price.ToString("#.##")}");
+                        Log.Add($"{L}UpdatePrices: ошибка обновления назначения цен {priceList.id} => {priceList.price.ToString("#.##")}");
                     
                 }
             }
@@ -622,12 +619,12 @@ namespace Selen {
                 await Task.Factory.StartNew(() => {
                     if (DB.GetParamBool("saveDataBaseLocal")) {
                         File.WriteAllText(BUS_FILE_NAME, JsonConvert.SerializeObject(_bus));
-                        Log.Add($"{L} база товаров сохранена => bus.json");
+                        Log.Add($"{L}SaveBusAsync: база товаров сохранена => bus.json");
                         File.SetLastWriteTime(BUS_FILE_NAME, SyncStartTime);
                     }
                 });
             } catch (Exception x) {
-                Log.Add($"{L} SaveBusAsync: ошибка сохранения базы товаров в bus.json - {x.Message}");
+                Log.Add($"{L}SaveBusAsync: ошибка сохранения базы товаров в bus.json - {x.Message}");
             }
         }
         //проверка резерва
@@ -686,7 +683,7 @@ namespace Selen {
                                                     && string.IsNullOrEmpty(w.Part)))) {
                     if (Status == SyncStatus.NeedUpdate)
                         return;
-                    Log.Add("business.ru: обнаружен пустой артикул - " + item.name);
+                    Log.Add($"{L}AddPartNumsAsync: обнаружен пустой артикул - " + item.name);
                     var nums = item.GetDescriptionNumbers();
                     if (nums.Count > 0) {
                         item.part = nums[0];
@@ -695,14 +692,14 @@ namespace Selen {
                                 {"name", item.name},
                                 {"part", item.part}
                         });
-                        Log.Add("business.ru: добавлен артикул - " + item.part);
+                        Log.Add($"{L}AddPartNumsAsync: добавлен артикул - " + item.part);
                         Thread.Sleep(1000);
                     }
                     i++;
                     //if (i > 10) break;
                 }
             } catch (Exception x) {
-                Log.Add("business.ru: ошибка при добавлении артикула - " + x.Message);
+                Log.Add($"{L}AddPartNumsAsync: ошибка при добавлении артикула - " + x.Message);
             }
         }
         public static async Task ClearOldUrls() {
@@ -728,27 +725,27 @@ namespace Selen {
                         {"854879", ""},
                         {"854882", ""}
                     });
-                    Log.Add($"{L} ClearOldUrls: {_bus[b].id} {_bus[b].name} - удалены ссылки из карточки");
+                    Log.Add($"{L}ClearOldUrls: {_bus[b].id} {_bus[b].name} - удалены ссылки из карточки");
                 }
             }
         }
         //проверка архивного статуса у карточек с остатком, фото
-        public static async Task CheckArhiveStatusAsync() {
+        public static async Task CheckArhiveStatus() {
             try {
                 foreach (var item in _bus.Where(w => (w.Amount > 0 /* || w.images.Count > 0*/) && w.archive)) {
                     if (Status == SyncStatus.NeedUpdate)
                         return;
-                    Log.Add($"{L} {item.name} - карточка в архиве! (ост.: {item.Amount}, фото: {item.images.Count})");
+                    Log.Add($"{L}CheckArhiveStatus: {item.name} - карточка в архиве! (ост.: {item.Amount}, фото: {item.images.Count})");
                     await RequestAsync("put", "goods", new Dictionary<string, string>{
                                 {"id", item.id},
                                 {"name", item.name},
                                 {"archive", "0"}
                         });
-                    Log.Add($"{L} {item.name} - архивный статус отменен!");
+                    Log.Add($"{L}CheckArhiveStatus: {item.name} - архивный статус отменен!");
                     Thread.Sleep(1000);
                 }
             } catch (Exception x) {
-                Log.Add($"{L} ошибка при изменении архивного статуса! - {x.Message}");
+                Log.Add($"{L}CheckArhiveStatus: ошибка при изменении архивного статуса! - {x.Message}");
             }
         }
         //проверка дублей названий
@@ -771,7 +768,7 @@ namespace Selen {
                             { "id" , _bus[i].id},
                             { "name" , _bus[i].name}
                         });
-                        Log.Add("CheckDublesAsync: переименование [" + ++cnt + "] нет в наличии: " + _bus[i].name);
+                        Log.Add($"{L}CheckDublesAsync: переименование [{++cnt}] нет в наличии: {_bus[i].name}");
                         await Task.Delay(1000);
                     }
                     //если есть дубли, остаток и в конце ` или '
@@ -785,7 +782,7 @@ namespace Selen {
                                                              : " `";
                         //если новое имя короче или если старое заканчивается ' или .
                         if (tmpName.Length < _bus[i].name.Length || _bus[i].name.EndsWith("'") || _bus[i].name.EndsWith(".")) {
-                            Log.Add("CheckDublesAsync: сокращаю наименование [" + ++cnt + "] " + _bus[i].name + " => " + tmpName);
+                            Log.Add($"{L}CheckDublesAsync: сокращаю наименование [{++cnt}] {_bus[i].name} => {tmpName}");
                             _bus[i].name = tmpName;
                             await RequestAsync("put", "goods", new Dictionary<string, string> {
                                 { "id" , _bus[i].id},
@@ -796,7 +793,7 @@ namespace Selen {
                     await Task.Delay(5);
                 }
             } catch (Exception x) {
-                Log.Add("CheckDublesAsync: ошибка! " + x.Message);
+                Log.Add($"{L}CheckDublesAsync: ошибка! {x.Message}");
             }
         }
         public static async Task CheckMultipleApostrophe() {
@@ -804,7 +801,7 @@ namespace Selen {
                 foreach (var item in _bus.Where(w => (w.name.Contains("''''") || w.name.Contains("' `")) && w.Amount > 0)) {
                     if (Status == SyncStatus.NeedUpdate)
                         return;
-                    Log.Add("business.ru: обнаружено название с множеством апострофов - " + item.name);
+                    Log.Add($"{L}CheckMultipleApostrophe: обнаружено название с множеством апострофов - {item.name}");
                     var s = item.name;
                     while (s.EndsWith("'") || s.EndsWith("`"))
                         s = s.TrimEnd('\'').TrimEnd('`').TrimEnd(' ');
@@ -813,11 +810,11 @@ namespace Selen {
                                 {"id", item.id},
                                 {"name", item.name}
                     });
-                    Log.Add("business.ru: исправлено имя с множеством апострофов - " + item.name);
+                    Log.Add($"{L}CheckMultipleApostrophe: исправлено имя с множеством апострофов - {item.name}");
                     Thread.Sleep(1000);
                 }
             } catch (Exception x) {
-                Log.Add("business.ru: ошибка при переименовании множественных апострофов - " + x.Message);
+                Log.Add($"{L}CheckMultipleApostrophe: ошибка при переименовании множественных апострофов - {x.Message}");
             }
         }
         //удаление лишних символов из артикулов
@@ -914,11 +911,7 @@ namespace Selen {
 
                             await RequestAsync("put", "goods", args);
 
-                            Log.Add("исправлена карточка\n" +
-                                  _bus[b].name + "\n" +
-                                  new_name + "\n" +
-                                  _bus[b].part + "\t" + _bus[b].store_code + "\n" +
-                                  new_part + "\t" + new_store_code);
+                            Log.Add($"{L}ArtCheck: исправлена карточка {_bus[b].name} -> {new_name}, {_bus[b].part} -> {new_part}, {_bus[b].store_code} -> {new_store_code}");
 
                             _bus[b].part = new_part;
                             _bus[b].store_code = new_store_code;
@@ -926,7 +919,7 @@ namespace Selen {
                             await Task.Delay(1000);
                         }
                     } catch (Exception x) {
-                        Log.Add("business.ru: " + _bus[b].name + " - ошибка при обработке артикулов! - " + x.Message);
+                        Log.Add($"{L}ArtCheck: ошибка при обработке артикулов - {_bus[b].name} - {x.Message}");
                         Thread.Sleep(10000);
                     }
                 }
@@ -945,8 +938,7 @@ namespace Selen {
                         {"name", _bus[b].name},
                         {"group_id", _bus[b].group_id}
                     });
-                    Log.Add("business.ru: " + _bus[b].name + " --> в группу Заказы");
-                    await Task.Delay(1000);
+                    Log.Add($"{L}GroupsMoveAsync: {_bus[b].name} --> в группу Заказы");
                 }
             }
         }
@@ -969,7 +961,7 @@ namespace Selen {
                                         )
                 .OrderBy(o => DateTime.Parse(o.updated))
                 .ToList();
-            Log.Add("PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
+            Log.Add($"{L}PhotoClearAsync: карточек с фото и ценой без остатка, обновленных более месяца назад: " + buschk.Count);
             var lastDate = DateTime.Now.AddYears(-2).ToString();
             for (int b = 0; cnt > 0 && b < buschk.Count; b++) {
                 if (Status == SyncStatus.NeedUpdate)
@@ -1001,11 +993,11 @@ namespace Selen {
                                     {"name", buschk[b].name},
                                     {"images", "[]"}
                                 });
-                    Log.Add("PhotoClearAsync: " + buschk[b].name + " - удалены фото из карточки! (" + buschk[b].images.Count + ")");
+                    Log.Add($"{L}PhotoClearAsync: {buschk[b].name} - удалены фото из карточки! ({buschk[b].images.Count})");
                     buschk[b].images.Clear();
                     cnt--;
                 } catch (Exception x) {
-                    Log.Add("ошибка при удалении фото из карточки! - " + _bus[b].name + " - " + x.Message);
+                    Log.Add($"{L}PhotoClearAsync: ошибка при удалении фото из карточки! - {_bus[b].name} - {x.Message}");
                 }
             }
         }
@@ -1021,7 +1013,7 @@ namespace Selen {
                                       (DateTime.Now > w.Updated.AddYears(3) || (DateTime.Now>w.Updated.AddDays(1) && !w.New)))
                                .OrderBy(o => o.Updated);
             var queryCount = busQuery.Count();
-            Log.Add($"ArchivateAsync: карточек для архивирования: {queryCount}");
+            Log.Add($"{L}ArchivateAsync: карточек для архивирования: {queryCount}");
             foreach (var b in busQuery) {
                 if (Status == SyncStatus.NeedUpdate)
                     return;
@@ -1031,12 +1023,12 @@ namespace Selen {
                                     {"name", b.name},
                                     {"archive", "1"}
                                 });
-                    Log.Add($"ArchivateAsync: {b.name} id = {b.id}, Updated = {b.Updated} - карточка перемещена в архив! [{cnt}]");
+                    Log.Add($"{L}ArchivateAsync: {b.name} id = {b.id}, Updated = {b.Updated} - карточка перемещена в архив! [{cnt}]");
                     b.archive = true;
                     if (--cnt == 0)
                         break;
                 } catch (Exception x) {
-                    Log.Add($"ArchivateAsync: {b.name} id = {b.id} - ошибка архивирования карточки! - {x.Message}");
+                    Log.Add($"{L}ArchivateAsync: {b.name} id = {b.id} - ошибка архивирования карточки! - {x.Message}");
                 }
             }
         }
@@ -1579,10 +1571,6 @@ namespace Selen {
                     Log.Add($"AddStickerCodeToReserve: ошибка добавления стикера! {result}");
             }
             return false;
-        }
-
-        public static GoodObject FindGood(string id) {
-            return _bus.Find(f => f.id == id);
         }
     }
 }

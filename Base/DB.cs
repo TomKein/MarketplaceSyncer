@@ -34,7 +34,7 @@ namespace Selen.Base {
                 command.ExecuteNonQuery();
                 //сохраняю ссылку на себя
             } catch (Exception x) {
-                Log.Add(x.Message);
+                Debug.WriteLine(x.Message);
                 if (GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }

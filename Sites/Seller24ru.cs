@@ -34,7 +34,7 @@ namespace Selen.Sites {
                         if (string.IsNullOrEmpty(id) || sheet.Cells[row, 7].Value != null)
                             continue;
                         //ищем карточку и бизнес.ру
-                        var good = Class365API.FindGood(id);
+                        var good = Class365API.GetGoodById(id);
                         if (good != null) {
                             var price = await GetPrice(good.id);
                             if (price != 0) {

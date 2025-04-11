@@ -740,7 +740,7 @@ namespace Selen.Sites {
                                     product_id = p.id,
                                     action_price = p.action_price,
                                     //stock=p.stock
-                                    stock = Class365API.FindGood(_productList.Find(f => f.product_id == p.id)?.offer_id)?.Amount ?? 1
+                                    stock = Class365API.GetGoodById(_productList.Find(f => f.product_id == p.id)?.offer_id)?.Amount ?? 1
                                 }).ToArray()
                             };
                             var res4 = await PostRequestAsync(data2, "/v1/actions/products/activate");
@@ -832,9 +832,9 @@ namespace Selen.Sites {
                     var s = await PostRequestAsync(data, "/v1/product/import/prices");
                     var res = JsonConvert.DeserializeObject<List<UpdateResult>>(s);
                     if (res.First().updated) {
-                        Log.Add($"{L} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция отменена!");
+                        Log.Add($"{L} DeactivateAutoActions: {Class365API.GetGoodById(product.offer_id)?.name} - автоакция отменена!");
                     } else {
-                        Log.Add($"{L} DeactivateAutoActions: {Class365API.FindGood(product.offer_id)?.name} - автоакция не отменена!");
+                        Log.Add($"{L} DeactivateAutoActions: {Class365API.GetGoodById(product.offer_id)?.name} - автоакция не отменена!");
                     }
                 }
             } catch (Exception x) {

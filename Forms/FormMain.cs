@@ -17,7 +17,7 @@ using System.Diagnostics;
 
 namespace Selen {
     public partial class FormMain : Form {
-        int _version = 232;
+        int _version = 233;
         //todo move this fields to class365api class
         YandexMarket _yandexMarket;
         VK _vk;
@@ -444,8 +444,8 @@ namespace Selen {
             try {
                 Log.Add("test start");
 
-                await _yandexMarket.UpdateActions();
-
+                await _wb.SyncAsync();
+                await _wb.CheckCardAsync(Class365API._bus.Find(f=>f.name.StartsWith("Набор для ремонта бескамерных шин")));
 
                 Log.Add("test end");
             } catch (Exception x) {
