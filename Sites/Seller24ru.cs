@@ -36,7 +36,7 @@ namespace Selen.Sites {
                         //ищем карточку и бизнес.ру
                         var good = Class365API.GetGoodById(id);
                         if (good != null) {
-                            var price = await GetPrice(good.id);
+                            var price = await GetNetPrice(good.id);
                             if (price != 0) {
                                 if (sheet.Name.Contains("Wildberries") && good.GetQuantOfSell() > 1)
                                     price = price * good.GetQuantOfSell();
@@ -76,7 +76,7 @@ namespace Selen.Sites {
                 }
             return false;
         }
-        public async Task<float> GetPrice(string good_id) {
+        public async Task<float> GetNetPrice(string good_id) {
             string price;
             //проверяем сохраненную цену в коллекции
             if (_goodPrices.Any(a => a.good_id == good_id))

@@ -13,7 +13,7 @@ using System.Xml;
 using System.Xml.Linq;
 
 namespace Selen.Sites {
-    internal class Avito {
+    public class Avito {
         //получение ключей https://www.avito.ru/professionals/api
         //получение токена https://developers.avito.ru/api-catalog/auth/documentation#operation/getAccessToken
         readonly string _l = "avito: ";
@@ -55,9 +55,9 @@ namespace Selen.Sites {
         List<string> _exceptionGoods;
         Dictionary<string, string> _exceptionBrands;
         List<string> _exceptionGroups;
-
-
         List<GoodObject> _bus;
+        public bool IsSyncActive { get; set; }
+
         public Avito() {
             _clientId = DB.GetParamStr("avito.clientId");
             _clientSecret = DB.GetParamStr("avito.clientSecret");
@@ -78,6 +78,7 @@ namespace Selen.Sites {
                                    .Where(w => !w.Value.Contains("×"))
                                    .Select(s => float.Parse(s.Value.Replace(".", ",")))
                                    .ToList();
+            IsSyncActive = false;
         }
         public async Task<string> PostRequestAsync(string apiRelativeUrl, Dictionary<string, string> request = null, string method = "GET") {
             try {
@@ -145,6 +146,7 @@ namespace Selen.Sites {
                     Log.Add($"{_l}MakeReserve: синхронизация отключена!");
                     return;
                 }
+                IsSyncActive = true;
                 //получаю список заказов
                 var orders = await PostRequestAsync<AvitoOrders>("/order-management/1/orders");
                 Log.Add($"{_l} MakeReserve - получено  заказов: " + orders.orders.Count);
@@ -187,17 +189,21 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         //выгрузка XML
-        public async Task GenerateXML() {
+        public async Task Sync() {
+            IsSyncActive = true;
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             _bus = Class365API._bus;
-            if (!await DB.GetParamBoolAsync("avito.syncEnable") || 
+            if (!await DB.GetParamBoolAsync("avito.syncEnable") ||
                 Class365API.SyncStartTime - _lastTimeUploadTime < TimeSpan.FromMinutes(
                     await DB.GetParamIntAsync("avito.uploadIntervalMinutes"))
-                )
+                ) {
+                IsSyncActive = false;
                 return;
+            }
             _lastTimeUploadTime = Class365API.SyncStartTime;
             await UpdateApplicationsAsync(_bus);
             await Task.Factory.StartNew(() => {
@@ -251,6 +257,7 @@ namespace Selen.Sites {
                         itemStock.Add(new XElement("id", b.id));
                         itemStock.Add(new XElement("stock", b.Amount));
                         rootStock.Add(itemStock);
+                        if (b.Amount <= 0) continue;
 
                         //основной xml
                         var ad = new XElement("Ad");
@@ -269,7 +276,10 @@ namespace Selen.Sites {
                         //доставка!!!
                         var deliv = new XElement("Delivery");
                         deliv.Add(new XElement("Option", "ПВЗ"));
-                        //deliv.Add(new XElement("Option", "Свой партнер СДЭК"));
+                        deliv.Add(new XElement("Option", "Курьер"));
+                        deliv.Add(new XElement("Option", "Постамат"));
+                        deliv.Add(new XElement("Option", "Свой партнер СДЭК"));
+                        deliv.Add(new XElement("Option", "Самовывоз с онлайн-оплатой"));
                         //deliv.Add(new XElement("Option", "Свой партнер Boxberry"));
                         //deliv.Add(new XElement("Option", "Свой партнер Почта России"));
                         ad.Add(deliv);
@@ -284,7 +294,7 @@ namespace Selen.Sites {
                         //else {
                         //    ad.Add(new XElement("DateBegin", DateTime.Now.ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss")+"+03:00"));
                         //}
-                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
+                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 354"));
                         ad.Add(new XElement("Price", b.Price));
                         ad.Add(new XElement("ContactPhone", "8 920 899-45-45"));
                         ad.Add(new XElement("Title", b.NameLimit(100)));
@@ -340,6 +350,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         string GetDescription(GoodObject b) {
             var d = b.DescriptionList(2990, _addDesc);
@@ -513,7 +524,8 @@ namespace Selen.Sites {
         //категории авито
         public static Dictionary<string, string> GetCategoryAvito(GoodObject b) {
             var name = b.name.ToLowerInvariant()
-                             .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.", "").Replace("б.у", "").Trim();
+                             .Replace(@"б\у", "").Replace("б/у", "").Replace("б.у.", "").Replace("б.у", "")
+                             .Replace("ё", "е").Trim();
             var d = new Dictionary<string, string>();
 
 

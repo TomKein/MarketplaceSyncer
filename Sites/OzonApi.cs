@@ -63,7 +63,7 @@ namespace Selen.Sites {
         int _basePriceProcent;
         int _kgtPriceProcent;
         int _minOverPrice;
-        
+        public bool IsSyncActive { get; set; }
 
         public OzonApi() {
             _hc.BaseAddress = new Uri(_baseApiUrl);
@@ -73,14 +73,16 @@ namespace Selen.Sites {
             _oldPriceProcent = DB.GetParamFloat("ozon.oldPriceProcent");
             _minPriceProcent = DB.GetParamFloat("ozon.minPriceProcent");
             _updateFreq = DB.GetParamInt("ozon.updateFreq");
+            IsSyncActive = false;
         }
         //главный метод
-        public async Task SyncAsync() {
+        public async Task Sync() {
             try {
                 if (!await DB.GetParamBoolAsync("ozon.syncEnable")) {
                     Log.Add($"{L} StartAsync: синхронизация отключена!");
                     return;
                 }
+                IsSyncActive = true;
                 while (Class365API.Status == SyncStatus.NeedUpdate)
                     await Task.Delay(30000);
                 _bus = Class365API._bus;
@@ -116,6 +118,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         public async Task MakeReserve() {
             try {
@@ -123,6 +126,7 @@ namespace Selen.Sites {
                     Log.Add($"{L}MakeReserve: синхронизация отключена!");
                     return;
                 }
+                IsSyncActive = true;
                 //запросить список заказов со следующими статусами
                 var statuses = new List<string> {
                     "awaiting_packaging",
@@ -186,6 +190,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         //проверка всех карточек в бизнесе, которые изменились и имеют ссылку на озон
         private async Task UpdateProductsAsync() {
@@ -255,7 +260,7 @@ namespace Selen.Sites {
                     File.SetLastWriteTime(_productListFile, startTime);
                     _isProductListCheckNeeds = false; //сбрасываю флаг
                 }
-                await CheckProductLinksAsync();
+                await CheckProductLinksAsync(true);
             } catch (Exception x) {
                 Log.Add(L + "ProductList - ошибка загрузки товаров - " + x.Message);
             }
@@ -278,6 +283,10 @@ namespace Selen.Sites {
                         return;
                     //карточка в бизнес.ру с id = артикулу товара на озон
                     var b = Class365API._bus.FindIndex(_ => _.id == item.offer_id);
+                    if (item.offer_id == "243183")
+                    {
+                        int iii = 1;
+                    }
                     if (b == -1) {
                         Log.Add($"{L}CheckProductLinksAsync: предупреждение - карточка бизнес.ру с id = " + item.offer_id + " не найдена!");
                     } else if (!Class365API._bus[b].Ozon.Contains("http") ||                       //если карточка найдена,но товар не привязан к бизнес.ру
@@ -302,7 +311,12 @@ namespace Selen.Sites {
             var s = await PostRequestAsync(data, "/v3/product/info/list");
             if (s != null) {
                 var products = JsonConvert.DeserializeObject< ProductsInfo > (s);
-                return products?.items?.First();
+                if (products?.items?.Any() != true)
+                {
+                    Log.Add($"{L}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
+                    return null;
+                }
+                return products.items.First();
             }
             Log.Add($"{L}GetProductInfoAsync: предупреждение! [{bus.id}] {bus.name} товар не найден!!");
             return null;
@@ -335,9 +349,15 @@ namespace Selen.Sites {
                     productInfo = await GetProductInfoAsync(bus);
                 if (productInfo == null)
                     return true;
+                if (productInfo.offer_id == "243183")
+                {
+                    int iii = 1;
+                }
                 await UpdatePrice(bus, productInfo);
-                foreach (var warehouse in _warehouseList.Where(w=>!w.is_economy)) 
-                    await UpdateStocks(bus, productInfo, warehouse); 
+                var activeWarehouses = _warehouseList.Where(w => !w.is_economy && w.status != "disabled").ToArray();
+                var stockMul = activeWarehouses.Count();
+                foreach (var warehouse in activeWarehouses) 
+                    await UpdateStocks(bus, productInfo, warehouse, stockMul); 
                 await UpdateProduct(bus, productInfo);
                 return true;
             } catch (Exception x) {
@@ -346,14 +366,15 @@ namespace Selen.Sites {
             }
         }
         //обновление остатков товара на озон
-        private async Task UpdateStocks(GoodObject bus, ProductInfo productInfo, OzonWareHouse warehouse) {
+        private async Task UpdateStocks(GoodObject bus, ProductInfo productInfo, OzonWareHouse warehouse, int StockMul) {
             try {
                 var amount = (int) bus.Amount;
                 //обнуляем остаток, если остаток ниже нуля или товар стал б/у
                 if (!bus.New || amount < 0)
                     amount = 0;
-                if (amount * _warehouseList.Count(w=>!w.is_economy) == productInfo.GetStocks())
+                if (amount * StockMul == productInfo.GetStocks())
                     return;
+                
 
                 //объект для запроса
                 var data = new {
@@ -399,7 +420,7 @@ namespace Selen.Sites {
             //если наценка меньше 200 р - округляю
             if (overPrice < _minOverPrice)
                 overPrice = _minOverPrice;
-            return b.Price + overPrice;
+            return b.Price + Math.Max(overPrice, _minOverPrice);
         }
         //цена до скидки (старая)
         private int GetOldPrice(int newPrice) {
@@ -445,8 +466,10 @@ namespace Selen.Sites {
         }
         //запросы к api ozon
         public async Task<string> PostRequestAsync(object request, string apiRelativeUrl) {
-            try {
-                var httpContent = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+            try
+            {
+                var payload = JsonConvert.SerializeObject(request);
+                var httpContent = new StringContent(payload, Encoding.UTF8, "application/json");
 
                 HttpRequestMessage requestMessage = new HttpRequestMessage(new HttpMethod("POST"), apiRelativeUrl);
                 requestMessage.Headers.Add("Client-Id", _clientID);
@@ -466,8 +489,12 @@ namespace Selen.Sites {
                     if (rr.result == null)
                         return js;
                     return JsonConvert.SerializeObject(rr.result);
-                } else
+                }
+                else
+                {
+                    var js2 = await response.Content.ReadAsStringAsync();
                     throw new Exception(response.StatusCode + " " + response.ReasonPhrase + " " + response.Content);
+                }
             } catch (Exception x) {
                 //throw new Exception($"{_l} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
                 Log.Add($"{L} PostRequestAsync ошибка запроса! apiRelativeUrl:{apiRelativeUrl} request:{request} message:{x.Message}");
@@ -532,6 +559,7 @@ namespace Selen.Sites {
                             dimension_unit = "mm",
                             primary_image = good.images.First().url,                //главное фото
                             images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
+                            type_id = productInfo.type_id,
                             vat="0.0"                                               //налог
                         }
                     }
@@ -591,7 +619,7 @@ namespace Selen.Sites {
                     }
                 var s = await PostRequestAsync(data, "/v3/product/import");
                 var res = JsonConvert.DeserializeObject<ProductImportResult>(s);
-                if (res.task_id != default(int)) {
+                if (res.task_id != default(long)) {
                     Log.Add($"{L} UpdateProduct: id:{good.id} {good.name} - товар отправлен на озон!");
                 } else {
                     Log.Add($"{L} UpdateProduct: id:{good.id} {good.name} - ошибка отправки товара на озон! - {s}");
@@ -670,6 +698,7 @@ namespace Selen.Sites {
                                 dimension_unit = "mm",
                                 primary_image = good.images.First().url,                    //главное фото
                                 images = good.images.Skip(1).Take(14).Select(_=>_.url).ToList(),
+                                type_id = attributes.typeId,
                                 vat="0.0"                                                   //налог
                             }
                         }
@@ -1422,31 +1451,35 @@ namespace Selen.Sites {
 
         //Атрибут Аннотация Описание товара
         Attribute GetDescriptionAttribute(GoodObject good) {
-            try {
+            try
+            {
+                var descList = good.DescriptionList();
+                var filteredDescriptions = descList.Where(w => !w.ToLower().Contains("оригинал")
+                                                               && !w.ToLower().Contains("новая")
+                                                               && !w.ToLower().Contains("новые")
+                                                               && !w.ToLower().Contains("новое")
+                                                               && !w.ToLower().Contains("новый")
+                                                               && !w.ToLower().Contains("недочет")
+                                                               && !w.ToLower().Contains("недочёт")
+                                                               && !w.ToLower().Contains("наличии")
+                                                               && !w.ToLower().Contains("упаковк")
+                                                               && !w.ToLower().Contains("без короб")
+                                                               && !w.ToLower().Contains("уценка")
+                                                               && !w.ToLower().Contains("уценен")
+                                                               && !w.ToLower().Contains("уценён")
+                                                               && !w.ToLower().Contains("витринн")
+                ).ToList(); // Преобразуем в список для проверки
+
+                // Если список пуст, используем good.name, иначе объединяем отфильтрованные строки
+                var descList2 = filteredDescriptions.Any() 
+                    ? string.Join("<br>", filteredDescriptions) 
+                    : good.name;
+                var value = new Value { value = descList2 };
+                var values = new Value[] { value };
                 return new Attribute {
                     complex_id = 0,
                     id = 4191,
-                    values = new Value[] {
-                    new Value{
-                        value = good.DescriptionList()
-                            .Where(w=>!w.ToLower().Contains("оригинал")
-                                    &&!w.ToLower().Contains("новая")
-                                    &&!w.ToLower().Contains("новые")
-                                    &&!w.ToLower().Contains("новое")
-                                    &&!w.ToLower().Contains("новый")
-                                    &&!w.ToLower().Contains("недочет")
-                                    &&!w.ToLower().Contains("недочёт")
-                                    &&!w.ToLower().Contains("наличии")
-                                    &&!w.ToLower().Contains("упаковк")
-                                    &&!w.ToLower().Contains("без короб")
-                                    &&!w.ToLower().Contains("уценка")
-                                    &&!w.ToLower().Contains("уценен")
-                                    &&!w.ToLower().Contains("уценён")
-                                    &&!w.ToLower().Contains("витринн")
-                            )?.Aggregate((a,b)=>a+"<br>"+b)
-                            ??good.name
-                    }
-                }
+                    values = values
                 };
             } catch (Exception x) {
                 Log.Add($"{L}GetDescriptionAttribute: ошибка описания! [{good.id}] {good.name} - {x.Message}");
@@ -1550,7 +1583,7 @@ namespace Selen.Sites {
             } else {
                 var category_id = GetDescriptionCategoryId(type_id);
                 var res = new List<AttributeValue>();
-                var last = 0;
+                long last = 0;
                 do {
                     var data = new {
                         attribute_id = attribute_id,
@@ -1696,6 +1729,7 @@ namespace Selen.Sites {
         public string name { get; set; }
         public bool is_kgt { get; set; }
         public bool is_economy { get; set; }
+        public string status { get; set; }
     }
     public class OzonPriceList {
         public List<OzonPriceListItem> items { get; set; }
@@ -1703,7 +1737,7 @@ namespace Selen.Sites {
         public string cursor { get; set; }
     }
     public class OzonPriceListItem {
-        public int product_id { get; set; }
+        public long product_id { get; set; }
         public string offer_id { get; set; }
         public OzonPrice price { get; set; }
         public object marketing_actions { get; set; }
@@ -1726,7 +1760,7 @@ namespace Selen.Sites {
         public int total;
     }
     public class OzonActionProduct {
-        public int id;
+        public long id;
         public string price;
         public string action_price;
         public string max_action_price;
@@ -1747,7 +1781,7 @@ namespace Selen.Sites {
         public List<OzonActions> result = new List<OzonActions>();
     }
     public class OzonActions {
-        public int id;
+        public long id;
         public int participating_products_count;
     }
 
@@ -1839,9 +1873,11 @@ namespace Selen.Sites {
         public string GetSku() {
             return (sources[0]?.sku)?.ToString();
         }
-        public int GetStocks() {
-            return stocks.stocks.Where(w=>w.source=="fbs").Select(s=>s.reserved).Sum() 
-                + stocks.stocks.Where(w => w.source == "fbs").Select(s => s.present).Sum();
+        public int GetStocks()
+        {
+            return stocks.stocks
+                .Where(w => w.source == "fbs")
+                .Sum(s => s.reserved + s.present);
         }
         public int GetPrice() {
             return price.Length > 0 ? int.Parse(price.Split('.').First()) : 0;
@@ -1859,7 +1895,7 @@ namespace Selen.Sites {
     public class ItemErrors {
         public string code { get; set; }
         public string field { get; set; }
-        public int attribute_id { get; set; }
+        public long attribute_id { get; set; }
         public string state { get; set; }
         public string level { get; set; }
         public string description { get; set; }
@@ -1966,7 +2002,7 @@ namespace Selen.Sites {
         public string last_id { get; set; }
     }
     public class ProductListItem {
-        public int product_id { get; set; }
+        public long product_id { get; set; }
         public string offer_id { get; set; }
         //public bool is_fbo_visible { get; set; }
         //public bool is_fbs_visible { get; set; }
@@ -1974,7 +2010,7 @@ namespace Selen.Sites {
         public bool is_discounted { get; set; }
     }
     public class Item {
-        public int product_id { get; set; }
+        public long product_id { get; set; }
         public string offer_id { get; set; }
         public Stock[] stocks { get; set; }
     }
@@ -1985,7 +2021,7 @@ namespace Selen.Sites {
     }
     /////////////////////////////////////////
     public class UpdateResult {
-        public int product_id { get; set; }
+        public long product_id { get; set; }
         public string offer_id { get; set; }
         public bool updated { get; set; }
         public UpdateResultErrors[] errors { get; set; }
@@ -1996,14 +2032,14 @@ namespace Selen.Sites {
     }
     /////////////////////////////////////////
     public class AttributeValue {
-        public int id { get; set; }
+        public long id { get; set; }
         public string value { get; set; }
         public string info { get; set; }
         public string picture { get; set; }
     }
     /////////////////////////////////////////
     public class ProductImportResult {
-        public int task_id { get; set; }
+        public long task_id { get; set; }
     }
     /////////////////////////////////////////
     public class ProductImportInfo {
@@ -2013,14 +2049,14 @@ namespace Selen.Sites {
     }
     public class Items {
         public string offer_id { get; set; }
-        public int product_id { get; set; }
+        public long product_id { get; set; }
         public string status { get; set; }
         public Errors[] errors { get; set; }
     }
     public class Errors {
         public string code { get; set; }
         public string field { get; set; }
-        public int attribute_id { get; set; }
+        public long attribute_id { get; set; }
         public string state { get; set; }
         public string level { get; set; }
         public string description { get; set; }
@@ -2040,7 +2076,7 @@ namespace Selen.Sites {
         public string last_id { get; set; }
     }
     public class ProductsInfoAttr {
-        public int id { get; set; }
+        public long id { get; set; }
         public string barcode { get; set; }
         //public int category_id { get; set; }
         public string name { get; set; }
@@ -2067,11 +2103,11 @@ namespace Selen.Sites {
     public class Image {
         public string file_name { get; set; }
         public bool _default { get; set; }
-        public int index { get; set; }
+        public long index { get; set; }
     }
     public class Attribute {
-        public int id { get; set; }
-        public int complex_id { get; set; }
+        public long id { get; set; }
+        public long complex_id { get; set; }
         public Value[] values { get; set; }
     }
     public class Value {

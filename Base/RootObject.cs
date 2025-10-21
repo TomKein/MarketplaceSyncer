@@ -303,7 +303,7 @@ namespace Selen {
 
         [JsonIgnore]
         //меньше 1 кг добавляем 50 г на упаковку, для большого веса +100 г
-        public float Weight => (float)Math.Round( (WeightNet + (WeightNet < 1 ? 0.04 : 0.8)), 3);
+        public float Weight => (float)Math.Round( (WeightNet + (WeightNet < 1 ? 0.04 : 0.08)), 3);
         //объем товара по умолчанию
         static float defaultVolume;
         public static void UpdateDefaultVolume() {
@@ -761,7 +761,7 @@ namespace Selen {
                 //d = match.Success ? match.Groups[2].Value?.Trim() : description.Split('{').First(); //вариант
             } else {
                 //иначе используем текст до открывающей фигурной скобки
-                d = description.Split('{').First();
+                d = description?.Split('{').First() ?? "";
             }
             if (removeSpec)
                 d = d
@@ -841,7 +841,7 @@ namespace Selen {
         [JsonIgnore]
         public bool Origin {
             get {
-                var low = description.ToLowerInvariant();
+                var low = description?.ToLowerInvariant() ?? "";
                 if (low.Contains("оригинал") &&
                     !low.Replace(" ", "").Contains("неоригинал"))
                     return true;

@@ -87,7 +87,7 @@ namespace Selen.Sites {
                         offer.Add(new XElement(item.Key, item.Value));
                     }
                     //адрес магазина
-                    offer.Add(new XElement("adress", "Россия, Калуга, Московская улица, 331"));
+                    offer.Add(new XElement("adress", "Россия, Калуга, Московская улица, 354"));
                     //цена
                     offer.Add(new XElement("price", b.Price));
                     //телефон
@@ -155,7 +155,7 @@ namespace Selen.Sites {
                             ad.Add(new XElement(item.Key, item.Value));
                         }
                         //адрес магазина
-                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 331"));
+                        ad.Add(new XElement("Address", "Россия, Калуга, Московская улица, 354"));
                         //цена
                         ad.Add(new XElement("Price", b.Price));
                         //телефон

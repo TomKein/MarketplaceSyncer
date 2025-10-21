@@ -18,7 +18,7 @@ using Newtonsoft.Json;
 
 namespace Selen.Sites {
     public class VK {
-        static string L = "vk.com: ";
+        static string L = "vk: ";
         public List<MarketAlbum> vkAlb = new List<MarketAlbum>();
         public List<Market> vkMark = new List<Market>();
         VkApi _vk = new VkApi();
@@ -38,27 +38,35 @@ namespace Selen.Sites {
         List<GoodObject> _bus;
         List<GoodObject> _busToUpdate;        //список товаров для обновления
         readonly string _busToUpdateFile = @"..\data\vk\toupdate.json";
+        public bool IsSyncActive { get; set; }
+
         //главный метод синхронизации вк
-        public async Task SyncAsync() {
-            if (!await DB.GetParamBoolAsync("vk.syncEnable")) {
-                Log.Add($"{L} StartAsync: синхронизация отключена!");
-                return;
+        public async Task Sync() {
+            try {
+                if (!await DB.GetParamBoolAsync("vk.syncEnable")) {
+                    Log.Add($"{L} StartAsync: синхронизация отключена!");
+                    return;
+                }
+                IsSyncActive = true;
+                while (Class365API.Status == SyncStatus.NeedUpdate)
+                    await Task.Delay(20000);
+                _bus = Class365API._bus;
+                await GetParamsAsync();
+                await IsVKAuthorizatedAsync();
+                await UpdateAll();
+                if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
+                    await GetAlbumsVK();
+                    if (vkAlb.Count > 0) {
+                        await Add();
+                        await GetVKAsync();
+                        await CheckVk();
+                        await CheckBus();
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}Sync: ошибка - {x.Message}");
             }
-            while (Class365API.Status == SyncStatus.NeedUpdate)
-                await Task.Delay(20000);
-            _bus = Class365API._bus;
-            await GetParamsAsync();
-            await IsVKAuthorizatedAsync();
-            await UpdateAll();
-            if (Class365API.SyncStartTime.Minute > Class365API._checkIntervalMinutes || Class365API.SyncStartTime.Hour % _catalogCheckInterval != 0)
-                return;
-            await GetAlbumsVKAsync();
-            if (vkAlb.Count == 0)
-                return;
-            await AddVKAsync();
-            await GetVKAsync();
-            await CheckVKAsync();
-            await CheckBusAsync();
+            IsSyncActive = false;
         }
         //проверка карточек
         async Task UpdateAll() {
@@ -141,14 +149,14 @@ namespace Selen.Sites {
                 param.Price = (decimal) good.Price;
                 param.OldPrice = (decimal) good.Price;
                 _vk.Markets.Edit(param);
-                Log.Add("vk.com: " + good.name + " - обновлено");
+                Log.Add($"{L}Edit:{good.name} - обновлено");
             } catch (Exception x) {
-                Log.Add("vk.com: " + good.name + " - ошибка редактирования! - " + x.Message);
+                Log.Add($"{L}Edit: ошибка обновления {good.name} - {x.Message}");
             }
             //Thread.Sleep(10000);
         }
         //добавляю объявления на ВК
-        private async Task AddVKAsync() {
+        private async Task Add() {
             for (int b = 0; b < Class365API._bus.Count && _addCount > 0; b++) {
                 if (Class365API.IsTimeOver)
                     return;
@@ -160,21 +168,21 @@ namespace Selen.Sites {
                     && !Class365API._bus[b].vk.Contains("http")) {
                     try {
                         _addCount--;
-                        await AddAsync(b);
+                        await AddRequest(b);
                         await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
                                                       {"id", Class365API._bus[b].id},
                                                       {"name", Class365API._bus[b].name},
                                                       {_url, Class365API._bus[b].vk} });
-                        Log.Add("vk.com: " + Class365API._bus[b].name + " - добавлено");
+                        Log.Add($"{L}Add: {Class365API._bus[b].name} - добавлено");
                     } catch (Exception ex) {
-                        Log.Add("vk.com: " + Class365API._bus[b].name + " - ошибка при добавлении! " + ex.Message);
+                        Log.Add($"{L}Add: ошибка добавления {Class365API._bus[b].name} - {ex.Message}");
                     }
 
                 }
             }
         }
         //добавляю объявление
-        async Task AddAsync(int b) => await Task.Factory.StartNew(() => {
+        async Task AddRequest(int b) => await Task.Factory.StartNew(() => {
             //переменные для хранения индексов фото, загруженных на сервер вк
             long mainPhoto = 0;
             List<long> dopPhotos = new List<long>();
@@ -240,7 +248,7 @@ namespace Selen.Sites {
                 !b.name.StartsWith("Четверть")
                 )
                 list.AddRange(_dopDesc2);
-            var d = b.DescriptionList(2990, list, removePhone:false);
+            var d = b.DescriptionList(2990, list, removePhone: false);
             if (b.Price >= _creditPriceMin && b.Price <= _creditPriceMax)
                 d.Insert(0, _creditDescription);
             return d.Aggregate((a1, a2) => a1 + "\n" + a2);
@@ -255,7 +263,7 @@ namespace Selen.Sites {
                     if (!_vk.Markets.AddToAlbum(-_marketId, itemId, sList))
                         throw new Exception("метод вернул false");
                 } catch (Exception x) {
-                    Log.Add("ошибка добавления в альбом" + x.Message);
+                    Log.Add($"{L}AddToAlbum: ошибка добавления в альбом {Class365API._bus[b].name} - {x.Message}");
                 }
             }
         }
@@ -274,10 +282,10 @@ namespace Selen.Sites {
                         Thread.Sleep(200);
                         break;
                     } catch (Exception ex) {
-                        Log.Add("vk.com: ошибка при загрузке фото! - " + ex.Message);
+                        Log.Add($"{L}UploadPhotos: ошибка при загрузке фото {Class365API._bus[b].name} - {ex.Message}");
                         if (x >= 3)
                             throw;
-                        Thread.Sleep(30000);
+                        Thread.Sleep(20000);
                     }
                 }
                 try {
@@ -294,7 +302,7 @@ namespace Selen.Sites {
                     else
                         dopPhotos.Add(photo.FirstOrDefault().Id.Value);
                 } catch (Exception ex) {
-                    Log.Add("vk.com: " + Class365API._bus[b].name + " - ошибка загрузки фото! - " + ex.Message);
+                    Log.Add($"{L}UploadPhotos: ошибка загрузки фото! {Class365API._bus[b].name} - {ex.Message}");
                     throw;
                 }
             }
@@ -311,32 +319,32 @@ namespace Selen.Sites {
                     vkMark.AddRange(
                         _vk.Markets.Get(-_marketId, count: _pageLimitVk, offset: v * _pageLimitVk, extended: true));
                     if (num == vkMark.Count) {
-                        Log.Add("vk.com: получено объявлений " + vkMark.Count);
+                        Log.Add($"{L}GetVk: получено объявлений {vkMark.Count}");
                         DB.SetParam("vk.checkCount", num.ToString());
                         MarketCount = num;
-                        Log.Add("vk.com: получено товаров " + num);
+                        Log.Add($"{L}GetVk: получено товаров {num}");
                         break;
                     }
                 } catch (Exception ex) {
-                    Log.Add("vk.com: ошибка при запросе товаров! - " + ex.Message);
+                    Log.Add($"{L}GetVk: ошибка при запросе товаров! - {ex.Message}");
                     break;
                 }
                 if (num % 1000 == 0)
-                    Log.Add("vk.com: получено товаров " + num);
+                    Log.Add($"{L}GetVk: получено товаров {num}");
                 if (Class365API.IsTimeOver) {
-                    Log.Add("vk.com: время истекло, метод GetVKAsync завершен!!");
+                    Log.Add($"{L}GetVk: время истекло, метод GetVKAsync завершен!!");
                     return;
                 }
             }
             if (vkMark.Count != 0 && Math.Abs(checkCount - vkMark.Count) < 10)
                 return;
-            throw new Exception("ошибка запроса объявлений (vkMark.Count = " + vkMark.Count + ", checkCount = " + checkCount);
+            throw new Exception($"{L}GetVk: ошибка запроса объявлений (vkMark.Count = {vkMark.Count}, checkCount = {checkCount})");
         });
         //проверка каталога объявлений на вк
-        async Task CheckVKAsync() => await Task.Factory.StartNew(() => {
+        async Task CheckVk() => await Task.Factory.StartNew(() => {
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             for (int i = 0; i < vkMark.Count && ccl > 0; i++) {
-                if (Class365API.IsTimeOver) 
+                if (Class365API.IsTimeOver)
                     return;
                 //ищем индекс в карточках товаров
                 var id = vkMark[i].Id.ToString();
@@ -349,10 +357,10 @@ namespace Selen.Sites {
                     ) {
                     try {
                         _vk.Markets.Delete(-_marketId, (long) vkMark[i].Id);
-                        Log.Add("vk.com: " + b + " " + vkMark[i].Title + " - удалено! (ост. " + --ccl + ")");
-                        Thread.Sleep(2000);
+                        Log.Add($"{L}CheckVk: [{b}] {vkMark[i].Title} - удалено!");
+                        Thread.Sleep(1000);
                     } catch (Exception x) {
-                        Log.Add("vk.com: " + vkMark[i].Title + " - ошибка удаления! - " + x.Message);
+                        Log.Add($"{L}CheckVk: ошибка удаления {vkMark[i].Title} - {x.Message}");
                         Thread.Sleep(2000);
                     }
                     //если изменилась цена, наименование или карточка товара - редактирую
@@ -371,9 +379,9 @@ namespace Selen.Sites {
             }
         });
         //проверка актуальности ссылок в карточках бизнес.ру
-        async Task CheckBusAsync() {
+        async Task CheckBus() {
             UrlsCount = Class365API._bus.Count(b => b.vk.Contains("http"));
-            Log.Add("vk.com: ссылок в карточках товаров " + UrlsCount);
+            Log.Add($"{L}CheckBus: ссылок в карточках товаров {UrlsCount}");
             var ccl = DB.GetParamInt("vk.catalogCheckLimit");
             //для каждой карточки в бизнес.ру
             for (int b = 0; b < Class365API._bus.Count && ccl > 0; b++) {
@@ -394,16 +402,16 @@ namespace Selen.Sites {
                                                       {"id", Class365API._bus[b].id},
                                                       {"name", Class365API._bus[b].name},
                                                       {_url, Class365API._bus[b].vk} });
-                        Log.Add("vk.com: " + Class365API._bus[b].name + " - объявление не найдено, ссылка удалена (ост. " + --ccl + ")");
+                        Log.Add($"{L}CheckBus: объявление не найдено, ссылка удалена {Class365API._bus[b].name}");
                         await Task.Delay(1000);
                     }
                 } catch (Exception x) {
-                    Log.Add(x.Message);
+                    Log.Add($"{L}CheckBus: ошибка - {x.Message}");
                 }
             }
         }
         //получаю альбомы из ВК
-        private async Task GetAlbumsVKAsync() => await Task.Factory.StartNew(() => {
+        private async Task GetAlbumsVK() => await Task.Factory.StartNew(() => {
             //проверяем соответствие групп вк с базой
             bool f; //флаг было добавление группы в цикле - нужно пересканировать
             do {
@@ -414,7 +422,7 @@ namespace Selen.Sites {
                     throw ex;
                 }
                 if (vkAlb.Count == 0)
-                    throw new Exception("vk.com: ошибка - группы не получены");
+                    throw new Exception($"{L}GetAlbumsVK: ошибка - группы не получены");
                 f = false;
                 //проверяем только группы бу запчасти
                 foreach (var group in GoodObject.Groups.Where(w => w.parent_id == "205352").Select(s => s.name)) {
@@ -435,7 +443,7 @@ namespace Selen.Sites {
                     }
                 }
             } while (f);
-            Log.Add("vk.com: получено " + vkAlb.Count + " альбомов");
+            Log.Add($"{L}GetAlbumsVK: получено {vkAlb.Count} альбомов");
         });
         //авторизация вк
         //получить новый ключ
@@ -449,7 +457,8 @@ namespace Selen.Sites {
                 Login = DB.GetParamStr("vk.login"),
                 Password = DB.GetParamStr("vk.password"),
                 Settings = Settings.All,
-                AccessToken = DB.GetParamStr("vk.accessToken")//vk1.a.0TMsogM0BD8IUc-aJPDMZeEX1Fp4mwfoV0XCECHXkTxGcleir8TjQUlfNrr9wavfUuvASI48lmXkWM7I5KbcbakJX4XnOm-kLtPwreNWazr10eqlR_5dIEYNj1mlB92IhcxfSO-tuwv9Gx-FY2lhAfo1p8dRtLYBSA6H7rxiRH1KrbnP8jgwHZ3Jy35yc_vZ0BusGCMHu3SN7w0uxVnx0Q
+                //AccessToken = DB.GetParamStr("vk.accessToken")//vk1.a.0TMsogM0BD8IUc-aJPDMZeEX1Fp4mwfoV0XCECHXkTxGcleir8TjQUlfNrr9wavfUuvASI48lmXkWM7I5KbcbakJX4XnOm-kLtPwreNWazr10eqlR_5dIEYNj1mlB92IhcxfSO-tuwv9Gx-FY2lhAfo1p8dRtLYBSA6H7rxiRH1KrbnP8jgwHZ3Jy35yc_vZ0BusGCMHu3SN7w0uxVnx0Q
+                AccessToken = "vk1.a.M-YWj83GaNx2R63Q6nqAHvaw_9KVtPZYbedwLr9P9L2o2gGAIlTqQ6DnK1jhGJDwa8jWZj4NglRvk_3RpO1TQxwx6kssZgZbccd331RbTOJAa54QHmDi88goNshXqEeycr-mNx0pEzCv2LwZ5KqIJPXoOjwlq6Co_cfbAihvoS312st28oKjqZD_YOJM9PJiXcOXrK_8giQgeljKvwtLyw"
             });
         });
     }

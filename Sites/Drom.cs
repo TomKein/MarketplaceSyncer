@@ -19,7 +19,7 @@ using System.Windows.Forms;
 
 namespace Selen.Sites {
     public class Drom {
-        readonly string L = "drom.ru: ";   //префикс для лога
+        readonly string L = "drom: ";   //префикс для лога
         public Selenium _dr;                //браузер
         string _url;                        //ссылка в карточке товара
         List<string> _addDesc;              //дополнительное описание
@@ -38,8 +38,13 @@ namespace Selen.Sites {
         Random _rnd = new Random();
         List<string> _reserveList = new List<string>();
         int _nameLimit = 200;       //ограничение длины имени
+        public string CountString { get; private set; }
+        //статус
+        public bool IsSyncActive { get; set; }
         //конструктор
         public Drom() {
+            IsSyncActive = false;
+            CountString = Class365API._bus.Count(c => c.drom != null && c.drom.Contains("http") && c.Amount > 0).ToString();
         }
         public void LoadCookies() {
             if (_dr != null) {
@@ -58,18 +63,20 @@ namespace Selen.Sites {
             }
         }
         public void Quit() {
+            SaveCookies();
             _dr?.Quit();
             _dr = null;
         }
-        public async Task DromStartAsync() {
-            if (!await DB.GetParamBoolAsync("drom.syncEnable")) {
-                Log.Add($"{L} DromStartAsync: синхронизация отключена!");
-                return;
-            }
-            while (Class365API.Status == SyncStatus.NeedUpdate)
-                await Task.Delay(30000);
-            _bus = Class365API._bus;
+        public async Task Sync() {
             try {
+                if (!await DB.GetParamBoolAsync("drom.syncEnable")) {
+                    Log.Add($"{L}DromStartAsync: синхронизация отключена!");
+                    return;
+                }
+                IsSyncActive = true;
+                while (Class365API.Status == SyncStatus.NeedUpdate)
+                    await Task.Delay(30000);
+                _bus = Class365API._bus;
                 _url = await DB.GetParamStrAsync("drom.url");
                 _isAddWeights = await DB.GetParamBoolAsync("drom.addWeights");
                 _defWeigth = DB.GetParamFloat("defaultWeigth");
@@ -80,7 +87,7 @@ namespace Selen.Sites {
                 _creditPriceMax = DB.GetParamInt("creditPriceMax");
                 _creditDescription = DB.GetParamStr("creditDescription");
 
-                Log.Add($"{L} начало выгрузки...");
+                Log.Add($"{L}начало выгрузки...");
                 //загружаю список на обновление
                 List<GoodObject> busToUpdate;
                 if (File.Exists(_busToUpdateFile)) {
@@ -98,7 +105,7 @@ namespace Selen.Sites {
                 if (_busToUpdate.Count > 0) {
                     var bu = JsonConvert.SerializeObject(_busToUpdate);
                     File.WriteAllText(_busToUpdateFile, bu);
-                    Log.Add($"{L} в списке карточек для обновления {_busToUpdate.Count}");
+                    Log.Add($"{L}в списке карточек для обновления {_busToUpdate.Count}");
                 }
                 await AuthAsync();
                 await GetDromPhotos();
@@ -108,6 +115,7 @@ namespace Selen.Sites {
                 await Add();
                 await CheckPagesAsync();
                 await CheckOffersAsync();
+                CountString = Class365API._bus.Count(c => c.drom!=null && c.drom.Contains("http") && c.Amount > 0).ToString();
                 Log.Add($"{L}выгрузка завершена");
             } catch (Exception x) {
                 Log.Add($"{L}ошибка синхронизации! - {x.Message}");
@@ -123,6 +131,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         async Task AuthAsync() {
             await Task.Factory.StartNew(() => {
@@ -133,16 +142,16 @@ namespace Selen.Sites {
                     LoadCookies();
                 }
                 _dr.Navigate("http://baza.drom.ru/personal/all/bulletins", "#outerLayout");
-                if (_dr.GetElementsCount("#sign") > 0) {//если элементов в левой панели нет
-                    _dr.WriteToSelector("#sign", DB.GetParamStr("drom.login")); //ввод логина
-                    _dr.WriteToSelector("#password", DB.GetParamStr("drom.password")); //пароля
-                    _dr.ButtonClick("#signbutton"); //жмем кнопку входа
+                if (_dr.GetElementsCount("#sign") > 0) {
+                    _dr.WriteToSelector("#sign", DB.GetParamStr("drom.login"));
+                    _dr.WriteToSelector("#password", DB.GetParamStr("drom.password")); 
+                    _dr.ButtonClick("#signbutton"); 
                     for (int i = 0; ; i++) {
                         if (_dr.GetElementsCount("//div[@class='personal-box']") > 0)
                             break;
                         if (i == 10 || Class365API.IsTimeOver)
                             throw new Exception($"{L}AuthAsync: ошибка авторизации");
-                        Thread.Sleep(30000);
+                        Thread.Sleep(10000);
                     }
                 }
                 SaveCookies();
@@ -155,6 +164,7 @@ namespace Selen.Sites {
                     Log.Add($"{L}MakeReserve: синхронизация отключена!");
                     return;
                 }
+                IsSyncActive = true;
                 await AuthAsync();
                 //загружаем список заказов, для которых уже делали резерв
                 if (File.Exists(_fileReserve)) {
@@ -187,6 +197,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         public async Task<List<DromOrder>> GetOrdersAsync() {
             await _dr.NavigateAsync("https://baza.drom.ru/personal/sold/bulletins?page=1&type=all", ".deal-list .deal-item");
@@ -216,7 +227,13 @@ namespace Selen.Sites {
                 foreach (var item in itemsElements) {
                     var itemId = item.GetAttribute("data-ref");
                     itemId = itemId.Split(':')[1];
-                    itemId = _bus.Find(b => reg.Match(b.drom ?? "").Value == itemId).id;
+                    var product = _bus.Find(b => reg.Match(b.drom ?? "").Value == itemId);
+                    if (product == null)
+                    {
+                        Log.Add($"Товара {itemId} нет в каталоге");
+                        continue;
+                    }
+                    itemId = product.id;
                     var itemCountString = item.FindElement(By.CssSelector(".subject-quantity")).GetAttribute("data-quantity");
                     var itemCount = int.Parse(itemCountString);
                     orderList.Last().Items.Add(new DromOrderItem {
@@ -279,19 +296,12 @@ namespace Selen.Sites {
         }
         //проверка фотографий в объявлении
         private void CheckPhotos(GoodObject b) {
-            //селектор фотографий в объявлении
             string selector = "//div[@class='grid-item-wrapper']/img";
-            //получаю количество фотографий в объявлении
             var countReal = _dr.GetElementsCount(selector);
-            //количество фотографий, которое должно быть в объявлении
-            int countMust = b.images.Count;
-            //если расхождение и в карточке количество не нулевое
-            if (countMust != countReal && countMust > 0) {
-                //удаляю все фото, которые есть объявлении
+            if (b.images.Count != countReal && b.images.Count > 0) {
                 for (; countReal > 0; countReal--) {
                     _dr.ButtonClick("//a[text()='Удалить']", 10000);
                 }
-                //загружаю новые фото
                 SetImages(b);
                 Log.Add($"{L}фотографии обновлены - [{b.id}] {b.name}");
             }
@@ -305,7 +315,6 @@ namespace Selen.Sites {
         void Delete(GoodObject b) {
             if (_dr.GetElementsCount("//h2[text()='Вы удалили объявление']") > 0)
                 return;
-            //переход на страницу объявления, если он нужен
             _dr.ButtonClick("//a[contains(text(),'Вернуться на страницу')]");
             if (_dr.GetElementsCount("//a[contains(@class,'doDelete')]") > 0) {
                 _dr.ButtonClick("//a[contains(@class,'doDelete')]");
@@ -334,7 +343,6 @@ namespace Selen.Sites {
                     return;
                 }
             }
-            //ищем кандидата для подачи объявления
             var b = _bus.Find(_ => (_.drom == null || !_.drom.Contains("http")) &&
                     !_.GroupName.Contains("ЧЕРНОВИК") &&
                     _.Amount > 0 &&
@@ -832,7 +840,7 @@ namespace Selen.Sites {
                 var id = Regex.Match(url, @"(\d{8,20})(?:.ht)").Groups[1].Value;
 
                 //количество фото
-                var img = item.FindElements(By.XPath(".//div[@class='bull-image-overlay']")).Count;
+                var img = item.FindElements(By.XPath(".//img[@class='bull-image-preloader']")).Count;
                 if (img == 0)
                     price = 0; //если фотографий 0, то зануляю цену, которую спарсили, что спровоцирует обновление объявления и загрузку фото
                 drom.Add(new GoodObject {

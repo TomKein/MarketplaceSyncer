@@ -13,6 +13,7 @@ using System.Xml.Linq;
 namespace Selen.Sites {
     public class Izap24 {
         static string L = "izap24: ";
+        public bool IsSyncActive { get; set; }
         //список товаров
         List<GoodObject> _bus;
         //файл выгрузки
@@ -51,33 +52,30 @@ namespace Selen.Sites {
         };
 
         //старт выгрузки
-        public async Task SyncAsync() {
-            if (!await DB.GetParamBoolAsync("izap24.syncEnable")) {
-                Log.Add($"{L} StartAsync: синхронизация отключена!");
-                return;
-            }
-            while (Class365API.Status == SyncStatus.NeedUpdate)
-                await Task.Delay(60000);
-            _bus = Class365API._bus;
-            //интервал проверки
-            var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
-            if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes || 
-                uploadInterval == 0 || 
-                DateTime.Now.Hour == 0 || 
-                DateTime.Now.Hour % uploadInterval != 0)
-                return;
-            Log.Add(L + "начало выгрузки...");
+        public async Task Sync() {
             try {
-                await CreateCsvAsync();
-                await SftpClient.FtpUploadAsync(_fexp);
-                await SftpClient.FtpUploadAsync(_ferr);
-                //SmtpMailClient.SendAsync(_fexp,"izap24-ilnur@mail.ru");
-                Log.Add(L + "выгрузка успешно завершена");
-                return;
+                if (!await DB.GetParamBoolAsync("izap24.syncEnable")) {
+                    Log.Add($"{L} StartAsync: синхронизация отключена!");
+                    return;
+                }
+                IsSyncActive = true;
+                while (Class365API.Status == SyncStatus.NeedUpdate)
+                    await Task.Delay(60000);
+                _bus = Class365API._bus;
+                //интервал проверки
+                var uploadInterval = await DB.GetParamIntAsync("izap24.uploadInterval");
+                if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
+                    Log.Add(L + "начало выгрузки...");
+                    await CreateCsvAsync();
+                    await SftpClient.FtpUploadAsync(_fexp);
+                    await SftpClient.FtpUploadAsync(_ferr);
+                    //SmtpMailClient.SendAsync(_fexp,"izap24-ilnur@mail.ru");
+                    Log.Add(L + "выгрузка успешно завершена");
+                }
             } catch (Exception x) {
-                Log.Add(L + "ошибка выгрузки! - " + x.Message);
-                return;
+                Log.Add($"{L}SyncAsync: ошибка - {x.Message}");
             }
+            IsSyncActive = false;
         }
         //формирование файла выгрузки
         private async Task CreateCsvAsync() {
@@ -120,7 +118,7 @@ namespace Selen.Sites {
                     var desc = Regex.Match(offer.HtmlDecodedDescription(), @"([бБ][\\\/][уУ].+)")
                                     .Groups[1].Value;
                     if (offer.Price >= creditPriceMin && offer.Price <= creditPriceMax)
-                        desc = desc.Insert(0, creditDescription+" ");
+                        desc = desc.Insert(0, creditDescription + " ");
                     s.Append(desc).Append(";");                         //desc
                     s.AppendLine(photoUrls.Aggregate((a, b) => a + "," + b));  //photos
                     n++;

@@ -14,19 +14,22 @@ namespace Selen.Sites {
         readonly string FILE_PRIMARY_XML = @"..\data\megamarket\megamarket.xml";
         //readonly string FILE_COMPAIGNS = @"..\data\megamarket\compaigns.json";          //список магазинов
         readonly string FILE_RESERVES = @"..\data\megamarket\reserves.json";       //список сделанных резервов
-        //readonly string ACCESS_TOKEN = "Bearer y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
-        //public static string BasePath = "https://api.partner.market.yandex.ru";
-        //HttpClient _hc = new HttpClient();
-        //MarketCampaigns _campaigns;
+                                                                                   //readonly string ACCESS_TOKEN = "Bearer y0_AgAAAAAQNtIKAAt1AQAAAAD-gMliAAAepMeJyz9OFY-kuMFylVX5_cYtQQ";
+                                                                                   //public static string BasePath = "https://api.partner.market.yandex.ru";
+                                                                                   //HttpClient _hc = new HttpClient();
+                                                                                   //MarketCampaigns _campaigns;
+        public bool IsSyncActive { get; set; }
         public MegaMarket() {
             //_hc.BaseAddress = new Uri(BasePath);
+            IsSyncActive = false;
         }
         //генерация xml
-        public async Task GenerateXML() {
+        public async Task Sync() {
             if (!await DB.GetParamBoolAsync("megamarket.syncEnable")) {
                 Log.Add($"{L} StartAsync: синхронизация отключена!");
                 return;
             }
+            IsSyncActive = true;
             while (Class365API.Status == SyncStatus.NeedUpdate)
                 await Task.Delay(30000);
             var gen = Task.Factory.StartNew(() => {
@@ -158,6 +161,7 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         //цена продажи
         int GetPrice(GoodObject b) {

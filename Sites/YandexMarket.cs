@@ -43,6 +43,8 @@ namespace Selen.Sites {
         List<string> _exceptionBrands;
         List<string> _exceptionGroups;
 
+        public bool IsSyncActive { get; set; }
+
         public YandexMarket() {
             _hc.BaseAddress = new Uri(BasePath);
             ACCESS_TOKEN = File.ReadAllText(ACCESS_TOKEN_FILE);
@@ -50,11 +52,14 @@ namespace Selen.Sites {
                 _oldPriceProcent = DB.GetParamFloat("yandex.oldPriceProcent");
                 _maxDiscount = DB.GetParamInt("yandex.maxDiscount");
             });
+            IsSyncActive = false;
         }
         //генерация xml
-        public async Task StartSync() {
+        public async Task Sync() {
+            IsSyncActive = true;
             await GenerateXML();
             await UpdateActions();
+            IsSyncActive = false;
         }
         public async Task GenerateXML() {
             try {
@@ -422,6 +427,7 @@ namespace Selen.Sites {
                     Log.Add($"{L}MakeReserve: синхронизация отключена!");
                     return;
                 }
+                IsSyncActive = true;
                 //обновляю список магазинов
                 await GetCompains();
                 //для каждого магазина получаю список заказов
@@ -465,10 +471,14 @@ namespace Selen.Sites {
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
             }
+            IsSyncActive = false;
         }
         //обновление акций
         public async Task UpdateActions() {
             try {
+                if (!await DB.GetParamBoolAsync("yandex.syncEnable")) {
+                    return;
+                }
                 //проверяем акции только раз в час, в начале часа
                 if (Class365API.SyncStartTime.Minute > Class365API._checkIntervalMinutes)
                     return;
