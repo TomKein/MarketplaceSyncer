@@ -15,6 +15,7 @@
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
     <TargetFrameworkProfile />
+    <LangVersion>9</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -315,6 +316,7 @@
     <Compile Include="Sites\YandexMarket.cs" />
     <Compile Include="Tools\ButtonStates.cs" />
     <Compile Include="Tools\ImageUtilities.cs" />
+    <Compile Include="Tools\NumericExtension.cs" />
     <Compile Include="Tools\PriceOptimizer.cs" />
     <Compile Include="Tools\SftpClient.cs" />
     <Compile Include="Forms\FormSettings.cs">

@@ -11,6 +11,7 @@ using Selen.Base;
 using System.IO;
 using Newtonsoft.Json.Linq;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Drawing;
 using JetBrains.Annotations;
 using OfficeOpenXml;
 
@@ -154,7 +155,7 @@ namespace Selen.Sites {
                 var data = new Dictionary<string, string>();
                 data["limit"] = "1000";
                 data["next"] = "0";
-                var unixTimeStamp = (int) DateTime.UtcNow.AddDays(-1).Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
+                var unixTimeStamp = (int) DateTime.UtcNow.AddDays(-4).Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
                 data["dateFrom"] = unixTimeStamp.ToString();
                 var res = await GetRequestAsync(data, "https://marketplace-api.wildberries.ru/api/v3/orders");            //https://suppliers-api.wildberries.ru/api/v3/orders/new
                 var wb = JsonConvert.DeserializeObject<WbOrders>(res);
@@ -856,24 +857,34 @@ namespace Selen.Sites {
         //расчет цен WB с учетом наценки
         private int GetNewPrice(GoodObject g) {
             var weight = g.Weight * g.GetQuantOfSell();
-            var length = g.SizeSM("length", 5) + g.SizeSM("width", 5) + g.SizeSM("height", 5) * g.GetQuantOfSell();
+            var l = g.SizeSM("length", 5);
+            var w = g.SizeSM("width", 5);
+            var h = g.SizeSM("height", 5);
+            var length = (l + w + h) * g.GetQuantOfSell();
+            var volume = l * w * h / 1000; // объем в литрах
+            var volumeOverprice = volume switch
+            {
+                <= 3 => 150,
+                <= 190 => volume * 30,
+                _ => 4500
+            };
             int overPrice;
-            //вес от 50 кг или размер более 200 -- наценка 30% + 3500 р
+            //вес от 50 кг или размер более 200 -- наценка 40% + 4500 р
             if (weight >= 50 || length >= 200)
-                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel3;
-            //вес от 30 кг или размер от 150 -- наценка 30% + 2000 р
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + Math.Max(_addPriceLevel3, volumeOverprice);
+            //вес от 30 кг или размер от 150 -- наценка 40% + 3000 р
             else if (weight >= 30 || length >= 150)
-                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel2;
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + Math.Max(_addPriceLevel2, volumeOverprice);
             //вес от 10 кг или размер от 100 -- наценка 1500 р
             else if (weight >= 10 || length >= 100)
-                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel1;
+                overPrice = (int) (g.Price * 0.01 * _kgtPriceProcent) + Math.Max(_addPriceLevel1, volumeOverprice);
             //для маленьких и легких наценка 40% на всё
             else
                 overPrice = (int) (g.Price * 0.01 * _basePriceProcent);
-            //если наценка меньше 200 р - округляю
+            //если наценка меньше 300 р - округляю
             if (overPrice < _minOverPrice)
                 overPrice = _minOverPrice;
-            return g.Price * g.GetQuantOfSell() + overPrice;
+            return (g.Price * g.GetQuantOfSell() + overPrice).Round(50);
         }
         //проверяем привязку товаров в карточки бизнес.ру
         private async Task CheckCardsAsync(bool checkAll = false) {

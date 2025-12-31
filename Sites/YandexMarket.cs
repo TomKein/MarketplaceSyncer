@@ -318,8 +318,8 @@ namespace Selen.Sites {
         //    return 10 * newPrice;
         //}
         public int GetPrice2(GoodObject b) {
-            // общая наценка для всех товаров на Яндексе + 25% (X)
-            float newPrice = (float) (b.Price * 1.25);
+            // общая наценка для всех товаров на Яндексе + 40% (X)
+            float newPrice = (float) (b.Price * 1.40);
             // доп. наценка до ПВЗ = Х + если(до 24.9 кг и сумма сторон до 199см) то + 6 % (не менее 50р.и не больше 400Р
             // иначе + 450р.
             float pvzPrice;
@@ -335,41 +335,27 @@ namespace Selen.Sites {
             newPrice += pvzPrice;
             // доп. наценка за доставку до городов - зависит от объемного веса (см3/5000)
             var vw = b.VolumeWeight;
-            if (vw >= 150)
-                newPrice += 3500;
-            else if (vw >= 50)
-                newPrice += 1600;
-            else if (vw >= 35)
-                newPrice += 1400;
-            else if (vw >= 30)
-                newPrice += 1200;
-            else if (vw >= 25)
-                newPrice += 1000;
-            else if (vw >= 20)
-                newPrice += 800;
-            else if (vw >= 15)
-                newPrice += 600;
-            else if (vw >= 12)
-                newPrice += 500;
-            else if (vw >= 10)
-                newPrice += 400;
-            else if (vw >= 8)
-                newPrice += 300;
-            else if (vw >= 6)
-                newPrice += 250;
-            else if (vw >= 4)
-                newPrice += 180;
-            else if (vw >= 2)
-                newPrice += 100;
-            else if (vw >= 1)
-                newPrice += 70;
-            else if (vw >= 0.5)
-                newPrice += 65;
-            else if (vw >= 0.2)
-                newPrice += 60;
-            else
-                newPrice += 55;
-            return (int) (newPrice / 10) * 10; //округление цен до 10 р
+            newPrice += vw switch
+            {
+                >= 150  => 3500,
+                >= 50   => 1600,
+                >= 35   => 1400,
+                >= 30   => 1200,
+                >= 25   => 1000,
+                >= 20   => 800,
+                >= 15   => 600,
+                >= 12   => 500,
+                >= 10   => 400,
+                >= 8    => 300,
+                >= 6    => 250,
+                >= 4    => 180,
+                >= 2    => 100,
+                >= 1    => 70,
+                >= 0.5f => 65,
+                >= 0.2f => 60,
+                _       => 55 // Значение по умолчанию для всех остальных случаев (т.е. < 0.2)
+            };
+            return ((int) newPrice).Round(50); //округление цен до 50 р
         }
         //работа с api
         public async Task<string> RequestAsync(string apiRelativeUrl, Dictionary<string, string> query = null, object body=null, string method = "GET") {
@@ -434,7 +420,7 @@ namespace Selen.Sites {
                 foreach (var campaign in _campaigns.campaigns) {
                     var campaignId = campaign.id;
                     var s = await RequestAsync($"/campaigns/{campaignId}/orders", new Dictionary<string, string> {
-                        { "fromDate", DateTime.Now.AddDays(-2).Date.ToString("dd-MM-yyyy") }
+                        { "fromDate", DateTime.Now.AddDays(-4).Date.ToString("dd-MM-yyyy") }
                     });
                     var orders = JsonConvert.DeserializeObject<MarketOrders>(s);
                     Log.Add(L + "MakeReserve: для магазина " + campaign.domain + " получено  заказов: " + orders.orders.Count);

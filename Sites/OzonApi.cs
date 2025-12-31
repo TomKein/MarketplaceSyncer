@@ -136,7 +136,7 @@ namespace Selen.Sites {
                 foreach (var status in statuses) {
                     var data = new {
                         filter = new {
-                            cutoff_from = DateTime.Now.AddDays(-1).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
+                            cutoff_from = DateTime.Now.AddDays(-4).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),       //"2024-02-24T14:15:22Z",
                             cutoff_to = DateTime.Now.AddDays(28).ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
                             warehouse_id = new int[] { },
                             status = status
@@ -404,23 +404,30 @@ namespace Selen.Sites {
             var weight = b.Weight;
             var d = b.GetDimentions();
             var length = d[0] + d[1] + d[2];
+            var volume = d[0] * d[1] * d[2] / 1000; // объем в литрах
+            int volumeOverprice = volume switch
+            {
+                <= 3 => 150,
+                <= 190 => (int)volume * 30,
+                _ => 4500
+            };
             int overPrice;
-            //вес от 50 кг или размер более 200 -- наценка 30% + 3500 р
-            if (weight >= 50 || length >= 200)
-                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel3;
-            //вес от 30 кг или размер от 150 -- наценка 30% + 2000 р
+            //вес от 50 кг или размер более 200 или более 190л -- наценка 40% + 4500 р
+            if (weight >= 50 || length >= 200 || volume > 190)
+                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) + Math.Max(_addPriceLevel3, volumeOverprice);
+            //вес от 30 кг или размер от 150 -- наценка 40% + 3000 р
             else if (weight >= 30 || length >= 150)
-                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel2;
+                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) +  Math.Max(_addPriceLevel2, volumeOverprice);
             //вес от 10 кг или размер от 100 -- наценка 1500 р
             else if (weight >= 10 || length >= 100)
-                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) + _addPriceLevel1;
+                overPrice = (int) (b.Price * 0.01 * _kgtPriceProcent) +  Math.Max(_addPriceLevel1, volumeOverprice);
             //для маленьких и легких наценка 40% на всё
             else
-                overPrice = (int) (b.Price * 0.01 * _basePriceProcent);
-            //если наценка меньше 200 р - округляю
+                overPrice = (int) (b.Price * 0.01 * _basePriceProcent + volumeOverprice);
+            //если наценка меньше 300 р - округляю
             if (overPrice < _minOverPrice)
                 overPrice = _minOverPrice;
-            return b.Price + Math.Max(overPrice, _minOverPrice);
+            return (b.Price + Math.Max(overPrice, _minOverPrice)).Round(50);
         }
         //цена до скидки (старая)
         private int GetOldPrice(int newPrice) {
