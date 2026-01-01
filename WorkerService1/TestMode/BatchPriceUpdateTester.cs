@@ -1,4 +1,5 @@
 using LinqToDB;
+using WorkerService1.BusinessRu.Client;
 using WorkerService1.BusinessRu.Models.Responses;
 using WorkerService1.Data;
 using WorkerService1.Data.Models;
@@ -11,16 +12,19 @@ namespace WorkerService1.TestMode;
 public class BatchPriceUpdateTester
 {
     private readonly IPriceUpdateService _priceService;
+    private readonly IBusinessRuClient _client;
     private readonly AppDbConnection _db;
     private readonly ILogger<BatchPriceUpdateTester> _logger;
     private readonly long _businessId = 1;
 
     public BatchPriceUpdateTester(
         IPriceUpdateService priceService,
+        IBusinessRuClient client,
         AppDbConnection db,
         ILogger<BatchPriceUpdateTester> logger)
     {
         _priceService = priceService;
+        _client = client;
         _db = db;
         _logger = logger;
         
@@ -238,6 +242,12 @@ public class BatchPriceUpdateTester
                             needsUpdate = true;
                         }
 
+                        if (string.IsNullOrWhiteSpace(existingPrice.PriceTypeId))
+                        {
+                            existingPrice.PriceTypeId = "75524";
+                            needsUpdate = true;
+                        }
+
                         if (needsUpdate)
                         {
                             await DataExtensions.UpdateAsync(_db, existingPrice);
@@ -346,6 +356,78 @@ public class BatchPriceUpdateTester
             Console.WriteLine(
                 $"[Update] {priceToUpdate.OriginalPrice:F2} -> " +
                 $"{priceToUpdate.CalculatedPrice?.ToString("F2") ?? "N/A"} SUCCESS");
+            Console.WriteLine();
+
+            Console.WriteLine("-".PadRight(80, '-'));
+            Console.WriteLine("VERIFICATION: Check all prices for this good");
+            Console.WriteLine("-".PadRight(80, '-'));
+
+            var allPricesFromApi = await _client.GetGoodPricesAsync(
+                good!.ExternalId,
+                priceTypeId: "75524",
+                limit: 100,
+                ct);
+
+            Console.WriteLine(
+                $"Total prices in Business.ru for good {good.ExternalId}: " +
+                $"{allPricesFromApi.Length}");
+            Console.WriteLine();
+
+            var grouped = allPricesFromApi
+                .GroupBy(p => p.PriceListGoodId)
+                .OrderBy(g => g.Key);
+
+            foreach (var group in grouped)
+            {
+                Console.WriteLine($"PriceListGoodId: {group.Key}");
+                var sortedPrices = group
+                    .OrderByDescending(p => ParseDate(p.Updated))
+                    .ToArray();
+
+                for (int i = 0; i < sortedPrices.Length; i++)
+                {
+                    var p = sortedPrices[i];
+                    var marker = i == 0 ? " <- LATEST" : "";
+                    var isNew = p.Id == newPriceId ? " [NEW]" : "";
+                    Console.WriteLine(
+                        $"  [{i + 1}] ID: {p.Id}, Price: {p.Price}, " +
+                        $"Updated: {p.Updated}{marker}{isNew}");
+                }
+                Console.WriteLine();
+            }
+
+            Console.WriteLine("-".PadRight(80, '-'));
+            Console.WriteLine("DATABASE RECORD:");
+            Console.WriteLine("-".PadRight(80, '-'));
+
+            var dbRecord = _db.GoodPrices
+                .Where(p => p.Id == priceToUpdate.Id)
+                .FirstOrDefault();
+
+            if (dbRecord != null)
+            {
+                Console.WriteLine($"ID: {dbRecord.Id}");
+                Console.WriteLine($"GoodId: {dbRecord.GoodId}");
+                Console.WriteLine($"BusinessId: {dbRecord.BusinessId}");
+                Console.WriteLine($"PriceListId: {dbRecord.PriceListId}");
+                Console.WriteLine($"PriceListGoodId: {dbRecord.PriceListGoodId}");
+                Console.WriteLine($"PriceTypeId: {dbRecord.PriceTypeId}");
+                Console.WriteLine($"ExternalPriceRecordId: {dbRecord.ExternalPriceRecordId}");
+                Console.WriteLine($"OriginalPrice: {dbRecord.OriginalPrice:F2}");
+                Console.WriteLine($"CurrentPrice: {dbRecord.CurrentPrice:F2}");
+                Console.WriteLine(
+                    $"CalculatedPrice: {dbRecord.CalculatedPrice?.ToString("F2") ?? "N/A"}");
+                Console.WriteLine($"IsProcessed: {dbRecord.IsProcessed}");
+                Console.WriteLine(
+                    $"BusinessRuUpdatedAt: {dbRecord.BusinessRuUpdatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A"}");
+                Console.WriteLine($"CreatedAt: {dbRecord.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"UpdatedAt: {dbRecord.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
+            }
+            else
+            {
+                Console.WriteLine("ERROR: Record not found in database");
+            }
+            Console.WriteLine();
         }
         catch (Exception ex)
         {
