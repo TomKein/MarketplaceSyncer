@@ -22,6 +22,9 @@ builder.Services.Configure<BusinessRuOptions>(
 builder.Services.Configure<PriceSyncOptions>(
     builder.Configuration.GetSection(PriceSyncOptions.SectionName));
 
+builder.Services.Configure<PriceUpdateOptions>(
+    builder.Configuration.GetSection("PriceUpdate"));
+
 // Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -76,9 +79,11 @@ builder.Services.AddSingleton<IBusinessRuClient>(serviceProvider =>
 
 // Services
 builder.Services.AddScoped<IPriceSyncService, PriceSyncService>();
+builder.Services.AddScoped<IPriceUpdateService, PriceUpdateService>();
 
 // Register test mode services
 builder.Services.AddSingleton<ApiTester>();
+builder.Services.AddScoped<BatchPriceUpdateTester>();
 
 // Add hosted service based on mode
 if (isTestMode)

@@ -2,16 +2,16 @@ namespace WorkerService1.TestMode;
 
 public class TestModeWorker : BackgroundService
 {
-    private readonly ApiTester _apiTester;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<TestModeWorker> _logger;
     private readonly IHostApplicationLifetime _appLifetime;
 
     public TestModeWorker(
-        ApiTester apiTester,
+        IServiceProvider serviceProvider,
         ILogger<TestModeWorker> logger,
         IHostApplicationLifetime appLifetime)
     {
-        _apiTester = apiTester;
+        _serviceProvider = serviceProvider;
         _logger = logger;
         _appLifetime = appLifetime;
     }
@@ -22,7 +22,11 @@ public class TestModeWorker : BackgroundService
         {
             _logger.LogInformation("Starting in TEST MODE");
             
-            await _apiTester.RunAllTestsAsync(stoppingToken);
+            using var scope = _serviceProvider.CreateScope();
+            var batchTester = scope.ServiceProvider
+                .GetRequiredService<BatchPriceUpdateTester>();
+            
+            await batchTester.RunBatchTestAsync(stoppingToken);
             
             _logger.LogInformation("Test mode completed successfully");
         }

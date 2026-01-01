@@ -1,0 +1,300 @@
+using LinqToDB;
+using WorkerService1.BusinessRu.Models.Responses;
+using WorkerService1.Data;
+using WorkerService1.Data.Models;
+using WorkerService1.Services;
+using ApiGood = WorkerService1.BusinessRu.Models.Responses.Good;
+using DbGood = WorkerService1.Data.Models.Good;
+
+namespace WorkerService1.TestMode;
+
+public class BatchPriceUpdateTester
+{
+    private readonly IPriceUpdateService _priceService;
+    private readonly AppDbConnection _db;
+    private readonly ILogger<BatchPriceUpdateTester> _logger;
+
+    public BatchPriceUpdateTester(
+        IPriceUpdateService priceService,
+        AppDbConnection db,
+        ILogger<BatchPriceUpdateTester> logger)
+    {
+        _priceService = priceService;
+        _db = db;
+        _logger = logger;
+    }
+
+    public async Task RunBatchTestAsync(CancellationToken ct = default)
+    {
+        Console.WriteLine();
+        Console.WriteLine("=".PadRight(80, '='));
+        Console.WriteLine("BATCH PRICE UPDATE TEST (20 goods)");
+        Console.WriteLine("=".PadRight(80, '='));
+        Console.WriteLine();
+
+        await TestBatchFetch20GoodsAsync(ct);
+        await TestSinglePriceUpdateAsync(ct);
+
+        Console.WriteLine();
+        Console.WriteLine("=".PadRight(80, '='));
+        Console.WriteLine("BATCH TESTS COMPLETED");
+        Console.WriteLine("=".PadRight(80, '='));
+        Console.WriteLine();
+    }
+
+    private async Task TestBatchFetch20GoodsAsync(CancellationToken ct)
+    {
+        Console.WriteLine("-".PadRight(80, '-'));
+        Console.WriteLine("TEST: Batch Fetch 20 Goods + Prices + DB Save");
+        Console.WriteLine("-".PadRight(80, '-'));
+
+        try
+        {
+            ApiGood[] goods = await _priceService.GetGoodsBatchAsync(1, 20, ct);
+            
+            if (goods.Length == 0)
+            {
+                Console.WriteLine("No goods found");
+                return;
+            }
+
+            Console.WriteLine($"[Goods] Fetched {goods.Length} goods");
+            Console.WriteLine();
+
+            var goodIds = goods.Select(g => g.Id).ToArray();
+            
+            var priceListGoods = await _priceService
+                .GetPriceListGoodsForBatchAsync(goodIds, ct);
+            
+            Console.WriteLine(
+                $"[PriceList] Found {priceListGoods.Length} connections");
+            Console.WriteLine();
+
+            var priceListGoodIds = priceListGoods
+                .Select(plg => plg.Id)
+                .ToArray();
+
+            var prices = await _priceService.GetPricesForBatchAsync(
+                priceListGoodIds,
+                "75524",
+                ct);
+
+            Console.WriteLine($"[Prices] Found {prices.Length} prices");
+            Console.WriteLine();
+
+            var pricesByGood = prices
+                .GroupBy(p => p.PriceListGoodId)
+                .ToDictionary(g => g.Key, g => g.ToArray());
+
+            int savedCount = 0;
+            int updatedCount = 0;
+
+            foreach (var good in goods)
+            {
+                var goodPriceListGoods = priceListGoods
+                    .Where(plg => plg.GoodId == good.Id)
+                    .ToArray();
+
+                foreach (var plg in goodPriceListGoods)
+                {
+                    if (!pricesByGood.TryGetValue(plg.Id, out var goodPrices))
+                        continue;
+
+                    var latestPrice = _priceService
+                        .GetLatestPriceByDate(goodPrices);
+
+                    if (latestPrice == null)
+                        continue;
+
+                    var currentPrice = decimal.Parse(
+                        latestPrice.Price ?? "0");
+                    
+                    var calculatedPrice = _priceService
+                        .CalculateIncreasedPrice(currentPrice);
+
+                    var existingGood = _db.Goods
+                        .Where(g => g.ExternalId == good.Id)
+                        .FirstOrDefault();
+
+                    long goodDbId;
+                    
+                    if (existingGood == null)
+                    {
+                        var newGood = new DbGood
+                        {
+                            ExternalId = good.Id,
+                            Name = good.Name ?? "",
+                            PartNumber = good.PartNumber ?? "",
+                            StoreCode = good.StoreCode,
+                            BusinessId = 1,
+                            Archive = good.Archive,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            UpdatedAt = DateTimeOffset.UtcNow
+                        };
+                        
+                        goodDbId = await _db.InsertWithInt64IdentityAsync(newGood);
+                        savedCount++;
+                    }
+                    else
+                    {
+                        goodDbId = existingGood.Id;
+                        
+                        if (existingGood.Name != good.Name)
+                        {
+                            existingGood.Name = good.Name ?? "";
+                            existingGood.UpdatedAt = DateTimeOffset.UtcNow;
+                            await DataExtensions.UpdateAsync(
+                                _db,
+                                existingGood);
+                            updatedCount++;
+                        }
+                    }
+
+                    var existingPrice = _db.GoodPrices
+                        .Where(p => p.GoodId == goodDbId 
+                                    && p.PriceListGoodId == plg.Id)
+                        .FirstOrDefault();
+
+                    if (existingPrice == null)
+                    {
+                        var newPrice = new GoodPrice
+                        {
+                            GoodId = goodDbId,
+                            ExternalPriceRecordId = latestPrice.Id,
+                            PriceTypeId = "75524",
+                            PriceListGoodId = plg.Id,
+                            BusinessRuUpdatedAt = ParseDate(latestPrice.Updated),
+                            OriginalPrice = currentPrice,
+                            CalculatedPrice = calculatedPrice,
+                            CurrentPrice = currentPrice,
+                            IsProcessed = false
+                        };
+                        
+                        await DataExtensions.InsertAsync(_db, newPrice);
+                        savedCount++;
+                    }
+                    else
+                    {
+                        if (existingPrice.CurrentPrice != currentPrice)
+                        {
+                            existingPrice.CurrentPrice = currentPrice;
+                            existingPrice.CalculatedPrice = calculatedPrice;
+                            existingPrice.BusinessRuUpdatedAt = 
+                                ParseDate(latestPrice.Updated);
+                            await DataExtensions.UpdateAsync(_db, existingPrice);
+                            updatedCount++;
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine($"[DB] Saved: {savedCount}, Updated: {updatedCount}");
+            Console.WriteLine();
+
+            Console.WriteLine("Sample goods with prices:");
+            var sample = goods.Take(3);
+            foreach (var good in sample)
+            {
+                var goodPriceListGoods = priceListGoods
+                    .Where(plg => plg.GoodId == good.Id)
+                    .ToArray();
+
+                Console.WriteLine($"  {good.Name} (ID: {good.Id})");
+                
+                foreach (var plg in goodPriceListGoods)
+                {
+                    if (pricesByGood.TryGetValue(plg.Id, out var goodPrices))
+                    {
+                        var latest = _priceService
+                            .GetLatestPriceByDate(goodPrices);
+                        
+                        if (latest != null)
+                        {
+                            var price = decimal.Parse(latest.Price ?? "0");
+                            var newPrice = _priceService
+                                .CalculateIncreasedPrice(price);
+                            
+                            Console.WriteLine(
+                                $"    Price: {price:F2} -> {newPrice:F2} " +
+                                $"({latest.Updated})");
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("SUCCESS: Batch fetch and DB save completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Batch] Test failed");
+            Console.WriteLine($"ERROR: {ex.Message}");
+        }
+    }
+
+    private async Task TestSinglePriceUpdateAsync(CancellationToken ct)
+    {
+        Console.WriteLine();
+        Console.WriteLine("-".PadRight(80, '-'));
+        Console.WriteLine("TEST: Single Price Update in Business.ru");
+        Console.WriteLine("-".PadRight(80, '-'));
+
+        try
+        {
+            var priceToUpdate = _db.GoodPrices
+                .Where(p => !p.IsProcessed)
+                .OrderBy(p => p.Id)
+                .FirstOrDefault();
+
+            if (priceToUpdate == null)
+            {
+                Console.WriteLine("No unprocessed prices found");
+                return;
+            }
+
+            var good = _db.Goods
+                .Where(g => g.Id == priceToUpdate.GoodId)
+                .FirstOrDefault();
+
+            Console.WriteLine($"[Update] Good: {good?.Name}");
+            Console.WriteLine($"[Update] Current: {priceToUpdate.CurrentPrice:F2}");
+            Console.WriteLine(
+                $"[Update] New: {priceToUpdate.CalculatedPrice?.ToString("F2") ?? "N/A"}");
+            Console.WriteLine();
+
+            Console.WriteLine("Creating new price record in Business.ru...");
+            
+            var newPriceId = await _priceService.CreateNewPriceAsync(
+                priceToUpdate.PriceListGoodId,
+                priceToUpdate.CalculatedPrice ?? 0,
+                ct);
+
+            priceToUpdate.ExternalPriceRecordId = newPriceId;
+            priceToUpdate.IsProcessed = true;
+            priceToUpdate.CurrentPrice = priceToUpdate.CalculatedPrice ?? 0;
+            
+            await DataExtensions.UpdateAsync(_db, priceToUpdate);
+
+            Console.WriteLine($"[Update] New price ID: {newPriceId}");
+            Console.WriteLine(
+                $"[Update] {priceToUpdate.OriginalPrice:F2} -> " +
+                $"{priceToUpdate.CalculatedPrice?.ToString("F2") ?? "N/A"} SUCCESS");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Update] Failed");
+            Console.WriteLine($"ERROR: {ex.Message}");
+        }
+    }
+
+    private static DateTimeOffset? ParseDate(string? dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString))
+            return null;
+
+        if (DateTimeOffset.TryParse(dateString, out var date))
+            return date;
+
+        return null;
+    }
+}
