@@ -10,6 +10,20 @@ public interface IBusinessRuClient : IDisposable
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
 
+    Task<int> CountGoodsAsync(
+        bool includeArchived = false,
+        int? type = 1,
+        CancellationToken cancellationToken = default);
+
+    Task<Good> GetGoodByIdAsync(
+        string goodId,
+        CancellationToken cancellationToken = default);
+
+    Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
+        string goodId,
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
     Task<SalePriceList[]> GetPriceListsAsync(
         int? limit = null,
         CancellationToken cancellationToken = default);

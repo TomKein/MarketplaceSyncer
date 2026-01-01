@@ -72,6 +72,92 @@ public sealed class BusinessRuClient : IBusinessRuClient
         return response?.Result ?? Array.Empty<Good>();
     }
 
+    public async Task<int> CountGoodsAsync(
+        bool includeArchived = false,
+        int? type = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new Dictionary<string, string>
+        {
+            ["count_only"] = "1"
+        };
+
+        if (!includeArchived)
+            request["archive"] = "0";
+
+        if (type.HasValue)
+            request["type"] = type.Value.ToString();
+
+        _logger.LogDebug(
+            "Counting goods (archive={Archive}, type={Type})",
+            includeArchived ? "all" : "0",
+            type);
+
+        var response = await RequestAsync<
+            Dictionary<string, string>,
+            CountResponse>(
+            HttpMethod.Get,
+            "goods",
+            request,
+            cancellationToken);
+
+        return response.Count;
+    }
+
+    public async Task<Good> GetGoodByIdAsync(
+        string goodId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
+
+        _logger.LogDebug("Fetching good by ID: {GoodId}", goodId);
+
+        var request = new Dictionary<string, string>
+        {
+            ["id"] = goodId
+        };
+
+        var response = await RequestAsync<
+            Dictionary<string, string>,
+            Good>(
+            HttpMethod.Get,
+            "good",
+            request,
+            cancellationToken);
+
+        return response;
+    }
+
+    public async Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
+        string goodId,
+        int? limit = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
+
+        _logger.LogDebug(
+            "Fetching prices for good ID: {GoodId}",
+            goodId);
+
+        var request = new Dictionary<string, string>
+        {
+            ["good_id"] = goodId
+        };
+
+        if (limit.HasValue)
+            request["limit"] = limit.Value.ToString();
+
+        var response = await RequestAsync<
+            Dictionary<string, string>,
+            SalePriceListGoodPrice[]>(
+            HttpMethod.Get,
+            "salepricelistgoodprices",
+            request,
+            cancellationToken);
+
+        return response;
+    }
+
     public async Task<SalePriceList[]> GetPriceListsAsync(
         int? limit = null,
         CancellationToken cancellationToken = default)

@@ -6,9 +6,13 @@ using WorkerService1.BusinessRu.Client;
 using WorkerService1.BusinessRu.Http;
 using FluentMigrator.Runner;
 using Microsoft.Extensions.Options;
+using WorkerService1.TestMode;
 
 // Устанавливаем кодировку консоли для правильного отображения кириллицы
 Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+// Check for test mode
+var isTestMode = args.Contains("--test");
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -73,8 +77,23 @@ builder.Services.AddSingleton<IBusinessRuClient>(serviceProvider =>
 // Services
 builder.Services.AddScoped<IPriceSyncService, PriceSyncService>();
 
-// Worker
-builder.Services.AddHostedService<Worker>();
+// Register test mode services
+builder.Services.AddSingleton<ApiTester>();
+
+// Add hosted service based on mode
+if (isTestMode)
+{
+    builder.Services.AddHostedService<TestModeWorker>();
+}
+else
+{
+    builder.Services.AddHostedService<Worker>();
+}
+
+builder.Services.Configure<HostOptions>(options =>
+{
+    options.ShutdownTimeout = TimeSpan.FromSeconds(10);
+});
 
 var host = builder.Build();
 
