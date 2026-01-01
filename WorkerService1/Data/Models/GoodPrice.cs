@@ -25,6 +25,26 @@ public class GoodPrice
     public string ExternalPriceRecordId { get; set; } = string.Empty;
 
     /// <summary>
+    /// ID типа цены в Business.ru (например, 75524 для розничной цены)
+    /// </summary>
+    [Column("price_type_id"), NotNull]
+    public string PriceTypeId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// ID связки товара с прайс-листом (sale_price_list_good_id)
+    /// Нужен для корректной работы с API Business.ru
+    /// </summary>
+    [Column("price_list_good_id"), NotNull]
+    public string PriceListGoodId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Дата последнего обновления цены в Business.ru
+    /// Используется для определения актуальной версии цены
+    /// </summary>
+    [Column("businessru_updated_at"), Nullable]
+    public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+
+    /// <summary>
     /// Исходная цена из Business.ru при первой загрузке
     /// </summary>
     [Column("original_price"), NotNull]
