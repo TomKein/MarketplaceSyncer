@@ -13,6 +13,7 @@ public class BatchPriceUpdateTester
     private readonly IPriceUpdateService _priceService;
     private readonly AppDbConnection _db;
     private readonly ILogger<BatchPriceUpdateTester> _logger;
+    private readonly long _businessId = 1;
 
     public BatchPriceUpdateTester(
         IPriceUpdateService priceService,
@@ -22,6 +23,12 @@ public class BatchPriceUpdateTester
         _priceService = priceService;
         _db = db;
         _logger = logger;
+        
+        var existingBusiness = _db.Businesses.FirstOrDefault();
+        if (existingBusiness != null)
+        {
+            _businessId = existingBusiness.Id;
+        }
     }
 
     public async Task RunBatchTestAsync(CancellationToken ct = default)
@@ -126,7 +133,7 @@ public class BatchPriceUpdateTester
                             Name = good.Name ?? "",
                             PartNumber = good.PartNumber ?? "",
                             StoreCode = good.StoreCode,
-                            BusinessId = 1,
+                            BusinessId = _businessId,
                             Archive = good.Archive,
                             CreatedAt = DateTimeOffset.UtcNow,
                             UpdatedAt = DateTimeOffset.UtcNow
@@ -159,7 +166,9 @@ public class BatchPriceUpdateTester
                     {
                         var newPrice = new GoodPrice
                         {
+                            BusinessId = _businessId,
                             GoodId = goodDbId,
+                            PriceListId = 0,
                             ExternalPriceRecordId = latestPrice.Id,
                             PriceTypeId = "75524",
                             PriceListGoodId = plg.Id,
@@ -167,7 +176,9 @@ public class BatchPriceUpdateTester
                             OriginalPrice = currentPrice,
                             CalculatedPrice = calculatedPrice,
                             CurrentPrice = currentPrice,
-                            IsProcessed = false
+                            IsProcessed = false,
+                            CreatedAt = DateTimeOffset.UtcNow,
+                            UpdatedAt = DateTimeOffset.UtcNow
                         };
                         
                         await DataExtensions.InsertAsync(_db, newPrice);
@@ -229,6 +240,7 @@ public class BatchPriceUpdateTester
         {
             _logger.LogError(ex, "[Batch] Test failed");
             Console.WriteLine($"ERROR: {ex.Message}");
+            throw;
         }
     }
 
@@ -284,6 +296,7 @@ public class BatchPriceUpdateTester
         {
             _logger.LogError(ex, "[Update] Failed");
             Console.WriteLine($"ERROR: {ex.Message}");
+            throw;
         }
     }
 
