@@ -51,6 +51,10 @@ public class ApiTester
                 ["page"] = "1"
             };
 
+            Console.WriteLine("REQUEST: GET /goods.json");
+            Console.WriteLine($"  Parameters: {string.Join(", ", listRequest.Select(kvp => $"{kvp.Key}={kvp.Value}"))}");
+            Console.WriteLine();
+
             var goodsList = await _client.RequestAsync<
                 Dictionary<string, string>,
                 Good[]>(
@@ -139,6 +143,10 @@ public class ApiTester
             _logger.LogInformation(
                 "Requesting prices for good ID: {GoodId}",
                 goodId);
+
+            Console.WriteLine("REQUEST: GET /salepricelistgoodprices.json");
+            Console.WriteLine($"  Parameters: price_list_good_id={goodId}, limit=10");
+            Console.WriteLine();
 
             var prices = await _client.GetGoodPricesAsync(goodId, limit: 10, ct);
 

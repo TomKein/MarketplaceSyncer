@@ -117,7 +117,7 @@ public sealed class BusinessRuClient : IBusinessRuClient
 
         var request = new Dictionary<string, string>
         {
-            ["good_id"] = goodId
+            ["price_list_good_id"] = goodId
         };
 
         if (limit.HasValue)
@@ -287,7 +287,10 @@ public sealed class BusinessRuClient : IBusinessRuClient
         var fullQuery = $"{queryStringEncoded}&app_psw={signature}";
         var url = $"{_baseUrl}{model}.json";
 
-        _logger.LogDebug("Legacy request to {Model}", model);
+        _logger.LogDebug(
+            "Legacy request to {Model}, Query: {Query}",
+            model,
+            queryStringEncoded);
 
         using var requestMessage = CreateHttpRequest(method, url, fullQuery);
         using var response = await _httpClient.SendAsync(requestMessage, ct);
