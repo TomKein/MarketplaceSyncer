@@ -5,8 +5,6 @@ using WorkerService1.Services;
 using WorkerService1.BusinessRu.Client;
 using WorkerService1.BusinessRu.Http;
 using FluentMigrator.Runner;
-using LinqToDB;
-using LinqToDB.Data;
 using Microsoft.Extensions.Options;
 
 // Устанавливаем кодировку консоли для правильного отображения кириллицы
@@ -48,7 +46,7 @@ builder.Services.AddHttpClient<BusinessRuClient>((serviceProvider, client) =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 });
 
-builder.Services.AddSingleton<BusinessRuClient>(serviceProvider =>
+builder.Services.AddSingleton<IBusinessRuClient>(serviceProvider =>
 {
     var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient(nameof(BusinessRuClient));

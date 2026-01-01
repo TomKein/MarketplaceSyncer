@@ -426,15 +426,64 @@ public sealed class BusinessRuClient : IBusinessRuClient
     private static Dictionary<string, string> SerializeToParameters(
         Dictionary<string, object> obj)
     {
-        var json = JsonSerializer.Serialize(obj);
-        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)
-            ?? new Dictionary<string, JsonElement>();
+        var result = new Dictionary<string, string>();
+        
+        foreach (var kvp in obj)
+        {
+            FlattenParameter(kvp.Key, kvp.Value, result);
+        }
+        
+        return result;
+    }
 
-        return dict.ToDictionary(
-            kvp => kvp.Key,
-            kvp => kvp.Value.ValueKind == JsonValueKind.String
-                ? kvp.Value.GetString() ?? string.Empty
-                : kvp.Value.ToString());
+    private static void FlattenParameter(
+        string key,
+        object value,
+        Dictionary<string, string> result)
+    {
+        if (value is null)
+        {
+            result[key] = string.Empty;
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(value);
+        var element = JsonSerializer.Deserialize<JsonElement>(json);
+
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                result[key] = element.GetString() ?? string.Empty;
+                break;
+
+            case JsonValueKind.Number:
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+                result[key] = element.ToString();
+                break;
+
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    var nestedKey = $"{key}[{prop.Name}]";
+                    FlattenParameter(nestedKey, prop.Value, result);
+                }
+                break;
+
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var item in element.EnumerateArray())
+                {
+                    var nestedKey = $"{key}[{index}]";
+                    FlattenParameter(nestedKey, item, result);
+                    index++;
+                }
+                break;
+
+            default:
+                result[key] = element.ToString();
+                break;
+        }
     }
 
     private static Dictionary<string, string> SerializeToStringParameters<T>(T obj)
