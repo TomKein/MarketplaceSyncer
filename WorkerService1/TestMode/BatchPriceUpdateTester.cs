@@ -119,6 +119,12 @@ public class BatchPriceUpdateTester
                     var calculatedPrice = _priceService
                         .CalculateIncreasedPrice(currentPrice);
 
+                    var priceListIdStr = plg.PriceListId ?? "0";
+                    if (!long.TryParse(priceListIdStr, out var priceListId))
+                    {
+                        priceListId = 0;
+                    }
+
                     var existingGood = _db.Goods
                         .Where(g => g.ExternalId == good.Id)
                         .FirstOrDefault();
@@ -157,9 +163,38 @@ public class BatchPriceUpdateTester
                         }
                     }
 
+                    var existingPriceList = _db.PriceLists
+                        .Where(pl => pl.ExternalId == priceListIdStr)
+                        .FirstOrDefault();
+
+                    long dbPriceListId;
+                    
+                    if (existingPriceList != null)
+                    {
+                        dbPriceListId = existingPriceList.Id;
+                    }
+                    else
+                    {
+                        var anyPriceList = _db.PriceLists
+                            .Where(pl => pl.BusinessId == _businessId)
+                            .FirstOrDefault();
+                        
+                        if (anyPriceList != null)
+                        {
+                            dbPriceListId = anyPriceList.Id;
+                        }
+                        else
+                        {
+                            Console.WriteLine(
+                                $"WARN: No price list found, skipping good {good.Id}");
+                            continue;
+                        }
+                    }
+
                     var existingPrice = _db.GoodPrices
-                        .Where(p => p.GoodId == goodDbId 
-                                    && p.PriceListGoodId == plg.Id)
+                        .Where(p => p.BusinessId == _businessId
+                                    && p.GoodId == goodDbId 
+                                    && p.PriceListId == dbPriceListId)
                         .FirstOrDefault();
 
                     if (existingPrice == null)
@@ -168,7 +203,7 @@ public class BatchPriceUpdateTester
                         {
                             BusinessId = _businessId,
                             GoodId = goodDbId,
-                            PriceListId = 0,
+                            PriceListId = dbPriceListId,
                             ExternalPriceRecordId = latestPrice.Id,
                             PriceTypeId = "75524",
                             PriceListGoodId = plg.Id,
@@ -272,7 +307,14 @@ public class BatchPriceUpdateTester
             Console.WriteLine($"[Update] Current: {priceToUpdate.CurrentPrice:F2}");
             Console.WriteLine(
                 $"[Update] New: {priceToUpdate.CalculatedPrice?.ToString("F2") ?? "N/A"}");
+            Console.WriteLine($"[Update] PriceListGoodId: {priceToUpdate.PriceListGoodId}");
             Console.WriteLine();
+
+            if (string.IsNullOrWhiteSpace(priceToUpdate.PriceListGoodId))
+            {
+                Console.WriteLine("ERROR: PriceListGoodId is empty, cannot update");
+                return;
+            }
 
             Console.WriteLine("Creating new price record in Business.ru...");
             
