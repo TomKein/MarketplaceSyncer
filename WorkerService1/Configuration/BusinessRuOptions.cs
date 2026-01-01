@@ -18,6 +18,11 @@ public class BusinessRuOptions
     public string OrganizationId { get; set; } = string.Empty;
 
     /// <summary>
+    /// ID ответственного сотрудника для создания прайс-листов
+    /// </summary>
+    public string ResponsibleEmployeeId { get; set; } = string.Empty;
+
+    /// <summary>
     /// App ID для аутентификации
     /// </summary>
     public string AppId { get; set; } = string.Empty;

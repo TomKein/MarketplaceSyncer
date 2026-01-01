@@ -73,6 +73,8 @@ builder.Services.AddSingleton<IBusinessRuClient>(serviceProvider =>
         businessOptions.AppId,
         businessOptions.Secret,
         businessOptions.BaseUrl,
+        businessOptions.ResponsibleEmployeeId,
+        businessOptions.OrganizationId,
         logger,
         rateLimiterOptions);
 });

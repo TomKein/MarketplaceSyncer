@@ -16,6 +16,8 @@ public sealed class BusinessRuClient : IBusinessRuClient
     private readonly string _appId;
     private readonly string _secret;
     private readonly string _baseUrl;
+    private readonly string _responsibleEmployeeId;
+    private readonly string _organizationId;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ILogger<BusinessRuClient> _logger;
     private readonly RateLimiter _rateLimiter;
@@ -28,6 +30,8 @@ public sealed class BusinessRuClient : IBusinessRuClient
         string appId,
         string secret,
         string baseUrl,
+        string responsibleEmployeeId,
+        string organizationId,
         ILogger<BusinessRuClient> logger,
         RateLimiterOptions? rateLimiterOptions = null)
     {
@@ -35,11 +39,15 @@ public sealed class BusinessRuClient : IBusinessRuClient
         ArgumentException.ThrowIfNullOrWhiteSpace(appId);
         ArgumentException.ThrowIfNullOrWhiteSpace(secret);
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
+        ArgumentException.ThrowIfNullOrWhiteSpace(responsibleEmployeeId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(organizationId);
 
         _httpClient = httpClient;
         _appId = appId;
         _secret = secret;
         _baseUrl = baseUrl.EndsWith('/') ? baseUrl : $"{baseUrl}/";
+        _responsibleEmployeeId = responsibleEmployeeId;
+        _organizationId = organizationId;
         _logger = logger;
         _rateLimiter = new RateLimiter(
             rateLimiterOptions ?? new RateLimiterOptions(),
@@ -217,30 +225,6 @@ public sealed class BusinessRuClient : IBusinessRuClient
         ArgumentException.ThrowIfNullOrWhiteSpace(priceTypeId);
 
         _logger.LogInformation(
-            "Getting existing price list for reference IDs");
-
-        var existingLists = await GetPriceListsAsync(limit: 1, cancellationToken);
-        
-        if (existingLists.Length == 0)
-        {
-            throw new InvalidOperationException(
-                "Cannot create price list: no existing price lists found " +
-                "to get required IDs");
-        }
-
-        var referencePriceType = await GetPriceTypesAsync(
-            limit: 1,
-            cancellationToken);
-        
-        if (referencePriceType.Length == 0)
-        {
-            throw new InvalidOperationException(
-                "Cannot create price list: no price types found");
-        }
-
-        var referenceType = referencePriceType[0];
-
-        _logger.LogInformation(
             "Creating new price list: {Name}",
             name);
 
@@ -249,10 +233,8 @@ public sealed class BusinessRuClient : IBusinessRuClient
             ["name"] = name,
             ["price_type_id"] = priceTypeId,
             ["active"] = "1",
-            ["responsible_employee_id"] = 
-                referenceType.ResponsibleEmployeeId ?? "1",
-            ["organization_id"] = 
-                referenceType.OrganizationId ?? "1"
+            ["responsible_employee_id"] = _responsibleEmployeeId,
+            ["organization_id"] = _organizationId
         };
 
         var response = await RequestAsync<
