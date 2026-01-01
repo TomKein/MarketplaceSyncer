@@ -208,6 +208,69 @@ public sealed class BusinessRuClient : IBusinessRuClient
         return response?.Result ?? Array.Empty<SalePriceList>();
     }
 
+    public async Task<string> CreatePriceListAsync(
+        string name,
+        string priceTypeId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(priceTypeId);
+
+        _logger.LogInformation(
+            "Getting existing price list for reference IDs");
+
+        var existingLists = await GetPriceListsAsync(limit: 1, cancellationToken);
+        
+        if (existingLists.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Cannot create price list: no existing price lists found " +
+                "to get required IDs");
+        }
+
+        var referencePriceType = await GetPriceTypesAsync(
+            limit: 1,
+            cancellationToken);
+        
+        if (referencePriceType.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Cannot create price list: no price types found");
+        }
+
+        var referenceType = referencePriceType[0];
+
+        _logger.LogInformation(
+            "Creating new price list: {Name}",
+            name);
+
+        var request = new Dictionary<string, string>
+        {
+            ["name"] = name,
+            ["price_type_id"] = priceTypeId,
+            ["active"] = "1",
+            ["responsible_employee_id"] = 
+                referenceType.ResponsibleEmployeeId ?? "1",
+            ["organization_id"] = 
+                referenceType.OrganizationId ?? "1"
+        };
+
+        var response = await RequestAsync<
+            Dictionary<string, string>,
+            SalePriceList>(
+            HttpMethod.Post,
+            "salepricelists",
+            request,
+            cancellationToken);
+
+        _logger.LogInformation(
+            "Created price list: ID={Id}, Name={Name}",
+            response.Id,
+            response.Name);
+
+        return response.Id;
+    }
+
     public async Task<SalePriceType[]> GetPriceTypesAsync(
         int? limit = null,
         CancellationToken cancellationToken = default)

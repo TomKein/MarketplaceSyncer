@@ -27,4 +27,13 @@ public interface IPriceUpdateService
         string priceListGoodId,
         decimal newPrice,
         CancellationToken cancellationToken = default);
+
+    Task<string> CreateUpdateSessionPriceListAsync(
+        string sessionName,
+        CancellationToken cancellationToken = default);
+
+    Task<string> AddGoodToPriceListAsync(
+        string priceListId,
+        string goodId,
+        CancellationToken cancellationToken = default);
 }

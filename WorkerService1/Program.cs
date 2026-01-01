@@ -84,6 +84,7 @@ builder.Services.AddScoped<IPriceUpdateService, PriceUpdateService>();
 // Register test mode services
 builder.Services.AddSingleton<ApiTester>();
 builder.Services.AddScoped<BatchPriceUpdateTester>();
+builder.Services.AddScoped<PriceListSessionTester>();
 
 // Add hosted service based on mode
 if (isTestMode)

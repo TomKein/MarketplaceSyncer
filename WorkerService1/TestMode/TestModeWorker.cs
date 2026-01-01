@@ -23,10 +23,11 @@ public class TestModeWorker : BackgroundService
             _logger.LogInformation("Starting in TEST MODE");
             
             using var scope = _serviceProvider.CreateScope();
-            var batchTester = scope.ServiceProvider
-                .GetRequiredService<BatchPriceUpdateTester>();
             
-            await batchTester.RunBatchTestAsync(stoppingToken);
+            var priceListTester = scope.ServiceProvider
+                .GetRequiredService<PriceListSessionTester>();
+            
+            await priceListTester.RunTestAsync(stoppingToken);
             
             _logger.LogInformation("Test mode completed successfully");
         }

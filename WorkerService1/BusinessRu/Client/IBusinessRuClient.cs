@@ -25,6 +25,11 @@ public interface IBusinessRuClient : IDisposable
         int? limit = null,
         CancellationToken cancellationToken = default);
 
+    Task<string> CreatePriceListAsync(
+        string name,
+        string priceTypeId,
+        CancellationToken cancellationToken = default);
+
     Task<SalePriceType[]> GetPriceTypesAsync(
         int? limit = null,
         CancellationToken cancellationToken = default);

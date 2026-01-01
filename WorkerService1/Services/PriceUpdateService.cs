@@ -176,6 +176,63 @@ public class PriceUpdateService : IPriceUpdateService
         return response.Id;
     }
 
+    public async Task<string> CreateUpdateSessionPriceListAsync(
+        string sessionName,
+        CancellationToken cancellationToken = default)
+    {
+        var priceListName = $"Price Update {sessionName} - " +
+                           $"{DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm}";
+
+        _logger.LogInformation(
+            "Creating update session price list: {Name}",
+            priceListName);
+
+        var priceListId = await _client.CreatePriceListAsync(
+            priceListName,
+            _options.TargetPriceTypeId,
+            cancellationToken);
+
+        _logger.LogInformation(
+            "Update session price list created: {Id}",
+            priceListId);
+
+        return priceListId;
+    }
+
+    public async Task<string> AddGoodToPriceListAsync(
+        string priceListId,
+        string goodId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(priceListId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
+
+        _logger.LogDebug(
+            "Adding good {GoodId} to price list {PriceListId}",
+            goodId,
+            priceListId);
+
+        var request = new Dictionary<string, string>
+        {
+            ["price_list_id"] = priceListId,
+            ["good_id"] = goodId
+        };
+
+        var response = await _client.RequestAsync<
+            Dictionary<string, string>,
+            SalePriceListGood>(
+            HttpMethod.Post,
+            "salepricelistgoods",
+            request,
+            cancellationToken);
+
+        _logger.LogDebug(
+            "Good added to price list: {PriceListGoodId}",
+            response.Id);
+
+        return response.Id;
+    }
+
     private static DateTimeOffset ParseDate(string? dateString)
     {
         if (string.IsNullOrWhiteSpace(dateString))
