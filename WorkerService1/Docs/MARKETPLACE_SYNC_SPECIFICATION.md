@@ -35,11 +35,11 @@
 ### 2.1 Технологический стек
 
 **Backend:**
-- .NET 8.0 / C# 12
+- .NET 10.0 / C# 14
 - ASP.NET Core Worker Service
 - FluentMigrator (миграции БД)
 - Linq2Db (ORM)
-- PostgreSQL 15+ (основная БД)
+- PostgreSQL 17+ (основная БД)
 - Npgsql (драйвер PostgreSQL)
 
 **HTTP & API:**

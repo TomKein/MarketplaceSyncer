@@ -7,7 +7,12 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using BusinessRu.ApiClient;
+using WorkerService1.BusinessRu.Client;
+using WorkerService1.BusinessRu.Http;
+using WorkerService1.BusinessRu.Models.Requests;
+using WorkerService1.BusinessRu.Models.Responses;
+using ApiGood = WorkerService1.BusinessRu.Models.Responses.Good;
+using DbGood = WorkerService1.Data.Models.Good;
 using LinqToDB;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -142,7 +147,7 @@ public class PriceSyncService : IPriceSyncService
 	private async Task LoadGoodsAsync(CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("Loading goods from Business.ru...");
-		int existingCount = await _db.Goods.Where((WorkerService1.Data.Models.Good good) => good.BusinessId == _businessId).CountAsync(cancellationToken);
+		int existingCount = await _db.Goods.Where((DbGood good) => good.BusinessId == _businessId).CountAsync(cancellationToken);
 		_logger.LogInformation("Found {Count} existing goods in DB", existingCount);
 		int startPage = 1;
 		if (existingCount > 0)
@@ -159,17 +164,17 @@ public class PriceSyncService : IPriceSyncService
 		while (true)
 		{
 			GetGoodsRequest request = new GetGoodsRequest(null, null, _businessOptions.PageLimit, page);
-			BusinessRu.ApiClient.Good[] response = await _apiClient.RequestAsync<GetGoodsRequest, BusinessRu.ApiClient.Good[]>(HttpMethod.Get, "goods", request, cancellationToken);
+			ApiGood[] response = await _apiClient.RequestAsync<GetGoodsRequest, ApiGood[]>(HttpMethod.Get, "goods", request, cancellationToken);
 			if (response == null || response.Length == 0)
 			{
 				break;
 			}
-			List<string> externalIds = response.Select((BusinessRu.ApiClient.Good r) => r.Id).ToList();
-			Dictionary<string, WorkerService1.Data.Models.Good> existingGoods = await _db.Goods.Where((WorkerService1.Data.Models.Good good) => good.BusinessId == _businessId && externalIds.Contains(good.ExternalId)).ToDictionaryAsync((WorkerService1.Data.Models.Good good) => good.ExternalId, cancellationToken);
-			List<WorkerService1.Data.Models.Good> goodsToInsert = new List<WorkerService1.Data.Models.Good>();
-			List<WorkerService1.Data.Models.Good> goodsToUpdate = new List<WorkerService1.Data.Models.Good>();
-			BusinessRu.ApiClient.Good[] array = response;
-			foreach (BusinessRu.ApiClient.Good g in array)
+			List<string> externalIds = response.Select((ApiGood r) => r.Id).ToList();
+			Dictionary<string, DbGood> existingGoods = await _db.Goods.Where((DbGood good) => good.BusinessId == _businessId && externalIds.Contains(good.ExternalId)).ToDictionaryAsync((DbGood good) => good.ExternalId, cancellationToken);
+			List<DbGood> goodsToInsert = new List<DbGood>();
+			List<DbGood> goodsToUpdate = new List<DbGood>();
+			ApiGood[] array = response;
+			foreach (ApiGood g in array)
 			{
 				if (existingGoods.TryGetValue(g.Id, out var existingGood))
 				{
@@ -183,7 +188,7 @@ public class PriceSyncService : IPriceSyncService
 				}
 				else
 				{
-					goodsToInsert.Add(new WorkerService1.Data.Models.Good
+					goodsToInsert.Add(new DbGood
 					{
 						BusinessId = _businessId,
 						ExternalId = g.Id,
@@ -198,7 +203,7 @@ public class PriceSyncService : IPriceSyncService
 				}
 				existingGood = null;
 			}
-			using (List<WorkerService1.Data.Models.Good>.Enumerator enumerator = goodsToInsert.GetEnumerator())
+			using (List<DbGood>.Enumerator enumerator = goodsToInsert.GetEnumerator())
 			{
 				while (enumerator.MoveNext())
 				{
@@ -207,7 +212,7 @@ public class PriceSyncService : IPriceSyncService
 			}
 			if (goodsToUpdate.Count > 0)
 			{
-				using List<WorkerService1.Data.Models.Good>.Enumerator enumerator2 = goodsToUpdate.GetEnumerator();
+				using List<DbGood>.Enumerator enumerator2 = goodsToUpdate.GetEnumerator();
 				while (enumerator2.MoveNext())
 				{
 					await DataExtensions.UpdateAsync(obj: enumerator2.Current, dataContext: _db, tableName: null, databaseName: null, schemaName: null, serverName: null, tableOptions: TableOptions.NotSet, token: cancellationToken);
@@ -240,7 +245,7 @@ public class PriceSyncService : IPriceSyncService
 			offset = lastLoadedCount;
 			totalLoaded = lastLoadedCount;
 		}
-		Dictionary<string, long> goodsCache = await _db.Goods.Where((WorkerService1.Data.Models.Good g) => g.BusinessId == _businessId).ToDictionaryAsync((WorkerService1.Data.Models.Good g) => g.ExternalId, (WorkerService1.Data.Models.Good g) => g.Id, cancellationToken);
+		Dictionary<string, long> goodsCache = await _db.Goods.Where((DbGood g) => g.BusinessId == _businessId).ToDictionaryAsync((DbGood g) => g.ExternalId, (DbGood g) => g.Id, cancellationToken);
 		_logger.LogInformation("Loaded {Count} goods into cache for price matching", goodsCache.Count);
 		Dictionary<string, PriceList> priceListsCache = await _db.PriceLists.Where((PriceList pl) => pl.BusinessId == _businessId).ToDictionaryAsync((PriceList pl) => pl.ExternalId, cancellationToken);
 		PriceType defaultPriceType = await _db.PriceTypes.FirstOrDefaultAsync((PriceType pt) => pt.BusinessId == _businessId, cancellationToken);
