@@ -354,13 +354,24 @@ public sealed class BusinessRuClient : IBusinessRuClient
         response.EnsureSuccessStatusCode();
 
         var payload = await response.Content.ReadAsStringAsync(ct);
+        
+        _logger.LogDebug("API Response: {Payload}", payload);
+        
         var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload)
             ?? throw new InvalidOperationException("Empty response from API");
 
         await HandleRateLimitingFromApiResponse(apiResponse.RequestCount, ct);
 
-        return apiResponse.Result
-            ?? throw new InvalidOperationException("Result is null in API response");
+        if (apiResponse.Result == null)
+        {
+            _logger.LogError(
+                "Result is null. Full response: {Payload}",
+                payload);
+            throw new InvalidOperationException(
+                $"Result is null in API response. Response: {payload}");
+        }
+
+        return apiResponse.Result;
     }
 
     private async Task<T> PerformQueryAsync<T>(

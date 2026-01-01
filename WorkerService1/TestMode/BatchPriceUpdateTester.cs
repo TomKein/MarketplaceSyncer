@@ -221,12 +221,25 @@ public class BatchPriceUpdateTester
                     }
                     else
                     {
+                        var needsUpdate = false;
+
                         if (existingPrice.CurrentPrice != currentPrice)
                         {
                             existingPrice.CurrentPrice = currentPrice;
                             existingPrice.CalculatedPrice = calculatedPrice;
                             existingPrice.BusinessRuUpdatedAt = 
                                 ParseDate(latestPrice.Updated);
+                            needsUpdate = true;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(existingPrice.PriceListGoodId))
+                        {
+                            existingPrice.PriceListGoodId = plg.Id;
+                            needsUpdate = true;
+                        }
+
+                        if (needsUpdate)
+                        {
                             await DataExtensions.UpdateAsync(_db, existingPrice);
                             updatedCount++;
                         }

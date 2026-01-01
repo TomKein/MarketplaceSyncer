@@ -157,7 +157,8 @@ public class PriceUpdateService : IPriceUpdateService
         {
             ["price_list_good_id"] = priceListGoodId,
             ["price_type_id"] = _options.TargetPriceTypeId,
-            ["price"] = newPrice.ToString("F2")
+            ["price"] = newPrice.ToString("0.00", 
+                System.Globalization.CultureInfo.InvariantCulture)
         };
 
         var response = await _client.RequestAsync<
