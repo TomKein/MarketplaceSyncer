@@ -112,26 +112,74 @@ public sealed class BusinessRuClient : IBusinessRuClient
         ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
 
         _logger.LogDebug(
-            "Fetching prices for good ID: {GoodId}",
+            "Fetching prices for good ID: {GoodId} (two-step process)",
             goodId);
 
-        var request = new Dictionary<string, string>
+        var goodsRequest = new Dictionary<string, string>
         {
-            ["price_list_good_id"] = goodId
+            ["good_id"] = goodId
         };
 
         if (limit.HasValue)
-            request["limit"] = limit.Value.ToString();
+            goodsRequest["limit"] = limit.Value.ToString();
 
-        var response = await RequestAsync<
+        _logger.LogDebug(
+            "Step 1: Fetching price list goods for good ID: {GoodId}",
+            goodId);
+
+        var priceListGoods = await RequestAsync<
             Dictionary<string, string>,
-            SalePriceListGoodPrice[]>(
+            SalePriceListGood[]>(
             HttpMethod.Get,
-            "salepricelistgoodprices",
-            request,
+            "salepricelistgoods",
+            goodsRequest,
             cancellationToken);
 
-        return response;
+        if (priceListGoods == null || priceListGoods.Length == 0)
+        {
+            _logger.LogWarning(
+                "No price list goods found for good ID: {GoodId}",
+                goodId);
+            return Array.Empty<SalePriceListGoodPrice>();
+        }
+
+        var priceListGoodIds = priceListGoods
+            .Select(plg => plg.Id)
+            .ToArray();
+
+        _logger.LogDebug(
+            "Step 2: Fetching prices for {Count} price list good IDs",
+            priceListGoodIds.Length);
+
+        var allPrices = new List<SalePriceListGoodPrice>();
+
+        foreach (var priceListGoodId in priceListGoodIds)
+        {
+            var pricesRequest = new Dictionary<string, string>
+            {
+                ["price_list_good_id"] = priceListGoodId
+            };
+
+            var prices = await RequestAsync<
+                Dictionary<string, string>,
+                SalePriceListGoodPrice[]>(
+                HttpMethod.Get,
+                "salepricelistgoodprices",
+                pricesRequest,
+                cancellationToken);
+
+            if (prices != null && prices.Length > 0)
+            {
+                allPrices.AddRange(prices);
+            }
+        }
+
+        _logger.LogInformation(
+            "Found {Count} total prices for good ID: {GoodId}",
+            allPrices.Count,
+            goodId);
+
+        return allPrices.ToArray();
     }
 
     public async Task<SalePriceList[]> GetPriceListsAsync(

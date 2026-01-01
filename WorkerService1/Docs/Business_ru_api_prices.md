@@ -52,7 +52,33 @@
 ### Фильтрация:
 - По ID товара в прайс-листе: `price_list_good_id={id}`
 - По ID прайс-листа: `price_list_id={id}`
-- По ID товара: `good_id={id}` (если поддерживается)
+
+## Получение цен товара (два шага)
+
+Чтобы получить цены конкретного товара, нужно выполнить два запроса:
+
+### Шаг 1: Получить связи товара с прайс-листами
+**Endpoint:** `GET /salepricelistgoods.json`
+**Фильтр:** `good_id={id товара}`
+
+Возвращает записи `SalePriceListGood` с ID связок товара с прайс-листами.
+
+### Шаг 2: Получить цены по ID связок
+**Endpoint:** `GET /salepricelistgoodprices.json`
+**Фильтр:** `price_list_good_id={id из шага 1}`
+
+Возвращает фактические цены для каждой связки.
+
+### Пример процесса:
+1. `GET /salepricelistgoods.json?good_id=12345` → получаем `[{id: "100"}, {id: "101"}]`
+2. `GET /salepricelistgoodprices.json?price_list_good_id=100` → цены для связки 100
+3. `GET /salepricelistgoodprices.json?price_list_good_id=101` → цены для связки 101
+
+### В коде:
+```csharp
+// Автоматически выполняет оба шага
+var prices = await client.GetGoodPricesAsync(goodId, limit: 10, ct);
+```
 
 ### Специфика обновления (PUT):
 Для изменения цены 80 000 товаров необходимо:

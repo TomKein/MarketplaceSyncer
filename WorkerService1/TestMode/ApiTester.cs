@@ -141,11 +141,14 @@ public class ApiTester
             Console.WriteLine();
 
             _logger.LogInformation(
-                "Requesting prices for good ID: {GoodId}",
+                "Requesting prices for good ID: {GoodId} (two-step process)",
                 goodId);
 
-            Console.WriteLine("REQUEST: GET /salepricelistgoodprices.json");
-            Console.WriteLine($"  Parameters: price_list_good_id={goodId}, limit=10");
+            Console.WriteLine("REQUEST CHAIN:");
+            Console.WriteLine("  Step 1: GET /salepricelistgoods.json");
+            Console.WriteLine($"    Parameters: good_id={goodId}, limit=10");
+            Console.WriteLine("  Step 2: GET /salepricelistgoodprices.json");
+            Console.WriteLine("    Parameters: price_list_good_id=[IDs from step 1]");
             Console.WriteLine();
 
             var prices = await _client.GetGoodPricesAsync(goodId, limit: 10, ct);
