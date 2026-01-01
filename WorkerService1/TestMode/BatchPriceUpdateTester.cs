@@ -48,6 +48,55 @@ public class BatchPriceUpdateTester
 
         Console.WriteLine();
         Console.WriteLine("=".PadRight(80, '='));
+        Console.WriteLine("FINAL: good_prices TABLE DUMP");
+        Console.WriteLine("=".PadRight(80, '='));
+        
+        var allPrices = _db.GoodPrices
+            .OrderBy(p => p.Id)
+            .ToList();
+
+        Console.WriteLine($"Total records: {allPrices.Count}");
+        Console.WriteLine();
+        Console.WriteLine(
+            "ID | GoodId | PriceTypeId | ExternalPriceRecordId | " +
+            "OriginalPrice | CurrentPrice | CalculatedPrice | IsProcessed");
+        Console.WriteLine("-".PadRight(128, '-'));
+
+        foreach (var p in allPrices)
+        {
+            var calcPrice = p.CalculatedPrice?.ToString("F2") ?? "NULL";
+            Console.WriteLine(
+                $"{p.Id,3} | {p.GoodId,6} | {p.PriceTypeId,-11} | " +
+                $"{p.ExternalPriceRecordId,-21} | " +
+                $"{p.OriginalPrice,13:F2} | {p.CurrentPrice,12:F2} | " +
+                $"{calcPrice,15} | {p.IsProcessed}");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("Records with issues:");
+        var issues = allPrices.Where(p => 
+            p.CurrentPrice == 0 || 
+            p.CalculatedPrice == null || 
+            p.CalculatedPrice == 0).ToList();
+
+        if (issues.Any())
+        {
+            Console.WriteLine($"Found {issues.Count} records with zero/null prices:");
+            foreach (var p in issues)
+            {
+                Console.WriteLine(
+                    $"  ID {p.Id}: Original={p.OriginalPrice:F2}, " +
+                    $"Current={p.CurrentPrice:F2}, " +
+                    $"Calculated={p.CalculatedPrice?.ToString("F2") ?? "NULL"}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("No issues found!");
+        }
+
+        Console.WriteLine();
+        Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine("BATCH TESTS COMPLETED");
         Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine();
@@ -117,8 +166,27 @@ public class BatchPriceUpdateTester
                     if (latestPrice == null)
                         continue;
 
-                    var currentPrice = decimal.Parse(
-                        latestPrice.Price ?? "0");
+                    if (string.IsNullOrWhiteSpace(latestPrice.Price))
+                    {
+                        Console.WriteLine(
+                            $"WARN: Good {good.Id} has empty price, skipping");
+                        continue;
+                    }
+
+                    if (!decimal.TryParse(latestPrice.Price, out var currentPrice))
+                    {
+                        Console.WriteLine(
+                            $"WARN: Good {good.Id} has invalid price '{latestPrice.Price}', " +
+                            $"skipping");
+                        continue;
+                    }
+
+                    if (currentPrice == 0)
+                    {
+                        Console.WriteLine(
+                            $"WARN: Good {good.Id} has zero price, skipping");
+                        continue;
+                    }
                     
                     var calculatedPrice = _priceService
                         .CalculateIncreasedPrice(currentPrice);
