@@ -22,9 +22,8 @@ public class ApiTester
         Console.WriteLine("=".PadRight(80, '='));
         Console.WriteLine();
 
-        await TestCountGoodsAsync(ct);
-        await TestGetSingleGoodAsync(ct);
-        await TestGetGoodPriceAsync(ct);
+        await TestGetGoodByIdAsync(ct);
+        await TestGetGoodPriceByIdAsync(ct);
 
         Console.WriteLine();
         Console.WriteLine("=".PadRight(80, '='));
@@ -33,59 +32,11 @@ public class ApiTester
         Console.WriteLine();
     }
 
-    private async Task TestCountGoodsAsync(CancellationToken ct)
+    private async Task TestGetGoodByIdAsync(CancellationToken ct)
     {
         Console.WriteLine();
         Console.WriteLine("-".PadRight(80, '-'));
-        Console.WriteLine("TEST: Count Goods");
-        Console.WriteLine("-".PadRight(80, '-'));
-
-        try
-        {
-            _logger.LogInformation("Requesting goods count (archive=0, type=1)");
-
-            var request = new Dictionary<string, string>
-            {
-                ["archive"] = "0",
-                ["type"] = "1",
-                ["count_only"] = "1"
-            };
-
-            var response = await _client.RequestAsync<
-                Dictionary<string, string>,
-                CountResponse>(
-                HttpMethod.Get,
-                "goods",
-                request,
-                ct);
-
-            Console.WriteLine("RAW RESPONSE:");
-            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
-                response,
-                new System.Text.Json.JsonSerializerOptions
-                {
-                    WriteIndented = true
-                }));
-            Console.WriteLine();
-
-            _logger.LogInformation(
-                "Count result: {Count} goods found",
-                response.Count);
-
-            Console.WriteLine($"SUCCESS: Found {response.Count} active goods");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to count goods");
-            Console.WriteLine($"ERROR: {ex.Message}");
-        }
-    }
-
-    private async Task TestGetSingleGoodAsync(CancellationToken ct)
-    {
-        Console.WriteLine();
-        Console.WriteLine("-".PadRight(80, '-'));
-        Console.WriteLine("TEST: Get Single Good");
+        Console.WriteLine("TEST: Get Good By ID (from list)");
         Console.WriteLine("-".PadRight(80, '-'));
 
         try
@@ -108,71 +59,53 @@ public class ApiTester
                 listRequest,
                 ct);
 
-            if (goodsList == null || goodsList.Length == 0)
-            {
-                Console.WriteLine("WARNING: No goods found in list");
-                return;
-            }
-
-            var firstGood = goodsList[0];
-            Console.WriteLine($"Found good ID: {firstGood.Id}");
-            Console.WriteLine();
-
-            _logger.LogInformation(
-                "Requesting detailed info for good ID: {GoodId}",
-                firstGood.Id);
-
-            var detailRequest = new Dictionary<string, string>
-            {
-                ["id"] = firstGood.Id
-            };
-
-            var goodDetail = await _client.RequestAsync<
-                Dictionary<string, string>,
-                Good>(
-                HttpMethod.Get,
-                "good",
-                detailRequest,
-                ct);
-
-            Console.WriteLine("RAW RESPONSE:");
+            Console.WriteLine("RAW RESPONSE (goods list):");
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
-                goodDetail,
+                goodsList,
                 new System.Text.Json.JsonSerializerOptions
                 {
                     WriteIndented = true
                 }));
             Console.WriteLine();
 
-            _logger.LogInformation(
-                "Good details: ID={Id}, Name={Name}, PartNumber={PartNumber}",
-                goodDetail.Id,
-                goodDetail.Name,
-                goodDetail.PartNumber);
+            if (goodsList == null || goodsList.Length == 0)
+            {
+                Console.WriteLine("WARNING: No goods found in list");
+                return;
+            }
 
-            Console.WriteLine($"SUCCESS: Retrieved good '{goodDetail.Name}'");
-            Console.WriteLine($"  ID: {goodDetail.Id}");
-            Console.WriteLine($"  Part Number: {goodDetail.PartNumber}");
-            Console.WriteLine($"  Store Code: {goodDetail.StoreCode}");
-            Console.WriteLine($"  Archive: {goodDetail.Archive}");
+            var good = goodsList[0];
+
+            _logger.LogInformation(
+                "Good found: ID={Id}, Name={Name}, PartNumber={PartNumber}",
+                good.Id,
+                good.Name,
+                good.PartNumber);
+
+            Console.WriteLine($"SUCCESS: Retrieved good from list");
+            Console.WriteLine($"  ID: {good.Id}");
+            Console.WriteLine($"  Name: {good.Name}");
+            Console.WriteLine($"  Part Number: {good.PartNumber}");
+            Console.WriteLine($"  Store Code: {good.StoreCode}");
+            Console.WriteLine($"  Archive: {good.Archive}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get single good");
+            _logger.LogError(ex, "Failed to get good by ID");
             Console.WriteLine($"ERROR: {ex.Message}");
         }
     }
 
-    private async Task TestGetGoodPriceAsync(CancellationToken ct)
+    private async Task TestGetGoodPriceByIdAsync(CancellationToken ct)
     {
         Console.WriteLine();
         Console.WriteLine("-".PadRight(80, '-'));
-        Console.WriteLine("TEST: Get Good Price");
+        Console.WriteLine("TEST: Get Price By Good ID");
         Console.WriteLine("-".PadRight(80, '-'));
 
         try
         {
-            _logger.LogInformation("Fetching first good for price test");
+            _logger.LogInformation("Fetching first good to get its ID");
 
             var listRequest = new Dictionary<string, string>
             {
@@ -197,28 +130,19 @@ public class ApiTester
             }
 
             var goodId = goodsList[0].Id;
-            Console.WriteLine($"Testing price for good ID: {goodId}");
+            var goodName = goodsList[0].Name;
+            
+            Console.WriteLine($"Good ID: {goodId}");
+            Console.WriteLine($"Good Name: {goodName}");
             Console.WriteLine();
 
             _logger.LogInformation(
                 "Requesting prices for good ID: {GoodId}",
                 goodId);
 
-            var priceRequest = new Dictionary<string, string>
-            {
-                ["good_id"] = goodId,
-                ["limit"] = "10"
-            };
+            var prices = await _client.GetGoodPricesAsync(goodId, limit: 10, ct);
 
-            var prices = await _client.RequestAsync<
-                Dictionary<string, string>,
-                SalePriceListGoodPrice[]>(
-                HttpMethod.Get,
-                "salepricelistgoodprices",
-                priceRequest,
-                ct);
-
-            Console.WriteLine("RAW RESPONSE:");
+            Console.WriteLine("RAW RESPONSE (prices):");
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
                 prices,
                 new System.Text.Json.JsonSerializerOptions
@@ -229,27 +153,30 @@ public class ApiTester
 
             if (prices == null || prices.Length == 0)
             {
-                Console.WriteLine("INFO: No prices found for this good");
+                Console.WriteLine($"INFO: No prices found for good {goodId}");
                 return;
             }
 
             _logger.LogInformation(
-                "Found {Count} price entries for good {GoodId}",
+                "Found {Count} price entries for good {GoodId} ({GoodName})",
                 prices.Length,
-                goodId);
+                goodId,
+                goodName);
 
-            Console.WriteLine($"SUCCESS: Found {prices.Length} price entries");
-            foreach (var price in prices)
+            Console.WriteLine($"SUCCESS: Found {prices.Length} price(s) for good '{goodName}'");
+            for (int i = 0; i < prices.Length; i++)
             {
-                Console.WriteLine($"  Price ID: {price.Id}");
-                Console.WriteLine($"    Price: {price.Price}");
-                Console.WriteLine($"    Price Type ID: {price.PriceTypeId}");
-                Console.WriteLine($"    Updated: {price.Updated}");
+                var price = prices[i];
+                Console.WriteLine($"  [{i + 1}] Price ID: {price.Id}");
+                Console.WriteLine($"      Price: {price.Price}");
+                Console.WriteLine($"      Price List Good ID: {price.PriceListGoodId}");
+                Console.WriteLine($"      Price Type ID: {price.PriceTypeId}");
+                Console.WriteLine($"      Updated: {price.Updated}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get good prices");
+            _logger.LogError(ex, "Failed to get prices by good ID");
             Console.WriteLine($"ERROR: {ex.Message}");
         }
     }

@@ -104,30 +104,6 @@ public sealed class BusinessRuClient : IBusinessRuClient
         return response.Count;
     }
 
-    public async Task<Good> GetGoodByIdAsync(
-        string goodId,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
-
-        _logger.LogDebug("Fetching good by ID: {GoodId}", goodId);
-
-        var request = new Dictionary<string, string>
-        {
-            ["id"] = goodId
-        };
-
-        var response = await RequestAsync<
-            Dictionary<string, string>,
-            Good>(
-            HttpMethod.Get,
-            "good",
-            request,
-            cancellationToken);
-
-        return response;
-    }
-
     public async Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         string goodId,
         int? limit = null,
