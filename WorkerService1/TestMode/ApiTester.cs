@@ -144,14 +144,20 @@ public class ApiTester
                 "Requesting prices for good ID: {GoodId} (two-step process)",
                 goodId);
 
+            const string targetPriceTypeId = "75524";
+            
             Console.WriteLine("REQUEST CHAIN:");
             Console.WriteLine("  Step 1: GET /salepricelistgoods.json");
             Console.WriteLine($"    Parameters: good_id={goodId}, limit=10");
             Console.WriteLine("  Step 2: GET /salepricelistgoodprices.json");
-            Console.WriteLine("    Parameters: price_list_good_id=[IDs from step 1]");
+            Console.WriteLine($"    Parameters: price_list_good_id=[IDs from step 1], price_type_id={targetPriceTypeId}");
             Console.WriteLine();
 
-            var prices = await _client.GetGoodPricesAsync(goodId, limit: 10, ct);
+            var prices = await _client.GetGoodPricesAsync(
+                goodId,
+                priceTypeId: targetPriceTypeId,
+                limit: 10,
+                ct);
 
             Console.WriteLine("RAW RESPONSE (prices):");
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(

@@ -17,6 +17,7 @@ public interface IBusinessRuClient : IDisposable
 
     Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         string goodId,
+        string? priceTypeId = null,
         int? limit = null,
         CancellationToken cancellationToken = default);
 

@@ -106,14 +106,16 @@ public sealed class BusinessRuClient : IBusinessRuClient
 
     public async Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         string goodId,
+        string? priceTypeId = null,
         int? limit = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
 
         _logger.LogDebug(
-            "Fetching prices for good ID: {GoodId} (two-step process)",
-            goodId);
+            "Fetching prices for good ID: {GoodId}, price type: {PriceTypeId}",
+            goodId,
+            priceTypeId ?? "all");
 
         var goodsRequest = new Dictionary<string, string>
         {
@@ -159,6 +161,11 @@ public sealed class BusinessRuClient : IBusinessRuClient
             {
                 ["price_list_good_id"] = priceListGoodId
             };
+
+            if (!string.IsNullOrWhiteSpace(priceTypeId))
+            {
+                pricesRequest["price_type_id"] = priceTypeId;
+            }
 
             var prices = await RequestAsync<
                 Dictionary<string, string>,
