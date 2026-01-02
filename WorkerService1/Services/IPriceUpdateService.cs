@@ -10,6 +10,7 @@ public interface IPriceUpdateService
         CancellationToken cancellationToken = default);
 
     Task<SalePriceListGood[]> GetPriceListGoodsForBatchAsync(
+        //string priceListId,
         string[] goodIds,
         CancellationToken cancellationToken = default);
 

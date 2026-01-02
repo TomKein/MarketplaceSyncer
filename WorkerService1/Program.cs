@@ -8,11 +8,29 @@ using FluentMigrator.Runner;
 using Microsoft.Extensions.Options;
 using WorkerService1.TestMode;
 
-// Устанавливаем кодировку консоли для правильного отображения кириллицы
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-// Check for test mode
+// Parse command-line arguments
 var isTestMode = args.Contains("--test");
+var isProductionUpdate = true; // args.Contains("--update-all-prices");
+var priceListId = "4258407"; //GetArgValue(args, "--price-list-id");
+var startFromPage = 67; //GetArgValueInt(args, "--start-from-page");
+
+string? GetArgValue(string[] arguments, string key)
+{
+    var index = Array.IndexOf(arguments, key);
+    if (index >= 0 && index + 1 < arguments.Length)
+        return arguments[index + 1];
+    return null;
+}
+
+int? GetArgValueInt(string[] arguments, string key)
+{
+    var value = GetArgValue(arguments, key);
+    if (int.TryParse(value, out var result))
+        return result;
+    return null;
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -82,16 +100,29 @@ builder.Services.AddSingleton<IBusinessRuClient>(serviceProvider =>
 // Services
 builder.Services.AddScoped<IPriceSyncService, PriceSyncService>();
 builder.Services.AddScoped<IPriceUpdateService, PriceUpdateService>();
+builder.Services.AddScoped<ProductionPriceUpdateRunner>();
 
 // Register test mode services
 builder.Services.AddSingleton<ApiTester>();
 builder.Services.AddScoped<BatchPriceUpdateTester>();
 builder.Services.AddScoped<PriceListSessionTester>();
+builder.Services.AddScoped<ProductionUpdateTester>();
+
+// Store CLI arguments for workers
+builder.Services.AddSingleton(new ProductionUpdateArgs
+{
+    PriceListId = priceListId,
+    StartFromPage = startFromPage
+});
 
 // Add hosted service based on mode
 if (isTestMode)
 {
     builder.Services.AddHostedService<TestModeWorker>();
+}
+else if (isProductionUpdate)
+{
+    builder.Services.AddHostedService<ProductionUpdateWorker>();
 }
 else
 {

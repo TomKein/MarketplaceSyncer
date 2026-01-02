@@ -55,6 +55,7 @@ public class PriceUpdateService : IPriceUpdateService
     }
 
     public async Task<SalePriceListGood[]> GetPriceListGoodsForBatchAsync(
+        // string priceListId,
         string[] goodIds,
         CancellationToken cancellationToken = default)
     {
@@ -67,10 +68,14 @@ public class PriceUpdateService : IPriceUpdateService
 
         var request = new Dictionary<string, string>();
         
+        // request["price_list_id"] = priceListId;
+        // request["good_id"] = string.Join(",", goodIds);//$"[{string.Join(",", goodIds)}]";
+        
         for (int i = 0; i < goodIds.Length; i++)
         {
             request[$"good_id[{i}]"] = goodIds[i];
         }
+        //есть список вот таких рекордов у которых для каждого good_id, может быть несколько 
 
         var priceListGoods = await _client.RequestAsync<
             Dictionary<string, string>,

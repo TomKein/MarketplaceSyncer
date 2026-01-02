@@ -395,6 +395,10 @@ public sealed class BusinessRuClient : IBusinessRuClient
         using var requestMessage = CreateHttpRequest(method, url, fullQuery);
         using var response = await _httpClient.SendAsync(requestMessage, ct);
 
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogDebug("ups");
+        }
         await HandleAuthenticationErrorsAsync(response, ct);
         response.EnsureSuccessStatusCode();
 
@@ -521,7 +525,8 @@ public sealed class BusinessRuClient : IBusinessRuClient
 
         if (errorContent.Contains("token") 
             || errorContent.Contains("авторизац") 
-            || errorContent.Contains("auth"))
+            || errorContent.Contains("auth")
+            || errorContent.Contains("Internal"))
         {
             _logger.LogWarning("Token expired, refreshing");
             await RefreshTokenAsync(ct);
