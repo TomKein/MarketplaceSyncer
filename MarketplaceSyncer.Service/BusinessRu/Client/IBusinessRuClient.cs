@@ -15,6 +15,10 @@ public interface IBusinessRuClient : IDisposable
         int? type = 1,
         CancellationToken cancellationToken = default);
 
+    Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default);
+    
+    Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default);
+
     Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         string goodId,
         string? priceTypeId = null,
@@ -39,20 +43,11 @@ public interface IBusinessRuClient : IDisposable
         decimal price,
         CancellationToken cancellationToken = default);
 
-    Task<int> CountAsync(
-        string resource,
-        Dictionary<string, object>? filters = null,
-        CancellationToken cancellationToken = default);
-
-    Task<T> QueryAsync<T>(
-        Dictionary<string, object> request,
-        CancellationToken cancellationToken = default);
-
     IBusinessRuQuery CreateQuery();
 
     Task<TResponse> RequestAsync<TRequest, TResponse>(
         HttpMethod method,
-        string model,
+        string endpoint,
         TRequest request,
         CancellationToken cancellationToken = default)
         where TRequest : class

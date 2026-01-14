@@ -11,4 +11,8 @@ public class BusinessRuOptions
     public required string OrganizationId { get; set; }
     public int RateLimitRequestCount { get; set; } = 300;
     public int RateLimitTimeWindowMs { get; set; } = 300000; // 5 min
+    
+    // Retry configuration
+    public int MaxRetries { get; set; } = 3;
+    public int RetryBaseDelayMs { get; set; } = 1000; // 1 секунда базовая задержка
 }

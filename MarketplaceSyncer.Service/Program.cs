@@ -15,6 +15,8 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 // Configuration
 builder.Services.Configure<BusinessRuOptions>(
     builder.Configuration.GetSection(BusinessRuOptions.SectionName));
+builder.Services.Configure<SynchronizationOptions>(
+    builder.Configuration.GetSection("Synchronization"));
 
 // Services
 builder.Services.AddHttpClient(nameof(BusinessRuClient));
@@ -31,7 +33,7 @@ builder.Services.AddFluentMigratorCore()
 // Linq2Db
 builder.Services.AddLinqToDBContext<AppDataConnection>((provider, options) =>
     options
-        .UsePostgreSQL(connectionString)
+        .UsePostgreSQL(connectionString!)
         .UseDefaultLogging(provider));
 
 builder.Services.AddTransient<IBusinessRuClient>(sp => 

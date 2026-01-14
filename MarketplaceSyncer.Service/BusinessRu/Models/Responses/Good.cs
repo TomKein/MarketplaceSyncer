@@ -19,4 +19,23 @@ public sealed record Good(
     bool Archive = false,
     
     [property: JsonPropertyName("prices")] 
-    SalePriceListGoodPrice[]? Prices = null);
+    GoodPrice[]? Prices = null,
+
+    [property: JsonPropertyName("remains")]
+    object? Remains = null,
+    
+    [property: JsonPropertyName("attributes")]
+    object? Attributes = null,
+    
+    [property: JsonPropertyName("images")]
+    object? Images = null);
+
+public sealed record GoodPrice(
+    [property: JsonPropertyName("price")]
+    decimal? Price,
+    
+    [property: JsonPropertyName("type_id")]
+    string? TypeId,
+    
+    [property: JsonPropertyName("currency")]
+    string? Currency);
