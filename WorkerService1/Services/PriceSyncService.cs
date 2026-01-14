@@ -248,7 +248,7 @@ public class PriceSyncService : IPriceSyncService
 		Dictionary<string, long> goodsCache = await _db.Goods.Where((DbGood g) => g.BusinessId == _businessId).ToDictionaryAsync((DbGood g) => g.ExternalId, (DbGood g) => g.Id, cancellationToken);
 		_logger.LogInformation("Loaded {Count} goods into cache for price matching", goodsCache.Count);
 		Dictionary<string, PriceList> priceListsCache = await _db.PriceLists.Where((PriceList pl) => pl.BusinessId == _businessId).ToDictionaryAsync((PriceList pl) => pl.ExternalId, cancellationToken);
-		PriceType defaultPriceType = await _db.PriceTypes.FirstOrDefaultAsync((PriceType pt) => pt.BusinessId == _businessId, cancellationToken);
+		PriceType? defaultPriceType = await _db.PriceTypes.FirstOrDefaultAsync((PriceType pt) => pt.BusinessId == _businessId, cancellationToken);
 		if (defaultPriceType == null)
 		{
 			defaultPriceType = new PriceType
@@ -307,7 +307,7 @@ public class PriceSyncService : IPriceSyncService
 			List<GoodPrice> pricesToUpdate = new List<GoodPrice>();
 			List<long> batchGoodIds = new List<long>();
 			List<long> batchPriceListIds = new List<long>();
-			Dictionary<(long goodId, long priceListId), (string priceId, decimal currentPrice, string? currencyId)> priceDataMap = new Dictionary<(long, long), (string, decimal, string)>();
+			Dictionary<(long goodId, long priceListId), (string priceId, decimal currentPrice, string? currencyId)> priceDataMap = new Dictionary<(long, long), (string, decimal, string?)>();
 			HashSet<string> skippedGoodIds = new HashSet<string>();
 			HashSet<string> skippedNoMapping = new HashSet<string>();
 			HashSet<string> skippedNoPriceType = new HashSet<string>();
@@ -333,7 +333,7 @@ public class PriceSyncService : IPriceSyncService
 					long priceTypeId = defaultPriceType.Id;
 					if (!string.IsNullOrEmpty(price.PriceTypeId))
 					{
-						PriceType priceType = await _db.PriceTypes.FirstOrDefaultAsync((PriceType pt) => pt.BusinessId == _businessId && pt.ExternalId == price.PriceTypeId, cancellationToken);
+						PriceType? priceType = await _db.PriceTypes.FirstOrDefaultAsync((PriceType pt) => pt.BusinessId == _businessId && pt.ExternalId == price.PriceTypeId, cancellationToken);
 						if (priceType != null)
 						{
 							priceTypeId = priceType.Id;
@@ -389,7 +389,7 @@ public class PriceSyncService : IPriceSyncService
 				}
 			}
 			Dictionary<(long GoodId, long PriceListId), GoodPrice> existingPrices = await _db.GoodPrices.Where((GoodPrice gp) => gp.BusinessId == _businessId && batchGoodIds.Contains(gp.GoodId) && batchPriceListIds.Contains(gp.PriceListId)).ToDictionaryAsync((GoodPrice gp) => (GoodId: gp.GoodId, PriceListId: gp.PriceListId), cancellationToken);
-			foreach (KeyValuePair<(long, long), (string, decimal, string)> kvp in priceDataMap)
+			foreach (KeyValuePair<(long, long), (string, decimal, string?)> kvp in priceDataMap)
 			{
 				var (goodId2, priceListId) = kvp.Key;
 				var (priceId, currentPrice, currencyId) = kvp.Value;
@@ -479,19 +479,19 @@ public class PriceSyncService : IPriceSyncService
 			{
 				try
 				{
-					UpdatePriceRequest updateRequest = new UpdatePriceRequest(priceRecord.ExternalPriceRecordId, priceRecord.CalculatedPrice.Value.ToString("F2", CultureInfo.InvariantCulture));
+					UpdatePriceRequest updateRequest = new UpdatePriceRequest(priceRecord.ExternalPriceRecordId, (priceRecord.CalculatedPrice ?? 0).ToString("F2", CultureInfo.InvariantCulture));
 					if (!string.IsNullOrEmpty(await _apiClient.RequestAsync<UpdatePriceRequest, string>(HttpMethod.Put, "salepricelistgoodprices", updateRequest, cancellationToken)))
 					{
 						priceRecord.IsProcessed = true;
 						priceRecord.UpdatedInBusinessRuAt = DateTimeOffset.UtcNow;
-						priceRecord.CurrentPrice = priceRecord.CalculatedPrice.Value;
+						priceRecord.CurrentPrice = priceRecord.CalculatedPrice ?? 0;
 						priceRecord.UpdatedAt = DateTimeOffset.UtcNow;
 						await _db.UpdateAsync(priceRecord, null, null, null, null, TableOptions.NotSet, cancellationToken);
 						await _db.InsertAsync(new PriceUpdateLog
 						{
 							GoodPriceId = priceRecord.Id,
 							OldPrice = priceRecord.OriginalPrice,
-							NewPrice = priceRecord.CalculatedPrice.Value,
+							NewPrice = priceRecord.CalculatedPrice ?? 0,
 							ActionType = "UPDATE",
 							CreatedAt = DateTimeOffset.UtcNow
 						}, null, null, null, null, TableOptions.NotSet, cancellationToken);
@@ -504,7 +504,7 @@ public class PriceSyncService : IPriceSyncService
 						{
 							GoodPriceId = priceRecord.Id,
 							OldPrice = priceRecord.OriginalPrice,
-							NewPrice = priceRecord.CalculatedPrice.Value,
+							NewPrice = priceRecord.CalculatedPrice ?? 0,
 							ActionType = "ERROR",
 							ErrorMessage = "API returned false",
 							CreatedAt = DateTimeOffset.UtcNow
@@ -519,7 +519,7 @@ public class PriceSyncService : IPriceSyncService
 					{
 						GoodPriceId = priceRecord.Id,
 						OldPrice = priceRecord.OriginalPrice,
-						NewPrice = priceRecord.CalculatedPrice.Value,
+						NewPrice = priceRecord.CalculatedPrice ?? 0,
 						ActionType = "ERROR",
 						ErrorMessage = ex.Message,
 						CreatedAt = DateTimeOffset.UtcNow

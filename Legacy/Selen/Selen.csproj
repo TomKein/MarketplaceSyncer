@@ -413,7 +413,9 @@
     <Analyzer Include="packages\SonarAnalyzer.CSharp.7.13.0.8313\analyzers\SonarAnalyzer.CSharp.dll" />
     <Analyzer Include="packages\SonarAnalyzer.CSharp.7.13.0.8313\analyzers\SonarAnalyzer.dll" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Docs\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

@@ -13,8 +13,8 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 // Parse command-line arguments
 var isTestMode = args.Contains("--test");
 var isProductionUpdate = true; // args.Contains("--update-all-prices");
-var priceListId = "4258407"; //GetArgValue(args, "--price-list-id");
-var startFromPage = 67; //GetArgValueInt(args, "--start-from-page");
+var priceListId = "4286286"; //GetArgValue(args, "--price-list-id");
+var startFromPage = 0; //GetArgValueInt(args, "--start-from-page");
 
 string? GetArgValue(string[] arguments, string key)
 {

@@ -13,4 +13,10 @@ public sealed record GetGoodsRequest(
     int? Limit = null,
     
     [property: JsonPropertyName("page")] 
-    int? Page = null);
+    int? Page = null,
+    
+    [property: JsonPropertyName("with_prices")] 
+    int? WithPrices = null,
+    
+    [property: JsonPropertyName("type_price_ids[0]")] 
+    string? TypePriceId = null);

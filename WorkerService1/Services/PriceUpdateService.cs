@@ -24,12 +24,14 @@ public class PriceUpdateService : IPriceUpdateService
     public async Task<Good[]> GetGoodsBatchAsync(
         int page,
         int limit,
+        string? priceTypeId = null,
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
-            "[Batch] Fetching page {Page}, limit {Limit}",
+            "[Batch] Fetching page {Page}, limit {Limit}, with prices for type {PriceTypeId}",
             page,
-            limit);
+            limit,
+            priceTypeId ?? "none");
 
         var request = new Dictionary<string, string>
         {
@@ -38,6 +40,13 @@ public class PriceUpdateService : IPriceUpdateService
             ["limit"] = limit.ToString(),
             ["page"] = page.ToString()
         };
+        
+        // Добавляем параметры для получения цен
+        if (!string.IsNullOrEmpty(priceTypeId))
+        {
+            request["with_prices"] = "1";
+            request["type_price_ids[0]"] = priceTypeId;
+        }
 
         var goods = await _client.RequestAsync<
             Dictionary<string, string>,
@@ -54,6 +63,7 @@ public class PriceUpdateService : IPriceUpdateService
         return goods ?? Array.Empty<Good>();
     }
 
+    [Obsolete("No longer needed - prices are fetched directly with goods using with_prices parameter")]
     public async Task<SalePriceListGood[]> GetPriceListGoodsForBatchAsync(
         // string priceListId,
         string[] goodIds,
@@ -92,6 +102,7 @@ public class PriceUpdateService : IPriceUpdateService
         return priceListGoods ?? Array.Empty<SalePriceListGood>();
     }
 
+    [Obsolete("No longer needed - prices are fetched directly with goods using with_prices parameter")]
     public async Task<SalePriceListGoodPrice[]> GetPricesForBatchAsync(
         string[] priceListGoodIds,
         string priceTypeId,

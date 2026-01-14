@@ -110,7 +110,7 @@ public class BatchPriceUpdateTester
 
         try
         {
-            ApiGood[] goods = await _priceService.GetGoodsBatchAsync(1, 20, ct);
+            ApiGood[] goods = await _priceService.GetGoodsBatchAsync(1, 20, null, ct);
             
             if (goods.Length == 0)
             {
@@ -124,7 +124,9 @@ public class BatchPriceUpdateTester
             var goodIds = goods.Select(g => g.Id).ToArray();
             
             var priceListGoods = await _priceService
+#pragma warning disable CS0618 // Type or member is obsolete
                 .GetPriceListGoodsForBatchAsync(goodIds, ct);
+#pragma warning restore CS0618
             
             Console.WriteLine(
                 $"[PriceList] Found {priceListGoods.Length} connections");
@@ -134,16 +136,19 @@ public class BatchPriceUpdateTester
                 .Select(plg => plg.Id)
                 .ToArray();
 
+#pragma warning disable CS0618 // Type or member is obsolete
             var prices = await _priceService.GetPricesForBatchAsync(
                 priceListGoodIds,
                 "75524",
                 ct);
+#pragma warning restore CS0618
 
             Console.WriteLine($"[Prices] Found {prices.Length} prices");
             Console.WriteLine();
 
             var pricesByGood = prices
-                .GroupBy(p => p.PriceListGoodId)
+                .Where(p => p.PriceListGoodId != null)
+                .GroupBy(p => p.PriceListGoodId!)
                 .ToDictionary(g => g.Key, g => g.ToArray());
 
             int savedCount = 0;

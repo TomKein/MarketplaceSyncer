@@ -16,4 +16,7 @@ public sealed record Good(
     string? StoreCode = null,
     
     [property: JsonPropertyName("archive")] 
-    bool Archive = false);
+    bool Archive = false,
+    
+    [property: JsonPropertyName("prices")] 
+    SalePriceListGoodPrice[]? Prices = null);

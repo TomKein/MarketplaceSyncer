@@ -41,7 +41,7 @@ public class PriceListSessionTester
             Console.WriteLine("Step 2: Get first good from catalog");
             Console.WriteLine("-".PadRight(80, '-'));
 
-            var goods = await _priceService.GetGoodsBatchAsync(1, 1, ct);
+            var goods = await _priceService.GetGoodsBatchAsync(1, 1, null, ct);
             
             if (goods.Length == 0)
             {

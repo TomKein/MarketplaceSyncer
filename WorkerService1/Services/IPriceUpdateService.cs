@@ -7,13 +7,16 @@ public interface IPriceUpdateService
     Task<Good[]> GetGoodsBatchAsync(
         int page,
         int limit,
+        string? priceTypeId = null,
         CancellationToken cancellationToken = default);
 
+    [Obsolete("No longer needed - prices are fetched directly with goods using with_prices parameter")]
     Task<SalePriceListGood[]> GetPriceListGoodsForBatchAsync(
         //string priceListId,
         string[] goodIds,
         CancellationToken cancellationToken = default);
 
+    [Obsolete("No longer needed - prices are fetched directly with goods using with_prices parameter")]
     Task<SalePriceListGoodPrice[]> GetPricesForBatchAsync(
         string[] priceListGoodIds,
         string priceTypeId,

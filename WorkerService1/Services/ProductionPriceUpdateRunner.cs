@@ -75,6 +75,7 @@ public class ProductionPriceUpdateRunner
             var goods = await _priceService.GetGoodsBatchAsync(
                 page,
                 _options.BatchSize,
+                _options.TargetPriceTypeId,
                 ct);
 
             if (goods.Length == 0)
@@ -131,58 +132,19 @@ public class ProductionPriceUpdateRunner
     {
         var stats = new BatchStats();
 
-        var goodIds = goods.Select(g => g.Id).ToArray();
-
-        var chunks = goodIds
-            .Select((id, index) => new { id, index })
-            .GroupBy(x => x.index / _options.BatchFilterSize)
-            .Select(g => g.Select(x => x.id).ToArray())
-            .ToArray();
-
-        foreach (var chunk in chunks)
+        foreach (var good in goods)
         {
-            var priceListGoods = await _priceService
-                .GetPriceListGoodsForBatchAsync(chunk, ct); // sessionPriceListId, 
-
-            var priceListGoodIds = priceListGoods
-                .Where(x => x.PriceListId != sessionPriceListId)
-                .GroupBy(x => x.GoodId)
-                .Select(group => group.MaxBy(x => int.Parse(x.Id!))!.Id)
-                .ToArray();
-
-            if (priceListGoodIds.Length == 0)
-                continue;
-
-            if (priceListGoodIds.Length > _options.BatchFilterSize || priceListGoodIds.Length > 50)
-            {
-                _logger.LogError("ups2");
-            }
-
-            var prices = await _priceService.GetPricesForBatchAsync(
-                priceListGoodIds,
-                _options.TargetPriceTypeId,
+            var result = await ProcessSingleGoodAsync(
+                good,
+                sessionPriceListId,
                 ct);
 
-            var pricesByGood = prices
-                .GroupBy(p => p.PriceListGoodId)
-                .ToDictionary(g => g.Key, g => g.ToArray());
-
-            foreach (var good in goods.Where(g => chunk.Contains(g.Id)))
-            {
-                var result = await ProcessSingleGoodAsync(
-                    good,
-                    priceListGoods,
-                    pricesByGood,
-                    sessionPriceListId,
-                    ct);
-
-                if (result.IsSuccess)
-                    stats.PricesCreated++;
-                else if (result.IsSkipped)
-                    stats.GoodsSkipped++;
-                else if (result.IsError)
-                    stats.Errors++;
-            }
+            if (result.IsSuccess)
+                stats.PricesCreated++;
+            else if (result.IsSkipped)
+                stats.GoodsSkipped++;
+            else if (result.IsError)
+                stats.Errors++;
         }
 
         return stats;
@@ -190,52 +152,44 @@ public class ProductionPriceUpdateRunner
 
     private async Task<ProcessResult> ProcessSingleGoodAsync(
         ApiGood good,
-        WorkerService1.BusinessRu.Models.Responses.SalePriceListGood[] allPriceListGoods,
-        Dictionary<string, WorkerService1.BusinessRu.Models.Responses.SalePriceListGoodPrice[]> pricesByGood,
         string sessionPriceListId,
         CancellationToken ct)
     {
         try
         {
-            var goodPriceListGoods = allPriceListGoods
-                .Where(plg => plg.GoodId == good.Id)
-                .ToArray();
-
-            if (goodPriceListGoods.Length == 0)
+            // Проверяем наличие цен в товаре
+            if (good.Prices == null || good.Prices.Length == 0)
             {
                 _logger.LogDebug(
-                    "Good {GoodId} has no price list connections, skipping",
-                    good.Id);
+                    "Good {GoodId} ({Name}) has no prices, skipping",
+                    good.Id,
+                    good.Name);
                 return ProcessResult.Skipped();
             }
 
-            decimal? currentPrice = null;
-
-            foreach (var plg in goodPriceListGoods)
-            {
-                if (pricesByGood.TryGetValue(plg.Id, out var goodPrices))
-                {
-                    var latestPrice = _priceService.GetLatestPriceByDate(goodPrices);
-                    if (latestPrice != null && 
-                        decimal.TryParse(latestPrice.Price, out var price) && 
-                        price > 0)
-                    {
-                        currentPrice = price;
-                        break;
-                    }
-                }
-            }
-
-            if (!currentPrice.HasValue || currentPrice.Value == 0)
+            // Находим последнюю цену по дате обновления
+            var latestPrice = _priceService.GetLatestPriceByDate(good.Prices);
+            
+            if (latestPrice == null || 
+                !decimal.TryParse(latestPrice.Price, out var currentPrice) ||
+                currentPrice <= 0)
             {
                 _logger.LogDebug(
-                    "Good {GoodId} has no valid price, skipping",
-                    good.Id);
+                    "Good {GoodId} ({Name}) has no valid price, skipping",
+                    good.Id,
+                    good.Name);
                 return ProcessResult.Skipped();
             }
 
-            var calculatedPrice = _priceService.CalculateIncreasedPrice(
-                currentPrice.Value);
+            _logger.LogDebug(
+                "Good {GoodId} ({Name}): Using price {Price} from {Updated}",
+                good.Id,
+                good.Name,
+                currentPrice,
+                latestPrice.Updated);
+
+            // Рассчитываем новую цену
+            var calculatedPrice = _priceService.CalculateIncreasedPrice(currentPrice);
 
             var existingGood = _db.Goods
                 .Where(g => g.ExternalId == good.Id)
@@ -280,11 +234,13 @@ public class ProductionPriceUpdateRunner
                 return ProcessResult.Skipped();
             }
 
+            // Добавляем товар в session price list
             var priceListGoodId = await _priceService.AddGoodToPriceListAsync(
                 sessionPriceListId,
                 good.Id,
                 ct);
 
+            // Создаем новую цену в session price list
             var newPriceId = await _priceService.CreateNewPriceAsync(
                 priceListGoodId,
                 calculatedPrice,
@@ -301,7 +257,7 @@ public class ProductionPriceUpdateRunner
                     PriceTypeId = _options.TargetPriceTypeId,
                     PriceListGoodId = priceListGoodId,
                     BusinessRuUpdatedAt = DateTimeOffset.UtcNow,
-                    OriginalPrice = currentPrice.Value,
+                    OriginalPrice = currentPrice,
                     CalculatedPrice = calculatedPrice,
                     CurrentPrice = calculatedPrice,
                     IsProcessed = true,
@@ -315,6 +271,7 @@ public class ProductionPriceUpdateRunner
             {
                 existingPrice.ExternalPriceRecordId = newPriceId;
                 existingPrice.PriceListGoodId = priceListGoodId;
+                existingPrice.OriginalPrice = currentPrice;
                 existingPrice.CurrentPrice = calculatedPrice;
                 existingPrice.CalculatedPrice = calculatedPrice;
                 existingPrice.IsProcessed = true;
@@ -323,6 +280,13 @@ public class ProductionPriceUpdateRunner
 
                 await DataExtensions.UpdateAsync(_db, existingPrice);
             }
+
+            _logger.LogInformation(
+                "Good {GoodId} ({Name}): {OriginalPrice} -> {NewPrice}",
+                good.Id,
+                good.Name,
+                currentPrice,
+                calculatedPrice);
 
             return ProcessResult.Success();
         }

@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.1" />
+    <PackageVersion Include="FluentMigrator" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator.Runner" Version="6.2.0" />
+    <PackageVersion Include="FluentMigrator.Runner.Postgres" Version="6.2.0" />
+    <PackageVersion Include="linq2db" Version="5.4.1" />
+    <PackageVersion Include="linq2db.PostgreSQL" Version="5.4.1" />
+    <PackageVersion Include="Npgsql" Version="8.0.5" />
+  </ItemGroup>
+</Project>
