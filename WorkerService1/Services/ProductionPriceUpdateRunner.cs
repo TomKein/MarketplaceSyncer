@@ -226,7 +226,7 @@ public class ProductionPriceUpdateRunner
                             && p.PriceListId == sessionPriceListDbId)
                 .FirstOrDefault();
 
-            if (existingPrice != null && existingPrice.IsProcessed)
+            if (existingPrice is { IsProcessed: true })
             {
                 _logger.LogDebug(
                     "Good {GoodId} already processed, skipping",

@@ -20,6 +20,7 @@ Logging: Strictly Russian.
 Documentation Location: All documentation resides in /Docs.
 Documentation Maintenance: Actively update and correct docs during development. Reflect all concepts and decisions from user dialogues.
 Documentation Style: Strictly Russian. Concise, no fluff (без воды).
+Reports & Summaries: Strictly Russian.
 STRICT CONSTRAINT: Never use emojis in code comments or logs (prevents agent parsing errors).
 
 4. Workflow (Per Session)
