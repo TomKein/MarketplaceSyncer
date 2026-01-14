@@ -13,4 +13,5 @@ public class AppDataConnection : DataConnection
     public ITable<Group> Groups => this.GetTable<Group>();
     public ITable<Unit> Units => this.GetTable<Unit>();
     public ITable<Good> Goods => this.GetTable<Good>();
+    public ITable<AppSetting> AppSettings => this.GetTable<AppSetting>();
 }

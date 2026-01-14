@@ -33,7 +33,7 @@ builder.Services.AddFluentMigratorCore()
 // Linq2Db
 builder.Services.AddLinqToDBContext<AppDataConnection>((provider, options) =>
     options
-        .UsePostgreSQL(connectionString)
+        .UsePostgreSQL(connectionString!)
         .UseDefaultLogging(provider));
 
 builder.Services.AddTransient<IBusinessRuClient>(sp => 

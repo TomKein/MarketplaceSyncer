@@ -43,20 +43,11 @@ public interface IBusinessRuClient : IDisposable
         decimal price,
         CancellationToken cancellationToken = default);
 
-    Task<int> CountAsync(
-        string resource,
-        Dictionary<string, object>? filters = null,
-        CancellationToken cancellationToken = default);
-
-    Task<T> QueryAsync<T>(
-        Dictionary<string, object> request,
-        CancellationToken cancellationToken = default);
-
     IBusinessRuQuery CreateQuery();
 
     Task<TResponse> RequestAsync<TRequest, TResponse>(
         HttpMethod method,
-        string model,
+        string endpoint,
         TRequest request,
         CancellationToken cancellationToken = default)
         where TRequest : class

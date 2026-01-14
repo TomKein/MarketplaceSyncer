@@ -38,7 +38,17 @@ public class ExperimentWorker : BackgroundService
 
         try
         {
-            // Здесь можно проводить эксперименты
+            // Эксперимент: Запрос типов цен продажи
+            _logger.LogInformation("Запрашиваю типы цен продажи...");
+            var priceTypes = await _client.GetPriceTypesAsync(cancellationToken: stoppingToken);
+            _logger.LogInformation("Получено типов цен: {Count}", priceTypes.Length);
+            
+            foreach (var pt in priceTypes)
+            {
+                _logger.LogInformation("  Тип цены: Id={Id}, Name={Name}", pt.Id, pt.Name);
+            }
+
+            /* --- Остальные эксперименты временно отключены ---
             var count = await _client.CountGoodsAsync(cancellationToken: stoppingToken);
             _logger.LogInformation("Всего товаров в Business.ru: {Count}", count);
             
@@ -145,8 +155,7 @@ public class ExperimentWorker : BackgroundService
                 var dbUnitsCount = await db.Units.CountAsync(stoppingToken);
                 _logger.LogInformation("Итого в БД: Групп={G}, Единиц={U}", dbGroupsCount, dbUnitsCount);
             }
-
-            // await Task.CompletedTask; // Не нужно
+            --- Конец отключенных экспериментов --- */
         }
         catch (Exception ex)
         {
