@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentMigrator" />
+    <PackageReference Include="FluentMigrator.Runner" />
+    <PackageReference Include="FluentMigrator.Runner.Core" />
+    <PackageReference Include="FluentMigrator.Runner.Postgres" />
+    <PackageReference Include="linq2db" />
+    <PackageReference Include="linq2db.Extensions" />
+    <PackageReference Include="linq2db.PostgreSQL" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Npgsql" />

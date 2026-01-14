@@ -2,9 +2,15 @@ using MarketplaceSyncer.Service;
 using MarketplaceSyncer.Service.BusinessRu.Client;
 using MarketplaceSyncer.Service.BusinessRu.Http;
 using MarketplaceSyncer.Service.Configuration;
+using MarketplaceSyncer.Service.Data;
+using FluentMigrator.Runner;
+using LinqToDB;
+using LinqToDB.Extensions.DependencyInjection;
+using LinqToDB.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // Configuration
 builder.Services.Configure<BusinessRuOptions>(
@@ -12,6 +18,22 @@ builder.Services.Configure<BusinessRuOptions>(
 
 // Services
 builder.Services.AddHttpClient(nameof(BusinessRuClient));
+
+// Database & Migrations
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddFluentMigratorCore()
+    .ConfigureRunner(rb => rb
+        .AddPostgres()
+        .WithGlobalConnectionString(connectionString)
+        .ScanIn(typeof(Program).Assembly).For.Migrations())
+    .AddLogging(lb => lb.AddFluentMigratorConsole());
+
+// Linq2Db
+builder.Services.AddLinqToDBContext<AppDataConnection>((provider, options) =>
+    options
+        .UsePostgreSQL(connectionString)
+        .UseDefaultLogging(provider));
+
 builder.Services.AddTransient<IBusinessRuClient>(sp => 
 {
     var options = sp.GetRequiredService<IOptions<BusinessRuOptions>>().Value;
@@ -52,4 +74,6 @@ builder.Services.AddTransient<IBusinessRuClient>(sp =>
 builder.Services.AddHostedService<ExperimentWorker>();
 
 var host = builder.Build();
+MigrationExtensions.EnsureDatabase(connectionString ?? throw new InvalidOperationException("Connection string not found"));
+host.MigrateDatabase();
 host.Run();
