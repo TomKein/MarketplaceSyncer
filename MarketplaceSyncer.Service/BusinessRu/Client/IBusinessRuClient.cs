@@ -15,6 +15,10 @@ public interface IBusinessRuClient : IDisposable
         int? type = 1,
         CancellationToken cancellationToken = default);
 
+    Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default);
+    
+    Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default);
+
     Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         string goodId,
         string? priceTypeId = null,

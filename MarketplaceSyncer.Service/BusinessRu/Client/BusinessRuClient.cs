@@ -21,6 +21,7 @@ public sealed class BusinessRuClient : IBusinessRuClient
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly ILogger<BusinessRuClient> _logger;
     private readonly RateLimiter _rateLimiter;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     private string _token = string.Empty;
     private DateTime _tokenExpiry = DateTime.MinValue;
@@ -52,6 +53,12 @@ public sealed class BusinessRuClient : IBusinessRuClient
         _rateLimiter = new RateLimiter(
             rateLimiterOptions ?? new RateLimiterOptions(),
             logger);
+            
+        _jsonOptions = new JsonSerializerOptions
+        {
+            NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+            PropertyNameCaseInsensitive = true
+        };
     }
 
     public async Task<Good[]> GetGoodsAsync(
@@ -110,6 +117,66 @@ public sealed class BusinessRuClient : IBusinessRuClient
             cancellationToken);
 
         return response.Count;
+    }
+
+    public async Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default)
+    {
+        var allGroups = new List<GroupResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            var result = await RequestAsync<Dictionary<string, string>, GroupResponse[]>(
+                HttpMethod.Get,
+                "groupsofgoods",
+                request,
+                cancellationToken);
+
+            if (result == null || result.Length == 0) break;
+            
+            allGroups.AddRange(result);
+            if (result.Length < 250) break;
+            
+            page++;
+        }
+        
+        return allGroups.ToArray();
+    }
+
+    public async Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default)
+    {
+        var allUnits = new List<UnitResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            var result = await RequestAsync<Dictionary<string, string>, UnitResponse[]>(
+                HttpMethod.Get,
+                "measures",
+                request,
+                cancellationToken);
+
+            if (result == null || result.Length == 0) break;
+            
+            allUnits.AddRange(result);
+            if (result.Length < 250) break;
+            
+            page++;
+        }
+        
+        return allUnits.ToArray();
     }
 
     public async Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
@@ -402,7 +469,7 @@ public sealed class BusinessRuClient : IBusinessRuClient
         
         _logger.LogDebug("API Response: {Payload}", payload);
         
-        var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload)
+        var apiResponse = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload, _jsonOptions)
             ?? throw new InvalidOperationException("Empty response from API");
 
         await HandleRateLimitingFromApiResponse(apiResponse.RequestCount, ct);
@@ -452,7 +519,7 @@ public sealed class BusinessRuClient : IBusinessRuClient
         response.EnsureSuccessStatusCode();
 
         var payload = await response.Content.ReadAsStringAsync(ct);
-        var result = JsonSerializer.Deserialize<T>(payload)
+        var result = JsonSerializer.Deserialize<T>(payload, _jsonOptions)
             ?? throw new InvalidOperationException("Empty response from API");
 
         await HandleRateLimitingAsync(payload, ct);
@@ -490,7 +557,7 @@ public sealed class BusinessRuClient : IBusinessRuClient
                 $"Failed to refresh token: {response.StatusCode}");
         }
 
-        var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(json)
+        var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(json, _jsonOptions)
             ?? throw new InvalidOperationException(
                 "Empty response from repair endpoint");
 

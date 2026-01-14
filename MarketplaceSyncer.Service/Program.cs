@@ -15,6 +15,8 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 // Configuration
 builder.Services.Configure<BusinessRuOptions>(
     builder.Configuration.GetSection(BusinessRuOptions.SectionName));
+builder.Services.Configure<SynchronizationOptions>(
+    builder.Configuration.GetSection("Synchronization"));
 
 // Services
 builder.Services.AddHttpClient(nameof(BusinessRuClient));
