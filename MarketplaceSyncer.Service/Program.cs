@@ -3,6 +3,7 @@ using MarketplaceSyncer.Service.BusinessRu.Client;
 using MarketplaceSyncer.Service.BusinessRu.Http;
 using MarketplaceSyncer.Service.Configuration;
 using MarketplaceSyncer.Service.Data;
+using MarketplaceSyncer.Service.Services;
 using FluentMigrator.Runner;
 using LinqToDB;
 using LinqToDB.Extensions.DependencyInjection;
@@ -20,6 +21,7 @@ builder.Services.Configure<SynchronizationOptions>(
 
 // Services
 builder.Services.AddHttpClient(nameof(BusinessRuClient));
+builder.Services.AddHttpClient<ImageSyncService>();
 
 // Database & Migrations
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

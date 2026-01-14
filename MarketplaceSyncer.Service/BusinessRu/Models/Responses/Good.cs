@@ -28,7 +28,7 @@ public sealed record Good(
     object? Attributes = null,
     
     [property: JsonPropertyName("images")]
-    object? Images = null);
+    GoodImageResponse[]? Images = null);
 
 public sealed record GoodPrice(
     [property: JsonPropertyName("price")]

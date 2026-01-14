@@ -43,6 +43,26 @@ public interface IBusinessRuClient : IDisposable
         decimal price,
         CancellationToken cancellationToken = default);
 
+    Task<Good[]> GetGoodsChangedAfterAsync(
+        DateTime since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default);
+
+    Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
+        DateTime since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodImageResponse[]> GetGoodImagesAsync(
+        string goodId,
+        CancellationToken cancellationToken = default);
+
+    Task AddGoodImageAsync(
+        string goodId,
+        string name,
+        string url,
+        CancellationToken cancellationToken = default);
+
     IBusinessRuQuery CreateQuery();
 
     Task<TResponse> RequestAsync<TRequest, TResponse>(

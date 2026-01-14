@@ -224,5 +224,127 @@ public sealed partial class BusinessRuClient
             HttpMethod.Put, "salepricelistgoodprices", request, cancellationToken);
     }
 
+    /// <summary>
+    /// Получить товары, изменённые после указанной даты (инкрементальная синхронизация)
+    /// </summary>
+    public async Task<Good[]> GetGoodsChangedAfterAsync(
+        DateTime since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default)
+    {
+        var allGoods = new List<Good>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["type"] = "1",
+                ["with_prices"] = "1",
+                ["with_remains"] = "1",
+                ["with_attributes"] = "1",
+                ["with_additional_fields"] = "1",
+                ["limit"] = "250",
+                ["page"] = page.ToString(),
+                ["updated[from]"] = since.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            if (!includeArchived)
+                request["archive"] = "0";
+
+            var result = await RequestAsync<Dictionary<string, string>, Good[]>(
+                HttpMethod.Get, "goods", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            allGoods.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return allGoods.ToArray();
+    }
+
+    /// <summary>
+    /// Получить товары с изменёнными ценами/остатками после указанной даты
+    /// </summary>
+    public async Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
+        DateTime since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default)
+    {
+        var allGoods = new List<Good>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["type"] = "1",
+                ["with_prices"] = "1",
+                ["with_remains"] = "1",
+                ["with_attributes"] = "1",
+                ["with_additional_fields"] = "1",
+                ["limit"] = "250",
+                ["page"] = page.ToString(),
+                ["updated_remains_prices[from]"] = since.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            if (!includeArchived)
+                request["archive"] = "0";
+
+            var result = await RequestAsync<Dictionary<string, string>, Good[]>(
+                HttpMethod.Get, "goods", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            allGoods.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return allGoods.ToArray();
+    }
+
+    /// <summary>
+    /// Получить изображения товара
+    /// </summary>
+    public async Task<GoodImageResponse[]> GetGoodImagesAsync(
+        string goodId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
+
+        var request = new Dictionary<string, string> { ["good_id"] = goodId };
+
+        return await RequestAsync<Dictionary<string, string>, GoodImageResponse[]>(
+            HttpMethod.Get, "goodsimages", request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Добавить изображение к товару
+    /// </summary>
+    public async Task AddGoodImageAsync(
+        string goodId,
+        string name,
+        string url,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+
+        var request = new Dictionary<string, string>
+        {
+            ["good_id"] = goodId,
+            ["name"] = name ?? "image",
+            ["url"] = url
+        };
+
+        await RequestAsync<Dictionary<string, string>, object>(
+            HttpMethod.Post, "goodsimages", request, cancellationToken);
+    }
+
     public IBusinessRuQuery CreateQuery() => new BusinessRuQuery();
 }

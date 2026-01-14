@@ -14,4 +14,7 @@ public class AppDataConnection : DataConnection
     public ITable<Unit> Units => this.GetTable<Unit>();
     public ITable<Good> Goods => this.GetTable<Good>();
     public ITable<AppSetting> AppSettings => this.GetTable<AppSetting>();
+    public ITable<GoodImage> GoodImages => this.GetTable<GoodImage>();
+    public ITable<SyncSession> SyncSessions => this.GetTable<SyncSession>();
+    public ITable<SyncEvent> SyncEvents => this.GetTable<SyncEvent>();
 }
