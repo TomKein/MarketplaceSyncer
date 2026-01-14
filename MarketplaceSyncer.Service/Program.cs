@@ -48,8 +48,8 @@ builder.Services.AddTransient<IBusinessRuClient>(sp =>
 
 // Workers
 // Раскомментируйте нужный сервис
-builder.Services.AddHostedService<Worker>();
-// builder.Services.AddHostedService<ExperimentWorker>();
+// builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<ExperimentWorker>();
 
 var host = builder.Build();
 host.Run();

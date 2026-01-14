@@ -20,8 +20,8 @@ public class ExperimentWorker : BackgroundService
         try
         {
             // Здесь можно проводить эксперименты
-            // var count = await _client.CountGoodsAsync(cancellationToken: stoppingToken);
-            // _logger.LogInformation("Всего товаров в Business.ru: {Count}", count);
+            var count = await _client.CountGoodsAsync(cancellationToken: stoppingToken);
+            _logger.LogInformation("Всего товаров в Business.ru: {Count}", count);
             
             await Task.CompletedTask;
         }
