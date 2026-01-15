@@ -23,6 +23,12 @@ builder.Services.Configure<SynchronizationOptions>(
 builder.Services.AddHttpClient(nameof(BusinessRuClient));
 builder.Services.AddHttpClient<ImageSyncService>();
 
+// Sync services
+builder.Services.AddScoped<SyncStateRepository>();
+builder.Services.AddScoped<ReferenceSyncer>();
+builder.Services.AddScoped<GoodsSyncer>();
+builder.Services.AddScoped<InitialSyncRunner>();
+
 // Database & Migrations
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddFluentMigratorCore()
@@ -73,9 +79,9 @@ builder.Services.AddTransient<IBusinessRuClient>(sp =>
 });
 
 // Workers
-// Раскомментируйте нужный сервис
-// builder.Services.AddHostedService<Worker>();
-builder.Services.AddHostedService<ExperimentWorker>();
+// Раскомментируйте нужный сервис для режима эксперимента
+// builder.Services.AddHostedService<ExperimentWorker>();
+builder.Services.AddHostedService<SyncOrchestrator>();
 
 var host = builder.Build();
 MigrationExtensions.EnsureDatabase(connectionString ?? throw new InvalidOperationException("Connection string not found"));

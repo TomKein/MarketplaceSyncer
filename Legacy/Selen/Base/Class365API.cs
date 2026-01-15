@@ -168,7 +168,7 @@ namespace Selen {
                 await GetOrderSources();
                 await GetOrderStatuses();
                 await GetPriceTypes();
-                await GetCounties();
+                await GetCountries();
                 await LoadGoodListFromFile();
             } catch (Exception x) {
                 Log.Add($"{L}StartSync: ошибка загрузки карточек товаров из файла! - {x.Message}");
@@ -225,7 +225,7 @@ namespace Selen {
                     _buyPrices = JsonConvert.DeserializeObject<List<Class365Prices>>(bp);
             }
         }
-        private static async Task GetCounties() {
+        private static async Task GetCountries() {
             if (_countries.Count == 0) {
                 for (int i = 1; ; i++) {
                     var c = await RequestAsync("get", "countries", new Dictionary<string, string> {
