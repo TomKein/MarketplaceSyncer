@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="ErrorOr" Version="2.0.1" />
     <PackageVersion Include="FluentMigrator.Runner.Core" Version="8.0.0" />
     <PackageVersion Include="linq2db.Extensions" Version="6.1.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.1" />

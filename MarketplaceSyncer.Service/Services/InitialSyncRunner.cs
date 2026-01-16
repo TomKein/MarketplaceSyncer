@@ -161,7 +161,7 @@ public class InitialSyncRunner
             
             try
             {
-                await _images.SyncGoodImagesAsync(goodId, goodId.ToString(), ct);
+                await _images.SyncGoodImagesAsync(goodId, goodId, ct);
             }
             catch (Exception ex)
             {

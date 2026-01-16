@@ -2,6 +2,20 @@ using LinqToDB.Mapping;
 
 namespace MarketplaceSyncer.Service.Data.Models;
 
+public enum SyncType
+{
+    [MapValue("FULL")] Full,
+    [MapValue("INCREMENTAL")] Incremental,
+    [MapValue("INITIAL")] Initial
+}
+
+public enum SyncStatus
+{
+    [MapValue("IN_PROGRESS")] InProgress,
+    [MapValue("COMPLETED")] Completed,
+    [MapValue("FAILED")] Failed
+}
+
 /// <summary>
 /// Tracks synchronization sessions
 /// </summary>
@@ -16,31 +30,43 @@ public class SyncSession
     /// FULL or INCREMENTAL
     /// </summary>
     [Column("SyncType"), NotNull]
-    public string SyncType { get; set; } = "FULL";
+    public SyncType SyncType { get; set; } = SyncType.Full;
 
     [Column("StartedAt"), NotNull]
-    public DateTime StartedAt { get; set; }
+    public DateTimeOffset StartedAt { get; set; }
 
     [Column("CompletedAt"), Nullable]
-    public DateTime? CompletedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 
     /// <summary>
     /// IN_PROGRESS, COMPLETED, FAILED
     /// </summary>
     [Column("Status"), NotNull]
-    public string Status { get; set; } = "IN_PROGRESS";
+    public SyncStatus Status { get; set; } = SyncStatus.InProgress;
 
-    [Column("GoodsFetched"), NotNull]
-    public int GoodsFetched { get; set; }
+    [Column("ItemsFetched"), NotNull]
+    public int ItemsFetched { get; set; }
 
-    [Column("GoodsSynced"), NotNull]
-    public int GoodsSynced { get; set; }
+    [Column("ItemsProcessed"), NotNull]
+    public int ItemsProcessed { get; set; }
 
     [Column("ErrorsCount"), NotNull]
     public int ErrorsCount { get; set; }
 
     [Column("ErrorDetails"), Nullable]
     public string? ErrorDetails { get; set; }
+
+    [Column("EntityType"), NotNull]
+    public string EntityType { get; set; } = "Unknown";
+
+    [Column("FilterDateFrom"), Nullable]
+    public DateTimeOffset? FilterDateFrom { get; set; }
+
+    [Column("Cursor"), Nullable]
+    public string? Cursor { get; set; }
+
+    [Column(DataType = LinqToDB.DataType.BinaryJson), Nullable] 
+    public string? Config { get; set; }
 }
 
 /// <summary>

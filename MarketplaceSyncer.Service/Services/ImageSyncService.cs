@@ -33,7 +33,10 @@ public class ImageSyncService
     /// <summary>
     /// Синхронизировать изображения для товара
     /// </summary>
-    public async Task SyncGoodImagesAsync(int goodId, string businessRuGoodId, CancellationToken ct = default)
+    /// <summary>
+    /// Синхронизировать изображения для товара
+    /// </summary>
+    public async Task SyncGoodImagesAsync(long goodId, long businessRuGoodId, CancellationToken ct = default)
     {
         try
         {
@@ -81,7 +84,7 @@ public class ImageSyncService
     /// Скачать изображение и сохранить в БД
     /// </summary>
     public async Task<GoodImage?> DownloadAndSaveImageAsync(
-        int goodId,
+        long goodId,
         GoodImageResponse apiImage,
         int position,
         List<GoodImage>? existingImages = null,

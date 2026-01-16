@@ -13,7 +13,7 @@ public class GoodImage
     public long Id { get; set; }
 
     [Column("GoodId"), NotNull]
-    public int GoodId { get; set; }
+    public long GoodId { get; set; }
 
     [Column("Name"), Nullable]
     public string? Name { get; set; }

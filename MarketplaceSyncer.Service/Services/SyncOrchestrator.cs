@@ -11,25 +11,16 @@ namespace MarketplaceSyncer.Service.Services;
 /// </summary>
 public class SyncOrchestrator : BackgroundService
 {
-    private readonly InitialSyncRunner _initialSync;
-    private readonly SyncStateRepository _state;
-    private readonly ReferenceSyncer _references;
-    private readonly GoodsSyncer _goods;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly SynchronizationOptions _options;
     private readonly ILogger<SyncOrchestrator> _logger;
 
     public SyncOrchestrator(
-        InitialSyncRunner initialSync,
-        SyncStateRepository state,
-        ReferenceSyncer references,
-        GoodsSyncer goods,
+        IServiceScopeFactory scopeFactory,
         IOptions<SynchronizationOptions> options,
         ILogger<SyncOrchestrator> logger)
     {
-        _initialSync = initialSync;
-        _state = state;
-        _references = references;
-        _goods = goods;
+        _scopeFactory = scopeFactory;
         _options = options.Value;
         _logger = logger;
     }
@@ -40,35 +31,45 @@ public class SyncOrchestrator : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            TimeSpan? waitTime = null;
+
             try
             {
-                // 🔴 HIGH: блокирующая инициальная загрузка
-                if (!await _initialSync.IsCompleteAsync(stoppingToken))
+                using (var scope = _scopeFactory.CreateScope())
                 {
-                    await _initialSync.RunAsync(stoppingToken);
-                    continue;
-                }
+                    var initialSync = scope.ServiceProvider.GetRequiredService<InitialSyncRunner>();
+                    var state = scope.ServiceProvider.GetRequiredService<SyncStateRepository>();
+                    var references = scope.ServiceProvider.GetRequiredService<ReferenceSyncer>();
+                    var goods = scope.ServiceProvider.GetRequiredService<GoodsSyncer>();
 
-                // 🟡 MEDIUM: проверяем просроченные incremental задачи
-                if (await RunDueIncrementalTasksAsync(stoppingToken))
-                {
-                    continue; // После инкрементов проверяем снова
-                }
-
-                // 🟢 LOW: работаем над full reload в свободное время
-                if (await _goods.HasPendingFullReloadWorkAsync(stoppingToken))
-                {
-                    var hasMore = await _goods.RunFullReloadChunkAsync(stoppingToken);
-                    if (hasMore)
+                    // 🔴 HIGH: блокирующая инициальная загрузка
+                    if (!await initialSync.IsCompleteAsync(stoppingToken))
                     {
-                        continue; // Есть ещё работа — сразу проверяем MEDIUM
+                        await initialSync.RunAsync(stoppingToken);
+                        waitTime = TimeSpan.Zero; // Сразу проверяем дальше
+                    }
+                    // 🟡 MEDIUM: проверяем просроченные incremental задачи
+                    else if (await RunDueIncrementalTasksAsync(state, references, goods, stoppingToken))
+                    {
+                        waitTime = TimeSpan.Zero; // Сразу проверяем дальше
+                    }
+                    // 🟢 LOW: работаем над full reload в свободное время
+                    else if (await goods.HasPendingFullReloadWorkAsync(stoppingToken))
+                    {
+                        var hasMore = await goods.RunFullReloadChunkAsync(stoppingToken);
+                        if (hasMore)
+                        {
+                            waitTime = TimeSpan.Zero; // Есть ещё работа — сразу идем на новый круг
+                        }
+                    }
+
+                    // Если работа не была выполнена (или закончилась chunk-ом), вычисляем время ожидания
+                    if (waitTime == null)
+                    {
+                        waitTime = await CalculateNextWaitTimeAsync(state, stoppingToken);
+                        _logger.LogDebug("Ожидание {WaitTime} до следующей задачи", waitTime);
                     }
                 }
-
-                // Нет работы — ждём до следующего срока MEDIUM
-                var waitTime = await CalculateNextWaitTimeAsync(stoppingToken);
-                _logger.LogDebug("Ожидание {WaitTime} до следующей задачи", waitTime);
-                await Task.Delay(waitTime, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -77,7 +78,13 @@ public class SyncOrchestrator : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Ошибка в главном цикле синхронизации");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                waitTime = TimeSpan.FromSeconds(30);
+            }
+
+            // Ждем ВНЕ скоупа, чтобы не держать connection к БД
+            if (waitTime.HasValue && waitTime.Value > TimeSpan.Zero)
+            {
+                await Task.Delay(waitTime.Value, stoppingToken);
             }
         }
 
@@ -87,53 +94,54 @@ public class SyncOrchestrator : BackgroundService
     /// <summary>
     /// 🟡 MEDIUM: Выполнить просроченные incremental задачи
     /// </summary>
-    private async Task<bool> RunDueIncrementalTasksAsync(CancellationToken ct)
+    private async Task<bool> RunDueIncrementalTasksAsync(
+        SyncStateRepository state,
+        ReferenceSyncer references,
+        GoodsSyncer goods,
+        CancellationToken ct)
     {
         var anyExecuted = false;
 
         // Товары delta
-        if (await IsGoodsDeltaDueAsync(ct))
+        if (await IsGoodsDeltaDueAsync(state, ct))
         {
             _logger.LogInformation("🟡 Запуск delta sync товаров...");
-            await _goods.RunDeltaSyncAsync(ct);
+            await goods.RunDeltaSyncAsync(ct);
             anyExecuted = true;
         }
 
         // Справочники (раз в день)
-        if (await IsReferencesDueAsync(ct))
+        if (await IsReferencesDueAsync(state, ct))
         {
             _logger.LogInformation("🟡 Запуск sync справочников...");
-            await _references.RunFullSyncAsync(ct);
-            await _state.SetLastRunAsync(SyncStateKeys.ReferencesLastRun, DateTime.UtcNow, ct);
+            await references.RunFullSyncAsync(ct);
+            await state.SetLastRunAsync(SyncStateKeys.ReferencesLastRun, DateTime.UtcNow, ct);
             anyExecuted = true;
         }
-
-        // TODO: Images delta
-        // if (await IsImagesDeltaDueAsync(ct)) { ... }
 
         return anyExecuted;
     }
 
-    private async Task<bool> IsGoodsDeltaDueAsync(CancellationToken ct)
+    private async Task<bool> IsGoodsDeltaDueAsync(SyncStateRepository state, CancellationToken ct)
     {
-        var lastRun = await _state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
+        var lastRun = await state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
         if (lastRun == null) return true;
         return DateTime.UtcNow - lastRun.Value >= _options.GoodsDeltaInterval;
     }
 
-    private async Task<bool> IsReferencesDueAsync(CancellationToken ct)
+    private async Task<bool> IsReferencesDueAsync(SyncStateRepository state, CancellationToken ct)
     {
-        var lastRun = await _state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
+        var lastRun = await state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
         if (lastRun == null) return true;
         return DateTime.UtcNow - lastRun.Value >= _options.ReferencesInterval;
     }
 
-    private async Task<TimeSpan> CalculateNextWaitTimeAsync(CancellationToken ct)
+    private async Task<TimeSpan> CalculateNextWaitTimeAsync(SyncStateRepository state, CancellationToken ct)
     {
         var waitTimes = new List<TimeSpan>();
 
         // Goods delta
-        var goodsLastRun = await _state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
+        var goodsLastRun = await state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
         if (goodsLastRun != null)
         {
             var nextRun = goodsLastRun.Value + _options.GoodsDeltaInterval;
@@ -143,7 +151,7 @@ public class SyncOrchestrator : BackgroundService
         }
 
         // References
-        var refsLastRun = await _state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
+        var refsLastRun = await state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
         if (refsLastRun != null)
         {
             var nextRun = refsLastRun.Value + _options.ReferencesInterval;

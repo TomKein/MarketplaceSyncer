@@ -10,7 +10,7 @@ public class M0003_ImagesAndSyncSessions : Migration
         // Таблица изображений товаров
         Create.Table("good_images")
             .WithColumn("Id").AsInt64().PrimaryKey().Identity()
-            .WithColumn("GoodId").AsInt32().NotNullable()
+            .WithColumn("GoodId").AsInt64().NotNullable()
                 .ForeignKey("FK_good_images_goods", "goods", "Id").OnDelete(System.Data.Rule.Cascade)
             .WithColumn("Name").AsString(255).Nullable()
             .WithColumn("Url").AsString(1000).NotNullable()
@@ -31,10 +31,16 @@ public class M0003_ImagesAndSyncSessions : Migration
             .WithColumn("StartedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime)
             .WithColumn("CompletedAt").AsDateTime().Nullable()
             .WithColumn("Status").AsString(50).NotNullable().WithDefaultValue("IN_PROGRESS") // IN_PROGRESS, COMPLETED, FAILED
-            .WithColumn("GoodsFetched").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("GoodsSynced").AsInt32().NotNullable().WithDefaultValue(0)
+            .WithColumn("ItemsFetched").AsInt32().NotNullable().WithDefaultValue(0)
+            .WithColumn("ItemsProcessed").AsInt32().NotNullable().WithDefaultValue(0)
             .WithColumn("ErrorsCount").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("ErrorDetails").AsCustom("JSONB").Nullable();
+            .WithColumn("ErrorDetails").AsCustom("JSONB").Nullable()
+            
+            // New columns for Sync State Strategy
+            .WithColumn("EntityType").AsString(50).NotNullable().WithDefaultValue("Unknown") 
+            .WithColumn("FilterDateFrom").AsDateTimeOffset().Nullable()
+            .WithColumn("Cursor").AsString(100).Nullable()
+            .WithColumn("Config").AsCustom("JSONB").Nullable();
 
         Create.Index("IX_sync_sessions_StartedAt").OnTable("sync_sessions").OnColumn("StartedAt").Descending();
 

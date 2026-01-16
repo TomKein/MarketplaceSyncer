@@ -48,7 +48,62 @@ public class ExperimentWorker : BackgroundService
                 _logger.LogInformation("  Тип цены: Id={Id}, Name={Name}", pt.Id, pt.Name);
             }
 
-            /* --- Остальные эксперименты временно отключены ---
+            /* --- Остальные эксперименты временно отключены --- */
+            
+            // --- Verification for Attributes API ---
+            _logger.LogInformation("Experiment: Fetching Attributes (attributesforgoods)...");
+            var attributes = await _client.GetAttributesAsync(cancellationToken: stoppingToken);
+            _logger.LogInformation("Fetched {Count} attributes.", attributes.Length);
+            if (attributes.Length > 0)
+            {
+                _logger.LogInformation("Sample Attribute: {Json}", JsonSerializer.Serialize(attributes[0], new JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            _logger.LogInformation("Experiment: Fetching Attribute Values (attributesforgoodsvalues)...");
+            // Fetch values for the first attribute if available, or all/some defaults? 
+            // The API allows fetching all without ID according to docs pattern seen, or we can try with null.
+            var attributeValues = await _client.GetAttributeValuesAsync(cancellationToken: stoppingToken); 
+            _logger.LogInformation("Fetched {Count} attribute values (total/sample).", attributeValues.Length);
+            if (attributeValues.Length > 0)
+            {
+                 _logger.LogInformation("Sample Attribute Value: {Json}", JsonSerializer.Serialize(attributeValues[0], new JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            _logger.LogInformation("Experiment: Fetching Good Attributes (goodsattributes)...");
+             // Fetch good attributes (links) - trying without good_id to get a sample
+            var goodAttributes = await _client.GetGoodAttributesAsync(cancellationToken: stoppingToken);
+            _logger.LogInformation("Fetched {Count} good-attribute links.", goodAttributes.Length);
+             if (goodAttributes.Length > 0)
+            {
+                 _logger.LogInformation("Sample Good Attribute Link: {Json}", JsonSerializer.Serialize(goodAttributes[0], new JsonSerializerOptions { WriteIndented = true }));
+            }
+
+            // --- Experiment: Stores and StoreGoods ---
+            _logger.LogInformation("Experiment: Fetching Stores (stores)...");
+            var stores = await _client.GetStoresAsync(cancellationToken: stoppingToken);
+            _logger.LogInformation("Fetched {Count} stores.", stores.Length);
+            foreach (var store in stores)
+            {
+                _logger.LogInformation("Store: Id={Id}, Name={Name}, RespEmp={EmpId}", store.Id, store.Name, store.ResponsibleEmployeeId);
+            }
+
+            if (stores.Length > 0)
+            {
+                _logger.LogInformation("Experiment: Fetching Store Goods (storegoods) for first store...");
+                var storeGoods = await _client.GetStoreGoodsAsync(storeId: stores[0].Id, cancellationToken: stoppingToken);
+                _logger.LogInformation("Fetched {Count} goods in store {StoreName}.", storeGoods.Length, stores[0].Name);
+
+                if (storeGoods.Length > 0)
+                {
+                    _logger.LogInformation("Sample Store Good: {Json}", JsonSerializer.Serialize(storeGoods[0], new JsonSerializerOptions { WriteIndented = true }));
+                }
+            }
+            else 
+            {
+                 _logger.LogInformation("No stores found, skipping Store Goods experiment.");
+            }
+
+            /* 
             var count = await _client.CountGoodsAsync(cancellationToken: stoppingToken);
             _logger.LogInformation("Всего товаров в Business.ru: {Count}", count);
             
@@ -168,7 +223,7 @@ public class ExperimentWorker : BackgroundService
         }
     }
 
-    private async Task UpsertGroupAsync(AppDataConnection db, GroupResponse g, int? parentId, CancellationToken token)
+    private async Task UpsertGroupAsync(AppDataConnection db, GroupResponse g, long? parentId, CancellationToken token)
     {
         var exists = await db.Groups.AnyAsync(x => x.Id == g.Id, token);
         if (exists)

@@ -25,6 +25,7 @@ builder.Services.AddHttpClient<ImageSyncService>();
 
 // Sync services
 builder.Services.AddScoped<SyncStateRepository>();
+builder.Services.AddScoped<ISyncStateService, SyncStateService>();
 builder.Services.AddScoped<ReferenceSyncer>();
 builder.Services.AddScoped<GoodsSyncer>();
 builder.Services.AddScoped<InitialSyncRunner>();
@@ -80,8 +81,8 @@ builder.Services.AddTransient<IBusinessRuClient>(sp =>
 
 // Workers
 // Раскомментируйте нужный сервис для режима эксперимента
-// builder.Services.AddHostedService<ExperimentWorker>();
-builder.Services.AddHostedService<SyncOrchestrator>();
+builder.Services.AddHostedService<ExperimentWorker>();
+// builder.Services.AddHostedService<SyncOrchestrator>();
 
 var host = builder.Build();
 MigrationExtensions.EnsureDatabase(connectionString ?? throw new InvalidOperationException("Connection string not found"));

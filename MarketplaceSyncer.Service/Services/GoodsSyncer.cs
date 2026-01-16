@@ -176,7 +176,7 @@ public class GoodsSyncer
 
     private async Task UpsertGoodAsync(ApiGood apiGood, CancellationToken ct)
     {
-        var id = int.Parse(apiGood.Id);
+        var id = apiGood.Id;
         var existing = await _db.Goods.FirstOrDefaultAsync(g => g.Id == id, ct);
 
         var rawData = JsonSerializer.Serialize(apiGood);
@@ -236,7 +236,7 @@ public class GoodsSyncer
     /// <summary>
     /// Получить список ID всех товаров из БД
     /// </summary>
-    public async Task<List<int>> GetAllGoodIdsAsync(CancellationToken ct = default)
+    public async Task<List<long>> GetAllGoodIdsAsync(CancellationToken ct = default)
     {
         return await _db.Goods
             .Select(g => g.Id)

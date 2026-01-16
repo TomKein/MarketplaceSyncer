@@ -4,13 +4,13 @@ namespace MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 
 public sealed record SalePriceListGoodPrice(
     [property: JsonPropertyName("id")] 
-    string Id,
+    long Id,
     
     [property: JsonPropertyName("price_list_good_id")] 
-    string? PriceListGoodId = null,
+    long? PriceListGoodId = null,
     
     [property: JsonPropertyName("price_type_id")] 
-    string? PriceTypeId = null,
+    long? PriceTypeId = null,
     
     [property: JsonPropertyName("price")] 
     string? Price = null,

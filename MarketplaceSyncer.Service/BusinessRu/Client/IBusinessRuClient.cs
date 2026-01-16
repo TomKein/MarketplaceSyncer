@@ -6,7 +6,7 @@ namespace MarketplaceSyncer.Service.BusinessRu.Client;
 public interface IBusinessRuClient : IDisposable
 {
     Task<Good[]> GetGoodsAsync(
-        int? businessId = null,
+        long? businessId = null,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
 
@@ -20,8 +20,8 @@ public interface IBusinessRuClient : IDisposable
     Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default);
 
     Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
-        string goodId,
-        string? priceTypeId = null,
+        long goodId,
+        long? priceTypeId = null,
         int? limit = null,
         CancellationToken cancellationToken = default);
 
@@ -31,7 +31,7 @@ public interface IBusinessRuClient : IDisposable
 
     Task<string> CreatePriceListAsync(
         string name,
-        string priceTypeId,
+        long priceTypeId,
         CancellationToken cancellationToken = default);
 
     Task<SalePriceType[]> GetPriceTypesAsync(
@@ -39,7 +39,7 @@ public interface IBusinessRuClient : IDisposable
         CancellationToken cancellationToken = default);
 
     Task UpdatePriceAsync(
-        string priceId,
+        long priceId,
         decimal price,
         CancellationToken cancellationToken = default);
 
@@ -54,13 +54,29 @@ public interface IBusinessRuClient : IDisposable
         CancellationToken cancellationToken = default);
 
     Task<GoodImageResponse[]> GetGoodImagesAsync(
-        string goodId,
+        long goodId,
         CancellationToken cancellationToken = default);
 
     Task AddGoodImageAsync(
-        string goodId,
+        long goodId,
         string name,
         string url,
+        CancellationToken cancellationToken = default);
+
+    Task<AttributeResponse[]> GetAttributesAsync(CancellationToken cancellationToken = default);
+
+    Task<AttributeValueResponse[]> GetAttributeValuesAsync(
+        long? attributeId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodAttributeResponse[]> GetGoodAttributesAsync(
+        long? goodId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<Store[]> GetStoresAsync(CancellationToken cancellationToken = default);
+
+    Task<StoreGood[]> GetStoreGoodsAsync(
+        long? storeId = null,
         CancellationToken cancellationToken = default);
 
     IBusinessRuQuery CreateQuery();

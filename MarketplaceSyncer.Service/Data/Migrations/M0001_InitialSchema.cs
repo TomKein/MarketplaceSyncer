@@ -12,9 +12,9 @@ public class M0001_InitialSchema : Migration
         
         // Groups (Группы товаров)
         Create.Table("groups")
-            .WithColumn("Id").AsInt32().PrimaryKey() 
+            .WithColumn("Id").AsInt64().PrimaryKey() 
             .WithColumn("Name").AsString().NotNullable()
-            .WithColumn("ParentId").AsInt32().Nullable().ForeignKey("groups", "Id")
+            .WithColumn("ParentId").AsInt64().Nullable().ForeignKey("groups", "Id")
             .WithColumn("BusinessRuUpdatedAt").AsDateTime().Nullable()
             // Sync Meta
             .WithColumn("RawData").AsCustom("jsonb").Nullable()
@@ -22,7 +22,7 @@ public class M0001_InitialSchema : Migration
 
         // Units (Единицы измерения)
         Create.Table("units")
-            .WithColumn("Id").AsInt32().PrimaryKey()
+            .WithColumn("Id").AsInt64().PrimaryKey()
             .WithColumn("Name").AsString().NotNullable()
             .WithColumn("FullName").AsString().Nullable()
             .WithColumn("Code").AsString().Nullable() 
@@ -32,8 +32,7 @@ public class M0001_InitialSchema : Migration
         // 2. Main Table - Goods (Товары)
         Create.Table("goods")
             // Identifiers
-            .WithColumn("Id").AsInt32().PrimaryKey()
-            .WithColumn("AccountId").AsString().Nullable() 
+            .WithColumn("Id").AsInt64().PrimaryKey() 
             
             // Core attributes
             .WithColumn("Name").AsString().Nullable()
@@ -44,8 +43,8 @@ public class M0001_InitialSchema : Migration
             .WithColumn("IsArchive").AsBoolean().WithDefaultValue(false)
             
             // Relations
-            .WithColumn("GroupId").AsInt32().Nullable().ForeignKey("groups", "Id")
-            .WithColumn("UnitId").AsInt32().Nullable().ForeignKey("units", "Id")
+            .WithColumn("GroupId").AsInt64().Nullable().ForeignKey("groups", "Id")
+            .WithColumn("UnitId").AsInt64().Nullable().ForeignKey("units", "Id")
             
             // Pricing & Stock
             .WithColumn("Price").AsDecimal().Nullable() 
@@ -60,6 +59,32 @@ public class M0001_InitialSchema : Migration
             
             // The Safety Net
             .WithColumn("RawData").AsCustom("jsonb").Nullable();
+
+        // 3. Stores & Stock (Склады и Остатки)
+        Create.Table("stores")
+            .WithColumn("Id").AsInt64().PrimaryKey()
+            .WithColumn("Name").AsString().NotNullable()
+            .WithColumn("Address").AsString().Nullable()
+            .WithColumn("IsArchive").AsBoolean().WithDefaultValue(false)
+            .WithColumn("IsDeleted").AsBoolean().WithDefaultValue(false)
+            .WithColumn("DenyNegativeBalance").AsBoolean().WithDefaultValue(false)
+            .WithColumn("ResponsibleEmployeeId").AsInt64().Nullable()
+            .WithColumn("DebitType").AsInt32().Nullable()
+            .WithColumn("BusinessRuUpdatedAt").AsDateTime().Nullable()
+            .WithColumn("LastSyncedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
+
+        Create.Table("store_goods")
+            .WithColumn("Id").AsInt64().PrimaryKey()
+            .WithColumn("StoreId").AsInt64().NotNullable().ForeignKey("stores", "Id").OnDelete(System.Data.Rule.Cascade)
+            .WithColumn("GoodId").AsInt64().NotNullable().ForeignKey("goods", "Id").OnDelete(System.Data.Rule.Cascade)
+            .WithColumn("ModificationId").AsInt64().Nullable()
+            .WithColumn("Amount").AsDecimal().NotNullable().WithDefaultValue(0)
+            .WithColumn("Reserved").AsDecimal().NotNullable().WithDefaultValue(0)
+            .WithColumn("RemainsMin").AsDecimal().NotNullable().WithDefaultValue(0)
+            .WithColumn("BusinessRuUpdatedAt").AsDateTime().Nullable()
+            .WithColumn("LastSyncedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
+
+        Create.Index("IX_StoreGoods_StoreId_GoodId").OnTable("store_goods").OnColumn("StoreId").Ascending().OnColumn("GoodId").Ascending();
 
         // Indexes for performance
         Create.Index("IX_Goods_SyncStatus").OnTable("goods").OnColumn("SyncStatus");

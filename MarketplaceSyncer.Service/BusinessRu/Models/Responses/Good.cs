@@ -4,7 +4,7 @@ namespace MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 
 public sealed record Good(
     [property: JsonPropertyName("id")] 
-    string Id,
+    long Id,
     
     [property: JsonPropertyName("name")] 
     string? Name = null,

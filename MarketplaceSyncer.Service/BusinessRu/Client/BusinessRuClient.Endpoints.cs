@@ -9,7 +9,7 @@ namespace MarketplaceSyncer.Service.BusinessRu.Client;
 public sealed partial class BusinessRuClient
 {
     public async Task<Good[]> GetGoodsAsync(
-        int? businessId = null,
+        long? businessId = null,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
@@ -123,15 +123,13 @@ public sealed partial class BusinessRuClient
     }
 
     public async Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
-        string goodId,
-        string? priceTypeId = null,
+        long goodId,
+        long? priceTypeId = null,
         int? limit = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
-
         // Шаг 1: Получаем price list goods для данного товара
-        var goodsRequest = new Dictionary<string, string> { ["good_id"] = goodId };
+        var goodsRequest = new Dictionary<string, string> { ["good_id"] = goodId.ToString() };
         if (limit.HasValue)
             goodsRequest["limit"] = limit.Value.ToString();
 
@@ -146,9 +144,9 @@ public sealed partial class BusinessRuClient
 
         foreach (var plg in priceListGoods)
         {
-            var pricesRequest = new Dictionary<string, string> { ["price_list_good_id"] = plg.Id };
-            if (!string.IsNullOrWhiteSpace(priceTypeId))
-                pricesRequest["price_type_id"] = priceTypeId;
+            var pricesRequest = new Dictionary<string, string> { ["price_list_good_id"] = plg.Id.ToString() };
+            if (priceTypeId.HasValue)
+                pricesRequest["price_type_id"] = priceTypeId.Value.ToString();
 
             var prices = await RequestAsync<Dictionary<string, string>, SalePriceListGoodPrice[]>(
                 HttpMethod.Get, "salepricelistgoodprices", pricesRequest, cancellationToken);
@@ -158,6 +156,8 @@ public sealed partial class BusinessRuClient
 
         return allPrices.ToArray();
     }
+
+
 
     public async Task<SalePriceList[]> GetPriceListsAsync(
         int? limit = null,
@@ -173,16 +173,15 @@ public sealed partial class BusinessRuClient
 
     public async Task<string> CreatePriceListAsync(
         string name,
-        string priceTypeId,
+        long priceTypeId,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(priceTypeId);
 
         var request = new Dictionary<string, string>
         {
             ["name"] = name,
-            ["price_type_id"] = priceTypeId,
+            ["price_type_id"] = priceTypeId.ToString(),
             ["active"] = "1",
             ["responsible_employee_id"] = _responsibleEmployeeId,
             ["organization_id"] = _organizationId
@@ -208,15 +207,13 @@ public sealed partial class BusinessRuClient
     }
 
     public async Task UpdatePriceAsync(
-        string priceId,
+        long priceId,
         decimal price,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(priceId);
-
         var request = new Dictionary<string, string>
         {
-            ["id"] = priceId,
+            ["id"] = priceId.ToString(),
             ["price"] = price.ToString("F2")
         };
 
@@ -312,12 +309,10 @@ public sealed partial class BusinessRuClient
     /// Получить изображения товара
     /// </summary>
     public async Task<GoodImageResponse[]> GetGoodImagesAsync(
-        string goodId,
+        long goodId,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
-
-        var request = new Dictionary<string, string> { ["good_id"] = goodId };
+        var request = new Dictionary<string, string> { ["good_id"] = goodId.ToString() };
 
         return await RequestAsync<Dictionary<string, string>, GoodImageResponse[]>(
             HttpMethod.Get, "goodsimages", request, cancellationToken);
@@ -327,23 +322,116 @@ public sealed partial class BusinessRuClient
     /// Добавить изображение к товару
     /// </summary>
     public async Task AddGoodImageAsync(
-        string goodId,
+        long goodId,
         string name,
         string url,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(goodId);
         ArgumentException.ThrowIfNullOrWhiteSpace(url);
 
         var request = new Dictionary<string, string>
         {
-            ["good_id"] = goodId,
+            ["good_id"] = goodId.ToString(),
             ["name"] = name ?? "image",
             ["url"] = url
         };
 
         await RequestAsync<Dictionary<string, string>, object>(
             HttpMethod.Post, "goodsimages", request, cancellationToken);
+    }
+
+    public async Task<AttributeResponse[]> GetAttributesAsync(CancellationToken cancellationToken = default)
+    {
+        var request = new Dictionary<string, string>();
+        return await RequestAsync<Dictionary<string, string>, AttributeResponse[]>(
+            HttpMethod.Get, "attributesforgoods", request, cancellationToken);
+    }
+
+    public async Task<AttributeValueResponse[]> GetAttributeValuesAsync(
+        long? attributeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new Dictionary<string, string>();
+
+        if (attributeId.HasValue)
+            request["attribute_id"] = attributeId.Value.ToString();
+
+        return await RequestAsync<Dictionary<string, string>, AttributeValueResponse[]>(
+            HttpMethod.Get, "attributesforgoodsvalues", request, cancellationToken);
+    }
+
+    public async Task<GoodAttributeResponse[]> GetGoodAttributesAsync(
+        long? goodId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new Dictionary<string, string>();
+
+        if (goodId.HasValue)
+            request["good_id"] = goodId.Value.ToString();
+
+        return await RequestAsync<Dictionary<string, string>, GoodAttributeResponse[]>(
+            HttpMethod.Get, "goodsattributes", request, cancellationToken);
+    }
+
+
+
+    public async Task<Store[]> GetStoresAsync(CancellationToken cancellationToken = default)
+    {
+        var all = new List<Store>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            var result = await RequestAsync<Dictionary<string, string>, Store[]>(
+                HttpMethod.Get, "stores", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
+    public async Task<StoreGood[]> GetStoreGoodsAsync(
+        long? storeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<StoreGood>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            if (storeId.HasValue)
+                request["store_id"] = storeId.Value.ToString();
+
+            var result = await RequestAsync<Dictionary<string, string>, StoreGood[]>(
+                HttpMethod.Get, "storegoods", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
     }
 
     public IBusinessRuQuery CreateQuery() => new BusinessRuQuery();

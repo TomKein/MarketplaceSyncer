@@ -48,14 +48,22 @@ public sealed partial class BusinessRuClient
                 if (!IsSuccess(statusCode))
                     throw new HttpRequestException($"Ошибка {statusCode} от {endpoint}: {payload}");
 
-                var response = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload, _jsonOptions)
-                    ?? throw new InvalidOperationException($"Пустой ответ от {endpoint}");
+                try
+                {
+                    var response = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload, _jsonOptions)
+                        ?? throw new InvalidOperationException($"Пустой ответ от {endpoint}");
 
-                if (response.RequestCount > 0)
-                    await Task.Delay(response.RequestCount * 3, ct);
+                    if (response.RequestCount > 0)
+                        await Task.Delay(response.RequestCount * 3, ct);
 
-                return response.Result
-                    ?? throw new InvalidOperationException($"Result is null от {endpoint}");
+                    return response.Result
+                        ?? throw new InvalidOperationException($"Result is null от {endpoint}");
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Ошибка десериализации от {Endpoint}. Payload: {Payload}", endpoint, payload);
+                    throw;
+                }
             }, ct);
         }
         finally
