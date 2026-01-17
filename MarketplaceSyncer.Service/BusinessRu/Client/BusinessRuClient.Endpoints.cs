@@ -1,3 +1,4 @@
+using MarketplaceSyncer.Service.BusinessRu.Models.Requests;
 using MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 using MarketplaceSyncer.Service.BusinessRu.Query;
 
@@ -432,6 +433,99 @@ public sealed partial class BusinessRuClient
         }
 
         return all.ToArray();
+    }
+
+    public async Task<CommentResponse[]> GetCommentsAsync(
+        string modelName = "goods",
+        long? modelId = null,
+        DateTimeOffset? from = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<CommentResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString(),
+                ["model_name"] = modelName
+            };
+
+            if (modelId.HasValue)
+                request["document_id"] = modelId.Value.ToString();
+
+            if (from.HasValue)
+                request["date[from]"] = from.Value.ToString("dd.MM.yyyy HH:mm:ss");
+
+            var result = await RequestAsync<Dictionary<string, string>, CommentResponse[]>(
+                HttpMethod.Get, "comments", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
+    public async Task<CommentResponse> CreateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.AuthorEmployeeId == null && long.TryParse(_responsibleEmployeeId, out var empId))
+        {
+            request.AuthorEmployeeId = empId;
+        }
+        
+        var response = await RequestActionAsync(
+            HttpMethod.Post, "comments", request, cancellationToken);
+            
+        return new CommentResponse(
+            Id: response.Id,
+            ModelName: request.ModelName,
+            DocumentId: request.ModelId ?? 0, 
+            AuthorEmployeeId: request.AuthorEmployeeId ?? 0, 
+            TimeCreate: DateTimeOffset.Now, 
+            Updated: null,
+            Note: request.Note
+        );
+    }
+
+    public async Task<CommentResponse> UpdateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var response = await RequestActionAsync(
+            HttpMethod.Put, "comments", request, cancellationToken);
+
+        return new CommentResponse(
+            Id: request.Id ?? response.Id,
+            ModelName: request.ModelName,
+            DocumentId: request.ModelId ?? 0,
+            AuthorEmployeeId: request.AuthorEmployeeId ?? 0,
+            TimeCreate: null, // We don't know the original creation time here without fetching
+            Updated: DateTimeOffset.Now,
+            Note: request.Note
+        );
+    }
+
+    public async Task DeleteCommentAsync(
+        long id,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new Dictionary<string, string> { ["id"] = id.ToString() };
+        // Delete usually returns status ok.
+        await RequestActionAsync(
+            HttpMethod.Delete, "comments", request, cancellationToken);
     }
 
     public IBusinessRuQuery CreateQuery() => new BusinessRuQuery();

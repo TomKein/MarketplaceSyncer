@@ -1166,7 +1166,7 @@ namespace Selen {
                         .Aggregate((x1, x2) => x1 + "\n" + x2);
             Log.Add(L + "CheckPartnersDubles - найдены дубли:\n" + dub);
         }
-        //массовая замена текста
+        // массовая замена текста (не используется)
         public static async Task ReplaceTextAsync(string checkText, string newText) {
             for (int b = 0; b < _bus.Count; b++) {
                 if (Status == SyncStatus.NeedUpdate)
@@ -1272,7 +1272,7 @@ namespace Selen {
                 }
             }
         }
-        //массовое изменение цен закупки на товары введенных на остатки
+        //массовое изменение цен закупки на товары введенных на остатки (не используется)
         public static async Task ChangeRemainsPrices(int procent = 80) { //TODO переделать, чтобы метод получал список измененных карточек, а не перебирал все
             for (int i = 1; ; i++) {
                 if (Status == SyncStatus.NeedUpdate)

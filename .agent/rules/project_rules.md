@@ -30,3 +30,4 @@
 - **Development**: Commit & Push после каждой собираемой итерации.
 - **Completion**: Code Review, Walkthrough, Merge Request.
 - **NuGet**: Использовать CPM (`Directory.Packages.props`).
+- **Файловые операции**: Для переименования или перемещения файлов всегда используйте `git mv` (через терминал) или команды PowerShell `Rename-Item`/`Move-Item`, чтобы сохранить историю Git. Избегайте сочетания `del` + `write_to_file`.

@@ -40,6 +40,31 @@ public sealed partial class BusinessRuClient
         }
     }
 
+    /// <summary>
+    /// Метод для выполнения действий (Create/Update/Delete), где ответ содержит статус и ID на верхнем уровне, а не в result.
+    /// </summary>
+    public async Task<StatusResponse> RequestActionAsync<TRequest>(
+        HttpMethod method,
+        string endpoint,
+        TRequest request,
+        CancellationToken ct = default)
+        where TRequest : class
+    {
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
+        ArgumentNullException.ThrowIfNull(request);
+
+        await _semaphore.WaitAsync(ct);
+        try
+        {
+            return await ExecuteWithRetryAsync(() => MakeActionRequestAsync(method, endpoint, request, ct), ct);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
     private async Task<TResponse> MakeRequestAsync<TRequest, TResponse>(
         HttpMethod method,
         string endpoint,
@@ -69,9 +94,56 @@ public sealed partial class BusinessRuClient
 
             if (response.RequestCount > 0)
                 await Task.Delay(response.RequestCount * 3, ct);
+            
+            if (response.Status == "error")
+            {
+                throw new InvalidOperationException($"Ошибка API ({method.Method} {endpoint}): {response.ErrorText} (code: {response.ErrorCode})");
+            }
 
             return response.Result
                 ?? throw new InvalidOperationException($"Result is null от {endpoint}");
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Ошибка десериализации от {Endpoint}. Payload: {Payload}", endpoint, payload);
+            throw;
+        }
+    }
+
+    private async Task<StatusResponse> MakeActionRequestAsync<TRequest>(
+        HttpMethod method,
+        string endpoint,
+        TRequest request,
+        CancellationToken ct)
+        where TRequest : class
+    {
+        if (string.IsNullOrEmpty(_token) || DateTime.UtcNow >= _tokenExpiry)
+            await RefreshTokenAsync(ct);
+
+        var (statusCode, payload) = await SendRequestAsync(method, endpoint, request, ct);
+
+        if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
+        {
+            _token = string.Empty;
+            throw new UnauthorizedAccessException($"Ошибка авторизации: {statusCode}");
+        }
+
+        if (!IsSuccess(statusCode))
+            throw new HttpRequestException($"Ошибка {statusCode} от {endpoint}: {payload}");
+
+        try
+        {
+            // Для действий (POST/PUT/DELETE) парсим весь ответ как StatusResponse (id, status),
+            // игнорируя result, который может быть null.
+            var response = JsonSerializer.Deserialize<StatusResponse>(payload, _jsonOptions)
+                ?? throw new InvalidOperationException($"Пустой ответ от {endpoint}");
+
+            if (response.Status == "error")
+            {
+                throw new InvalidOperationException($"Ошибка API ({method.Method} {endpoint}): {response.ErrorText} (code: {response.ErrorCode})");
+            }
+            
+            return response;
         }
         catch (JsonException ex)
         {

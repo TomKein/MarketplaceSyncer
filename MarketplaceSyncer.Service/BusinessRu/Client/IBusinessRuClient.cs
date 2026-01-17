@@ -1,3 +1,4 @@
+using MarketplaceSyncer.Service.BusinessRu.Models.Requests;
 using MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 using MarketplaceSyncer.Service.BusinessRu.Query;
 
@@ -77,6 +78,24 @@ public interface IBusinessRuClient : IDisposable
 
     Task<StoreGood[]> GetStoreGoodsAsync(
         long? storeId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse[]> GetCommentsAsync(
+        string modelName = "goods",
+        long? modelId = null,
+        DateTimeOffset? from = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse> CreateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse> UpdateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteCommentAsync(
+        long id,
         CancellationToken cancellationToken = default);
 
     IBusinessRuQuery CreateQuery();
