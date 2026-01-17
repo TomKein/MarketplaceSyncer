@@ -32,43 +32,51 @@ public sealed partial class BusinessRuClient
         await _semaphore.WaitAsync(ct);
         try
         {
-            return await ExecuteWithRetryAsync(async () =>
-            {
-                if (string.IsNullOrEmpty(_token) || DateTime.UtcNow >= _tokenExpiry)
-                    await RefreshTokenAsync(ct);
-
-                var (statusCode, payload) = await SendRequestAsync(method, endpoint, request, ct);
-
-                if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
-                {
-                    _token = string.Empty;
-                    throw new UnauthorizedAccessException($"Ошибка авторизации: {statusCode}");
-                }
-
-                if (!IsSuccess(statusCode))
-                    throw new HttpRequestException($"Ошибка {statusCode} от {endpoint}: {payload}");
-
-                try
-                {
-                    var response = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload, _jsonOptions)
-                        ?? throw new InvalidOperationException($"Пустой ответ от {endpoint}");
-
-                    if (response.RequestCount > 0)
-                        await Task.Delay(response.RequestCount * 3, ct);
-
-                    return response.Result
-                        ?? throw new InvalidOperationException($"Result is null от {endpoint}");
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError(ex, "Ошибка десериализации от {Endpoint}. Payload: {Payload}", endpoint, payload);
-                    throw;
-                }
-            }, ct);
+            return await ExecuteWithRetryAsync(() => MakeRequestAsync<TRequest, TResponse>(method, endpoint, request, ct), ct);
         }
         finally
         {
             _semaphore.Release();
+        }
+    }
+
+    private async Task<TResponse> MakeRequestAsync<TRequest, TResponse>(
+        HttpMethod method,
+        string endpoint,
+        TRequest request,
+        CancellationToken ct)
+        where TRequest : class
+        where TResponse : class
+    {
+        if (string.IsNullOrEmpty(_token) || DateTime.UtcNow >= _tokenExpiry)
+            await RefreshTokenAsync(ct);
+
+        var (statusCode, payload) = await SendRequestAsync(method, endpoint, request, ct);
+
+        if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
+        {
+            _token = string.Empty;
+            throw new UnauthorizedAccessException($"Ошибка авторизации: {statusCode}");
+        }
+
+        if (!IsSuccess(statusCode))
+            throw new HttpRequestException($"Ошибка {statusCode} от {endpoint}: {payload}");
+
+        try
+        {
+            var response = JsonSerializer.Deserialize<ApiResponse<TResponse>>(payload, _jsonOptions)
+                ?? throw new InvalidOperationException($"Пустой ответ от {endpoint}");
+
+            if (response.RequestCount > 0)
+                await Task.Delay(response.RequestCount * 3, ct);
+
+            return response.Result
+                ?? throw new InvalidOperationException($"Result is null от {endpoint}");
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Ошибка десериализации от {Endpoint}. Payload: {Payload}", endpoint, payload);
+            throw;
         }
     }
 
@@ -79,22 +87,28 @@ public sealed partial class BusinessRuClient
     {
         await _rateLimiter.WaitAsync(ct);
 
+        var url = PrepareRequestUrl(endpoint, request, out var postBody);
+
+        _logger.LogDebug("{Method} {Endpoint}", method.Method, endpoint);
+
+        using var httpRequest = CreateHttpRequest(method, url, postBody);
+        using var response = await _httpClient.SendAsync(httpRequest, ct);
+        var payload = await response.Content.ReadAsStringAsync(ct);
+
+        return (response.StatusCode, payload);
+    }
+
+    private string PrepareRequestUrl<T>(string endpoint, T request, out string postBody) where T : class
+    {
         var parameters = SerializeToStringParameters(request);
         parameters["app_id"] = _appId;
 
         var sorted = new SortedDictionary<string, string>(parameters, new PhpKSort());
         var query = BuildQueryStringEncoded(sorted);
         var signature = ComputeMd5Hash(_token + _secret + query);
-        var fullQuery = $"{query}&app_psw={signature}";
-        var url = $"{_baseUrl}{endpoint}.json";
-
-        _logger.LogDebug("{Method} {Endpoint}", method.Method, endpoint);
-
-        using var httpRequest = CreateHttpRequest(method, url, fullQuery);
-        using var response = await _httpClient.SendAsync(httpRequest, ct);
-        var payload = await response.Content.ReadAsStringAsync(ct);
-
-        return (response.StatusCode, payload);
+        postBody = $"{query}&app_psw={signature}";
+        
+        return $"{_baseUrl}{endpoint}.json";
     }
 
     private async Task RefreshTokenAsync(CancellationToken ct)
@@ -184,15 +198,13 @@ public sealed partial class BusinessRuClient
 
     private static Dictionary<string, string> SerializeToStringParameters<T>(T obj) where T : class
     {
-        var json = JsonSerializer.Serialize(obj);
-        var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)
-            ?? new Dictionary<string, JsonElement>();
+        var node = JsonSerializer.SerializeToNode(obj);
+        if (node is not System.Text.Json.Nodes.JsonObject jsonObject)
+            return [];
 
-        return dict.ToDictionary(
+        return jsonObject.ToDictionary(
             kvp => kvp.Key,
-            kvp => kvp.Value.ValueKind == JsonValueKind.String
-                ? kvp.Value.GetString() ?? string.Empty
-                : kvp.Value.ToString());
+            kvp => kvp.Value?.ToString() ?? string.Empty);
     }
 
     private static string BuildQueryStringRaw(IDictionary<string, string> parameters) =>
@@ -200,6 +212,10 @@ public sealed partial class BusinessRuClient
 
     private static string BuildQueryStringEncoded(IDictionary<string, string> parameters) =>
         string.Join("&", parameters.Select(kvp => $"{EncodePhpStyle(kvp.Key)}={EncodePhpStyle(kvp.Value)}"));
+
+    #endregion
+
+    #region PHP Helpers
 
     private static string EncodePhpStyle(string input)
     {
@@ -223,10 +239,6 @@ public sealed partial class BusinessRuClient
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
-    #endregion
-
-    #region PHP-compatible sorting
-
     private sealed class PhpKSort : IComparer<string>
     {
         public int Compare(string? x, string? y)
@@ -249,4 +261,6 @@ public sealed partial class BusinessRuClient
     }
 
     #endregion
+
+
 }
