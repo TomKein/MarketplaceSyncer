@@ -57,7 +57,11 @@ public sealed partial class BusinessRuClient : IBusinessRuClient
         _jsonOptions = new JsonSerializerOptions
         {
             NumberHandling = JsonNumberHandling.AllowReadingFromString,
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            Converters =
+            {
+                new BusinessRuDateTimeConverter()
+            }
         };
     }
 

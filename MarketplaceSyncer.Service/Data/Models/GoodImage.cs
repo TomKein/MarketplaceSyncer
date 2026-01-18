@@ -40,11 +40,11 @@ public class GoodImage
     /// When image was last updated in Business.ru
     /// </summary>
     [Column("BusinessRuUpdatedAt"), Nullable]
-    public DateTime? BusinessRuUpdatedAt { get; set; }
+    public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
 
     /// <summary>
     /// When image was downloaded to our database
     /// </summary>
     [Column("DownloadedAt"), NotNull]
-    public DateTime DownloadedAt { get; set; }
+    public DateTimeOffset DownloadedAt { get; set; }
 }

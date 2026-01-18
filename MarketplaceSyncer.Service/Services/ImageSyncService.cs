@@ -121,7 +121,7 @@ public class ImageSyncService
                     existing.Hash = hash;
                     existing.ContentType = contentType;
                     existing.Position = position;
-                    existing.DownloadedAt = DateTime.UtcNow;
+                    existing.DownloadedAt = DateTimeOffset.UtcNow;
 
                     await _db.UpdateAsync(existing, token: ct);
                     _logger.LogInformation("Обновлено изображение {Id} для товара {GoodId} (hash изменился)", 
@@ -140,7 +140,7 @@ public class ImageSyncService
                 ContentType = contentType,
                 Hash = hash,
                 Position = position,
-                DownloadedAt = DateTime.UtcNow
+                DownloadedAt = DateTimeOffset.UtcNow
             };
 
             newImage.Id = await _db.InsertWithInt64IdentityAsync(newImage, token: ct);

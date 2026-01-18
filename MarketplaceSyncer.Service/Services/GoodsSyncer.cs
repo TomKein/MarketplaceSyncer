@@ -41,7 +41,7 @@ public class GoodsSyncer
     public async Task RunDeltaSyncAsync(CancellationToken ct = default)
     {
         var lastDelta = await _state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
-        var since = lastDelta ?? DateTime.UtcNow.AddDays(-1);
+        var since = lastDelta ?? DateTimeOffset.UtcNow.AddDays(-1);
 
         _logger.LogInformation("Delta sync товаров с {Since}...", since);
 
@@ -53,7 +53,7 @@ public class GoodsSyncer
             await UpsertGoodAsync(apiGood, ct);
         }
 
-        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastDelta, DateTime.UtcNow, ct);
+        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastDelta, DateTimeOffset.UtcNow, ct);
         _logger.LogInformation("Delta sync завершён: {Count} товаров обработано", changedGoods.Length);
     }
 
@@ -92,7 +92,7 @@ public class GoodsSyncer
 
         // Сбрасываем прогресс
         await _state.SetIntAsync(SyncStateKeys.InitialGoodsPage, 1, ct);
-        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastDelta, DateTime.UtcNow, ct);
+        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastDelta, DateTimeOffset.UtcNow, ct);
         
         _logger.LogInformation("Инициальная загрузка товаров завершена: {Total} страниц", totalPages);
     }
@@ -111,7 +111,7 @@ public class GoodsSyncer
             var totalCount = await _client.CountGoodsAsync(cancellationToken: ct);
             totalPages = (int)Math.Ceiling(totalCount / (double)_options.PageSize);
             await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, totalPages, ct);
-            await _state.SetDateTimeAsync(SyncStateKeys.FullReloadGoodsStartedAt, DateTime.UtcNow, ct);
+            await _state.SetDateTimeOffsetAsync(SyncStateKeys.FullReloadGoodsStartedAt, DateTimeOffset.UtcNow, ct);
             _logger.LogInformation("Full reload инициализирован: {Total} страниц", totalPages);
         }
 
@@ -139,7 +139,7 @@ public class GoodsSyncer
         {
             await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
             await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
-            await _state.SetLastRunAsync(SyncStateKeys.GoodsLastFull, DateTime.UtcNow, ct);
+            await _state.SetLastRunAsync(SyncStateKeys.GoodsLastFull, DateTimeOffset.UtcNow, ct);
             _logger.LogInformation("Full reload завершён!");
             return false; // Больше нет работы
         }
@@ -153,8 +153,9 @@ public class GoodsSyncer
     public async Task<bool> HasPendingFullReloadWorkAsync(CancellationToken ct = default)
     {
         // Проверяем, нужен ли full reload по времени
+        // Проверяем, нужен ли full reload по времени
         var lastFull = await _state.GetLastRunAsync(SyncStateKeys.GoodsLastFull, ct);
-        if (lastFull != null && DateTime.UtcNow - lastFull.Value < _options.FullReloadTargetInterval)
+        if (lastFull != null && DateTimeOffset.UtcNow - lastFull.Value < _options.FullReloadTargetInterval)
         {
             // Full reload ещё не нужен
             var currentPage = await _state.GetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
@@ -192,8 +193,8 @@ public class GoodsSyncer
                 .Set(g => g.IsArchive, apiGood.Archive)
                 .Set(g => g.Price, price)
                 .Set(g => g.RawData, rawData)
-                .Set(g => g.LastSyncedAt, DateTime.UtcNow)
-                .Set(g => g.InternalUpdatedAt, DateTime.UtcNow)
+                .Set(g => g.LastSyncedAt, DateTimeOffset.UtcNow)
+                .Set(g => g.InternalUpdatedAt, DateTimeOffset.UtcNow)
                 .UpdateAsync(ct);
         }
         else
@@ -207,8 +208,8 @@ public class GoodsSyncer
                 IsArchive = apiGood.Archive,
                 Price = price,
                 RawData = rawData,
-                LastSyncedAt = DateTime.UtcNow,
-                InternalUpdatedAt = DateTime.UtcNow
+                LastSyncedAt = DateTimeOffset.UtcNow,
+                InternalUpdatedAt = DateTimeOffset.UtcNow
             }, token: ct);
         }
     }

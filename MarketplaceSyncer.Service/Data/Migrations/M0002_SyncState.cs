@@ -10,7 +10,7 @@ public class M0002_SyncState : Migration
         Create.Table("sync_state")
             .WithColumn("Key").AsString().PrimaryKey()
             .WithColumn("Value").AsString().Nullable()
-            .WithColumn("UpdatedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
+            .WithColumn("UpdatedAt").AsDateTimeOffset().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
     }
 
     public override void Down()

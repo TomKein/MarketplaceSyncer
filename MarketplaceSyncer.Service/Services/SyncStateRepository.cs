@@ -5,7 +5,15 @@ using MarketplaceSyncer.Service.Data;
 namespace MarketplaceSyncer.Service.Services;
 
 /// <summary>
-/// Репозиторий для хранения состояния синхронизации в таблице БД app_settings (ключ-значение)
+/// Репозиторий для управления состоянием процессов синхронизации.
+/// <para>
+/// Предоставляет абстракцию над таблицей `sync_state` для чтения и записи контрольных точек (checkpoints),
+/// флагов завершения этапов и временных меток последних запусков.
+/// </para>
+/// <para>
+/// Используется бизнес-логикой (синкерами) для обеспечения идемпотентности и возможности продолжения работы (resumability)
+/// в случае перезапуска приложения.
+/// </para>
 /// </summary>
 public class SyncStateRepository
 {
@@ -43,7 +51,7 @@ public class SyncStateRepository
             await _db.SyncState
                 .Where(s => s.Key == key)
                 .Set(s => s.Value, value)
-                .Set(s => s.UpdatedAt, DateTime.UtcNow)
+                .Set(s => s.UpdatedAt, DateTimeOffset.UtcNow)
                 .UpdateAsync(ct);
         }
         else
@@ -52,25 +60,25 @@ public class SyncStateRepository
             {
                 Key = key,
                 Value = value,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTimeOffset.UtcNow
             }, token: ct);
         }
     }
 
     /// <summary>
-    /// Получить DateTime по ключу
+    /// Получить DateTimeOffset по ключу
     /// </summary>
-    public async Task<DateTime?> GetDateTimeAsync(string key, CancellationToken ct = default)
+    public async Task<DateTimeOffset?> GetDateTimeOffsetAsync(string key, CancellationToken ct = default)
     {
         var value = await GetAsync(key, ct);
         if (string.IsNullOrEmpty(value)) return null;
-        return DateTime.TryParse(value, out var dt) ? dt : null;
+        return DateTimeOffset.TryParse(value, out var dt) ? dt : null;
     }
 
     /// <summary>
-    /// Установить DateTime по ключу
+    /// Установить DateTimeOffset по ключу
     /// </summary>
-    public async Task SetDateTimeAsync(string key, DateTime value, CancellationToken ct = default)
+    public async Task SetDateTimeOffsetAsync(string key, DateTimeOffset value, CancellationToken ct = default)
     {
         await SetAsync(key, value.ToString("O"), ct);
     }
@@ -128,14 +136,14 @@ public class SyncStateRepository
     /// <summary>
     /// Получить время последнего запуска задачи
     /// </summary>
-    public Task<DateTime?> GetLastRunAsync(string taskKey, CancellationToken ct = default)
-        => GetDateTimeAsync(taskKey, ct);
+    public Task<DateTimeOffset?> GetLastRunAsync(string taskKey, CancellationToken ct = default)
+        => GetDateTimeOffsetAsync(taskKey, ct);
 
     /// <summary>
     /// Установить время последнего запуска задачи
     /// </summary>
-    public Task SetLastRunAsync(string taskKey, DateTime time, CancellationToken ct = default)
-        => SetDateTimeAsync(taskKey, time, ct);
+    public Task SetLastRunAsync(string taskKey, DateTimeOffset time, CancellationToken ct = default)
+        => SetDateTimeOffsetAsync(taskKey, time, ct);
 }
 
 /// <summary>
@@ -178,4 +186,16 @@ public static class SyncStateKeys
     public const string FullReloadGoodsTotalPages = "FullReload_Goods_TotalPages";
     public const string FullReloadGoodsStartedAt = "FullReload_Goods_StartedAt";
     public const string GoodsLastFull = "Sync_Goods_LastFull";
+    public const string DailyFullResyncLastRun = "Daily_Full_Resync_LastRun";
+
+    // ========== Daily Sync Checkpoints (Genericized) ==========
+    public const string DailyGroupsComplete = "Daily_Groups_Complete";
+    public const string DailyUnitsComplete = "Daily_Units_Complete";
+    public const string DailyGoodsPage = "Daily_Goods_Page";
+    public const string DailyGoodsTotalPages = "Daily_Goods_TotalPages";
+    public const string DailyGoodsComplete = "Daily_Goods_Complete";
+    public const string DailyImagesGoodIndex = "Daily_Images_GoodIndex";
+    public const string DailyImagesComplete = "Daily_Images_Complete";
+    public const string DailyComplete = "Daily_Complete";
+    public const string DailyStartedAt = "Daily_Started_At";
 }

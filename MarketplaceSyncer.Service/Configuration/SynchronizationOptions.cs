@@ -31,5 +31,25 @@ public class SynchronizationOptions
     /// <summary>
     /// Размер страницы при загрузке товаров.
     /// </summary>
+    /// <summary>
+    /// Размер страницы при загрузке товаров.
+    /// </summary>
     public int PageSize { get; set; } = 250;
+
+    /// <summary>
+    /// Если true, при старте будет выполнен полный сброс состояния синхронизации и повторная инициальная загрузка.
+    /// Осторожно: сбрасывает все курсоры!
+    /// </summary>
+    public bool ForceInitialResync { get; set; } = false;
+
+    /// <summary>
+    /// Время запуска полной ежедневной пересинхронизации (по часовому поясу FullResyncTimeZoneOffset).
+    /// По умолчанию: 01:00.
+    /// </summary>
+    public TimeSpan DailyFullResyncTime { get; set; } = new TimeSpan(1, 0, 0);
+
+    /// <summary>
+    /// Смещение часового пояса для ежедневной пересинхронизации (по умолчанию +3 Москва).
+    /// </summary>
+    public int FullResyncTimeZoneOffset { get; set; } = 3;
 }

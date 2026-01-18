@@ -18,8 +18,8 @@ public class M0003_ImagesAndSyncSessions : Migration
             .WithColumn("ContentType").AsString(50).Nullable()
             .WithColumn("Hash").AsString(64).NotNullable()
             .WithColumn("Position").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("BusinessRuUpdatedAt").AsDateTime().Nullable()
-            .WithColumn("DownloadedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
+            .WithColumn("BusinessRuUpdatedAt").AsDateTimeOffset().Nullable()
+            .WithColumn("DownloadedAt").AsDateTimeOffset().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
 
         Create.Index("IX_good_images_GoodId").OnTable("good_images").OnColumn("GoodId");
         Create.Index("IX_good_images_Hash").OnTable("good_images").OnColumn("Hash");
@@ -28,8 +28,8 @@ public class M0003_ImagesAndSyncSessions : Migration
         Create.Table("sync_sessions")
             .WithColumn("Id").AsInt64().PrimaryKey().Identity()
             .WithColumn("SyncType").AsString(50).NotNullable() // FULL, INCREMENTAL
-            .WithColumn("StartedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime)
-            .WithColumn("CompletedAt").AsDateTime().Nullable()
+            .WithColumn("StartedAt").AsDateTimeOffset().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime)
+            .WithColumn("CompletedAt").AsDateTimeOffset().Nullable()
             .WithColumn("Status").AsString(50).NotNullable().WithDefaultValue("IN_PROGRESS") // IN_PROGRESS, COMPLETED, FAILED
             .WithColumn("ItemsFetched").AsInt32().NotNullable().WithDefaultValue(0)
             .WithColumn("ItemsProcessed").AsInt32().NotNullable().WithDefaultValue(0)
@@ -52,8 +52,8 @@ public class M0003_ImagesAndSyncSessions : Migration
             .WithColumn("EntityId").AsString(200).NotNullable()
             .WithColumn("Payload").AsCustom("JSONB").Nullable()
             .WithColumn("Status").AsString(50).NotNullable().WithDefaultValue("PENDING") // PENDING, PROCESSED, FAULTED
-            .WithColumn("CreatedAt").AsDateTime().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime)
-            .WithColumn("ProcessedAt").AsDateTime().Nullable();
+            .WithColumn("CreatedAt").AsDateTimeOffset().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime)
+            .WithColumn("ProcessedAt").AsDateTimeOffset().Nullable();
 
         Create.Index("IX_sync_events_Status").OnTable("sync_events").OnColumn("Status");
         Create.Index("IX_sync_events_CreatedAt").OnTable("sync_events").OnColumn("CreatedAt").Descending();

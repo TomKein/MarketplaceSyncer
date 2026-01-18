@@ -12,7 +12,7 @@ await GetAttributes();
 группы: groupsofgoods
 аттрибуты: attributesforgoods, attributesforgoodsvalues, goodsattributes
 справочники: countries, goodsmeasures, measures
-заказы: customerorderstatus, requestsource
+заказы: customerorderstatus, customerordergoods, customerorders, requestsource, reservations, realizations, realizationgoods
 склады: stores, storegoods
 цены: salepricetypes, salepricelists, salepricelistspricetypes, salepricelistgoods, salepricelistgoodprices
 фотки: goodsimages

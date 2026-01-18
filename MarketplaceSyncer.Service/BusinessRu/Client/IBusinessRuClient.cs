@@ -45,12 +45,12 @@ public interface IBusinessRuClient : IDisposable
         CancellationToken cancellationToken = default);
 
     Task<Good[]> GetGoodsChangedAfterAsync(
-        DateTime since,
+        DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
 
     Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
-        DateTime since,
+        DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
 

@@ -1,9 +1,17 @@
 # Business.ru API: Комментарии
+Работа с комментариями к сущностям (товары, заказы и т.д.) через универсальный эндпоинт `comments`.  
+**URL ресурса:** https://myaccount.business.ru/api/rest/comments.json  
+**Разрешенные запросы:** get(чтение), post(создание), put(изменение), delete(удаление)
 
-## Описание
-Работа с комментариями к сущностям (товары, заказы и т.д.) через универсальный эндпоинт `comments`.
-
-URL: `https://{account}.business.ru/api/rest/comments.json`
+| Параметр | Тип | Обязателен в запросах | Внешний ключ к модели | Значение по умолчанию | Описание |
+| --- | --- | --- | --- | --- | --- |
+| id  | int | delete, put |     |     | Идентификатор |
+| model\_name | string | post, put |     |     | Название модели |
+| time\_create | datetime |     |     |     | Дата и время создания |
+| document\_id | int | post, put |     |     | Идентификатор документа |
+| employee\_id | int | post | [employees](https://api-online.class365.ru/api-polnoe/spisok_sotrudnikov_employees/343) |     | Ссылка на автора комментария |
+| note | string | post |     |     | Комментарий |
+| updated | datetime |     |     |     | Время последнего обновления |
 
 ## Особенности реализации
 1.  **Универсальность**: Эндпоинт один для всех моделей, различается параметром `model_name`.

@@ -29,6 +29,21 @@ public class SyncOrchestrator : BackgroundService
     {
         _logger.LogInformation("SyncOrchestrator запущен");
 
+        // [Startup] Проверка принудительного сброса (Force Initial Resync)
+        if (_options.ForceInitialResync)
+        {
+            _logger.LogWarning("⚠️ ВКЛЮЧЕН FORCE INITIAL RESYNC (как Daily)! Сброс Daily состояния...");
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var initialSync = scope.ServiceProvider.GetRequiredService<InitialSyncRunner>();
+                var state = scope.ServiceProvider.GetRequiredService<SyncStateRepository>();
+                
+                await initialSync.ResetDailyProgressAsync(stoppingToken);
+                // Сбрасываем StartedAt, чтобы цикл сразу подхватил как "нужно начать"
+                await state.SetAsync(SyncStateKeys.DailyStartedAt, null, stoppingToken);
+            }
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             TimeSpan? waitTime = null;
@@ -42,16 +57,55 @@ public class SyncOrchestrator : BackgroundService
                     var references = scope.ServiceProvider.GetRequiredService<ReferenceSyncer>();
                     var goods = scope.ServiceProvider.GetRequiredService<GoodsSyncer>();
 
-                    // 🔴 HIGH: блокирующая инициальная загрузка
-                    if (!await initialSync.IsCompleteAsync(stoppingToken))
+                    // 1. Проверяем состояние Daily Sync
+                    var dailyStartedAt = await state.GetDateTimeOffsetAsync(SyncStateKeys.DailyStartedAt, stoppingToken);
+                    var isDailyComplete = await state.GetBoolAsync(SyncStateKeys.DailyComplete, false, stoppingToken);
+                    
+                    var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(_options.FullResyncTimeZoneOffset));
+                    var todayTargetTime = now.Date.Add(_options.DailyFullResyncTime); // Сегодня 1:00
+                    if (now < todayTargetTime) todayTargetTime = todayTargetTime.AddDays(-1); // Или вчера 1:00
+
+                    bool startNewDaily = false;
+                    bool continueDaily = false;
+
+                    // Если еще не начинали сегодня (или вообще никогда) — пора начинать?
+                    if (dailyStartedAt == null || dailyStartedAt.Value < todayTargetTime)
+                    {
+                        // Пора начинать новый цикл
+                        startNewDaily = true;
+                    }
+                    else if (!isDailyComplete)
+                    {
+                        // Начали сегодня, но не закончили (падали или просто идем)
+                        continueDaily = true;
+                    }
+
+                    if (startNewDaily)
+                    {
+                        _logger.LogInformation("🕒 Наступило время Ежедневного Ресинка. Запуск...");
+                        await initialSync.ResetDailyProgressAsync(stoppingToken);
+                        await state.SetLastRunAsync(SyncStateKeys.DailyStartedAt, DateTimeOffset.UtcNow, stoppingToken);
+                        
+                        await initialSync.RunDailyAsync(stoppingToken);
+                        waitTime = TimeSpan.Zero;
+                    }
+                    else if (continueDaily)
+                    {
+                        _logger.LogInformation("🔄 Продолжение Ежедневного Ресинка...");
+                        await initialSync.RunDailyAsync(stoppingToken);
+                        waitTime = TimeSpan.Zero;
+                    }
+                    // 🔴 HIGH: блокирующая инициальная загрузка (только если вообще чистая база)
+                    else if (!await initialSync.IsCompleteAsync(stoppingToken))
                     {
                         await initialSync.RunAsync(stoppingToken);
-                        waitTime = TimeSpan.Zero; // Сразу проверяем дальше
+                        waitTime = TimeSpan.Zero; 
                     }
+
                     // 🟡 MEDIUM: проверяем просроченные incremental задачи
                     else if (await RunDueIncrementalTasksAsync(state, references, goods, stoppingToken))
                     {
-                        waitTime = TimeSpan.Zero; // Сразу проверяем дальше
+                        waitTime = TimeSpan.Zero; 
                     }
                     // 🟢 LOW: работаем над full reload в свободное время
                     else if (await goods.HasPendingFullReloadWorkAsync(stoppingToken))
@@ -91,6 +145,8 @@ public class SyncOrchestrator : BackgroundService
         _logger.LogInformation("SyncOrchestrator остановлен");
     }
 
+
+
     /// <summary>
     /// 🟡 MEDIUM: Выполнить просроченные incremental задачи
     /// </summary>
@@ -102,20 +158,20 @@ public class SyncOrchestrator : BackgroundService
     {
         var anyExecuted = false;
 
-        // Товары delta
-        if (await IsGoodsDeltaDueAsync(state, ct))
-        {
-            _logger.LogInformation("🟡 Запуск delta sync товаров...");
-            await goods.RunDeltaSyncAsync(ct);
-            anyExecuted = true;
-        }
-
         // Справочники (раз в день)
         if (await IsReferencesDueAsync(state, ct))
         {
             _logger.LogInformation("🟡 Запуск sync справочников...");
             await references.RunFullSyncAsync(ct);
-            await state.SetLastRunAsync(SyncStateKeys.ReferencesLastRun, DateTime.UtcNow, ct);
+            await state.SetLastRunAsync(SyncStateKeys.ReferencesLastRun, DateTimeOffset.UtcNow, ct);
+            anyExecuted = true;
+        }
+
+        // Товары delta
+        if (await IsGoodsDeltaDueAsync(state, ct))
+        {
+            _logger.LogInformation("🟡 Запуск delta sync товаров...");
+            await goods.RunDeltaSyncAsync(ct);
             anyExecuted = true;
         }
 
@@ -126,14 +182,14 @@ public class SyncOrchestrator : BackgroundService
     {
         var lastRun = await state.GetLastRunAsync(SyncStateKeys.GoodsLastDelta, ct);
         if (lastRun == null) return true;
-        return DateTime.UtcNow - lastRun.Value >= _options.GoodsDeltaInterval;
+        return DateTimeOffset.UtcNow - lastRun.Value >= _options.GoodsDeltaInterval;
     }
 
     private async Task<bool> IsReferencesDueAsync(SyncStateRepository state, CancellationToken ct)
     {
         var lastRun = await state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
         if (lastRun == null) return true;
-        return DateTime.UtcNow - lastRun.Value >= _options.ReferencesInterval;
+        return DateTimeOffset.UtcNow - lastRun.Value >= _options.ReferencesInterval;
     }
 
     private async Task<TimeSpan> CalculateNextWaitTimeAsync(SyncStateRepository state, CancellationToken ct)
@@ -145,7 +201,7 @@ public class SyncOrchestrator : BackgroundService
         if (goodsLastRun != null)
         {
             var nextRun = goodsLastRun.Value + _options.GoodsDeltaInterval;
-            var remaining = nextRun - DateTime.UtcNow;
+            var remaining = nextRun - DateTimeOffset.UtcNow;
             if (remaining > TimeSpan.Zero)
                 waitTimes.Add(remaining);
         }
@@ -155,7 +211,7 @@ public class SyncOrchestrator : BackgroundService
         if (refsLastRun != null)
         {
             var nextRun = refsLastRun.Value + _options.ReferencesInterval;
-            var remaining = nextRun - DateTime.UtcNow;
+            var remaining = nextRun - DateTimeOffset.UtcNow;
             if (remaining > TimeSpan.Zero)
                 waitTimes.Add(remaining);
         }

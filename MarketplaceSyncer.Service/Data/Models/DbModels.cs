@@ -8,12 +8,17 @@ public class Group
     [PrimaryKey, NotNull] public long Id { get; set; }
     [Column, NotNull] public required string Name { get; set; }
     [Column, Nullable] public long? ParentId { get; set; }
-    [Column, Nullable] public DateTime? BusinessRuUpdatedAt { get; set; }
+    
+    [Column, Nullable] public string? Description { get; set; }
+    [Column, Nullable] public int? DefaultOrder { get; set; }
+    [Column, NotNull] public bool IsDeleted { get; set; }
+
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
     
     [Column(DataType = LinqToDB.DataType.BinaryJson), Nullable] 
     public string? RawData { get; set; }
     
-    [Column, NotNull] public DateTime LastSyncedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
 }
 
 [Table("units")]
@@ -24,7 +29,7 @@ public class Unit
     [Column, Nullable] public string? FullName { get; set; }
     [Column, Nullable] public string? Code { get; set; }
     
-    [Column, NotNull] public DateTime LastSyncedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
 }
 
 [Table("goods")]
@@ -47,9 +52,9 @@ public class Good
     
     [Column, NotNull] public int SyncStatus { get; set; }
     [Column, Nullable] public string? DataHash { get; set; }
-    [Column, Nullable] public DateTime? LastSyncedAt { get; set; }
-    [Column, Nullable] public DateTime? BusinessRuUpdatedAt { get; set; }
-    [Column, NotNull] public DateTime InternalUpdatedAt { get; set; }
+    [Column, Nullable] public DateTimeOffset? LastSyncedAt { get; set; }
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset InternalUpdatedAt { get; set; }
     
     [Column(DataType = LinqToDB.DataType.BinaryJson), Nullable] 
     public string? RawData { get; set; }
@@ -75,8 +80,8 @@ public class Store
     [Column, Nullable] public long? ResponsibleEmployeeId { get; set; }
     [Column, Nullable] public int? DebitType { get; set; }
     
-    [Column, Nullable] public DateTime? BusinessRuUpdatedAt { get; set; }
-    [Column, NotNull] public DateTime LastSyncedAt { get; set; }
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
 }
 
 [Table("store_goods")]
@@ -92,8 +97,8 @@ public class StoreGood
     [Column, NotNull] public decimal Reserved { get; set; }
     [Column, NotNull] public decimal RemainsMin { get; set; }
     
-    [Column, Nullable] public DateTime? BusinessRuUpdatedAt { get; set; }
-    [Column, NotNull] public DateTime LastSyncedAt { get; set; }
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
 
     [Association(ThisKey = nameof(StoreId), OtherKey = nameof(Models.Store.Id))]
     public Store? Store { get; set; }

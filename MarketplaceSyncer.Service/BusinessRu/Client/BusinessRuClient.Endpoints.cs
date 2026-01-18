@@ -226,7 +226,7 @@ public sealed partial class BusinessRuClient
     /// Получить товары, изменённые после указанной даты (инкрементальная синхронизация)
     /// </summary>
     public async Task<Good[]> GetGoodsChangedAfterAsync(
-        DateTime since,
+        DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
@@ -268,7 +268,7 @@ public sealed partial class BusinessRuClient
     /// Получить товары с изменёнными ценами/остатками после указанной даты
     /// </summary>
     public async Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
-        DateTime since,
+        DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {

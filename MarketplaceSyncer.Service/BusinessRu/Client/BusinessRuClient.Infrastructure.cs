@@ -78,7 +78,7 @@ public sealed partial class BusinessRuClient
 
         var (statusCode, payload) = await SendRequestAsync(method, endpoint, request, ct);
 
-        if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
+        if (statusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             _token = string.Empty;
             throw new UnauthorizedAccessException($"Ошибка авторизации: {statusCode}");
@@ -122,7 +122,7 @@ public sealed partial class BusinessRuClient
 
         var (statusCode, payload) = await SendRequestAsync(method, endpoint, request, ct);
 
-        if (statusCode == HttpStatusCode.Unauthorized || statusCode == HttpStatusCode.Forbidden)
+        if (statusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             _token = string.Empty;
             throw new UnauthorizedAccessException($"Ошибка авторизации: {statusCode}");
