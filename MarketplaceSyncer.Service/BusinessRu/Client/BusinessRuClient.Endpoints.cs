@@ -9,12 +9,12 @@ namespace MarketplaceSyncer.Service.BusinessRu.Client;
 /// </summary>
 public sealed partial class BusinessRuClient
 {
-    public async Task<Good[]> GetGoodsAsync(
+    public async Task<GoodResponse[]> GetGoodsAsync(
         long? businessId = null,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
-        var allGoods = new List<Good>();
+        var allGoods = new List<GoodResponse>();
         int page = 1;
 
         while (true)
@@ -36,7 +36,7 @@ public sealed partial class BusinessRuClient
             if (!includeArchived)
                 request["archive"] = "0";
 
-            var result = await RequestAsync<Dictionary<string, string>, Good[]>(
+            var result = await RequestAsync<Dictionary<string, string>, GoodResponse[]>(
                 HttpMethod.Get, "goods", request, cancellationToken);
 
             if (result.Length == 0) break;
@@ -225,12 +225,12 @@ public sealed partial class BusinessRuClient
     /// <summary>
     /// Получить товары, изменённые после указанной даты (инкрементальная синхронизация)
     /// </summary>
-    public async Task<Good[]> GetGoodsChangedAfterAsync(
+    public async Task<GoodResponse[]> GetGoodsChangedAfterAsync(
         DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
-        var allGoods = new List<Good>();
+        var allGoods = new List<GoodResponse>();
         int page = 1;
 
         while (true)
@@ -250,7 +250,7 @@ public sealed partial class BusinessRuClient
             if (!includeArchived)
                 request["archive"] = "0";
 
-            var result = await RequestAsync<Dictionary<string, string>, Good[]>(
+            var result = await RequestAsync<Dictionary<string, string>, GoodResponse[]>(
                 HttpMethod.Get, "goods", request, cancellationToken);
 
             if (result.Length == 0) break;
@@ -267,12 +267,12 @@ public sealed partial class BusinessRuClient
     /// <summary>
     /// Получить товары с изменёнными ценами/остатками после указанной даты
     /// </summary>
-    public async Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
+    public async Task<GoodResponse[]> GetGoodsWithPriceChangesAfterAsync(
         DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default)
     {
-        var allGoods = new List<Good>();
+        var allGoods = new List<GoodResponse>();
         int page = 1;
 
         while (true)
@@ -292,7 +292,7 @@ public sealed partial class BusinessRuClient
             if (!includeArchived)
                 request["archive"] = "0";
 
-            var result = await RequestAsync<Dictionary<string, string>, Good[]>(
+            var result = await RequestAsync<Dictionary<string, string>, GoodResponse[]>(
                 HttpMethod.Get, "goods", request, cancellationToken);
 
             if (result.Length == 0) break;
@@ -376,9 +376,9 @@ public sealed partial class BusinessRuClient
 
 
 
-    public async Task<Store[]> GetStoresAsync(CancellationToken cancellationToken = default)
+    public async Task<StoreResponse[]> GetStoresAsync(CancellationToken cancellationToken = default)
     {
-        var all = new List<Store>();
+        var all = new List<StoreResponse>();
         int page = 1;
 
         while (true)
@@ -389,7 +389,7 @@ public sealed partial class BusinessRuClient
                 ["page"] = page.ToString()
             };
 
-            var result = await RequestAsync<Dictionary<string, string>, Store[]>(
+            var result = await RequestAsync<Dictionary<string, string>, StoreResponse[]>(
                 HttpMethod.Get, "stores", request, cancellationToken);
 
             if (result.Length == 0) break;
@@ -403,11 +403,11 @@ public sealed partial class BusinessRuClient
         return all.ToArray();
     }
 
-    public async Task<StoreGood[]> GetStoreGoodsAsync(
+    public async Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
         CancellationToken cancellationToken = default)
     {
-        var all = new List<StoreGood>();
+        var all = new List<StoreGoodResponse>();
         int page = 1;
 
         while (true)
@@ -421,7 +421,7 @@ public sealed partial class BusinessRuClient
             if (storeId.HasValue)
                 request["store_id"] = storeId.Value.ToString();
 
-            var result = await RequestAsync<Dictionary<string, string>, StoreGood[]>(
+            var result = await RequestAsync<Dictionary<string, string>, StoreGoodResponse[]>(
                 HttpMethod.Get, "storegoods", request, cancellationToken);
 
             if (result.Length == 0) break;

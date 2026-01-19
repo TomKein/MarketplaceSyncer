@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Data;
 using MarketplaceSyncer.Service.Data.Models;
+using Attribute = MarketplaceSyncer.Service.Data.Models.Attribute;
 
 namespace MarketplaceSyncer.Service.Data;
 
@@ -19,4 +20,7 @@ public class AppDataConnection : DataConnection
     public ITable<SyncEvent> SyncEvents => this.GetTable<SyncEvent>();
     public ITable<Store> Stores => this.GetTable<Store>();
     public ITable<StoreGood> StoreGoods => this.GetTable<StoreGood>();
+    public ITable<Attribute> Attributes => this.GetTable<Attribute>();
+    public ITable<AttributeValue> AttributeValues => this.GetTable<AttributeValue>();
+    public ITable<GoodAttribute> GoodAttributes => this.GetTable<GoodAttribute>();
 }

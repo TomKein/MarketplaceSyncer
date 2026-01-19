@@ -6,7 +6,7 @@ namespace MarketplaceSyncer.Service.BusinessRu.Client;
 
 public interface IBusinessRuClient : IDisposable
 {
-    Task<Good[]> GetGoodsAsync(
+    Task<GoodResponse[]> GetGoodsAsync(
         long? businessId = null,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
@@ -44,12 +44,12 @@ public interface IBusinessRuClient : IDisposable
         decimal price,
         CancellationToken cancellationToken = default);
 
-    Task<Good[]> GetGoodsChangedAfterAsync(
+    Task<GoodResponse[]> GetGoodsChangedAfterAsync(
         DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
 
-    Task<Good[]> GetGoodsWithPriceChangesAfterAsync(
+    Task<GoodResponse[]> GetGoodsWithPriceChangesAfterAsync(
         DateTimeOffset since,
         bool includeArchived = false,
         CancellationToken cancellationToken = default);
@@ -74,9 +74,9 @@ public interface IBusinessRuClient : IDisposable
         long? goodId = null,
         CancellationToken cancellationToken = default);
 
-    Task<Store[]> GetStoresAsync(CancellationToken cancellationToken = default);
+    Task<StoreResponse[]> GetStoresAsync(CancellationToken cancellationToken = default);
 
-    Task<StoreGood[]> GetStoreGoodsAsync(
+    Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
         CancellationToken cancellationToken = default);
 

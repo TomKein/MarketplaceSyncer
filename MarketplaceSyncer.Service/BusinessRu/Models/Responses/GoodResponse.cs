@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 
-public sealed record Good(
+public sealed record GoodResponse(
     [property: JsonPropertyName("id")] 
     long Id,
     
@@ -25,7 +25,7 @@ public sealed record Good(
     object? Remains = null,
     
     [property: JsonPropertyName("attributes")]
-    object? Attributes = null,
+    GoodAttributeResponse[]? Attributes = null,
     
     [property: JsonPropertyName("images")]
     GoodImageResponse[]? Images = null);

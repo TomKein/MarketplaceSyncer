@@ -6,7 +6,7 @@ using MarketplaceSyncer.Service.Configuration;
 using MarketplaceSyncer.Service.Data;
 using MarketplaceSyncer.Service.Data.Models;
 using Microsoft.Extensions.Options;
-using ApiGood = MarketplaceSyncer.Service.BusinessRu.Models.Responses.Good;
+using ApiGood = MarketplaceSyncer.Service.BusinessRu.Models.Responses.GoodResponse;
 
 namespace MarketplaceSyncer.Service.Services;
 
@@ -135,16 +135,13 @@ public class GoodsSyncer
         }
 
         // Проверяем завершение цикла
-        if (currentPage > totalPages)
-        {
-            await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
-            await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
-            await _state.SetLastRunAsync(SyncStateKeys.GoodsLastFull, DateTimeOffset.UtcNow, ct);
-            _logger.LogInformation("Full reload завершён!");
-            return false; // Больше нет работы
-        }
+        if (currentPage <= totalPages) return true; // Есть ещё работа
+        await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
+        await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
+        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastFull, DateTimeOffset.UtcNow, ct);
+        _logger.LogInformation("Full reload завершён!");
+        return false; // Больше нет работы
 
-        return true; // Есть ещё работа
     }
 
     /// <summary>
@@ -211,6 +208,61 @@ public class GoodsSyncer
                 LastSyncedAt = DateTimeOffset.UtcNow,
                 InternalUpdatedAt = DateTimeOffset.UtcNow
             }, token: ct);
+        }
+
+        // --- Process Attributes (Inline) ---
+        if (apiGood.Attributes is { Length: > 0 })
+        {
+            var existingLinks = await _db.GoodAttributes.Where(ga => ga.GoodId == id).ToListAsync(ct);
+            var existingMap = existingLinks.ToDictionary(gl => gl.Id); // ID from API
+            
+            foreach (var attr in apiGood.Attributes)
+            {
+                if (existingMap.TryGetValue(attr.Id, out _))
+                {
+                    // Update
+                    await _db.GoodAttributes
+                        .Where(gl => gl.Id == attr.Id)
+                        .Set(gl => gl.AttributeId, attr.AttributeId)
+                        .Set(gl => gl.ValueId, attr.ValueId)
+                        .Set(gl => gl.Value, attr.Value)
+                        .Set(gl => gl.BusinessRuUpdatedAt, attr.Updated)
+                        .Set(gl => gl.LastSyncedAt, DateTimeOffset.UtcNow)
+                        .UpdateAsync(ct);
+                        
+                    existingMap.Remove(attr.Id);
+                }
+                else
+                {
+                    // Insert
+                    try 
+                    {
+                        await _db.InsertAsync(new GoodAttribute
+                        {
+                            Id = attr.Id,
+                            GoodId = id,
+                            AttributeId = attr.AttributeId,
+                            ValueId = attr.ValueId,
+                            Value = attr.Value,
+                            BusinessRuUpdatedAt = attr.Updated,
+                            LastSyncedAt = DateTimeOffset.UtcNow
+                        }, token: ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to insert GoodAttribute {Id} for Good {GoodId}", attr.Id, id);
+                    }
+                }
+            }
+            
+            // Delete leftovers
+            if (existingMap.Count > 0)
+            {
+                 foreach (var key in existingMap.Keys)
+                 {
+                     await _db.GoodAttributes.Where(gl => gl.Id == key).DeleteAsync(ct);
+                 }
+            }
         }
     }
 

@@ -155,6 +155,9 @@ public static class SyncStateKeys
     /// <summary>Флаг: группы загружены</summary>
     public const string InitialGroupsComplete = "Initial_Groups_Complete";
     
+    /// <summary>Флаг: атрибуты загружены</summary>
+    public const string InitialAttributesComplete = "Initial_Attributes_Complete";
+    
     /// <summary>Флаг: единицы загружены</summary>
     public const string InitialUnitsComplete = "Initial_Units_Complete";
     
@@ -170,8 +173,13 @@ public static class SyncStateKeys
     /// <summary>Индекс текущего товара для загрузки изображений</summary>
     public const string InitialImagesGoodIndex = "Initial_Images_GoodIndex";
     
+    /// <summary>Флаг: связи атрибутов (goodsattributes) загружены</summary>
+    public const string InitialGoodAttributesComplete = "Initial_GoodAttributes_Complete";
+
     /// <summary>Флаг: все изображения загружены</summary>
     public const string InitialImagesComplete = "Initial_Images_Complete";
+    
+    // ...
     
     /// <summary>Флаг: вся инициальная синхронизация завершена</summary>
     public const string InitialComplete = "Initial_Complete";
@@ -190,6 +198,7 @@ public static class SyncStateKeys
 
     // ========== Daily Sync Checkpoints (Genericized) ==========
     public const string DailyGroupsComplete = "Daily_Groups_Complete";
+    public const string DailyAttributesComplete = "Daily_Attributes_Complete";
     public const string DailyUnitsComplete = "Daily_Units_Complete";
     public const string DailyGoodsPage = "Daily_Goods_Page";
     public const string DailyGoodsTotalPages = "Daily_Goods_TotalPages";

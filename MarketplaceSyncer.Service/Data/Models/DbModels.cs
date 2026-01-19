@@ -106,3 +106,55 @@ public class StoreGood
     [Association(ThisKey = nameof(GoodId), OtherKey = nameof(Models.Good.Id))]
     public Good? Good { get; set; }
 }
+
+[Table("attributes")]
+public class Attribute
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public required string Name { get; set; }
+    [Column, NotNull] public bool Selectable { get; set; }
+    [Column, NotNull] public bool Archive { get; set; }
+    [Column, Nullable] public string? Description { get; set; }
+    [Column, NotNull] public long Sort { get; set; }
+    [Column, NotNull] public bool Deleted { get; set; }
+    
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}
+
+[Table("attribute_values")]
+public class AttributeValue
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public long AttributeId { get; set; }
+    [Column, NotNull] public required string Name { get; set; }
+    [Column, NotNull] public long Sort { get; set; }
+    
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+
+    [Association(ThisKey = nameof(AttributeId), OtherKey = nameof(Models.Attribute.Id))]
+    public Attribute? Attribute { get; set; }
+}
+
+[Table("good_attributes")]
+public class GoodAttribute
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public long GoodId { get; set; }
+    [Column, NotNull] public long AttributeId { get; set; }
+    [Column, Nullable] public long? ValueId { get; set; }
+    [Column, Nullable] public string? Value { get; set; }
+    
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+
+    [Association(ThisKey = nameof(GoodId), OtherKey = nameof(Models.Good.Id))]
+    public Good? Good { get; set; }
+
+    [Association(ThisKey = nameof(AttributeId), OtherKey = nameof(Models.Attribute.Id))]
+    public Attribute? Attribute { get; set; }
+    
+    [Association(ThisKey = nameof(ValueId), OtherKey = nameof(Models.AttributeValue.Id))]
+    public AttributeValue? AttributeValue { get; set; }
+}

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 
-public sealed record Store(
+public sealed record StoreResponse(
     [property: JsonPropertyName("id")]
     long Id,
 

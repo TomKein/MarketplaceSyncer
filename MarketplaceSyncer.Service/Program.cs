@@ -27,6 +27,7 @@ builder.Services.AddHttpClient<ImageSyncService>();
 builder.Services.AddScoped<SyncStateRepository>();
 builder.Services.AddScoped<ISyncStateService, SyncStateService>();
 builder.Services.AddScoped<ReferenceSyncer>();
+builder.Services.AddScoped<AttributeSyncer>();
 builder.Services.AddScoped<GoodsSyncer>();
 builder.Services.AddScoped<InitialSyncRunner>();
 

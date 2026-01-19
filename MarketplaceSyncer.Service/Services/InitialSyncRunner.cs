@@ -11,6 +11,7 @@ public class InitialSyncRunner
 {
     private readonly SyncStateRepository _state;
     private readonly ReferenceSyncer _references;
+    private readonly AttributeSyncer _attributes;
     private readonly GoodsSyncer _goods;
     private readonly ImageSyncService _images;
     private readonly SynchronizationOptions _options;
@@ -19,6 +20,7 @@ public class InitialSyncRunner
     public InitialSyncRunner(
         SyncStateRepository state,
         ReferenceSyncer references,
+        AttributeSyncer attributes,
         GoodsSyncer goods,
         ImageSyncService images,
         IOptions<SynchronizationOptions> options,
@@ -26,6 +28,7 @@ public class InitialSyncRunner
     {
         _state = state;
         _references = references;
+        _attributes = attributes;
         _goods = goods;
         _images = images;
         _options = options.Value;
@@ -46,6 +49,7 @@ public class InitialSyncRunner
         await _state.SetBoolAsync(SyncStateKeys.InitialComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.InitialGroupsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.InitialAttributesComplete, false, ct);
         await _state.SetBoolAsync(SyncStateKeys.InitialUnitsComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.InitialGoodsComplete, false, ct);
@@ -66,6 +70,7 @@ public class InitialSyncRunner
         await _state.SetBoolAsync(SyncStateKeys.DailyComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.DailyGroupsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.DailyAttributesComplete, false, ct);
         await _state.SetBoolAsync(SyncStateKeys.DailyUnitsComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.DailyGoodsComplete, false, ct);
@@ -87,6 +92,7 @@ public class InitialSyncRunner
 
         await RunGenericSyncAsync(
             groupsCompleteKey: SyncStateKeys.InitialGroupsComplete,
+            attributesCompleteKey: SyncStateKeys.InitialAttributesComplete,
             unitsCompleteKey: SyncStateKeys.InitialUnitsComplete,
             goodsCompleteKey: SyncStateKeys.InitialGoodsComplete,
             goodsPageKey: SyncStateKeys.InitialGoodsPage,
@@ -109,6 +115,7 @@ public class InitialSyncRunner
 
         await RunGenericSyncAsync(
             groupsCompleteKey: SyncStateKeys.DailyGroupsComplete,
+            attributesCompleteKey: SyncStateKeys.DailyAttributesComplete,
             unitsCompleteKey: SyncStateKeys.DailyUnitsComplete,
             goodsCompleteKey: SyncStateKeys.DailyGoodsComplete,
             goodsPageKey: SyncStateKeys.DailyGoodsPage,
@@ -127,6 +134,7 @@ public class InitialSyncRunner
 
     private async Task RunGenericSyncAsync(
         string groupsCompleteKey,
+        string attributesCompleteKey,
         string unitsCompleteKey,
         string goodsCompleteKey,
         string goodsPageKey,
@@ -140,47 +148,60 @@ public class InitialSyncRunner
         // Step 1: Группы
         if (!await _state.GetBoolAsync(groupsCompleteKey, false, ct))
         {
-            _logger.LogInformation("[Step 1/4] Загрузка групп...");
+            _logger.LogInformation("[Step 1/5] Загрузка групп...");
             await _references.SyncGroupsAsync(ct);
             await _state.SetBoolAsync(groupsCompleteKey, true, ct);
-            _logger.LogInformation("[Step 1/4] ✓ Группы загружены");
+            _logger.LogInformation("[Step 1/5] ✓ Группы загружены");
         }
         else
         {
-            _logger.LogInformation("[Step 1/4] ✓ Группы уже загружены, пропускаем");
+            _logger.LogInformation("[Step 1/5] ✓ Группы уже загружены, пропускаем");
         }
 
-        // Step 2: Единицы
+        // Step 2: Атрибуты
+        if (!await _state.GetBoolAsync(attributesCompleteKey, false, ct))
+        {
+            _logger.LogInformation("[Step 2/5] Загрузка атрибутов и значений...");
+            await _attributes.SyncAttributesAndValuesAsync(ct);
+            await _state.SetBoolAsync(attributesCompleteKey, true, ct);
+            _logger.LogInformation("[Step 2/5] ✓ Атрибуты загружены");
+        }
+        else
+        {
+            _logger.LogInformation("[Step 2/5] ✓ Атрибуты уже загружены, пропускаем");
+        }
+
+        // Step 3: Единицы
         if (!await _state.GetBoolAsync(unitsCompleteKey, false, ct))
         {
-            _logger.LogInformation("[Step 2/4] Загрузка единиц измерения...");
+            _logger.LogInformation("[Step 3/5] Загрузка единиц измерения...");
             await _references.SyncUnitsAsync(ct);
             await _state.SetBoolAsync(unitsCompleteKey, true, ct);
-            _logger.LogInformation("[Step 2/4] ✓ Единицы загружены");
+            _logger.LogInformation("[Step 3/5] ✓ Единицы загружены");
         }
         else
         {
-            _logger.LogInformation("[Step 2/4] ✓ Единицы уже загружены, пропускаем");
+            _logger.LogInformation("[Step 3/5] ✓ Единицы уже загружены, пропускаем");
         }
 
-        // Step 3: Товары (с пагинацией)
+        // Step 4: Товары (с пагинацией)
         if (!await _state.GetBoolAsync(goodsCompleteKey, false, ct))
         {
             await SyncGoodsGenericAsync(goodsPageKey, goodsTotalPagesKey, goodsCompleteKey, ct);
         }
         else
         {
-            _logger.LogInformation("[Step 3/4] ✓ Товары уже загружены, пропускаем");
+            _logger.LogInformation("[Step 4/6] ✓ Товары уже загружены, пропускаем");
         }
 
-        // Step 4: Изображения
+        // Step 5: Изображения
         if (!await _state.GetBoolAsync(imagesCompleteKey, false, ct))
         {
             await SyncImagesGenericAsync(imagesIndexKey, imagesCompleteKey, ct);
         }
         else
         {
-            _logger.LogInformation("[Step 4/4] ✓ Изображения уже загружены, пропускаем");
+            _logger.LogInformation("[Step 5/5] ✓ Изображения уже загружены, пропускаем");
         }
 
         // Финальный флаг
@@ -190,7 +211,7 @@ public class InitialSyncRunner
 
     private async Task SyncGoodsGenericAsync(string pageKey, string totalPagesKey, string completeKey, CancellationToken ct)
     {
-        _logger.LogInformation("[Step 3/4] Загрузка товаров...");
+        _logger.LogInformation("[Step 4/5] Загрузка товаров...");
 
         // Инициализация общего количества страниц (если ещё не сделано)
         var totalPages = await _state.GetIntAsync(totalPagesKey, 0, ct);
@@ -199,7 +220,7 @@ public class InitialSyncRunner
             var totalCount = await _goods.GetTotalCountAsync(ct);
             totalPages = (int)Math.Ceiling(totalCount / (double)_options.PageSize);
             await _state.SetIntAsync(totalPagesKey, totalPages, ct);
-            _logger.LogInformation("[Step 3/4] Всего товаров: {Count}, страниц: {Pages}", totalCount, totalPages);
+            _logger.LogInformation("[Step 4/5] Всего товаров: {Count}, страниц: {Pages}", totalCount, totalPages);
         }
 
         // Получаем текущую страницу (начинаем с 1)
@@ -209,7 +230,7 @@ public class InitialSyncRunner
         {
             ct.ThrowIfCancellationRequested();
 
-            _logger.LogInformation("[Step 3/4] Страница {Page}/{Total}...", currentPage, totalPages);
+            _logger.LogInformation("[Step 4/5] Страница {Page}/{Total}...", currentPage, totalPages);
             
             await _goods.LoadAndSavePageAsync(currentPage, ct);
             
@@ -219,12 +240,12 @@ public class InitialSyncRunner
         }
 
         await _state.SetBoolAsync(completeKey, true, ct);
-        _logger.LogInformation("[Step 3/4] ✓ Все товары загружены ({Pages} страниц)", totalPages);
+        _logger.LogInformation("[Step 4/5] ✓ Все товары загружены ({Pages} страниц)", totalPages);
     }
 
     private async Task SyncImagesGenericAsync(string indexKey, string completeKey, CancellationToken ct)
     {
-        _logger.LogInformation("[Step 4/4] Загрузка изображений...");
+        _logger.LogInformation("[Step 5/5] Загрузка изображений...");
 
         // Получаем список ID товаров из БД
         var goodIds = await _goods.GetAllGoodIdsAsync(ct);
@@ -233,7 +254,7 @@ public class InitialSyncRunner
         // Получаем индекс, с которого продолжаем
         var startIndex = await _state.GetIntAsync(indexKey, 0, ct);
         
-        _logger.LogInformation("[Step 4/4] Товаров: {Total}, начинаем с индекса: {Index}", 
+        _logger.LogInformation("[Step 5/5] Товаров: {Total}, начинаем с индекса: {Index}", 
             totalGoods, startIndex);
 
         for (var i = startIndex; i < totalGoods; i++)
@@ -248,18 +269,18 @@ public class InitialSyncRunner
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[Step 4/4] Ошибка загрузки изображений для товара {GoodId}, пропускаем", goodId);
+                _logger.LogWarning(ex, "[Step 5/5] Ошибка загрузки изображений для товара {GoodId}, пропускаем", goodId);
             }
 
             // Сохраняем прогресс каждые 10 товаров
             if ((i + 1) % 10 == 0)
             {
                 await _state.SetIntAsync(indexKey, i + 1, ct);
-                _logger.LogDebug("[Step 4/4] Прогресс: {Current}/{Total}", i + 1, totalGoods);
+                _logger.LogDebug("[Step 5/5] Прогресс: {Current}/{Total}", i + 1, totalGoods);
             }
         }
 
         await _state.SetBoolAsync(completeKey, true, ct);
-        _logger.LogInformation("[Step 4/4] ✓ Все изображения загружены ({Count} товаров)", totalGoods);
+        _logger.LogInformation("[Step 5/5] ✓ Все изображения загружены ({Count} товаров)", totalGoods);
     }
 }

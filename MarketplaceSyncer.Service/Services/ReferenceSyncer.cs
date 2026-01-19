@@ -1,10 +1,10 @@
+using System.Text.Json;
 using LinqToDB;
 using LinqToDB.Async;
 using MarketplaceSyncer.Service.BusinessRu.Client;
+using MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 using MarketplaceSyncer.Service.Data;
 using MarketplaceSyncer.Service.Data.Models;
-using System.Text.Json;
-using MarketplaceSyncer.Service.BusinessRu.Models.Responses;
 
 namespace MarketplaceSyncer.Service.Services;
 
