@@ -10,16 +10,16 @@ public sealed record SalePriceType(
     string Name,
     
     [property: JsonPropertyName("responsible_employee_id")] 
-    string? ResponsibleEmployeeId = null,
+    long? ResponsibleEmployeeId = null,
     
     [property: JsonPropertyName("organization_id")] 
-    string? OrganizationId = null,
+    long? OrganizationId = null,
     
     [property: JsonPropertyName("currency_id")] 
-    string? CurrencyId = null,
+    long? CurrencyId = null,
     
     [property: JsonPropertyName("owner_employee_id")] 
-    string? OwnerEmployeeId = null,
+    long? OwnerEmployeeId = null,
     
     [property: JsonPropertyName("archive")] 
     bool Archive = false);

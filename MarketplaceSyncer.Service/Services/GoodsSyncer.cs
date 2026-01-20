@@ -262,6 +262,74 @@ public class GoodsSyncer
                  {
                      await _db.GoodAttributes.Where(gl => gl.Id == key).DeleteAsync(ct);
                  }
+        }
+        }
+
+        // --- Process Prices ---
+        // --- Process Prices ---
+        if (apiGood.Prices is { Length: > 0 })
+        {
+            var existingPrices = await _db.GoodPrices.Where(gp => gp.GoodId == id).ToListAsync(ct);
+            var existingPricesMap = existingPrices.ToDictionary(p => p.PriceTypeId);
+
+            // UpdatedRemainsPrices is now DateTimeOffset? handled by JsonConverter
+            var priceUpdatedAt = apiGood.UpdatedRemainsPrices;
+
+            foreach (var goodPrice in apiGood.Prices)
+            {
+                // Logic to get TypeId: Try nested object first, then flat property
+                long? typeId = null;
+                if (goodPrice.PriceType != null)
+                {
+                    typeId = goodPrice.PriceType.Id;
+                }
+                else if (long.TryParse(goodPrice.TypeId, out var tid))
+                {
+                    typeId = tid;
+                }
+
+                if (typeId.HasValue && goodPrice.Price.HasValue)
+                {
+                    var currency = goodPrice.Currency ?? goodPrice.PriceType?.Currency?.ShortName; // fallback currency
+
+                    if (existingPricesMap.TryGetValue(typeId.Value, out _))
+                    {
+                        // Update
+                        await _db.GoodPrices
+                            .Where(gp => gp.GoodId == id && gp.PriceTypeId == typeId.Value)
+                            .Set(gp => gp.Price, goodPrice.Price.Value)
+                            .Set(gp => gp.Currency, currency)
+                            .Set(gp => gp.BusinessRuUpdatedAt, priceUpdatedAt)
+                            .Set(gp => gp.LastSyncedAt, DateTimeOffset.UtcNow)
+                            .UpdateAsync(ct);
+                            
+                         existingPricesMap.Remove(typeId.Value);
+                    }
+                    else
+                    {
+                        // Insert
+                        await _db.InsertAsync(new GoodPrice
+                        {
+                            GoodId = id,
+                            PriceTypeId = typeId.Value,
+                            Price = goodPrice.Price.Value,
+                            Currency = currency,
+                            BusinessRuUpdatedAt = priceUpdatedAt,
+                            LastSyncedAt = DateTimeOffset.UtcNow
+                        }, token: ct);
+                    }
+                }
+            }
+            
+            // Delete leftovers
+            if (existingPricesMap.Count > 0)
+            {
+                foreach (var key in existingPricesMap.Keys)
+                {
+                    await _db.GoodPrices
+                        .Where(gp => gp.GoodId == id && gp.PriceTypeId == key)
+                        .DeleteAsync(ct);
+                }
             }
         }
     }

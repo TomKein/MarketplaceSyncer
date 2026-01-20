@@ -79,22 +79,152 @@
 ## Response Structure
 ```json
 {
-  "status": "ok",
-  "result": [
-    {
-      "id": 12345,
-      "name": "Product Name",
-      "part": "SKU-001",
-      "prices": [
-        { "price": 100.0, "type_id": 1, "currency": "RUB" }
-      ],
-      "remains": [
-        { "store_id": 10, "total": 50.0, "reserved": 5.0 }
-      ],
-      "barcodes": [
-        { "value": "4601234567890", "type": 1 }
-      ]
-    }
-  ]
+  "status" : "ok",
+  "result" : [ {
+    "id" : "162695",
+    "name" : "Абсорбер заднего бампера ЗАЗ Sens",
+    "full_name" : "Абсорбер заднего бампера  ЗАЗ Sens",
+    "nds_id" : 2,
+    "group_id" : "762321",
+    "part" : "96303225",
+    "store_code" : null,
+    "type" : "1",
+    "archive" : false,
+    "description" : "<p>Абсорбер заднего бампера ZAZ Sens / ЗАЗ Сенс</p><p>№ 96303225</p><p>GM</p><p>Б/У оригинал, в отличном состоянии!!</p>",
+    "country_id" : null,
+    "allow_serialnumbers" : false,
+    "allow_serialnumbers_unique" : false,
+    "weight" : "3",
+    "volume" : null,
+    "code" : "7388",
+    "store_box" : null,
+    "store_section" : null,
+    "remains_min" : null,
+    "partner_id" : null,
+    "responsible_employee_id" : null,
+    "feature" : null,
+    "weighing_plu" : null,
+    "cost" : "640.00",
+    "measure_id" : "1",
+    "good_type_code" : null,
+    "payment_subject_sign" : 1,
+    "marking_type" : null,
+    "allow_marking" : false,
+    "taxation" : 7,
+    "require_marking_for_sale" : false,
+    "length" : "150",
+    "width" : "42",
+    "height" : "30",
+    "oversized" : false,
+    "pack" : null,
+    "hscode_id" : null,
+    "updated_remains_prices" : "03.01.2026 22:45:21.586874",
+    "allow_egais" : false,
+    "allow_weight" : false,
+    "agent_type" : null,
+    "updated" : "28.06.2025 11:15:27",
+    "deleted" : false,
+    "departments_ids" : null,
+    "images" : [ {
+      "name" : "683781322_w1280_h1280_623418440_w1280_h1280_311___w640_h640_1408074752.jpg",
+      "url" : "https://action_37041.business.ru/file/get/?id=335145",
+      "sort" : 0,
+      "id" : 335145
+    }, {
+      "name" : "683780884_w1280_h1280_623418440_w1280_h1280_311___w640_h640_1408074752.jpg",
+      "url" : "https://action_37041.business.ru/file/get/?id=335148",
+      "sort" : 1,
+      "id" : 335148
+    }, {
+      "name" : "623418439_w1280_h1280_311378075_w640_h640_1408075862.jpg",
+      "url" : "https://action_37041.business.ru/file/get/?id=335151",
+      "sort" : 2,
+      "id" : 335151
+    }, {
+      "name" : "623418438_w1280_h1280_311378067_w640_h640_1408074712.jpg",
+      "url" : "https://action_37041.business.ru/file/get/?id=335154",
+      "sort" : 3,
+      "id" : 335154
+    } ],
+    "209334" : "http://baza.drom.ru/bulletin/44561306/edit",
+    "209360" : "https://vk.com/market-23570129?w=product-23570129_13971272",
+    "854879" : "",
+    "854882" : "",
+    "attributes" : [ {
+      "id" : "2552216",
+      "attribute" : {
+        "id" : "2543011",
+        "model" : "attributesforgoods",
+        "name" : "Применимость",
+        "sort" : 0
+      },
+      "value" : {
+        "id" : "2551147",
+        "model" : "attributesforgoodsvalues",
+        "name" : "ЗАЗ, Sens, I (2004—2017)",
+        "sort" : 2722883
+      }
+    }, {
+      "id" : "2552235",
+      "attribute" : {
+        "id" : "75579",
+        "model" : "attributesforgoods",
+        "name" : "Производитель",
+        "sort" : 77371
+      },
+      "value" : {
+        "id" : "2303654",
+        "model" : "attributesforgoodsvalues",
+        "name" : "GENERAL MOTORS",
+        "sort" : 2543192
+      }
+    } ],
+    "remains" : [ {
+      "store" : {
+        "id" : "76726",
+        "model" : "stores",
+        "name" : "Масла (УСН)"
+      },
+      "amount" : {
+        "total" : "0",
+        "reserved" : "0",
+        "remains_min" : null
+      }
+    }, {
+      "store" : {
+        "id" : "1204484",
+        "model" : "stores",
+        "name" : "Основной склад (ЕНВД)"
+      },
+      "amount" : {
+        "total" : "1",
+        "reserved" : "0",
+        "remains_min" : null
+      }
+    } ],
+    "prices" : [ {
+      "price_type" : {
+        "id" : "75524",
+        "model" : "salepricetypes",
+        "name" : "Розничная",
+        "organization" : {
+          "id" : "75519",
+          "model" : "organizations",
+          "name" : "РАДЧЕНКО И. Г."
+        },
+        "currency" : {
+          "id" : "1",
+          "model" : "currencies",
+          "name" : "Российский рубль",
+          "short_name" : "руб."
+        }
+      },
+      "measure_id" : "1",
+      "price" : "950"
+    } ]
+  } ],
+  "token" : "lVBjmZ3iK9t5Zris0Qqx4rzdM2fPJ9vS",
+  "request_count" : 3,
+  "app_psw" : "9f60f89cf99edc709d7c0d41ace1a3e6"
 }
 ```

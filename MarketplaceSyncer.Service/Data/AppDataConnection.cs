@@ -26,4 +26,6 @@ public class AppDataConnection : DataConnection
     public ITable<Attribute> Attributes => this.GetTable<Attribute>();
     public ITable<AttributeValue> AttributeValues => this.GetTable<AttributeValue>();
     public ITable<GoodAttribute> GoodAttributes => this.GetTable<GoodAttribute>();
+    public ITable<PriceType> PriceTypes => this.GetTable<PriceType>();
+    public ITable<GoodPrice> GoodPrices => this.GetTable<GoodPrice>();
 }

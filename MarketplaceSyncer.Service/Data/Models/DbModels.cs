@@ -213,3 +213,24 @@ public class GoodAttribute
     [Association(ThisKey = nameof(ValueId), OtherKey = nameof(Models.AttributeValue.Id))]
     public AttributeValue? AttributeValue { get; set; }
 }
+
+[Table(Name = "price_types")]
+public class PriceType
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public string Name { get; set; } = null!;
+    [Column, Nullable] public long? CurrencyId { get; set; }
+    [Column, NotNull] public bool IsArchive { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}
+
+[Table(Name = "good_prices")]
+public class GoodPrice
+{
+    [PrimaryKey(1), NotNull] public long GoodId { get; set; }
+    [PrimaryKey(2), NotNull] public long PriceTypeId { get; set; }
+    [Column, NotNull] public decimal Price { get; set; }
+    [Column, Nullable] public string? Currency { get; set; }
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}

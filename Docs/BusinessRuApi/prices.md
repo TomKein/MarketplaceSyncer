@@ -152,7 +152,7 @@
 | price | float | post |     |     | Цена |
 | updated | datetime |     |     |     | Время последнего обновления |
 
-## Текущие цены
+## Текущие цены (currentprices)
 **Описание модели:** Текущие цены  
 **URL ресурса:** https://myaccount.business.ru/api/rest/currentprices.json  
 **Разрешенные запросы:** get(чтение)

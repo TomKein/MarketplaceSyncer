@@ -30,6 +30,7 @@ trigger: always_on
 - **DTO Naming**: Модели API ответов (DTO) должны иметь суффикс `Response` (например, `GoodResponse`, `StoreResponse`), чтобы избегать конфликтов имен с Entity моделями БД.
 - **Обработка Ошибок**: Используйте библиотеку `ErrorOr`.
 - **DRY**: Приоритет читаемости и DRY, если это не конфликтует с NativeAOT.
+- **JSON Parsing**: Всегда используйте встроенные преобразования `System.Text.Json` и `JsonConverter` для типов (decimal, DateTimeOffset и др.). Избегайте парсинга в `string` с последующим ручным преобразованием.
 
 ## 5. Рабочий Процесс (Workflow)
 - **Planning**: Анализ, `implementation_plan.md`, утверждение пользователем.

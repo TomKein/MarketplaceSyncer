@@ -36,6 +36,7 @@ public class ReferenceSyncer
         await SyncCountriesAsync(ct);
         await SyncCurrenciesAsync(ct);
         await SyncMeasuresAsync(ct);
+        await SyncPriceTypesAsync(ct);
     }
     
 
@@ -315,5 +316,43 @@ public class ReferenceSyncer
             }
         }
         _logger.LogInformation("Синхронизация отношений завершена.");
+    }
+    public async Task SyncPriceTypesAsync(CancellationToken ct = default)
+    {
+        _logger.LogInformation("Начинаем синхронизацию типов цен (price types)...");
+        var items = await _client.GetPriceTypesAsync(cancellationToken: ct);
+        _logger.LogInformation("Получено {Count} типов цен.", items.Length);
+
+        foreach (var item in items)
+        {
+            var id = item.Id;
+            var existing = await _db.PriceTypes.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            // CurrencyId is already long? in model
+            var currencyId = item.CurrencyId;
+
+            if (existing != null)
+            {
+                await _db.PriceTypes
+                    .Where(x => x.Id == id)
+                    .Set(x => x.Name, item.Name)
+                    .Set(x => x.CurrencyId, currencyId)
+                    .Set(x => x.IsArchive, item.Archive)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
+                    .UpdateAsync(ct);
+            }
+            else
+            {
+                await _db.InsertAsync(new PriceType
+                {
+                    Id = id,
+                    Name = item.Name,
+                    CurrencyId = currencyId,
+                    IsArchive = item.Archive,
+                    LastSyncedAt = DateTimeOffset.UtcNow
+                }, token: ct);
+            }
+        }
+        _logger.LogInformation("Синхронизация типов цен завершена.");
     }
 }
