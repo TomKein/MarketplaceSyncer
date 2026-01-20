@@ -9,9 +9,9 @@ await GetAttributes();
                 GetBusGroupsAsync();
                 
 Что синчить:
-группы: groupsofgoods
-аттрибуты: attributesforgoods, attributesforgoodsvalues, goodsattributes
-справочники: countries, goodsmeasures, measures
+v - группы: groupsofgoods
+v - аттрибуты: attributesforgoods, attributesforgoodsvalues, goodsattributes
+v - справочники: countries, goodsmeasures, measures
 заказы: customerorderstatus, customerordergoods, customerorders, requestsource, reservations, realizations, realizationgoods
 склады: stores, storegoods
 цены: salepricetypes, salepricelists, salepricelistspricetypes, salepricelistgoods, salepricelistgoodprices

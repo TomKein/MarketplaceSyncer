@@ -31,9 +31,6 @@ public class SynchronizationOptions
     /// <summary>
     /// Размер страницы при загрузке товаров.
     /// </summary>
-    /// <summary>
-    /// Размер страницы при загрузке товаров.
-    /// </summary>
     public int PageSize { get; set; } = 250;
 
     /// <summary>

@@ -152,13 +152,19 @@ public class SyncStateRepository
 public static class SyncStateKeys
 {
     // ========== Initial Sync Checkpoints ==========
-    /// <summary>Флаг: группы загружены</summary>
+    /// <summary>Флаг: справочники (страны, валюты, ед. изм, группы) загружены</summary>
+    public const string InitialDictionariesComplete = "Initial_Dictionaries_Complete";
+    
+    /// <summary>Флаг: связи товаров и единиц измерения загружены</summary>
+    public const string InitialRelationsComplete = "Initial_Relations_Complete";
+    
+    /// <summary>Флаг: группы загружены (Legacy)</summary>
     public const string InitialGroupsComplete = "Initial_Groups_Complete";
     
     /// <summary>Флаг: атрибуты загружены</summary>
     public const string InitialAttributesComplete = "Initial_Attributes_Complete";
     
-    /// <summary>Флаг: единицы загружены</summary>
+    /// <summary>Флаг: единицы загружены (Legacy)</summary>
     public const string InitialUnitsComplete = "Initial_Units_Complete";
     
     /// <summary>Текущая страница товаров (1-based)</summary>
@@ -197,6 +203,8 @@ public static class SyncStateKeys
     public const string DailyFullResyncLastRun = "Daily_Full_Resync_LastRun";
 
     // ========== Daily Sync Checkpoints (Genericized) ==========
+    public const string DailyDictionariesComplete = "Daily_Dictionaries_Complete";
+    public const string DailyRelationsComplete = "Daily_Relations_Complete";
     public const string DailyGroupsComplete = "Daily_Groups_Complete";
     public const string DailyAttributesComplete = "Daily_Attributes_Complete";
     public const string DailyUnitsComplete = "Daily_Units_Complete";

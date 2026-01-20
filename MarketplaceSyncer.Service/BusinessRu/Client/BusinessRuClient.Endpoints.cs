@@ -96,9 +96,9 @@ public sealed partial class BusinessRuClient
         return all.ToArray();
     }
 
-    public async Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default)
+    public async Task<MeasureResponse[]> GetMeasuresAsync(CancellationToken cancellationToken = default)
     {
-        var all = new List<UnitResponse>();
+        var all = new List<MeasureResponse>();
         int page = 1;
 
         while (true)
@@ -109,8 +109,98 @@ public sealed partial class BusinessRuClient
                 ["page"] = page.ToString()
             };
 
-            var result = await RequestAsync<Dictionary<string, string>, UnitResponse[]>(
+            var result = await RequestAsync<Dictionary<string, string>, MeasureResponse[]>(
                 HttpMethod.Get, "measures", request, cancellationToken);
+
+            if (result.Length == 0) break;
+            
+            all.AddRange(result);
+            if (result.Length < 250) break;
+            
+            page++;
+        }
+        
+        return all.ToArray();
+    }
+
+    public async Task<CountryResponse[]> GetCountriesAsync(CancellationToken cancellationToken = default)
+    {
+        var all = new List<CountryResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            var result = await RequestAsync<Dictionary<string, string>, CountryResponse[]>(
+                HttpMethod.Get, "countries", request, cancellationToken);
+
+            if (result.Length == 0) break;
+            
+            all.AddRange(result);
+            if (result.Length < 250) break;
+            
+            page++;
+        }
+        
+        return all.ToArray();
+    }
+
+    public async Task<CurrencyResponse[]> GetCurrenciesAsync(CancellationToken cancellationToken = default)
+    {
+        var all = new List<CurrencyResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            var result = await RequestAsync<Dictionary<string, string>, CurrencyResponse[]>(
+                HttpMethod.Get, "currencies", request, cancellationToken);
+
+            if (result.Length == 0) break;
+            
+            all.AddRange(result);
+            if (result.Length < 250) break;
+            
+            page++;
+        }
+        
+        return all.ToArray();
+    }
+
+    public async Task<GoodsMeasureResponse[]> GetGoodsMeasuresAsync(
+        long? goodId = null,
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<GoodsMeasureResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+            
+            if (goodId.HasValue)
+                request["good_id"] = goodId.Value.ToString();
+                
+            if (changedAfter.HasValue)
+                request["updated[from]"] = changedAfter.Value.ToString("yyyy-MM-dd HH:mm:ss");
+
+            var result = await RequestAsync<Dictionary<string, string>, GoodsMeasureResponse[]>(
+                HttpMethod.Get, "goodsmeasures", request, cancellationToken);
 
             if (result.Length == 0) break;
             

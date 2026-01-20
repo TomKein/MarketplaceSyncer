@@ -158,15 +158,6 @@ public class SyncOrchestrator : BackgroundService
     {
         var anyExecuted = false;
 
-        // Справочники (раз в день)
-        if (await IsReferencesDueAsync(state, ct))
-        {
-            _logger.LogInformation("🟡 Запуск sync справочников...");
-            await references.RunFullSyncAsync(ct);
-            await state.SetLastRunAsync(SyncStateKeys.ReferencesLastRun, DateTimeOffset.UtcNow, ct);
-            anyExecuted = true;
-        }
-
         // Товары delta
         if (await IsGoodsDeltaDueAsync(state, ct))
         {
@@ -185,12 +176,7 @@ public class SyncOrchestrator : BackgroundService
         return DateTimeOffset.UtcNow - lastRun.Value >= _options.GoodsDeltaInterval;
     }
 
-    private async Task<bool> IsReferencesDueAsync(SyncStateRepository state, CancellationToken ct)
-    {
-        var lastRun = await state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
-        if (lastRun == null) return true;
-        return DateTimeOffset.UtcNow - lastRun.Value >= _options.ReferencesInterval;
-    }
+
 
     private async Task<TimeSpan> CalculateNextWaitTimeAsync(SyncStateRepository state, CancellationToken ct)
     {
@@ -206,15 +192,7 @@ public class SyncOrchestrator : BackgroundService
                 waitTimes.Add(remaining);
         }
 
-        // References
-        var refsLastRun = await state.GetLastRunAsync(SyncStateKeys.ReferencesLastRun, ct);
-        if (refsLastRun != null)
-        {
-            var nextRun = refsLastRun.Value + _options.ReferencesInterval;
-            var remaining = nextRun - DateTimeOffset.UtcNow;
-            if (remaining > TimeSpan.Zero)
-                waitTimes.Add(remaining);
-        }
+
 
         // Минимальное время ожидания
         if (waitTimes.Count == 0)

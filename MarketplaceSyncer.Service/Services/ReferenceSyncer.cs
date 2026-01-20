@@ -9,7 +9,7 @@ using MarketplaceSyncer.Service.Data.Models;
 namespace MarketplaceSyncer.Service.Services;
 
 /// <summary>
-/// Синхронизатор справочников (группы, единицы измерения)
+/// Синхронизатор справочников (страны, валюты, ед. измерения, группы) и отношений (товары-ед. измерения).
 /// </summary>
 public class ReferenceSyncer
 {
@@ -28,8 +28,26 @@ public class ReferenceSyncer
     }
 
     /// <summary>
-    /// Синхронизировать группы товаров
+    /// Полная синхронизация всех простых справочников (перед товарами).
     /// </summary>
+    public async Task SyncDictionariesAsync(CancellationToken ct = default)
+    {
+        await SyncGroupsAsync(ct);
+        await SyncCountriesAsync(ct);
+        await SyncCurrenciesAsync(ct);
+        await SyncMeasuresAsync(ct);
+    }
+    
+
+
+    /// <summary>
+    /// Синхронизация отношений товаров и единиц измерения (после товаров).
+    /// </summary>
+    public async Task SyncGoodsRelationsAsync(CancellationToken ct = default)
+    {
+        await SyncGoodsMeasuresAsync(ct);
+    }
+
     public async Task SyncGroupsAsync(CancellationToken ct = default)
     {
         _logger.LogInformation("Начинаем синхронизацию групп...");
@@ -54,19 +72,18 @@ public class ReferenceSyncer
             var current = queue.Dequeue();
             sortedGroups.Add(current);
 
-            // Добавляем дочерние элементы
             foreach (var child in lookup[current.Id])
             {
                 queue.Enqueue(child);
             }
         }
 
-        // 3. Если есть сироты (битые ссылки или циклы), добавляем их в конец
+        // 3. Сироты
         if (sortedGroups.Count < apiGroups.Length)
         {
             var processedIds = sortedGroups.Select(g => g.Id).ToHashSet();
             var orphans = apiGroups.Where(g => !processedIds.Contains(g.Id)).ToList();
-            _logger.LogWarning("Обнаружено {Count} изолированных групп или циклов. Добавляем в конец.", orphans.Count);
+            _logger.LogWarning("Обнаружено {Count} изолированных групп или циклов.", orphans.Count);
             sortedGroups.AddRange(orphans);
         }
 
@@ -107,57 +124,196 @@ public class ReferenceSyncer
                 }, token: ct);
             }
         }
-
-        _logger.LogInformation("Синхронизация групп завершена: {Count} записей", apiGroups.Length);
+        _logger.LogInformation("Синхронизация групп завершена.");
     }
 
-    /// <summary>
-    /// Синхронизировать единицы измерения
-    /// </summary>
-    public async Task SyncUnitsAsync(CancellationToken ct = default)
+    public async Task SyncCountriesAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Начинаем синхронизацию единиц измерения...");
-        
-        var apiUnits = await _client.GetUnitsAsync(ct);
-        _logger.LogInformation("Получено {Count} единиц из API", apiUnits.Length);
+        _logger.LogInformation("Начинаем синхронизацию стран...");
+        var items = await _client.GetCountriesAsync(ct);
+        _logger.LogInformation("Получено {Count} стран.", items.Length);
 
-        foreach (var apiUnit in apiUnits)
+        foreach (var item in items)
         {
-            var id = apiUnit.Id;
-            var existing = await _db.Units.FirstOrDefaultAsync(u => u.Id == id, ct);
+            var id = item.Id;
+            var existing = await _db.Countries.FirstOrDefaultAsync(x => x.Id == id, ct);
 
             if (existing != null)
             {
-                await _db.Units
-                    .Where(u => u.Id == id)
-                    .Set(u => u.Name, apiUnit.Name)
-                    .Set(u => u.FullName, apiUnit.FullName)
-                    .Set(u => u.Code, apiUnit.Code)
-                    .Set(u => u.LastSyncedAt, DateTimeOffset.UtcNow)
+                await _db.Countries
+                    .Where(x => x.Id == id)
+                    .Set(x => x.Name, item.Name)
+                    .Set(x => x.FullName, item.FullName)
+                    .Set(x => x.InternationalName, item.InternationalName)
+                    .Set(x => x.Code, item.Code)
+                    .Set(x => x.Alfa2, item.Alfa2)
+                    .Set(x => x.Alfa3, item.Alfa3)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
                     .UpdateAsync(ct);
             }
             else
             {
-                await _db.InsertAsync(new Unit
+                await _db.InsertAsync(new Country
                 {
                     Id = id,
-                    Name = apiUnit.Name ?? "",
-                    FullName = apiUnit.FullName,
-                    Code = apiUnit.Code,
+                    Name = item.Name,
+                    FullName = item.FullName,
+                    InternationalName = item.InternationalName,
+                    Code = item.Code,
+                    Alfa2 = item.Alfa2,
+                    Alfa3 = item.Alfa3,
                     LastSyncedAt = DateTimeOffset.UtcNow
                 }, token: ct);
             }
         }
-
-        _logger.LogInformation("Синхронизация единиц завершена: {Count} записей", apiUnits.Length);
+        _logger.LogInformation("Синхронизация стран завершена.");
     }
 
-    /// <summary>
-    /// Полная синхронизация всех справочников
-    /// </summary>
-    public async Task RunFullSyncAsync(CancellationToken ct = default)
+    public async Task SyncCurrenciesAsync(CancellationToken ct = default)
     {
-        await SyncGroupsAsync(ct);
-        await SyncUnitsAsync(ct);
+        _logger.LogInformation("Начинаем синхронизацию валют...");
+        var items = await _client.GetCurrenciesAsync(ct);
+        _logger.LogInformation("Получено {Count} валют.", items.Length);
+
+        foreach (var item in items)
+        {
+            var id = item.Id;
+            var existing = await _db.Currencies.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            if (existing != null)
+            {
+                await _db.Currencies
+                    .Where(x => x.Id == id)
+                    .Set(x => x.Name, item.Name)
+                    .Set(x => x.ShortName, item.ShortName)
+                    .Set(x => x.NameIso, item.NameIso)
+                    .Set(x => x.CodeIso, item.CodeIso)
+                    .Set(x => x.IsDefault, item.Default)
+                    .Set(x => x.IsUser, item.User)
+                    .Set(x => x.UserValue, item.UserValue)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
+                    .UpdateAsync(ct);
+            }
+            else
+            {
+                await _db.InsertAsync(new Currency
+                {
+                    Id = id,
+                    Name = item.Name,
+                    ShortName = item.ShortName,
+                    NameIso = item.NameIso,
+                    CodeIso = item.CodeIso,
+                    IsDefault = item.Default,
+                    IsUser = item.User,
+                    UserValue = item.UserValue,
+                    LastSyncedAt = DateTimeOffset.UtcNow
+                }, token: ct);
+            }
+        }
+        _logger.LogInformation("Синхронизация валют завершена.");
+    }
+
+    public async Task SyncMeasuresAsync(CancellationToken ct = default)
+    {
+        _logger.LogInformation("Начинаем синхронизацию единиц измерения (measures)...");
+        var items = await _client.GetMeasuresAsync(ct);
+        _logger.LogInformation("Получено {Count} единиц измерения.", items.Length);
+
+        foreach (var item in items)
+        {
+            var id = item.Id;
+            var existing = await _db.Measures.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            if (existing != null)
+            {
+                await _db.Measures
+                    .Where(x => x.Id == id)
+                    .Set(x => x.Name, item.Name)
+                    .Set(x => x.ShortName, item.ShortName)
+                    .Set(x => x.Okei, item.Okei)
+                    .Set(x => x.IsDefault, item.Default)
+                    .Set(x => x.IsArchive, item.Archive)
+                    .Set(x => x.IsDeleted, item.Deleted)
+                    .Set(x => x.BusinessRuUpdatedAt, item.Updated)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
+                    .UpdateAsync(ct);
+            }
+            else
+            {
+                await _db.InsertAsync(new Measure
+                {
+                    Id = id,
+                    Name = item.Name,
+                    ShortName = item.ShortName,
+                    Okei = item.Okei,
+                    IsDefault = item.Default,
+                    IsArchive = item.Archive,
+                    IsDeleted = item.Deleted,
+                    BusinessRuUpdatedAt = item.Updated,
+                    LastSyncedAt = DateTimeOffset.UtcNow
+                }, token: ct);
+            }
+        }
+        _logger.LogInformation("Синхронизация единиц измерения завершена.");
+    }
+
+    public async Task SyncGoodsMeasuresAsync(CancellationToken ct = default)
+    {
+        _logger.LogInformation("Начинаем синхронизацию отношений товаров и единиц измерения...");
+        // This likely returns ALL if no filter. Or we can filter by update.
+        // For now, full sync or basic iteration.
+        var items = await _client.GetGoodsMeasuresAsync(cancellationToken: ct);
+        _logger.LogInformation("Получено {Count} отношений из API.", items.Length);
+
+        // Batch processing or simple loop? Simple loop is ok for starters.
+        // Need to be careful about FKs. If Good or Measure doesn't exist, we skip or log?
+        // Usually we expect Goods and Measures to be synced.
+
+        foreach (var item in items)
+        {
+            var id = item.Id;
+            var existing = await _db.GoodsMeasures.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            if (existing != null)
+            {
+                await _db.GoodsMeasures
+                    .Where(x => x.Id == id)
+                    .Set(x => x.GoodId, item.GoodId)
+                    .Set(x => x.MeasureId, item.MeasureId)
+                    .Set(x => x.IsBase, item.Base)
+                    .Set(x => x.Coefficient, item.Coefficient)
+                    .Set(x => x.MarkingPack, item.MarkingPack)
+                    .Set(x => x.BusinessRuUpdatedAt, item.Updated)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
+                    .UpdateAsync(ct);
+            }
+            else
+            {
+                // Check if FKs exist?
+                // For simplicity, we assume they do or DB will throw. 
+                // We're inside a bigger flow. Or we can use "InsertOrUpdate" behavior from library?
+                // We'll trust the API consistency mostly.
+                
+                try 
+                {
+                    await _db.InsertAsync(new GoodsMeasure
+                    {
+                        Id = id,
+                        GoodId = item.GoodId,
+                        MeasureId = item.MeasureId,
+                        IsBase = item.Base,
+                        Coefficient = item.Coefficient,
+                        MarkingPack = item.MarkingPack,
+                        BusinessRuUpdatedAt = item.Updated,
+                        LastSyncedAt = DateTimeOffset.UtcNow
+                    }, token: ct);
+                }
+                catch (Exception ex)
+                {
+                     _logger.LogError(ex, "Ошибка при вставке GoodsMeasure ID={Id}. Возможно, отсутствует товар или единица измерения.", id);
+                }
+            }
+        }
+        _logger.LogInformation("Синхронизация отношений завершена.");
     }
 }

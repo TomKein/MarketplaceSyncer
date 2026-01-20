@@ -21,15 +21,70 @@ public class Group
     [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
 }
 
-[Table("units")]
-public class Unit
+[Table("measures")]
+public class Measure
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public required string Name { get; set; }
+    [Column, Nullable] public string? ShortName { get; set; }
+    [Column, Nullable] public long? Okei { get; set; }
+    
+    [Column, NotNull] public bool IsDefault { get; set; }
+    [Column, NotNull] public bool IsArchive { get; set; }
+    [Column, NotNull] public bool IsDeleted { get; set; }
+    
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}
+
+[Table("countries")]
+public class Country
 {
     [PrimaryKey, NotNull] public long Id { get; set; }
     [Column, NotNull] public required string Name { get; set; }
     [Column, Nullable] public string? FullName { get; set; }
+    [Column, Nullable] public string? InternationalName { get; set; }
     [Column, Nullable] public string? Code { get; set; }
+    [Column, Nullable] public string? Alfa2 { get; set; }
+    [Column, Nullable] public string? Alfa3 { get; set; }
     
     [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}
+
+[Table("currencies")]
+public class Currency
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public required string Name { get; set; }
+    [Column, Nullable] public string? ShortName { get; set; }
+    [Column, Nullable] public string? NameIso { get; set; }
+    [Column, Nullable] public long? CodeIso { get; set; }
+    
+    [Column, NotNull] public bool IsDefault { get; set; }
+    [Column, NotNull] public bool IsUser { get; set; }
+    [Column, Nullable] public decimal? UserValue { get; set; }
+    
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+}
+
+[Table("goods_measures")]
+public class GoodsMeasure
+{
+    [PrimaryKey, NotNull] public long Id { get; set; }
+    [Column, NotNull] public long GoodId { get; set; }
+    [Column, NotNull] public long MeasureId { get; set; }
+    [Column, NotNull] public bool IsBase { get; set; }
+    [Column, NotNull] public decimal Coefficient { get; set; }
+    [Column, NotNull] public bool MarkingPack { get; set; }
+    
+    [Column, Nullable] public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column, NotNull] public DateTimeOffset LastSyncedAt { get; set; }
+
+    [Association(ThisKey = nameof(GoodId), OtherKey = nameof(Models.Good.Id))]
+    public Good? Good { get; set; }
+
+    [Association(ThisKey = nameof(MeasureId), OtherKey = nameof(Models.Measure.Id))]
+    public Measure? Measure { get; set; }
 }
 
 [Table("goods")]
@@ -45,7 +100,7 @@ public class Good
     [Column, NotNull] public bool IsArchive { get; set; }
     
     [Column, Nullable] public long? GroupId { get; set; }
-    [Column, Nullable] public long? UnitId { get; set; }
+    [Column, Nullable] public long? MeasureId { get; set; }
     
     [Column, Nullable] public decimal? Price { get; set; }
     [Column, Nullable] public decimal? Quantity { get; set; }
@@ -62,8 +117,8 @@ public class Good
     [Association(ThisKey = nameof(GroupId), OtherKey = nameof(Models.Group.Id))]
     public Group? Group { get; set; }
     
-    [Association(ThisKey = nameof(UnitId), OtherKey = nameof(Models.Unit.Id))]
-    public Unit? Unit { get; set; }
+    [Association(ThisKey = nameof(MeasureId), OtherKey = nameof(Models.Measure.Id))]
+    public Measure? Measure { get; set; }
 }
 
 [Table("stores")]

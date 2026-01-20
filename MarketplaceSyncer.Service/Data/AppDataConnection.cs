@@ -12,7 +12,10 @@ public class AppDataConnection : DataConnection
     }
 
     public ITable<Group> Groups => this.GetTable<Group>();
-    public ITable<Unit> Units => this.GetTable<Unit>();
+    public ITable<Measure> Measures => this.GetTable<Measure>();
+    public ITable<Country> Countries => this.GetTable<Country>();
+    public ITable<Currency> Currencies => this.GetTable<Currency>();
+    public ITable<GoodsMeasure> GoodsMeasures => this.GetTable<GoodsMeasure>();
     public ITable<Good> Goods => this.GetTable<Good>();
     public ITable<SyncState> SyncState => this.GetTable<SyncState>();
     public ITable<GoodImage> GoodImages => this.GetTable<GoodImage>();

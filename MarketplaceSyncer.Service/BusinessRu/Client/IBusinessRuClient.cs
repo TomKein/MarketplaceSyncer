@@ -18,7 +18,16 @@ public interface IBusinessRuClient : IDisposable
 
     Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default);
     
-    Task<UnitResponse[]> GetUnitsAsync(CancellationToken cancellationToken = default);
+    Task<MeasureResponse[]> GetMeasuresAsync(CancellationToken cancellationToken = default);
+    
+    Task<CountryResponse[]> GetCountriesAsync(CancellationToken cancellationToken = default);
+    
+    Task<CurrencyResponse[]> GetCurrenciesAsync(CancellationToken cancellationToken = default);
+
+    Task<GoodsMeasureResponse[]> GetGoodsMeasuresAsync(
+        long? goodId = null,
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default);
 
     Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
         long goodId,

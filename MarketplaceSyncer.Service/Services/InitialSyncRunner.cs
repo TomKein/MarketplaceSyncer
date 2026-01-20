@@ -48,9 +48,9 @@ public class InitialSyncRunner
     {
         await _state.SetBoolAsync(SyncStateKeys.InitialComplete, false, ct);
         
-        await _state.SetBoolAsync(SyncStateKeys.InitialGroupsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.InitialDictionariesComplete, false, ct);
         await _state.SetBoolAsync(SyncStateKeys.InitialAttributesComplete, false, ct);
-        await _state.SetBoolAsync(SyncStateKeys.InitialUnitsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.InitialRelationsComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.InitialGoodsComplete, false, ct);
         await _state.SetIntAsync(SyncStateKeys.InitialGoodsPage, 1, ct);
@@ -69,9 +69,9 @@ public class InitialSyncRunner
     {
         await _state.SetBoolAsync(SyncStateKeys.DailyComplete, false, ct);
         
-        await _state.SetBoolAsync(SyncStateKeys.DailyGroupsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.DailyDictionariesComplete, false, ct);
         await _state.SetBoolAsync(SyncStateKeys.DailyAttributesComplete, false, ct);
-        await _state.SetBoolAsync(SyncStateKeys.DailyUnitsComplete, false, ct);
+        await _state.SetBoolAsync(SyncStateKeys.DailyRelationsComplete, false, ct);
         
         await _state.SetBoolAsync(SyncStateKeys.DailyGoodsComplete, false, ct);
         await _state.SetIntAsync(SyncStateKeys.DailyGoodsPage, 1, ct);
@@ -91,12 +91,12 @@ public class InitialSyncRunner
         _logger.LogInformation("========== ИНИЦИАЛЬНАЯ СИНХРОНИЗАЦИЯ ==========");
 
         await RunGenericSyncAsync(
-            groupsCompleteKey: SyncStateKeys.InitialGroupsComplete,
+            dictionariesCompleteKey: SyncStateKeys.InitialDictionariesComplete,
             attributesCompleteKey: SyncStateKeys.InitialAttributesComplete,
-            unitsCompleteKey: SyncStateKeys.InitialUnitsComplete,
             goodsCompleteKey: SyncStateKeys.InitialGoodsComplete,
             goodsPageKey: SyncStateKeys.InitialGoodsPage,
             goodsTotalPagesKey: SyncStateKeys.InitialGoodsTotalPages,
+            relationsCompleteKey: SyncStateKeys.InitialRelationsComplete,
             imagesCompleteKey: SyncStateKeys.InitialImagesComplete,
             imagesIndexKey: SyncStateKeys.InitialImagesGoodIndex,
             finalCompleteKey: SyncStateKeys.InitialComplete,
@@ -114,12 +114,12 @@ public class InitialSyncRunner
         _logger.LogInformation("========== ЕЖЕДНЕВНАЯ (FULL) СИНХРОНИЗАЦИЯ ==========");
 
         await RunGenericSyncAsync(
-            groupsCompleteKey: SyncStateKeys.DailyGroupsComplete,
+            dictionariesCompleteKey: SyncStateKeys.DailyDictionariesComplete,
             attributesCompleteKey: SyncStateKeys.DailyAttributesComplete,
-            unitsCompleteKey: SyncStateKeys.DailyUnitsComplete,
             goodsCompleteKey: SyncStateKeys.DailyGoodsComplete,
             goodsPageKey: SyncStateKeys.DailyGoodsPage,
             goodsTotalPagesKey: SyncStateKeys.DailyGoodsTotalPages,
+            relationsCompleteKey: SyncStateKeys.DailyRelationsComplete,
             imagesCompleteKey: SyncStateKeys.DailyImagesComplete,
             imagesIndexKey: SyncStateKeys.DailyImagesGoodIndex,
             finalCompleteKey: SyncStateKeys.DailyComplete,
@@ -133,29 +133,29 @@ public class InitialSyncRunner
     }
 
     private async Task RunGenericSyncAsync(
-        string groupsCompleteKey,
+        string dictionariesCompleteKey,
         string attributesCompleteKey,
-        string unitsCompleteKey,
         string goodsCompleteKey,
         string goodsPageKey,
         string goodsTotalPagesKey,
+        string relationsCompleteKey,
         string imagesCompleteKey,
         string imagesIndexKey,
         string finalCompleteKey,
         bool isDaily,
         CancellationToken ct)
     {
-        // Step 1: Группы
-        if (!await _state.GetBoolAsync(groupsCompleteKey, false, ct))
+        // Step 1: Справочники (Группы, Страны, Валюты, Единицы)
+        if (!await _state.GetBoolAsync(dictionariesCompleteKey, false, ct))
         {
-            _logger.LogInformation("[Step 1/5] Загрузка групп...");
-            await _references.SyncGroupsAsync(ct);
-            await _state.SetBoolAsync(groupsCompleteKey, true, ct);
-            _logger.LogInformation("[Step 1/5] ✓ Группы загружены");
+            _logger.LogInformation("[Step 1/5] Загрузка справочников (страны, валюты, единицы, группы)...");
+            await _references.SyncDictionariesAsync(ct);
+            await _state.SetBoolAsync(dictionariesCompleteKey, true, ct);
+            _logger.LogInformation("[Step 1/5] ✓ Справочники загружены");
         }
         else
         {
-            _logger.LogInformation("[Step 1/5] ✓ Группы уже загружены, пропускаем");
+            _logger.LogInformation("[Step 1/5] ✓ Справочники уже загружены, пропускаем");
         }
 
         // Step 2: Атрибуты
@@ -171,27 +171,27 @@ public class InitialSyncRunner
             _logger.LogInformation("[Step 2/5] ✓ Атрибуты уже загружены, пропускаем");
         }
 
-        // Step 3: Единицы
-        if (!await _state.GetBoolAsync(unitsCompleteKey, false, ct))
-        {
-            _logger.LogInformation("[Step 3/5] Загрузка единиц измерения...");
-            await _references.SyncUnitsAsync(ct);
-            await _state.SetBoolAsync(unitsCompleteKey, true, ct);
-            _logger.LogInformation("[Step 3/5] ✓ Единицы загружены");
-        }
-        else
-        {
-            _logger.LogInformation("[Step 3/5] ✓ Единицы уже загружены, пропускаем");
-        }
-
-        // Step 4: Товары (с пагинацией)
+        // Step 3: Товары (с пагинацией)
         if (!await _state.GetBoolAsync(goodsCompleteKey, false, ct))
         {
             await SyncGoodsGenericAsync(goodsPageKey, goodsTotalPagesKey, goodsCompleteKey, ct);
         }
         else
         {
-            _logger.LogInformation("[Step 4/6] ✓ Товары уже загружены, пропускаем");
+            _logger.LogInformation("[Step 3/5] ✓ Товары уже загружены, пропускаем");
+        }
+
+        // Step 4: Отношения (GoodsMeasures) - ПОСЛЕ товаров
+        if (!await _state.GetBoolAsync(relationsCompleteKey, false, ct))
+        {
+            _logger.LogInformation("[Step 4/5] Загрузка отношений (GoodsMeasures)...");
+            await _references.SyncGoodsRelationsAsync(ct);
+            await _state.SetBoolAsync(relationsCompleteKey, true, ct);
+            _logger.LogInformation("[Step 4/5] ✓ Отношения загружены");
+        }
+        else
+        {
+            _logger.LogInformation("[Step 4/5] ✓ Отношения уже загружены, пропускаем");
         }
 
         // Step 5: Изображения
@@ -211,7 +211,7 @@ public class InitialSyncRunner
 
     private async Task SyncGoodsGenericAsync(string pageKey, string totalPagesKey, string completeKey, CancellationToken ct)
     {
-        _logger.LogInformation("[Step 4/5] Загрузка товаров...");
+        _logger.LogInformation("[Step 3/5] Загрузка товаров...");
 
         // Инициализация общего количества страниц (если ещё не сделано)
         var totalPages = await _state.GetIntAsync(totalPagesKey, 0, ct);
@@ -220,7 +220,7 @@ public class InitialSyncRunner
             var totalCount = await _goods.GetTotalCountAsync(ct);
             totalPages = (int)Math.Ceiling(totalCount / (double)_options.PageSize);
             await _state.SetIntAsync(totalPagesKey, totalPages, ct);
-            _logger.LogInformation("[Step 4/5] Всего товаров: {Count}, страниц: {Pages}", totalCount, totalPages);
+            _logger.LogInformation("[Step 3/5] Всего товаров: {Count}, страниц: {Pages}", totalCount, totalPages);
         }
 
         // Получаем текущую страницу (начинаем с 1)
@@ -230,7 +230,7 @@ public class InitialSyncRunner
         {
             ct.ThrowIfCancellationRequested();
 
-            _logger.LogInformation("[Step 4/5] Страница {Page}/{Total}...", currentPage, totalPages);
+            _logger.LogInformation("[Step 3/5] Страница {Page}/{Total}...", currentPage, totalPages);
             
             await _goods.LoadAndSavePageAsync(currentPage, ct);
             
@@ -240,7 +240,7 @@ public class InitialSyncRunner
         }
 
         await _state.SetBoolAsync(completeKey, true, ct);
-        _logger.LogInformation("[Step 4/5] ✓ Все товары загружены ({Pages} страниц)", totalPages);
+        _logger.LogInformation("[Step 3/5] ✓ Все товары загружены ({Pages} страниц)", totalPages);
     }
 
     private async Task SyncImagesGenericAsync(string indexKey, string completeKey, CancellationToken ct)
