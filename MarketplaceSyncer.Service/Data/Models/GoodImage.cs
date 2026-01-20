@@ -33,14 +33,14 @@ public class GoodImage
     [Column("Hash"), NotNull]
     public string Hash { get; set; } = string.Empty;
 
-    [Column("Position"), NotNull]
-    public int Position { get; set; }
+    [Column("Sort"), NotNull]
+    public int Sort { get; set; }
 
     /// <summary>
-    /// When image was last updated in Business.ru
+    /// Creation time in Business.ru (immutable model)
     /// </summary>
-    [Column("BusinessRuUpdatedAt"), Nullable]
-    public DateTimeOffset? BusinessRuUpdatedAt { get; set; }
+    [Column("TimeCreate"), Nullable]
+    public DateTimeOffset? TimeCreate { get; set; }
 
     /// <summary>
     /// When image was downloaded to our database

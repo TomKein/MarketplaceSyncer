@@ -37,9 +37,9 @@ public class ReferenceSyncer
         await SyncCurrenciesAsync(ct);
         await SyncMeasuresAsync(ct);
         await SyncPriceTypesAsync(ct);
+        await SyncStoresAsync(ct);
     }
     
-
 
     /// <summary>
     /// Синхронизация отношений товаров и единиц измерения (после товаров).
@@ -126,6 +126,52 @@ public class ReferenceSyncer
             }
         }
         _logger.LogInformation("Синхронизация групп завершена.");
+    }
+
+    public async Task SyncStoresAsync(CancellationToken ct = default)
+    {
+        _logger.LogInformation("Начинаем синхронизацию складов (stores)...");
+        var items = await _client.GetStoresAsync(ct);
+        _logger.LogInformation("Получено {Count} складов.", items.Length);
+
+        foreach (var item in items)
+        {
+            var id = item.Id;
+            var existing = await _db.Stores.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+            if (existing != null)
+            {
+                await _db.Stores
+                    .Where(x => x.Id == id)
+                    .Set(x => x.Name, item.Name)
+                    .Set(x => x.Address, item.Address)
+                    .Set(x => x.IsArchive, item.Archive)
+                    .Set(x => x.IsDeleted, item.Deleted)
+                    .Set(x => x.DenyNegativeBalance, item.DenyNegativeBalance)
+                    .Set(x => x.ResponsibleEmployeeId, item.ResponsibleEmployeeId)
+                    .Set(x => x.DebitType, item.DebitType)
+                    .Set(x => x.BusinessRuUpdatedAt, item.Updated)
+                    .Set(x => x.LastSyncedAt, DateTimeOffset.UtcNow)
+                    .UpdateAsync(ct);
+            }
+            else
+            {
+                await _db.InsertAsync(new Store
+                {
+                    Id = id,
+                    Name = item.Name,
+                    Address = item.Address,
+                    IsArchive = item.Archive,
+                    IsDeleted = item.Deleted,
+                    DenyNegativeBalance = item.DenyNegativeBalance,
+                    ResponsibleEmployeeId = item.ResponsibleEmployeeId,
+                    DebitType = item.DebitType,
+                    BusinessRuUpdatedAt = item.Updated,
+                    LastSyncedAt = DateTimeOffset.UtcNow
+                }, token: ct);
+            }
+        }
+        _logger.LogInformation("Синхронизация складов завершена.");
     }
 
     public async Task SyncCountriesAsync(CancellationToken ct = default)
@@ -269,7 +315,7 @@ public class ReferenceSyncer
         // Batch processing or simple loop? Simple loop is ok for starters.
         // Need to be careful about FKs. If Good or Measure doesn't exist, we skip or log?
         // Usually we expect Goods and Measures to be synced.
-
+        
         foreach (var item in items)
         {
             var id = item.Id;
@@ -318,6 +364,7 @@ public class ReferenceSyncer
         _logger.LogInformation("Синхронизация отношений завершена.");
     }
     public async Task SyncPriceTypesAsync(CancellationToken ct = default)
+
     {
         _logger.LogInformation("Начинаем синхронизацию типов цен (price types)...");
         var items = await _client.GetPriceTypesAsync(cancellationToken: ct);

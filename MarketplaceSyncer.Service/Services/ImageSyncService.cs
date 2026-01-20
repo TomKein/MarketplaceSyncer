@@ -54,13 +54,12 @@ public class ImageSyncService
                 .Where(i => i.GoodId == goodId)
                 .ToListAsync(ct);
 
-            var position = 0;
             foreach (var apiImage in apiImages)
             {
                 if (string.IsNullOrEmpty(apiImage.Url))
                     continue;
 
-                await DownloadAndSaveImageAsync(goodId, apiImage, position++, existingImages, ct);
+                await DownloadAndSaveImageAsync(goodId, apiImage, existingImages, ct);
             }
 
             // Удаляем изображения, которых больше нет в API
@@ -86,7 +85,6 @@ public class ImageSyncService
     public async Task<GoodImage?> DownloadAndSaveImageAsync(
         long goodId,
         GoodImageResponse apiImage,
-        int position,
         List<GoodImage>? existingImages = null,
         CancellationToken ct = default)
     {
@@ -114,17 +112,18 @@ public class ImageSyncService
             
             if (existing != null)
             {
-                // Если хеш изменился — обновляем
-                if (existing.Hash != hash)
+                // Если хеш или метаданные изменились — обновляем
+                if (existing.Hash != hash || existing.Sort != (apiImage.Sort ?? 0))
                 {
                     existing.Data = imageData;
                     existing.Hash = hash;
                     existing.ContentType = contentType;
-                    existing.Position = position;
+                    existing.Sort = apiImage.Sort ?? 0;
+                    existing.TimeCreate = apiImage.TimeCreate;
                     existing.DownloadedAt = DateTimeOffset.UtcNow;
 
                     await _db.UpdateAsync(existing, token: ct);
-                    _logger.LogInformation("Обновлено изображение {Id} для товара {GoodId} (hash изменился)", 
+                    _logger.LogInformation("Обновлено изображение {Id} для товара {GoodId} (hash/sort изменился)", 
                         existing.Id, goodId);
                 }
                 return existing;
@@ -139,7 +138,8 @@ public class ImageSyncService
                 Data = imageData,
                 ContentType = contentType,
                 Hash = hash,
-                Position = position,
+                Sort = apiImage.Sort ?? 0,
+                TimeCreate = apiImage.TimeCreate,
                 DownloadedAt = DateTimeOffset.UtcNow
             };
 

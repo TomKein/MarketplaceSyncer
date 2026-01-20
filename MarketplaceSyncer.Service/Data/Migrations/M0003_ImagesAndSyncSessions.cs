@@ -17,8 +17,8 @@ public class M0003_ImagesAndSyncSessions : Migration
             .WithColumn("Data").AsBinary(int.MaxValue).Nullable()
             .WithColumn("ContentType").AsString(50).Nullable()
             .WithColumn("Hash").AsString(64).NotNullable()
-            .WithColumn("Position").AsInt32().NotNullable().WithDefaultValue(0)
-            .WithColumn("BusinessRuUpdatedAt").AsDateTimeOffset().Nullable()
+            .WithColumn("Sort").AsInt32().NotNullable().WithDefaultValue(0)
+            .WithColumn("TimeCreate").AsDateTimeOffset().Nullable()
             .WithColumn("DownloadedAt").AsDateTimeOffset().NotNullable().WithDefault(SystemMethods.CurrentUTCDateTime);
 
         Create.Index("IX_good_images_GoodId").OnTable("good_images").OnColumn("GoodId");

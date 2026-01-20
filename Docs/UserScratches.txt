@@ -14,7 +14,7 @@ v - аттрибуты: attributesforgoods, attributesforgoodsvalues, goodsattri
 v - справочники: countries, goodsmeasures, measures
 заказы: customerorderstatus, customerordergoods, customerorders, requestsource, reservations, realizations, realizationgoods
 склады: stores, storegoods
-цены: salepricetypes, salepricelists, salepricelistspricetypes, salepricelistgoods, salepricelistgoodprices
+v - цены: salepricetypes, salepricelists, salepricelistspricetypes, salepricelistgoods, salepricelistgoodprices
 фотки: goodsimages
 
 на старте полная загрузка того, что не грузим инкрементально (для того, что бы можно было все обновить простым рестартом)
