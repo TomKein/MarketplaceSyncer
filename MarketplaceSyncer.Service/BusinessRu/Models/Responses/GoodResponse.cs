@@ -24,7 +24,7 @@ public sealed record GoodResponse(
     GoodPrice[]? Prices = null,
 
     [property: JsonPropertyName("remains")]
-    object? Remains = null,
+    GoodRemain[]? Remains = null,
     
     [property: JsonPropertyName("attributes")]
     GoodAttributeResponse[]? Attributes = null,
@@ -66,3 +66,23 @@ public sealed record GoodPriceCurrency(
     string? Name,
     [property: JsonPropertyName("short_name")]
     string? ShortName);
+
+public sealed record GoodRemain(
+    [property: JsonPropertyName("store")]
+    GoodRemainStore? Store,
+    [property: JsonPropertyName("amount")]
+    GoodRemainAmount? Amount);
+
+public sealed record GoodRemainStore(
+    [property: JsonPropertyName("id")]
+    long Id,
+    [property: JsonPropertyName("name")]
+    string? Name);
+
+public sealed record GoodRemainAmount(
+    [property: JsonPropertyName("total")]
+    decimal Total,
+    [property: JsonPropertyName("reserved")]
+    decimal Reserved,
+    [property: JsonPropertyName("remains_min")]
+    decimal? RemainsMin);

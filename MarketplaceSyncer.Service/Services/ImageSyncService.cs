@@ -11,25 +11,12 @@ namespace MarketplaceSyncer.Service.Services;
 /// <summary>
 /// Сервис для синхронизации изображений товаров
 /// </summary>
-public class ImageSyncService
+public class ImageSyncService(
+    IBusinessRuClient client,
+    AppDataConnection db,
+    HttpClient httpClient,
+    ILogger<ImageSyncService> logger)
 {
-    private readonly IBusinessRuClient _client;
-    private readonly AppDataConnection _db;
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<ImageSyncService> _logger;
-
-    public ImageSyncService(
-        IBusinessRuClient client,
-        AppDataConnection db,
-        HttpClient httpClient,
-        ILogger<ImageSyncService> logger)
-    {
-        _client = client;
-        _db = db;
-        _httpClient = httpClient;
-        _logger = logger;
-    }
-
     /// <summary>
     /// Синхронизировать изображения для товара
     /// </summary>
@@ -41,16 +28,16 @@ public class ImageSyncService
         try
         {
             // Получаем изображения из Business.ru
-            var apiImages = await _client.GetGoodImagesAsync(businessRuGoodId, ct);
+            var apiImages = await client.GetGoodImagesAsync(businessRuGoodId, ct);
             
             if (apiImages.Length == 0)
             {
-                _logger.LogDebug("Товар {GoodId} не имеет изображений", goodId);
+                logger.LogDebug("Товар {GoodId} не имеет изображений", goodId);
                 return;
             }
 
             // Получаем существующие изображения из БД
-            var existingImages = await _db.GoodImages
+            var existingImages = await db.GoodImages
                 .Where(i => i.GoodId == goodId)
                 .ToListAsync(ct);
 
@@ -68,13 +55,13 @@ public class ImageSyncService
             
             foreach (var img in toDelete)
             {
-                await _db.GoodImages.DeleteAsync(i => i.Id == img.Id, ct);
-                _logger.LogInformation("Удалено изображение {Id} для товара {GoodId}", img.Id, goodId);
+                await db.GoodImages.DeleteAsync(i => i.Id == img.Id, ct);
+                logger.LogInformation("Удалено изображение {Id} для товара {GoodId}", img.Id, goodId);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка синхронизации изображений для товара {GoodId}", goodId);
+            logger.LogError(ex, "Ошибка синхронизации изображений для товара {GoodId}", goodId);
             throw;
         }
     }
@@ -97,7 +84,7 @@ public class ImageSyncService
             var imageData = await DownloadImageAsync(apiImage.Url, ct);
             if (imageData == null || imageData.Length == 0)
             {
-                _logger.LogWarning("Не удалось скачать изображение: {Url}", apiImage.Url);
+                logger.LogWarning("Не удалось скачать изображение: {Url}", apiImage.Url);
                 return null;
             }
 
@@ -122,8 +109,8 @@ public class ImageSyncService
                     existing.TimeCreate = apiImage.TimeCreate;
                     existing.DownloadedAt = DateTimeOffset.UtcNow;
 
-                    await _db.UpdateAsync(existing, token: ct);
-                    _logger.LogInformation("Обновлено изображение {Id} для товара {GoodId} (hash/sort изменился)", 
+                    await db.UpdateAsync(existing, token: ct);
+                    logger.LogInformation("Обновлено изображение {Id} для товара {GoodId} (hash/sort изменился)", 
                         existing.Id, goodId);
                 }
                 return existing;
@@ -143,15 +130,15 @@ public class ImageSyncService
                 DownloadedAt = DateTimeOffset.UtcNow
             };
 
-            newImage.Id = await _db.InsertWithInt64IdentityAsync(newImage, token: ct);
-            _logger.LogInformation("Добавлено изображение {Id} для товара {GoodId}: {Url}", 
+            newImage.Id = await db.InsertWithInt64IdentityAsync(newImage, token: ct);
+            logger.LogInformation("Добавлено изображение {Id} для товара {GoodId}: {Url}", 
                 newImage.Id, goodId, apiImage.Url);
 
             return newImage;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка загрузки изображения {Url}", apiImage.Url);
+            logger.LogError(ex, "Ошибка загрузки изображения {Url}", apiImage.Url);
             return null;
         }
     }
@@ -163,13 +150,13 @@ public class ImageSyncService
     {
         try
         {
-            using var response = await _httpClient.GetAsync(url, ct);
+            using var response = await httpClient.GetAsync(url, ct);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsByteArrayAsync(ct);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "HTTP ошибка при загрузке {Url}", url);
+            logger.LogWarning(ex, "HTTP ошибка при загрузке {Url}", url);
             return null;
         }
     }

@@ -122,18 +122,6 @@ public class SyncStateRepository
     // ========== Специализированные методы ==========
 
     /// <summary>
-    /// Проверить, завершена ли инициальная синхронизация
-    /// </summary>
-    public Task<bool> IsInitialSyncCompleteAsync(CancellationToken ct = default)
-        => GetBoolAsync(SyncStateKeys.InitialComplete, false, ct);
-
-    /// <summary>
-    /// Отметить инициальную синхронизацию как завершённую
-    /// </summary>
-    public Task SetInitialSyncCompleteAsync(CancellationToken ct = default)
-        => SetBoolAsync(SyncStateKeys.InitialComplete, true, ct);
-
-    /// <summary>
     /// Получить время последнего запуска задачи
     /// </summary>
     public Task<DateTimeOffset?> GetLastRunAsync(string taskKey, CancellationToken ct = default)
@@ -151,68 +139,46 @@ public class SyncStateRepository
 /// </summary>
 public static class SyncStateKeys
 {
-    // ========== Initial Sync Checkpoints ==========
+    // ========== Полная синхронизация (Full Sync) ==========
+
+    /// <summary>Флаг: полная синхронизация в процессе</summary>
+    public const string FullInProgress = "Full_InProgress";
+
+    /// <summary>Время начала текущей полной синхронизации</summary>
+    public const string FullStartedAt = "Full_StartedAt";
+
+    /// <summary>Время завершения последней полной синхронизации</summary>
+    public const string FullCompletedAt = "Full_CompletedAt";
+
     /// <summary>Флаг: справочники (страны, валюты, ед. изм, группы) загружены</summary>
-    public const string InitialDictionariesComplete = "Initial_Dictionaries_Complete";
-    
-    /// <summary>Флаг: связи товаров и единиц измерения загружены</summary>
-    public const string InitialRelationsComplete = "Initial_Relations_Complete";
-    
-    /// <summary>Флаг: группы загружены (Legacy)</summary>
-    public const string InitialGroupsComplete = "Initial_Groups_Complete";
-    
+    public const string FullDictionariesComplete = "Full_Dictionaries_Complete";
+
     /// <summary>Флаг: атрибуты загружены</summary>
-    public const string InitialAttributesComplete = "Initial_Attributes_Complete";
-    
-    /// <summary>Флаг: единицы загружены (Legacy)</summary>
-    public const string InitialUnitsComplete = "Initial_Units_Complete";
-    
+    public const string FullAttributesComplete = "Full_Attributes_Complete";
+
+    /// <summary>Флаг: связи товаров и единиц измерения загружены</summary>
+    public const string FullRelationsComplete = "Full_Relations_Complete";
+
     /// <summary>Текущая страница товаров (1-based)</summary>
-    public const string InitialGoodsPage = "Initial_Goods_Page";
-    
+    public const string FullGoodsPage = "Full_Goods_Page";
+
     /// <summary>Всего страниц товаров</summary>
-    public const string InitialGoodsTotalPages = "Initial_Goods_TotalPages";
-    
-    /// <summary>Флаг: все товары загружены</summary>
-    public const string InitialGoodsComplete = "Initial_Goods_Complete";
-    
-    /// <summary>Индекс текущего товара для загрузки изображений</summary>
-    public const string InitialImagesGoodIndex = "Initial_Images_GoodIndex";
-    
-    /// <summary>Флаг: связи атрибутов (goodsattributes) загружены</summary>
-    public const string InitialGoodAttributesComplete = "Initial_GoodAttributes_Complete";
+    public const string FullGoodsTotalPages = "Full_Goods_TotalPages";
 
-    /// <summary>Флаг: все изображения загружены</summary>
-    public const string InitialImagesComplete = "Initial_Images_Complete";
-    
-    // ...
-    
-    /// <summary>Флаг: вся инициальная синхронизация завершена</summary>
-    public const string InitialComplete = "Initial_Complete";
-    
-    // ========== Incremental Sync ==========
+    /// <summary>Флаг: все товары загружены (включая изображения)</summary>
+    public const string FullGoodsComplete = "Full_Goods_Complete";
+
+    // ========== Инкрементальная синхронизация ==========
+
+    /// <summary>Время последней дельта-синхронизации товаров</summary>
     public const string GoodsLastDelta = "Sync_Goods_LastDelta";
-    public const string ImagesLastDelta = "Sync_Images_LastDelta";
-    public const string ReferencesLastRun = "Sync_References_LastRun";
-    
-    // ========== Full Reload Progress ==========
-    public const string FullReloadGoodsCurrentPage = "FullReload_Goods_CurrentPage";
-    public const string FullReloadGoodsTotalPages = "FullReload_Goods_TotalPages";
-    public const string FullReloadGoodsStartedAt = "FullReload_Goods_StartedAt";
-    public const string GoodsLastFull = "Sync_Goods_LastFull";
-    public const string DailyFullResyncLastRun = "Daily_Full_Resync_LastRun";
 
-    // ========== Daily Sync Checkpoints (Genericized) ==========
-    public const string DailyDictionariesComplete = "Daily_Dictionaries_Complete";
-    public const string DailyRelationsComplete = "Daily_Relations_Complete";
-    public const string DailyGroupsComplete = "Daily_Groups_Complete";
-    public const string DailyAttributesComplete = "Daily_Attributes_Complete";
-    public const string DailyUnitsComplete = "Daily_Units_Complete";
-    public const string DailyGoodsPage = "Daily_Goods_Page";
-    public const string DailyGoodsTotalPages = "Daily_Goods_TotalPages";
-    public const string DailyGoodsComplete = "Daily_Goods_Complete";
-    public const string DailyImagesGoodIndex = "Daily_Images_GoodIndex";
-    public const string DailyImagesComplete = "Daily_Images_Complete";
-    public const string DailyComplete = "Daily_Complete";
-    public const string DailyStartedAt = "Daily_Started_At";
+    /// <summary>Время последней синхронизации цен (currentprices)</summary>
+    public const string PricesLastDelta = "Sync_Prices_LastDelta";
+
+    /// <summary>Время последней синхронизации остатков (storegoods)</summary>
+    public const string StockLastDelta = "Sync_Stock_LastDelta";
+
+    /// <summary>Время последней синхронизации справочников</summary>
+    public const string ReferencesLastRun = "Sync_References_LastRun";
 }

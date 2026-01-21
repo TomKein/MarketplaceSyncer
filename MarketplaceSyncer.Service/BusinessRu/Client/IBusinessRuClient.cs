@@ -85,8 +85,13 @@ public interface IBusinessRuClient : IDisposable
 
     Task<StoreResponse[]> GetStoresAsync(CancellationToken cancellationToken = default);
 
+    Task<CurrentPriceResponse[]> GetCurrentPricesAsync(
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default);
+
     Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
+        DateTimeOffset? changedAfter = null,
         CancellationToken cancellationToken = default);
 
     Task<CommentResponse[]> GetCommentsAsync(

@@ -1,11 +1,26 @@
 namespace MarketplaceSyncer.Service.Configuration;
 
+/// <summary>
+/// Настройки синхронизации с Business.ru
+/// </summary>
 public class SynchronizationOptions
 {
+    // ========== Инкрементальная синхронизация ==========
+
     /// <summary>
     /// Интервал инкрементальной синхронизации товаров (по полю updated).
     /// </summary>
     public TimeSpan GoodsDeltaInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Интервал инкрементальной синхронизации цен (currentprices).
+    /// </summary>
+    public TimeSpan PricesDeltaInterval { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Интервал инкрементальной синхронизации остатков (storegoods).
+    /// </summary>
+    public TimeSpan StockDeltaInterval { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Интервал инкрементальной синхронизации изображений.
@@ -17,16 +32,29 @@ public class SynchronizationOptions
     /// </summary>
     public TimeSpan ReferencesInterval { get; set; } = TimeSpan.FromHours(24);
 
-    /// <summary>
-    /// Целевой интервал полной перезагрузки (раз в день).
-    /// LOW приоритет работает в фоне для достижения этой цели.
-    /// </summary>
-    public TimeSpan FullReloadTargetInterval { get; set; } = TimeSpan.FromHours(24);
+    // ========== Полная синхронизация ==========
 
     /// <summary>
-    /// Количество страниц за одну итерацию полной загрузки (LOW приоритет).
+    /// Максимальный возраст последней полной синхронизации.
+    /// Если прошло больше времени - запускается новая полная синхронизация.
     /// </summary>
-    public int FullReloadChunkSize { get; set; } = 5;
+    public TimeSpan FullSyncMaxAge { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Время начала ночного окна полной синхронизации (по FullSyncTimeZoneOffset).
+    /// </summary>
+    public TimeSpan FullSyncWindowStart { get; set; } = new TimeSpan(1, 0, 0); // 01:00
+
+    /// <summary>
+    /// Время окончания ночного окна полной синхронизации (по FullSyncTimeZoneOffset).
+    /// После этого времени полная синхронизация прерывается до следующей ночи.
+    /// </summary>
+    public TimeSpan FullSyncWindowEnd { get; set; } = new TimeSpan(5, 0, 0); // 05:00
+
+    /// <summary>
+    /// Смещение часового пояса для ночного окна (по умолчанию +3 Москва).
+    /// </summary>
+    public int FullSyncTimeZoneOffset { get; set; } = 3;
 
     /// <summary>
     /// Размер страницы при загрузке товаров.
@@ -34,19 +62,7 @@ public class SynchronizationOptions
     public int PageSize { get; set; } = 250;
 
     /// <summary>
-    /// Если true, при старте будет выполнен полный сброс состояния синхронизации и повторная инициальная загрузка.
-    /// Осторожно: сбрасывает все курсоры!
+    /// Если true, при старте будет выполнен принудительный сброс и запуск полной синхронизации.
     /// </summary>
-    public bool ForceInitialResync { get; set; } = false;
-
-    /// <summary>
-    /// Время запуска полной ежедневной пересинхронизации (по часовому поясу FullResyncTimeZoneOffset).
-    /// По умолчанию: 01:00.
-    /// </summary>
-    public TimeSpan DailyFullResyncTime { get; set; } = new TimeSpan(1, 0, 0);
-
-    /// <summary>
-    /// Смещение часового пояса для ежедневной пересинхронизации (по умолчанию +3 Москва).
-    /// </summary>
-    public int FullResyncTimeZoneOffset { get; set; } = 3;
+    public bool ForceFullSync { get; set; } = false;
 }

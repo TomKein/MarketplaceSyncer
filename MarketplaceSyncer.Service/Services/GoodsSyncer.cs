@@ -18,6 +18,7 @@ public class GoodsSyncer
     private readonly IBusinessRuClient _client;
     private readonly AppDataConnection _db;
     private readonly SyncStateRepository _state;
+    private readonly ImageSyncService _images;
     private readonly SynchronizationOptions _options;
     private readonly ILogger<GoodsSyncer> _logger;
 
@@ -25,12 +26,14 @@ public class GoodsSyncer
         IBusinessRuClient client,
         AppDataConnection db,
         SyncStateRepository state,
+        ImageSyncService images,
         IOptions<SynchronizationOptions> options,
         ILogger<GoodsSyncer> logger)
     {
         _client = client;
         _db = db;
         _state = state;
+        _images = images;
         _options = options.Value;
         _logger = logger;
     }
@@ -57,111 +60,6 @@ public class GoodsSyncer
         _logger.LogInformation("Delta sync завершён: {Count} товаров обработано", changedGoods.Length);
     }
 
-    /// <summary>
-    /// Инициальная загрузка с контролем страниц (HIGH приоритет)
-    /// </summary>
-    public async Task RunInitialSyncAsync(CancellationToken ct = default)
-    {
-        _logger.LogInformation("Начинаем инициальную загрузку товаров...");
-
-        // Получаем общее количество для расчёта страниц
-        var totalCount = await _client.CountGoodsAsync(cancellationToken: ct);
-        var totalPages = (int)Math.Ceiling(totalCount / (double)_options.PageSize);
-        
-        await _state.SetIntAsync(SyncStateKeys.InitialGoodsTotalPages, totalPages, ct);
-        
-        var currentPage = await _state.GetIntAsync(SyncStateKeys.InitialGoodsPage, 1, ct);
-        _logger.LogInformation("Инициальная загрузка: страница {Current}/{Total}", currentPage, totalPages);
-
-        while (currentPage <= totalPages)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var goods = await LoadGoodsPageAsync(currentPage, ct);
-            _logger.LogInformation("Страница {Page}/{Total}: загружено {Count} товаров", 
-                currentPage, totalPages, goods.Length);
-
-            foreach (var apiGood in goods)
-            {
-                await UpsertGoodAsync(apiGood, ct);
-            }
-
-            currentPage++;
-            await _state.SetIntAsync(SyncStateKeys.InitialGoodsPage, currentPage, ct);
-        }
-
-        // Сбрасываем прогресс
-        await _state.SetIntAsync(SyncStateKeys.InitialGoodsPage, 1, ct);
-        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastDelta, DateTimeOffset.UtcNow, ct);
-        
-        _logger.LogInformation("Инициальная загрузка товаров завершена: {Total} страниц", totalPages);
-    }
-
-    /// <summary>
-    /// Загрузка одного чанка для full reload (LOW приоритет)
-    /// </summary>
-    public async Task<bool> RunFullReloadChunkAsync(CancellationToken ct = default)
-    {
-        var currentPage = await _state.GetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
-        var totalPages = await _state.GetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
-
-        // Если totalPages = 0, нужно инициализировать
-        if (totalPages == 0)
-        {
-            var totalCount = await _client.CountGoodsAsync(cancellationToken: ct);
-            totalPages = (int)Math.Ceiling(totalCount / (double)_options.PageSize);
-            await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, totalPages, ct);
-            await _state.SetDateTimeOffsetAsync(SyncStateKeys.FullReloadGoodsStartedAt, DateTimeOffset.UtcNow, ct);
-            _logger.LogInformation("Full reload инициализирован: {Total} страниц", totalPages);
-        }
-
-        // Загружаем ChunkSize страниц
-        var pagesLoaded = 0;
-        while (pagesLoaded < _options.FullReloadChunkSize && currentPage <= totalPages)
-        {
-            ct.ThrowIfCancellationRequested();
-
-            var goods = await LoadGoodsPageAsync(currentPage, ct);
-            foreach (var apiGood in goods)
-            {
-                await UpsertGoodAsync(apiGood, ct);
-            }
-
-            _logger.LogDebug("Full reload: страница {Page}/{Total}", currentPage, totalPages);
-            
-            currentPage++;
-            pagesLoaded++;
-            await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, currentPage, ct);
-        }
-
-        // Проверяем завершение цикла
-        if (currentPage <= totalPages) return true; // Есть ещё работа
-        await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
-        await _state.SetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
-        await _state.SetLastRunAsync(SyncStateKeys.GoodsLastFull, DateTimeOffset.UtcNow, ct);
-        _logger.LogInformation("Full reload завершён!");
-        return false; // Больше нет работы
-
-    }
-
-    /// <summary>
-    /// Проверить, есть ли незавершённая работа full reload
-    /// </summary>
-    public async Task<bool> HasPendingFullReloadWorkAsync(CancellationToken ct = default)
-    {
-        // Проверяем, нужен ли full reload по времени
-        // Проверяем, нужен ли full reload по времени
-        var lastFull = await _state.GetLastRunAsync(SyncStateKeys.GoodsLastFull, ct);
-        if (lastFull != null && DateTimeOffset.UtcNow - lastFull.Value < _options.FullReloadTargetInterval)
-        {
-            // Full reload ещё не нужен
-            var currentPage = await _state.GetIntAsync(SyncStateKeys.FullReloadGoodsCurrentPage, 1, ct);
-            var totalPages = await _state.GetIntAsync(SyncStateKeys.FullReloadGoodsTotalPages, 0, ct);
-            // Но если есть незавершённый — продолжаем
-            return totalPages > 0 && currentPage <= totalPages;
-        }
-        return true; // Нужен full reload
-    }
 
     private async Task<ApiGood[]> LoadGoodsPageAsync(int page, CancellationToken ct)
     {
@@ -331,6 +229,136 @@ public class GoodsSyncer
                         .DeleteAsync(ct);
                 }
             }
+        }
+
+        // --- Process Store Remains (Inline) ---
+        if (apiGood.Remains is { Length: > 0 })
+        {
+            var existingRemains = await _db.StoreGoods.Where(sg => sg.GoodId == id).ToListAsync(ct);
+            var existingRemainsMap = existingRemains.ToDictionary(sg => sg.StoreId);
+
+            // UpdatedRemainsPrices stores timestamp for both prices and remains
+            var remainsUpdatedAt = apiGood.UpdatedRemainsPrices;
+
+            foreach (var remain in apiGood.Remains)
+            {
+                if (remain.Store == null || remain.Amount == null) continue;
+                
+                var storeId = remain.Store.Id;
+                
+                if (existingRemainsMap.TryGetValue(storeId, out _))
+                {
+                    // Update
+                    await _db.StoreGoods
+                        .Where(sg => sg.GoodId == id && sg.StoreId == storeId)
+                        .Set(sg => sg.Amount, remain.Amount.Total)
+                        .Set(sg => sg.Reserved, remain.Amount.Reserved)
+                        .Set(sg => sg.RemainsMin, remain.Amount.RemainsMin ?? 0)
+                        .Set(sg => sg.BusinessRuUpdatedAt, remainsUpdatedAt)
+                        .Set(sg => sg.LastSyncedAt, DateTimeOffset.UtcNow)
+                        .UpdateAsync(ct);
+
+                    existingRemainsMap.Remove(storeId);
+                }
+                else
+                {
+                    // Insert
+                    // Note: We assume Store exists (synced via ReferenceSyncer). 
+                    // If not, FK violation might occur if not careful, but usually Stores are static.
+                    await _db.InsertAsync(new StoreGood
+                    {
+                        GoodId = id,
+                        StoreId = storeId,
+                        Amount = remain.Amount.Total,
+                        Reserved = remain.Amount.Reserved,
+                        RemainsMin = remain.Amount.RemainsMin ?? 0,
+                        BusinessRuUpdatedAt = remainsUpdatedAt,
+                        LastSyncedAt = DateTimeOffset.UtcNow
+                    }, token: ct);
+                }
+            }
+
+            // Delete leftovers (if stock record removed from API?)
+            // Usually stock 0 is sent, but if store link is removed completely:
+            if (existingRemainsMap.Count > 0)
+            {
+                foreach (var key in existingRemainsMap.Keys)
+                {
+                    await _db.StoreGoods
+                        .Where(sg => sg.GoodId == id && sg.StoreId == key)
+                        .DeleteAsync(ct);
+                }
+            }
+        }
+
+        // --- Process Images (Inline) ---
+        await SyncImagesInlineAsync(id, apiGood.Images, ct);
+    }
+
+    /// <summary>
+    /// Синхронизация изображений inline из модели товара.
+    /// Скачивает новые изображения и удаляет отсутствующие.
+    /// </summary>
+    private async Task SyncImagesInlineAsync(long goodId, MarketplaceSyncer.Service.BusinessRu.Models.Responses.GoodImageResponse[]? apiImages, CancellationToken ct)
+    {
+        // Получаем существующие изображения
+        var existingImages = await _db.GoodImages
+            .Where(i => i.GoodId == goodId)
+            .ToListAsync(ct);
+
+        if (apiImages is not { Length: > 0 })
+        {
+            // Удаляем все изображения, если в API их нет
+            if (existingImages.Count > 0)
+            {
+                await _db.GoodImages.Where(i => i.GoodId == goodId).DeleteAsync(ct);
+                _logger.LogDebug("Удалено {Count} изображений для товара {GoodId} (отсутствуют в API)", existingImages.Count, goodId);
+            }
+            return;
+        }
+
+        var existingByUrl = existingImages.ToDictionary(i => i.Url);
+        var apiUrls = new HashSet<string>();
+
+        foreach (var apiImage in apiImages)
+        {
+            if (string.IsNullOrEmpty(apiImage.Url))
+                continue;
+
+            apiUrls.Add(apiImage.Url);
+
+            // Проверяем, есть ли уже такое изображение
+            if (existingByUrl.TryGetValue(apiImage.Url, out var existing))
+            {
+                // Изображения иммутабельны - только обновляем sort если изменился
+                if (existing.Sort != (apiImage.Sort ?? 0))
+                {
+                    await _db.GoodImages
+                        .Where(i => i.Id == existing.Id)
+                        .Set(i => i.Sort, apiImage.Sort ?? 0)
+                        .UpdateAsync(ct);
+                }
+            }
+            else
+            {
+                // Новое изображение - скачиваем
+                try
+                {
+                    await _images.DownloadAndSaveImageAsync(goodId, apiImage, null, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Ошибка загрузки изображения {Url} для товара {GoodId}", apiImage.Url, goodId);
+                }
+            }
+        }
+
+        // Удаляем изображения, которых больше нет в API
+        var toDelete = existingImages.Where(e => !apiUrls.Contains(e.Url)).ToList();
+        foreach (var img in toDelete)
+        {
+            await _db.GoodImages.Where(i => i.Id == img.Id).DeleteAsync(ct);
+            _logger.LogDebug("Удалено изображение {Id} для товара {GoodId} (отсутствует в API)", img.Id, goodId);
         }
     }
 

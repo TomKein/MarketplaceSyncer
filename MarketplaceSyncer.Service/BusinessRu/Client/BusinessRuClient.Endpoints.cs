@@ -493,8 +493,49 @@ public sealed partial class BusinessRuClient
         return all.ToArray();
     }
 
+    /// <summary>
+    /// Получить текущие цены товаров (endpoint currentprices).
+    /// Поддерживает инкрементальную синхронизацию по полю updated.
+    /// </summary>
+    public async Task<CurrentPriceResponse[]> GetCurrentPricesAsync(
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<CurrentPriceResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            if (changedAfter.HasValue)
+                request["updated[from]"] = changedAfter.Value.ToString("yyyy-MM-dd HH:mm:ss");
+
+            var result = await RequestAsync<Dictionary<string, string>, CurrentPriceResponse[]>(
+                HttpMethod.Get, "currentprices", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
+    /// <summary>
+    /// Получить текущие остатки товаров на складах (endpoint storegoods).
+    /// Поддерживает инкрементальную синхронизацию по полю updated.
+    /// </summary>
     public async Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
+        DateTimeOffset? changedAfter = null,
         CancellationToken cancellationToken = default)
     {
         var all = new List<StoreGoodResponse>();
@@ -510,6 +551,9 @@ public sealed partial class BusinessRuClient
 
             if (storeId.HasValue)
                 request["store_id"] = storeId.Value.ToString();
+
+            if (changedAfter.HasValue)
+                request["updated[from]"] = changedAfter.Value.ToString("yyyy-MM-dd HH:mm:ss");
 
             var result = await RequestAsync<Dictionary<string, string>, StoreGoodResponse[]>(
                 HttpMethod.Get, "storegoods", request, cancellationToken);

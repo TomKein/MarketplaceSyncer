@@ -25,11 +25,12 @@ builder.Services.AddHttpClient<ImageSyncService>();
 
 // Sync services
 builder.Services.AddScoped<SyncStateRepository>();
-builder.Services.AddScoped<ISyncStateService, SyncStateService>();
 builder.Services.AddScoped<ReferenceSyncer>();
 builder.Services.AddScoped<AttributeSyncer>();
 builder.Services.AddScoped<GoodsSyncer>();
-builder.Services.AddScoped<InitialSyncRunner>();
+builder.Services.AddScoped<PriceSyncer>();
+builder.Services.AddScoped<StockSyncer>();
+builder.Services.AddScoped<ImageSyncService>();
 
 // Database & Migrations
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
