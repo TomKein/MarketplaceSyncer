@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -133,6 +133,7 @@ namespace Selen.Sites {
                 await GetCardsListAsync();
                 await GetPricesAsync();
                 await GetStocksAsync();
+                await DeactivateMaslaProductsAsync();
                 await UpdateAll();
                 await UpdateRandom();
                 await Add();
@@ -505,7 +506,8 @@ namespace Selen.Sites {
                                      && w.WB.Length == 0
                                      //&& !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e)))
+                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e))
+                                     && w.GroupName.ToLowerInvariant() != "масла")
                             .OrderByDescending(o => o.Price).ToList();  //сначала подороже
             SaveToFile(goods);
             Log.Add($"{L}Add: карточек для добавления: {goods.Count}");
@@ -1563,6 +1565,47 @@ namespace Selen.Sites {
             public string partB { get; set; }
             public string barcode { get; set; }
             public string file { get; set; }
+        }
+
+        //деактивация товаров группы Масла (установка остатка 0)
+        public async Task DeactivateMaslaProductsAsync() {
+            try {
+                //получаем список товаров группы Масла с ссылками на WB
+                var maslaGoods = Class365API._bus.Where(w => w.GroupName.ToLowerInvariant() == "масла" && !string.IsNullOrEmpty(w.WB) && w.WB.Contains("http")).ToList();
+                if (maslaGoods.Count == 0) return;
+                
+                Log.Add($"{L}DeactivateMaslaProducts: найдено {maslaGoods.Count} товаров группы Масла для деактивации");
+                
+                //получаем список карточек WB
+                if (_isCardsListCheckNeeds)
+                    await GetCardsListAsync();
+                
+                foreach (var good in maslaGoods) {
+                    try {
+                        //находим карточку товара
+                        var card = _cardsList.Find(f => f.vendorCode == good.id);
+                        if (card != null) {
+                            //устанавливаем остаток 0 на всех складах
+                            var data = new {
+                                stocks = new[] {
+                                    new {
+                                        sku = card.sizes[0].skus[0],
+                                        amount = 0
+                                    }
+                                }
+                            };
+                            var res = await PostRequestAsync(data, $"https://marketplace-api.wildberries.ru/api/v3/stocks/{_wareHouses[0].id}", true);
+                            var res1 = await PostRequestAsync(data, $"https://marketplace-api.wildberries.ru/api/v3/stocks/{_wareHouses[1].id}", true);
+                            Log.Add($"{L}DeactivateMaslaProducts: деактивирован товар {good.name} (остаток установлен в 0)");
+                            await Task.Delay(500);
+                        }
+                    } catch (Exception ex) {
+                        Log.Add($"{L}DeactivateMaslaProducts: ошибка деактивации товара {good.name} - {ex.Message}");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}DeactivateMaslaProducts: ошибка - {x.Message}");
+            }
         }
     }
 }
