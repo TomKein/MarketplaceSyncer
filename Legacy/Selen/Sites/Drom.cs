@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using OpenQA.Selenium;
 using Selen.Base;
 using Selen.Tools;
@@ -345,6 +345,7 @@ namespace Selen.Sites {
             }
             var b = _bus.Find(_ => (_.drom == null || !_.drom.Contains("http")) &&
                     !_.GroupName.Contains("ЧЕРНОВИК") &&
+                    _.GroupName.ToLowerInvariant() != "масла" &&
                     _.Amount > 0 &&
                     _.Price > 0 &&
                     _.images.Count > 0);

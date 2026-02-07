@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,6 +53,8 @@ namespace Selen.Sites {
                 _bus = Class365API._bus;
                 await GetParamsAsync();
                 await IsVKAuthorizatedAsync();
+                //удаляем товары группы Масла
+                await DeleteMaslaProductsAsync();
                 await UpdateAll();
                 if (Class365API.SyncStartTime.Minute < Class365API._checkIntervalMinutes) {
                     await GetAlbumsVK();
@@ -163,6 +165,7 @@ namespace Selen.Sites {
                 //если есть фотографии, цена, количество и нет привязки на вк
                 if (Class365API._bus[b].images.Count > 0
                     && !Class365API._bus[b].GroupName.Contains("ЧЕРНОВИК")
+                    && Class365API._bus[b].GroupName.ToLowerInvariant() != "масла"
                     && Class365API._bus[b].Price > 0
                     && Class365API._bus[b].Amount > 0
                     && !Class365API._bus[b].vk.Contains("http")) {
@@ -445,6 +448,54 @@ namespace Selen.Sites {
             } while (f);
             Log.Add($"{L}GetAlbumsVK: получено {vkAlb.Count} альбомов");
         });
+        //удаление товаров группы Масла из ВК
+        private async Task DeleteMaslaProductsAsync() {
+            try {
+                //получаем список товаров группы Масла с ссылками на VK
+                var maslaGoods = Class365API._bus.Where(w => w.GroupName.ToLowerInvariant() == "масла" && !string.IsNullOrEmpty(w.vk)).ToList();
+                if (maslaGoods.Count == 0) return;
+                
+                Log.Add($"{L}DeleteMaslaProducts: найдено {maslaGoods.Count} товаров группы Масла для удаления");
+                
+                foreach (var good in maslaGoods) {
+                    try {
+                        //извлекаем ID товара из ссылки VK
+                        var itemId = ExtractItemIdFromVkUrl(good.vk);
+                        if (itemId > 0) {
+                            //удаляем товар из VK
+                            _vk.Markets.Delete(-_marketId, itemId);
+                            Log.Add($"{L}DeleteMaslaProducts: удален товар {good.name} (ID: {itemId})");
+                            
+                            //очищаем ссылку в карточке товара
+                            good.vk = "";
+                            await Class365API.RequestAsync("put", "goods", new Dictionary<string, string> {
+                                {"id", good.id},
+                                {"name", good.name},
+                                {_url, ""}
+                            });
+                            await Task.Delay(1000);
+                        }
+                    } catch (Exception ex) {
+                        Log.Add($"{L}DeleteMaslaProducts: ошибка удаления товара {good.name} - {ex.Message}");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}DeleteMaslaProducts: ошибка - {x.Message}");
+            }
+        }
+        
+        //извлечение ID товара из URL VK
+        private long ExtractItemIdFromVkUrl(string url) {
+            try {
+                var pattern = @"product-\d+_(\d+)";
+                var match = System.Text.RegularExpressions.Regex.Match(url, pattern);
+                if (match.Success) {
+                    return long.Parse(match.Groups[1].Value);
+                }
+            } catch { }
+            return 0;
+        }
+        
         //авторизация вк
         //получить новый ключ
         //https://oauth.vk.com/authorize?client_id=5820993&display=page&scope=offline%2Cphotos%2Cmarket&redirect_uri=https://oauth.vk.com/blank.html&response_type=token&v=5.131

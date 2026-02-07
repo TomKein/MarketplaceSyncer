@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -107,6 +107,7 @@ namespace Selen.Sites {
                 await GetCategoriesAsync();
                 await UpdateProductsAsync();
                 await CheckProductListAsync();
+                await DeactivateMaslaProductsAsync();
                 await UpdateActions();
                 await CheckProductLinksAsync(checkAll: true);
                 await Add();
@@ -666,7 +667,8 @@ namespace Selen.Sites {
                                      && w.Ozon.Length == 0
                                      && !_productList.Any(_ => w.id == _.offer_id)
                                      && !_exceptionGoods.Any(e => w.name.ToLowerInvariant().Contains(e))
-                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e))).ToList();
+                                     && !_exceptionGroups.Any(e => w.GroupName.ToLowerInvariant().Contains(e))
+                                     && w.GroupName.ToLowerInvariant() != "масла").ToList();
             SaveToFile(goods);
             var goods2 = Class365API._bus.Where(w => w.Amount > 0
                                      && w.Price > 0
@@ -877,6 +879,55 @@ namespace Selen.Sites {
                 Log.Add($"{L} DeactivateAutoActions: ошибка отмены автоакций! - {x.Message}");
                 if (DB.GetParamBool("alertSound"))
                     new System.Media.SoundPlayer(@"..\data\alarm.wav").Play();
+            }
+        }
+        //деактивация товаров группы Масла (установка остатка 0)
+        async Task DeactivateMaslaProductsAsync() {
+            try {
+                //получаем список товаров группы Масла с ссылками на Ozon
+                var maslaGoods = Class365API._bus.Where(w => w.GroupName.ToLowerInvariant() == "масла" && !string.IsNullOrEmpty(w.Ozon) && w.Ozon.Contains("http")).ToList();
+                if (maslaGoods.Count == 0) return;
+                
+                Log.Add($"{L}DeactivateMaslaProducts: найдено {maslaGoods.Count} товаров группы Масла для деактивации");
+                
+                //получаем информацию о товарах на Ozon
+                if (_isProductListCheckNeeds)
+                    await CheckProductListAsync();
+                
+                //получаем активные склады
+                var activeWarehouses = _warehouseList?.Where(w => !w.is_economy && w.status != "disabled").ToArray();
+                if (activeWarehouses == null || activeWarehouses.Length == 0) {
+                    Log.Add($"{L}DeactivateMaslaProducts: нет активных складов!");
+                    return;
+                }
+                
+                foreach (var good in maslaGoods) {
+                    try {
+                        //находим товар в списке Ozon
+                        var ozonProduct = _productList.Find(p => p.offer_id == good.id);
+                        if (ozonProduct != null) {
+                            //устанавливаем остаток 0 на всех складах
+                            foreach (var warehouse in activeWarehouses) {
+                                var data = new {
+                                    stocks = new[] {
+                                        new {
+                                            offer_id = good.id,
+                                            stock = 0,
+                                            warehouse_id = warehouse.warehouse_id
+                                        }
+                                    }
+                                };
+                                var res = await PostRequestAsync(data, "/v2/products/stocks");
+                            }
+                            Log.Add($"{L}DeactivateMaslaProducts: деактивирован товар {good.name} (остаток установлен в 0 на всех складах)");
+                            await Task.Delay(500);
+                        }
+                    } catch (Exception ex) {
+                        Log.Add($"{L}DeactivateMaslaProducts: ошибка деактивации товара {good.name} - {ex.Message}");
+                    }
+                }
+            } catch (Exception x) {
+                Log.Add($"{L}DeactivateMaslaProducts: ошибка - {x.Message}");
             }
         }
         string GetTypeName(XElement rule) {

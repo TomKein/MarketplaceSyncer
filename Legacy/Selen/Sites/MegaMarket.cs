@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -69,7 +69,8 @@ namespace Selen.Sites {
                             n.Contains("крыло заднее") || n.Contains("четверть ") ||
                             n.Contains("передняя часть кузова") || n.Contains("лонжерон") ||
                             n.Contains("панель передняя") || n.Contains("морда") ||
-                            n.Contains("телевизор") || n.Contains("переделка")
+                            n.Contains("телевизор") || n.Contains("переделка") ||
+                            b.GroupName.ToLowerInvariant() == "масла"
                             )
                             continue;
                         var offer = new XElement("offer", new XAttribute("id", b.id));

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Selen.Base;
 using Selen.Tools;
 using System;
@@ -242,6 +242,7 @@ namespace Selen.Sites {
                                        && w.images.Count > 0 
                                        && !_exceptionGoods.Any(a=>w.name.ToLower().StartsWith(a)) 
                                        && !_exceptionGroups.Contains(w.GroupName)
+                                       && w.GroupName.ToLowerInvariant() != "масла"
                                        && (w.Amount > 0 ||
                                             DateTime.Parse(w.updated).AddHours(2).AddDays(days) > Class365API.LastScanTime ||
                                             DateTime.Parse(w.updated_remains_prices).AddHours(2).AddDays(days) > Class365API.LastScanTime
