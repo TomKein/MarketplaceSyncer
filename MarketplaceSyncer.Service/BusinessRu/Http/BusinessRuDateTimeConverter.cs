@@ -19,7 +19,8 @@ public class BusinessRuDateTimeConverter : JsonConverter<DateTimeOffset>
         "dd.MM.yyyy HH:mm:ss.ff",
         "dd.MM.yyyy HH:mm:ss.f",
         "dd.MM.yyyy HH:mm:ss",
-        "yyyy-MM-dd HH:mm:ss" 
+        "yyyy-MM-dd HH:mm:ss",
+        "dd.MM.yyyy"
     };
 
     public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -28,9 +29,12 @@ public class BusinessRuDateTimeConverter : JsonConverter<DateTimeOffset>
         if (string.IsNullOrEmpty(str)) 
             return default;
 
+        // Clean up common suffixes
+        var cleanStr = str.Replace(" MSK", "").Trim();
+
         foreach (var format in _formats)
         {
-            if (DateTime.TryParseExact(str, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            if (DateTime.TryParseExact(cleanStr, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
             {
                 // Treat the parsed date as unspecified (implicitly Moscow local time)
                 // and apply the offset.
@@ -39,12 +43,12 @@ public class BusinessRuDateTimeConverter : JsonConverter<DateTimeOffset>
         }
 
         // Final fallback
-        if (DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+        if (DateTime.TryParse(cleanStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
         {
              return new DateTimeOffset(dt, MoscowOffset);
         }
             
-        throw new JsonException($"Unable to convert \"{str}\" to DateTimeOffset. Supported formats include: {string.Join(", ", _formats)}");
+        throw new JsonException($"Unable to convert \"{str}\" (clean: \"{cleanStr}\") to DateTimeOffset. Supported formats include: {string.Join(", ", _formats)}");
     }
 
     public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)

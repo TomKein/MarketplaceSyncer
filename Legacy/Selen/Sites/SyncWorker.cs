@@ -61,7 +61,7 @@ namespace Selen.Sites {
                 await Class365API.ArchivateAsync();                 //архивирование карточек
             }
             await Class365API.CheckRealisationsAsync();             //проверка реализаций, добавление расходов
-            await Class365API.ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
+            //await Class365API.ChangePostingsPrices();               //корректировка цены закупки в оприходованиях
 
 
             await WaitSitesSync();

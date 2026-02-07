@@ -39,153 +39,53 @@ public class ExperimentWorker : BackgroundService
 
         try
         {
-            // Эксперимент: Запрос и сохранение групп (Priority Check)
-            _logger.LogInformation("Experiment: Groups Sync...");
-            var groups = await _client.GetGroupsAsync(cancellationToken: stoppingToken);
-            _logger.LogInformation("Получено групп из API: {Count}", groups.Length);
+            // --- Experiment: Stock Clearing (Warehouse 76726) ---
+            _logger.LogInformation("Experiment: Stock Clearing for Warehouse 76726...");
+            long targetStoreId = 76726;
 
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDataConnection>();
-                
-                foreach (var g in groups.Take(5))
-                {
-                    _logger.LogInformation("  Группа: Id={Id}, Name={Name}, Deleted={Del}, Updated={Upd}", 
-                        g.Id, g.Name, g.IsDeleted, g.Updated);
-                }
-
-                _logger.LogInformation("Сохранение групп в БД (с учетом иерархии)...");
-                
-                // Топологическая сортировка (BFS от корней к листьям)
-                var lookup = groups.ToLookup(g => g.ParentId);
-                var sortedGroups = new List<GroupResponse>();
-                var queue = new Queue<GroupResponse>();
-                
-                // 1. Корневые элементы (ParentId == null)
-                foreach (var root in lookup[null])
-                {
-                    queue.Enqueue(root);
-                }
-                
-                // 2. Обход в ширину
-                while (queue.Count > 0)
-                {
-                    var current = queue.Dequeue();
-                    sortedGroups.Add(current);
-                    
-                    // Добавляем дочерние элементы
-                    foreach (var child in lookup[current.Id])
-                    {
-                        queue.Enqueue(child);
-                    }
-                }
-                
-                // 3. Если есть сироты (битые ссылки или циклы), добавляем их в конец
-                if (sortedGroups.Count < groups.Length)
-                {
-                    var processedIds = sortedGroups.Select(g => g.Id).ToHashSet();
-                    var orphans = groups.Where(g => !processedIds.Contains(g.Id)).ToList();
-                    _logger.LogWarning("Обнаружено {Count} изолированных групп или циклов. Добавляем в конец.", orphans.Count);
-                    sortedGroups.AddRange(orphans);
-                }
-
-                foreach (var g in sortedGroups)
-                {
-                     await UpsertGroupAsync(db, g, g.ParentId, stoppingToken);
-                }
-                _logger.LogInformation("Группы сохранены.");
-            }
+            // 1. Get Store Goods (with server-side filtering)
+            _logger.LogInformation("Fetching goods for store {StoreId} (only positive amount)...", targetStoreId);
+            var storeGoods = await _client.GetStoreGoodsAsync(storeId: targetStoreId, withPositiveAmount: true, cancellationToken: stoppingToken);
             
-            // Эксперимент: Запрос типов цен продажи
-            _logger.LogInformation("Запрашиваю типы цен продажи...");
-            var priceTypes = await _client.GetPriceTypesAsync(cancellationToken: stoppingToken);
-            _logger.LogInformation("Получено типов цен: {Count}", priceTypes.Length);
-            
-            foreach (var pt in priceTypes)
+            var positiveGoods = storeGoods.ToList();
+            _logger.LogInformation("Found {Count} goods with positive amount.", positiveGoods.Count);
+
+            if (positiveGoods.Count > 0)
             {
-                _logger.LogInformation("  Тип цены: Id={Id}, Name={Name}", pt.Id, pt.Name);
-            }
+                // 2. Use Existing Charge Document
+                long targetChargeId = 4409733; 
+                _logger.LogInformation("Using existing Charge Document ID={Id}...", targetChargeId);
 
-            /* --- Остальные эксперименты временно отключены --- */
-            
-            // --- Experiment: Goods Comments ---
-            _logger.LogInformation("Experiment: Goods Comments API Check...");
-
-            // 1. Get specific good ID to comment on
-            _logger.LogInformation("Fetching target good (Id=162695)...");
-            var goods = await _client.GetGoodsAsync(businessId: 162695, cancellationToken: stoppingToken);
-            if (goods.Length > 0)
-            {
-                var targetGoodId = goods[0].Id;
-                _logger.LogInformation("Target Good ID: {Id}, Name: {Name}", targetGoodId, goods[0].Name);
-
-
+                // 3. Add Goods to Charge (One by One)
+                _logger.LogInformation("Adding goods to Charge document...");
+                int successCount = 0;
                 
-            // 2. Create Comment
-                var commentText = $"Тестовый комментарий от синхронизатора {DateTime.Now}";
-                _logger.LogInformation("Creating comment: {Text}", commentText);
-                
-                CommentResponse? createdComment = null;
-                try 
+                foreach (var sg in positiveGoods)
                 {
-                    createdComment = await _client.CreateCommentAsync(new CommentRequest 
+                    var goodReq = new ChargeGoodRequest
                     {
-                        ModelId = targetGoodId,
-                        ModelName = "goods",
-                        Note = commentText
-                    }, stoppingToken);
-                    _logger.LogInformation("Comment Created! Id={Id}, Author={Author}", createdComment.Id, createdComment.AuthorEmployeeId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to create comment.");
-                }
+                        ChargeId = targetChargeId,
+                        GoodId = sg.GoodId,
+                        Amount = sg.Amount,
+                        ModificationId = sg.ModificationId
+                    };
 
-                if (createdComment != null)
-                {
-                    // 3. Get Comments for this good
-                    _logger.LogInformation("Fetching comments for good {Id}...", targetGoodId);
-                    var comments = await _client.GetCommentsAsync(modelId: targetGoodId, cancellationToken: stoppingToken);
-                    _logger.LogInformation("Found {Count} comments.", comments.Length);
-                    foreach(var c in comments)
-                    {
-                         _logger.LogInformation(" - [{Id}] {Date}: {Note}", c.Id, c.TimeCreate, c.Note);
-                    }
-
-                    // 4. Update Comment
-                    _logger.LogInformation("Updating comment {Id}...", createdComment.Id);
-                    var updatedText = commentText + " (Updated)";
                     try
                     {
-                        var updatedComment = await _client.UpdateCommentAsync(new CommentRequest
-                        {
-                            Id = createdComment.Id,
-                            ModelId = targetGoodId,
-                            Note = updatedText
-                        }, stoppingToken);
-                        _logger.LogInformation("Comment Updated! New content: {Note}", updatedComment.Note);
+                        await _client.AddChargeGoodAsync(goodReq, stoppingToken);
+                        successCount++;
+                        if (successCount % 10 == 0) _logger.LogInformation("Added {Count}/{Total} goods...", successCount, positiveGoods.Count);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to update comment.");
-                    }
-
-                    // 5. Delete Comment
-                    _logger.LogInformation("Deleting comment {Id}...", createdComment.Id);
-                    try
-                    {
-                        await _client.DeleteCommentAsync(createdComment.Id, stoppingToken);
-                        _logger.LogInformation("Comment deleted successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to delete comment.");
+                        _logger.LogError(ex, "Failed to add good {GoodId} to charge.", sg.GoodId);
                     }
                 }
+                _logger.LogInformation("Finished adding goods. Successfully added: {Count}/{Total}", successCount, positiveGoods.Count);
             }
             else
             {
-                _logger.LogWarning("No goods found to test comments on.");
+                 _logger.LogInformation("No goods with positive stock found. Nothing to clear.");
             }
 
         }
@@ -199,6 +99,7 @@ public class ExperimentWorker : BackgroundService
              _lifetime.StopApplication();
         }
     }
+
 
     private async Task UpsertGroupAsync(AppDataConnection db, GroupResponse g, long? parentId, CancellationToken token)
     {

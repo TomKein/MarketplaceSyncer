@@ -9,6 +9,11 @@ namespace MarketplaceSyncer.Service.BusinessRu.Client;
 /// </summary>
 public sealed partial class BusinessRuClient : IBusinessRuClient
 {
+    public Query.IBusinessRuQuery CreateQuery()
+    {
+        return new Query.BusinessRuQuery();
+    }
+
     private readonly HttpClient _httpClient;
     private readonly string _appId;
     private readonly string _secret;

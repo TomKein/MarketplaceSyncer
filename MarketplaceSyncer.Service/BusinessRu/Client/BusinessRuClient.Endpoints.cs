@@ -396,6 +396,38 @@ public sealed partial class BusinessRuClient
         return allGoods.ToArray();
     }
 
+    public async Task<EmployeeResponse[]> GetEmployeesAsync(
+        bool withAccess = false,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<EmployeeResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            if (withAccess)
+                request["with_access"] = "1";
+
+            var result = await RequestAsync<Dictionary<string, string>, EmployeeResponse[]>(
+                HttpMethod.Get, "employees", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
     /// <summary>
     /// Получить изображения товара
     /// </summary>
@@ -536,6 +568,7 @@ public sealed partial class BusinessRuClient
     public async Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
         DateTimeOffset? changedAfter = null,
+        bool withPositiveAmount = false,
         CancellationToken cancellationToken = default)
     {
         var all = new List<StoreGoodResponse>();
@@ -554,6 +587,9 @@ public sealed partial class BusinessRuClient
 
             if (changedAfter.HasValue)
                 request["updated[from]"] = changedAfter.Value.ToString("yyyy-MM-dd HH:mm:ss");
+
+            if (withPositiveAmount)
+                request["amount[from]"] = "0.00001";
 
             var result = await RequestAsync<Dictionary<string, string>, StoreGoodResponse[]>(
                 HttpMethod.Get, "storegoods", request, cancellationToken);
@@ -662,5 +698,127 @@ public sealed partial class BusinessRuClient
             HttpMethod.Delete, "comments", request, cancellationToken);
     }
 
-    public IBusinessRuQuery CreateQuery() => new BusinessRuQuery();
+    public async Task<ChargeResponse[]> GetChargesAsync(
+        long? id = null,
+        long? storeId = null,
+        DateTimeOffset? from = null,
+        bool withGoods = false,
+        string? number = null,
+        int? limit = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<ChargeResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            if (id.HasValue)
+                request["id"] = id.Value.ToString();
+
+            if (limit.HasValue && limit.Value <= 250)
+                request["limit"] = limit.Value.ToString();
+
+            if (storeId.HasValue)
+                request["store_id"] = storeId.Value.ToString();
+
+            if (from.HasValue)
+                request["date[from]"] = from.Value.ToString("dd.MM.yyyy HH:mm:ss");
+
+            if (withGoods)
+                request["with_goods"] = "1";
+
+            if (!string.IsNullOrEmpty(number))
+                request["number"] = number;
+
+            var result = await RequestAsync<Dictionary<string, string>, ChargeResponse[]>(
+                HttpMethod.Get, "charges", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            
+            if (limit.HasValue && all.Count >= limit.Value)
+            {
+                return all.Take(limit.Value).ToArray();
+            }
+
+            if (result.Length < (limit.HasValue ? Math.Min(limit.Value, 250) : 250)) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
+    public async Task<ChargeGoodResponse[]> GetChargeGoodsAsync(
+        long? chargeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var all = new List<ChargeGoodResponse>();
+        int page = 1;
+
+        while (true)
+        {
+            var request = new Dictionary<string, string>
+            {
+                ["limit"] = "250",
+                ["page"] = page.ToString()
+            };
+
+            if (chargeId.HasValue)
+                request["charge_id"] = chargeId.Value.ToString();
+
+            var result = await RequestAsync<Dictionary<string, string>, ChargeGoodResponse[]>(
+                HttpMethod.Get, "chargegoods", request, cancellationToken);
+
+            if (result.Length == 0) break;
+
+            all.AddRange(result);
+            if (result.Length < 250) break;
+
+            page++;
+        }
+
+        return all.ToArray();
+    }
+
+    public async Task<ChargeResponse> CreateChargeAsync(
+        ChargeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Auto-fill required fields if missing
+        if (request.OrganizationId == null && long.TryParse(_organizationId, out var orgId))
+            request = request with { OrganizationId = orgId };
+
+        if (request.ResponsibleEmployeeId == null && long.TryParse(_responsibleEmployeeId, out var empId))
+            request = request with { ResponsibleEmployeeId = empId };
+            
+        if (request.AuthorEmployeeId == null && long.TryParse(_responsibleEmployeeId, out var authId))
+             request = request with { AuthorEmployeeId = authId };
+
+        var response = await RequestAsync<ChargeRequest, ChargeResponse>(
+            HttpMethod.Post, "charges", request, cancellationToken);
+
+        return response;
+    }
+
+    public async Task<ChargeGoodResponse> AddChargeGoodAsync(
+        ChargeGoodRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var response = await RequestAsync<ChargeGoodRequest, ChargeGoodResponse>(
+            HttpMethod.Post, "chargegoods", request, cancellationToken);
+            
+        return response;
+    }
 }

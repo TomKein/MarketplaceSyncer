@@ -9,7 +9,7 @@ public class BusinessRuOptions
     public required string BaseUrl { get; set; }
     public required string ResponsibleEmployeeId { get; set; }
     public required string OrganizationId { get; set; }
-    public int RateLimitRequestCount { get; set; } = 300;
+    public int RateLimitRequestCount { get; set; } = 500;
     public int RateLimitTimeWindowMs { get; set; } = 300000; // 5 min
     
     // Retry configuration

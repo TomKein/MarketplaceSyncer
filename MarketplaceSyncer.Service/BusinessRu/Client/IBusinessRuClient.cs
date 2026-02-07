@@ -16,6 +16,10 @@ public interface IBusinessRuClient : IDisposable
         int? type = 1,
         CancellationToken cancellationToken = default);
 
+    Task<EmployeeResponse[]> GetEmployeesAsync(
+        bool withAccess = false,
+        CancellationToken cancellationToken = default);
+
     Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default);
     
     Task<MeasureResponse[]> GetMeasuresAsync(CancellationToken cancellationToken = default);
@@ -92,6 +96,7 @@ public interface IBusinessRuClient : IDisposable
     Task<StoreGoodResponse[]> GetStoreGoodsAsync(
         long? storeId = null,
         DateTimeOffset? changedAfter = null,
+        bool withPositiveAmount = false,
         CancellationToken cancellationToken = default);
 
     Task<CommentResponse[]> GetCommentsAsync(
@@ -110,6 +115,27 @@ public interface IBusinessRuClient : IDisposable
 
     Task DeleteCommentAsync(
         long id,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeResponse[]> GetChargesAsync(
+        long? id = null,
+        long? storeId = null,
+        DateTimeOffset? from = null,
+        bool withGoods = false,
+        string? number = null,
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeGoodResponse[]> GetChargeGoodsAsync(
+        long? chargeId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeResponse> CreateChargeAsync(
+        ChargeRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeGoodResponse> AddChargeGoodAsync(
+        ChargeGoodRequest request,
         CancellationToken cancellationToken = default);
 
     IBusinessRuQuery CreateQuery();
