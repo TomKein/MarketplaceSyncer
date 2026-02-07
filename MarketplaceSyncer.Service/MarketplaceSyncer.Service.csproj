@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-MarketplaceSyncer.Service-5934b6e4-2365-4fb0-8cf3-931cb7f5684f</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ErrorOr" />
+    <PackageReference Include="FluentMigrator" />
+    <PackageReference Include="FluentMigrator.Runner" />
+    <PackageReference Include="FluentMigrator.Runner.Core" />
+    <PackageReference Include="FluentMigrator.Runner.Postgres" />
+    <PackageReference Include="linq2db" />
+    <PackageReference Include="linq2db.Extensions" />
+    <PackageReference Include="linq2db.PostgreSQL" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+</Project>

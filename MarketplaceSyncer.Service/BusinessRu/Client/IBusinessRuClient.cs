@@ -1,0 +1,150 @@
+using MarketplaceSyncer.Service.BusinessRu.Models.Requests;
+using MarketplaceSyncer.Service.BusinessRu.Models.Responses;
+using MarketplaceSyncer.Service.BusinessRu.Query;
+
+namespace MarketplaceSyncer.Service.BusinessRu.Client;
+
+public interface IBusinessRuClient : IDisposable
+{
+    Task<GoodResponse[]> GetGoodsAsync(
+        long? businessId = null,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default);
+
+    Task<int> CountGoodsAsync(
+        bool includeArchived = false,
+        int? type = 1,
+        CancellationToken cancellationToken = default);
+
+    Task<EmployeeResponse[]> GetEmployeesAsync(
+        bool withAccess = false,
+        CancellationToken cancellationToken = default);
+
+    Task<GroupResponse[]> GetGroupsAsync(CancellationToken cancellationToken = default);
+    
+    Task<MeasureResponse[]> GetMeasuresAsync(CancellationToken cancellationToken = default);
+    
+    Task<CountryResponse[]> GetCountriesAsync(CancellationToken cancellationToken = default);
+    
+    Task<CurrencyResponse[]> GetCurrenciesAsync(CancellationToken cancellationToken = default);
+
+    Task<GoodsMeasureResponse[]> GetGoodsMeasuresAsync(
+        long? goodId = null,
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default);
+
+    Task<SalePriceListGoodPrice[]> GetGoodPricesAsync(
+        long goodId,
+        long? priceTypeId = null,
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
+    Task<SalePriceList[]> GetPriceListsAsync(
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
+    Task<string> CreatePriceListAsync(
+        string name,
+        long priceTypeId,
+        CancellationToken cancellationToken = default);
+
+    Task<SalePriceType[]> GetPriceTypesAsync(
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
+    Task UpdatePriceAsync(
+        long priceId,
+        decimal price,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodResponse[]> GetGoodsChangedAfterAsync(
+        DateTimeOffset since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodResponse[]> GetGoodsWithPriceChangesAfterAsync(
+        DateTimeOffset since,
+        bool includeArchived = false,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodImageResponse[]> GetGoodImagesAsync(
+        long goodId,
+        CancellationToken cancellationToken = default);
+
+    Task AddGoodImageAsync(
+        long goodId,
+        string name,
+        string url,
+        CancellationToken cancellationToken = default);
+
+    Task<AttributeResponse[]> GetAttributesAsync(CancellationToken cancellationToken = default);
+
+    Task<AttributeValueResponse[]> GetAttributeValuesAsync(
+        long? attributeId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<GoodAttributeResponse[]> GetGoodAttributesAsync(
+        long? goodId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<StoreResponse[]> GetStoresAsync(CancellationToken cancellationToken = default);
+
+    Task<CurrentPriceResponse[]> GetCurrentPricesAsync(
+        DateTimeOffset? changedAfter = null,
+        CancellationToken cancellationToken = default);
+
+    Task<StoreGoodResponse[]> GetStoreGoodsAsync(
+        long? storeId = null,
+        DateTimeOffset? changedAfter = null,
+        bool withPositiveAmount = false,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse[]> GetCommentsAsync(
+        string modelName = "goods",
+        long? modelId = null,
+        DateTimeOffset? from = null,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse> CreateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<CommentResponse> UpdateCommentAsync(
+        CommentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteCommentAsync(
+        long id,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeResponse[]> GetChargesAsync(
+        long? id = null,
+        long? storeId = null,
+        DateTimeOffset? from = null,
+        bool withGoods = false,
+        string? number = null,
+        int? limit = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeGoodResponse[]> GetChargeGoodsAsync(
+        long? chargeId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeResponse> CreateChargeAsync(
+        ChargeRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<ChargeGoodResponse> AddChargeGoodAsync(
+        ChargeGoodRequest request,
+        CancellationToken cancellationToken = default);
+
+    IBusinessRuQuery CreateQuery();
+
+    Task<TResponse> RequestAsync<TRequest, TResponse>(
+        HttpMethod method,
+        string endpoint,
+        TRequest request,
+        CancellationToken cancellationToken = default)
+        where TRequest : class
+        where TResponse : class;
+}
