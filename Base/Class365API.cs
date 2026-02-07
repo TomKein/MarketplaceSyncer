@@ -1330,6 +1330,7 @@ namespace Selen {
                 var postingGoods = JsonConvert.DeserializeObject<List<PostingGoods>>(s);
                 foreach (var pg in postingGoods) {
                     var indBus = _bus.FindIndex(f => f.id == pg.good_id);
+                    if (_bus[indBus].store_code == "76726") continue;
                     if (indBus > -1 && _bus[indBus].Amount > 0 && _bus[indBus].Price > 0) {
                         var priceIn = pg.Price;
                         var priceOut = _bus[indBus].Price;
